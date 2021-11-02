@@ -392,20 +392,23 @@ class Estimator : public VioBackendInterface
   bool set_T_WS(uint64_t poseId, const okvis::kinematics::Transformation & T_WS);
 
   // Added by Sharmin to refine scale
-  bool setImuPreIntegral(uint64_t poseId, Eigen::Vector3d & acc_doubleintegral,
+  void setImuPreIntegral(uint64_t poseId, Eigen::Vector3d & acc_doubleintegral,
   		  Eigen::Vector3d & acc_integral, double & Delta_t);
 
   // Added by Sharmin for scale
     struct imu_integrals{
-  	imu_integrals(Eigen::Vector3d acc_doubleintegral, Eigen::Vector3d acc_integral, double Delta_t)
+    
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    imu_integrals(Eigen::Vector3d acc_doubleintegral, Eigen::Vector3d acc_integral, double Delta_t)
   	  :acc_doubleintegral(acc_doubleintegral), acc_integral(acc_integral), Delta_t(Delta_t){}
 
   	Eigen::Vector3d acc_doubleintegral;
   	Eigen::Vector3d acc_integral;
   	double Delta_t;
+
     };
 
-    std::map<uint64_t, imu_integrals> imuIntegralsMap_;
+    std::map<uint64_t, imu_integrals, std::less<uint64_t>, Eigen::aligned_allocator<std::pair<const uint64_t, imu_integrals>>> imuIntegralsMap_;
 
   /**
    * @brief Set the speeds and IMU biases for a given pose ID.
@@ -497,7 +500,7 @@ class Estimator : public VioBackendInterface
   {
     Camera = 0, ///< Camera
     Imu = 1, ///< IMU
-	Sonar = 2, ///< Sonar @Sharmin
+	  Sonar = 2, ///< Sonar @Sharmin
     Position = 3, ///< Position, currently unused
     Gps = 4, ///< GPS, currently unused
     Magnetometer = 5, ///< Magnetometer, currently unused
@@ -522,7 +525,7 @@ class Estimator : public VioBackendInterface
   // @Sharmin
   enum SonarSensorStates
   {
-      range = 0, ///< range
+    range = 0, ///< range
 	  heading = 1 ///< head position
   };
 

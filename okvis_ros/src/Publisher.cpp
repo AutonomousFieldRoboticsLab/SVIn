@@ -46,9 +46,12 @@
 #pragma GCC diagnostic pop
 #include <sensor_msgs/fill_image.h>
 #include <sensor_msgs/image_encodings.h>
-#include <okvis_ros/SvinHealth.h>  // for svin_health publisher
 
 #include <okvis/FrameTypedefs.hpp>
+
+#include <okvis_ros/SvinHealth.h>
+#include <sensor_msgs/PointCloud.h>
+#include <cv_bridge/cv_bridge.h>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -57,10 +60,6 @@ namespace okvis {
 Publisher::Publisher()
     : nh_(nullptr),
       ctr2_(0)
-	  //imageTransportKeyframeImageL_(*nh_)  // Sharmin: can't initialize with nullptr
-	  // Sharmin added
-	  //stereoPointsMatched_(new pcl::PointCloud<pcl::PointXYZRGB>)
-	  // End Sharmin added
 {
 }
 
@@ -692,7 +691,8 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
             / parameters_.publishing.maxLandmarkQuality);
 
     // added by Sharmin
-    *csvLandmarksFile_ << ", " << pointsMatched.at(i).id << ", " << point[0] << ", " << point[1] << ", "
+    if(csvLandmarksFile_)
+      *csvLandmarksFile_ << ", " << pointsMatched.at(i).id << ", " << point[0] << ", " << point[1] << ", "
                      << point[2] << ", " << point[3] << ", " << pointsMatched.at(i).quality << std::endl;
   }
   pointsMatched_.header.frame_id = "world";

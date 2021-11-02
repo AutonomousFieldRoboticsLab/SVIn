@@ -95,8 +95,13 @@ include_directories(
 )
 
 # compile the ROS dependent stuff into a library
+
+#removed -g flag which produces debubugging information 
+#-g is not needed for release builds
+
 add_definitions(-fPIC -march=native -Wextra -Winit-self -Woverloaded-virtual
-                -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -std=c++0x -g)
+                -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -std=c++14)
+
 add_library(${PROJECT_NAME} STATIC src/Subscriber.cpp
                                src/Publisher.cpp
                                src/RosParametersReader.cpp

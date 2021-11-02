@@ -310,6 +310,11 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
     cv::Mat inliers;
     TicToc t_pnp_ransac;
 
+
+	//bjoshi
+	// Temporary fix for https://github.com/opencv/opencv/issues/17799
+	// This is a bug in opencv. The bug is fixed in opencv master branch.
+	try{
     if (CV_MAJOR_VERSION < 3)
         solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 100, inliers);
     else
@@ -320,6 +325,10 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f> &matched_2d_old_norm,
             solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 0.99, inliers);
 
     }
+	}catch(cv::Exception e){
+		// std::cout << "Caught exception in PnPRANSAC:" << e.what() << std::endl;
+		inliers.setTo(cv::Scalar(0));	
+	}
 
     for (int i = 0; i < (int)matched_2d_old_norm.size(); i++)
         status.push_back(0);

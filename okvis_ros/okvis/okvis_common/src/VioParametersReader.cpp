@@ -349,6 +349,8 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   }
 
   // sonar parameters
+
+  if(vioParameters_.sensorList.isSonarUsed){
   cv::FileNode T_SSo_ = file["sonar_params"]["T_SSo"];
     OKVIS_ASSERT_TRUE(
         Exception,
@@ -363,6 +365,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     ss << vioParameters_.sonar.T_SSo.T();
     LOG(INFO) << "Sonar with transformation T_SSo=\n" << ss.str();
 
+  }
   // *****  End Sharmin: Additional config ******//
 
   // Hunter: Resetable pose parameters

@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,9 +39,9 @@
 #ifndef INCLUDE_OKVIS_CERES_PARAMETERBLOCK_HPP_
 #define INCLUDE_OKVIS_CERES_PARAMETERBLOCK_HPP_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <iostream>
-#include <stdint.h>
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
@@ -52,26 +52,18 @@ namespace ceres {
 /// @brief Base class providing the interface for parameter blocks.
 class ParameterBlock {
  public:
-
   /// @brief Default constructor, assumes not fixed and no local parameterisation.
-  ParameterBlock()
-      : id_(0),
-        fixed_(false),
-        localParameterizationPtr_(0) {
-  }
+  ParameterBlock() : id_(0), fixed_(false), localParameterizationPtr_(0) {}
 
   /// \brief Trivial destructor.
-  virtual ~ParameterBlock() {
-  }
+  virtual ~ParameterBlock() {}
 
   /// @name Setters
   /// @{
 
   /// @brief Set parameter block ID
   /// @param[in] id A unique ID.
-  void setId(uint64_t id) {
-    id_ = id;
-  }
+  void setId(uint64_t id) { id_ = id; }
 
   /// @brief Directly set values of this parameter block.
   /// @param[in] parameters Pointer to parameters to be copied into this.
@@ -79,9 +71,7 @@ class ParameterBlock {
 
   /// @brief Whether or not this should be optimised at all.
   /// @param[in] fixed True if not to be optimised.
-  void setFixed(bool fixed) {
-    fixed_ = fixed;
-  }
+  void setFixed(bool fixed) { fixed_ = fixed; }
 
   /// @}
 
@@ -95,9 +85,7 @@ class ParameterBlock {
   virtual const double* parameters() const = 0;
 
   /// @brief Get parameter block ID.
-  uint64_t id() const {
-    return id_;
-  }
+  uint64_t id() const { return id_; }
   /// @brief Get the dimension of the parameter block.
   virtual size_t dimension() const = 0;
 
@@ -105,9 +93,7 @@ class ParameterBlock {
   virtual size_t minimalDimension() const = 0;
 
   /// @brief Whether or not this is optimised at all.
-  bool fixed() const {
-    return fixed_;
-  }
+  bool fixed() const { return fixed_; }
 
   /// @}
   // minimal internal parameterization
@@ -117,8 +103,7 @@ class ParameterBlock {
   /// @param[in] x0 Variable.
   /// @param[in] Delta_Chi Perturbation.
   /// @param[out] x0_plus_Delta Perturbed x.
-  virtual void plus(const double* x0, const double* Delta_Chi,
-                    double* x0_plus_Delta) const = 0;
+  virtual void plus(const double* x0, const double* Delta_Chi, double* x0_plus_Delta) const = 0;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x0 Variable.
@@ -130,8 +115,7 @@ class ParameterBlock {
   /// @param[in] x0_plus_Delta Perturbed variable.
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
-  virtual void minus(const double* x0, const double* x0_plus_Delta,
-                     double* Delta_Chi) const = 0;
+  virtual void minus(const double* x0, const double* x0_plus_Delta, double* Delta_Chi) const = 0;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x0 Variable.
@@ -145,16 +129,13 @@ class ParameterBlock {
    * @brief Set which local parameterisation object to use.
    * @param localParameterizationPtr The local parameterisation object to use.
    */
-  virtual void setLocalParameterizationPtr(
-      const ::ceres::LocalParameterization* localParameterizationPtr) {
+  virtual void setLocalParameterizationPtr(const ::ceres::LocalParameterization* localParameterizationPtr) {
     localParameterizationPtr_ = localParameterizationPtr;
   }
   /**
    * @brief The local parameterisation object to use.
    */
-  virtual const ::ceres::LocalParameterization* localParameterizationPtr() const {
-    return localParameterizationPtr_;
-  }
+  virtual const ::ceres::LocalParameterization* localParameterizationPtr() const { return localParameterizationPtr_; }
   /// @}
   /// @brief Return parameter block type as string
   virtual std::string typeInfo() const = 0;

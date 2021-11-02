@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -36,10 +36,10 @@
  * @author Stefan Leutenegger
  */
 
-#include <okvis/triangulation/stereo_triangulation.hpp>
-#include <okvis/kinematics/operators.hpp>
-#include <okvis/kinematics/Transformation.hpp>
 #include <iostream>
+#include <okvis/kinematics/Transformation.hpp>
+#include <okvis/kinematics/operators.hpp>
+#include <okvis/triangulation/stereo_triangulation.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -51,13 +51,16 @@ namespace triangulation {
 Eigen::Vector4d triangulateFast(const Eigen::Vector3d& p1,
                                 const Eigen::Vector3d& e1,
                                 const Eigen::Vector3d& p2,
-                                const Eigen::Vector3d& e2, double sigma,
-                                bool& isValid, bool& isParallel) {
-  isParallel = false; // This should be the default.
+                                const Eigen::Vector3d& e2,
+                                double sigma,
+                                bool& isValid,
+                                bool& isParallel) {
+  isParallel = false;  // This should be the default.
   // But parallel and invalid is not the same. Points at infinity are valid and parallel.
-  isValid = false; // hopefully this will be reset to true.
+  isValid = false;  // hopefully this will be reset to true.
 
-  // stolen and adapted from the Kneip toolchain geometric_vision/include/geometric_vision/triangulation/impl/triangulation.hpp
+  // stolen and adapted from the Kneip toolchain
+  // geometric_vision/include/geometric_vision/triangulation/impl/triangulation.hpp
   Eigen::Vector3d t12 = p2 - p1;
 
   // check parallel
@@ -90,13 +93,12 @@ Eigen::Vector4d triangulateFast(const Eigen::Vector3d& p1,
   A.computeInverseWithCheck(A_inverse, invertible, 1.0e-6);
   Eigen::Vector2d lambda = A_inverse * b;
   if (!invertible) {
-    isParallel = true; // let's note this.
+    isParallel = true;  // let's note this.
     // parallel. that's fine. but A is not invertible. so handle it separately.
-    if ((e1.cross(e2)).norm() < 6 * sigma){
-       isValid = true;  // check parallel
+    if ((e1.cross(e2)).norm() < 6 * sigma) {
+      isValid = true;  // check parallel
     }
-    return (Eigen::Vector4d((e1[0] + e2[0]) / 2.0, (e1[1] + e2[1]) / 2.0,
-                            (e1[2] + e2[2]) / 2.0, 1e-3).normalized());
+    return (Eigen::Vector4d((e1[0] + e2[0]) / 2.0, (e1[1] + e2[1]) / 2.0, (e1[2] + e2[2]) / 2.0, 1e-3).normalized());
   }
 
   Eigen::Vector3d xm = lambda[0] * e1 + p1;
@@ -122,7 +124,6 @@ Eigen::Vector4d triangulateFast(const Eigen::Vector3d& p1,
   return Eigen::Vector4d(midpoint[0], midpoint[1], midpoint[2], 1.0).normalized();
 }
 
-}
+}  // namespace triangulation
 
-}
-
+}  // namespace okvis

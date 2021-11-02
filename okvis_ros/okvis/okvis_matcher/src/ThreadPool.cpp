@@ -34,24 +34,18 @@
  * @author Stefan Leutenegger
  */
 
-
 #include <okvis/ThreadPool.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
 // The constructor just launches some amount of workers.
-ThreadPool::ThreadPool(size_t threads)
-    : active_threads_(0),
-      stop_(false)
-{
-  for (size_t i = 0; i < threads; ++i)
-    workers_.emplace_back(std::bind(&ThreadPool::run, this));
+ThreadPool::ThreadPool(size_t threads) : active_threads_(0), stop_(false) {
+  for (size_t i = 0; i < threads; ++i) workers_.emplace_back(std::bind(&ThreadPool::run, this));
 }
 
 // Destructor. This joins all threads.
-ThreadPool::~ThreadPool()
-{
+ThreadPool::~ThreadPool() {
   {
     std::unique_lock<std::mutex> lock(tasks_mutex_);
     stop_ = true;
@@ -63,8 +57,7 @@ ThreadPool::~ThreadPool()
 }
 
 // Run a single thread.
-void ThreadPool::run()
-{
+void ThreadPool::run() {
   while (true) {
     std::unique_lock<std::mutex> lock(this->tasks_mutex_);
     while (!this->stop_ && this->tasks_.empty()) {
@@ -88,8 +81,7 @@ void ThreadPool::run()
 }
 
 // This method blocks until the queue is empty.
-void ThreadPool::waitForEmptyQueue() const
-{
+void ThreadPool::waitForEmptyQueue() const {
   std::unique_lock<std::mutex> lock(this->tasks_mutex_);
   // Only exit if all tasks are complete by tracking the number of
   // active threads.

@@ -1,46 +1,31 @@
-#include <okvis/DenseMatcher.hpp>
-#include <math.h>
 #include <gtest/gtest.h>
+#include <math.h>
+#include <okvis/DenseMatcher.hpp>
 
 class TestMatchingAlgorithm : public okvis::MatchingAlgorithm {
  public:
-  TestMatchingAlgorithm() {
-  }
-  virtual ~TestMatchingAlgorithm() {
-  }
+  TestMatchingAlgorithm() {}
+  virtual ~TestMatchingAlgorithm() {}
 
   /// \brief this will be called exactly once for each call to DenseMatcher::match()
-  virtual void doSetup() {
-  }
+  virtual void doSetup() {}
 
   /// \brief what is the size of list A?
-  virtual size_t sizeA() const {
-    return listA.size();
-  }
+  virtual size_t sizeA() const { return listA.size(); }
   /// \brief what is the size of list B?
-  virtual size_t sizeB() const {
-    return listB.size();
-  }
+  virtual size_t sizeB() const { return listB.size(); }
 
   /// distances above this threshold will not be returned as matches.
-  virtual float distanceThreshold() const {
-    return 4.0f;
-  }
+  virtual float distanceThreshold() const { return 4.0f; }
 
   /// by which factor does the first best match has to be better than the second best one.
-  virtual float distanceRatioThreshold() const {
-    return 3.0f;
-  }
+  virtual float distanceRatioThreshold() const { return 3.0f; }
 
   /// \brief Should we skip the item in list A? This will be called once for each item in the list
-  virtual bool skipA(size_t indexA) const {
-    return indexA == 0;
-  }
+  virtual bool skipA(size_t indexA) const { return indexA == 0; }
 
   /// \brief Should we skip the item in list B? This will be called many times.
-  virtual bool skipB(size_t /* indexB */) const {
-    return false;
-  }
+  virtual bool skipB(size_t /* indexB */) const { return false; }
 
   /// \brief the "distance" between the two points.
   ///        For points that absolutely don't match. Please use float max.
@@ -66,8 +51,7 @@ class TestMatchingAlgorithm : public okvis::MatchingAlgorithm {
   std::vector<std::pair<int, int> > matches;
 };
 
-TEST(DenseMatcherTestSuite, denseMatcherTest)
-{
+TEST(DenseMatcherTestSuite, denseMatcherTest) {
   TestMatchingAlgorithm tma;
 
   tma.listA.push_back(1.0);
@@ -91,27 +75,24 @@ TEST(DenseMatcherTestSuite, denseMatcherTest)
 
   ASSERT_EQ(3u, tma.matches.size());
 
-  for(size_t i = 0; i < tma.matches.size(); ++i)
-  {
-    switch(tma.matches[i].first)
-    {
+  for (size_t i = 0; i < tma.matches.size(); ++i) {
+    switch (tma.matches[i].first) {
       case 1:
-      ASSERT_EQ(2, tma.matches[i].second);
-      break;
+        ASSERT_EQ(2, tma.matches[i].second);
+        break;
       case 2:
-      ASSERT_EQ(1, tma.matches[i].second);
-      break;
+        ASSERT_EQ(1, tma.matches[i].second);
+        break;
       case 3:
-      ASSERT_EQ(3, tma.matches[i].second);
-      break;
+        ASSERT_EQ(3, tma.matches[i].second);
+        break;
       default:
-      FAIL() << "Unexpected match " << tma.matches[i].first << " --> " << tma.matches[i].second;
+        FAIL() << "Unexpected match " << tma.matches[i].first << " --> " << tma.matches[i].second;
     }
   }
 }
 
-TEST(DenseMatcherTestSuite, denseMatcherDistanceRatioTest)
-{
+TEST(DenseMatcherTestSuite, denseMatcherDistanceRatioTest) {
   TestMatchingAlgorithm tma;
 
   tma.listA.push_back(8.0);
@@ -138,18 +119,16 @@ TEST(DenseMatcherTestSuite, denseMatcherDistanceRatioTest)
 
   ASSERT_EQ(2u, tma.matches.size());
 
-  for(size_t i = 0; i < tma.matches.size(); ++i)
-  {
-    switch(tma.matches[i].first)
-    {
+  for (size_t i = 0; i < tma.matches.size(); ++i) {
+    switch (tma.matches[i].first) {
       case 1:
-      ASSERT_EQ(3, tma.matches[i].second);
-      break;
+        ASSERT_EQ(3, tma.matches[i].second);
+        break;
       case 3:
-      ASSERT_EQ(1, tma.matches[i].second);
-      break;
+        ASSERT_EQ(1, tma.matches[i].second);
+        break;
       default:
-      FAIL() << "Unexpected match " << tma.matches[i].first << " --> " << tma.matches[i].second;
+        FAIL() << "Unexpected match " << tma.matches[i].first << " --> " << tma.matches[i].second;
     }
   }
 }

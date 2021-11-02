@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -30,8 +30,8 @@
  *      Author: Stefan Leutenegger (s.leutenegger@imperial.ac.uk)
  *********************************************************************************/
 
-#include <okvis/kinematics/Transformation.hpp>
 #include <iostream>
+#include <okvis/kinematics/Transformation.hpp>
 #include "gtest/gtest.h"
 
 TEST(Transformation, operations) {
@@ -42,9 +42,7 @@ TEST(Transformation, operations) {
     T_BC.setRandom();
 
     // Test inverse
-    EXPECT_TRUE(
-        ((T_AB * T_AB.inverse()).T() - Eigen::Matrix4d::Identity()).norm()
-            < 1e-8);
+    EXPECT_TRUE(((T_AB * T_AB.inverse()).T() - Eigen::Matrix4d::Identity()).norm() < 1e-8);
 
     // Test composition
     EXPECT_TRUE(((T_AB * T_BC).T() - T_AB.T() * T_BC.T()).norm() < 1e-8);
@@ -86,22 +84,18 @@ TEST(Transformation, operations) {
       T_AB_m.oplus(dp_m);
       /*jacobian_numDiff.block<7, 1>(0, i) = (T_AB_p.parameters()
           - T_AB_m.parameters()) / (2.0 * dp);*/
-      jacobian_numDiff.block<3, 1>(0, i) = (T_AB_p.r() - T_AB_m.r())
-          / (2.0 * dp);
-      jacobian_numDiff.block<4, 1>(3, i) = (T_AB_p.q().coeffs()
-          - T_AB_m.q().coeffs()) / (2.0 * dp);
+      jacobian_numDiff.block<3, 1>(0, i) = (T_AB_p.r() - T_AB_m.r()) / (2.0 * dp);
+      jacobian_numDiff.block<4, 1>(3, i) = (T_AB_p.q().coeffs() - T_AB_m.q().coeffs()) / (2.0 * dp);
     }
     Eigen::Matrix<double, 7, 6, Eigen::RowMajor> jacobian;
     T_AB.oplusJacobian(jacobian);
-    //std::cout << jacobian << std::endl;
-    //std::cout << jacobian_numDiff << std::endl;
+    // std::cout << jacobian << std::endl;
+    // std::cout << jacobian_numDiff << std::endl;
     EXPECT_TRUE((jacobian - jacobian_numDiff).norm() < 1e-8);
     // also check lift Jacobian: dChi/dx*dx/dChi == 1
     Eigen::Matrix<double, 6, 7, Eigen::RowMajor> lift_jacobian;
     T_AB.liftJacobian(lift_jacobian);
-    EXPECT_TRUE(
-        (lift_jacobian * jacobian - Eigen::Matrix<double, 6, 6>::Identity())
-            .norm() < 1e-8);
+    EXPECT_TRUE((lift_jacobian * jacobian - Eigen::Matrix<double, 6, 6>::Identity()).norm() < 1e-8);
 
     // Test minus
     okvis::kinematics::Transformation T_AB_disturbed = T_AB;
@@ -123,8 +117,8 @@ TEST(Transformation, operations) {
      T_AB_p.oplus(dp_p);
      T_AB_m.oplus(dp_m);
      }*/
-    //Eigen::Matrix<double, 6, 6, Eigen::RowMajor> minusJacobian;
-    //T_AB_disturbed.minus(T_AB, delta2, minusJacobian);
-    //EXPECT_TRUE((delta - delta2).norm() < 1e-8);
+    // Eigen::Matrix<double, 6, 6, Eigen::RowMajor> minusJacobian;
+    // T_AB_disturbed.minus(T_AB, delta2, minusJacobian);
+    // EXPECT_TRUE((delta - delta2).norm() < 1e-8);
   }
 }

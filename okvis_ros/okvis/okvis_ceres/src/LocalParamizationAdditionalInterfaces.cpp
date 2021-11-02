@@ -11,11 +11,8 @@ namespace okvis {
 namespace ceres {
 
 // Verifies the correctness of a inplementation.
-bool LocalParamizationAdditionalInterfaces::verify(
-    const double* x_raw, double purturbation_magnitude) const
-{
-  const ::ceres::LocalParameterization* casted =
-      dynamic_cast<const ::ceres::LocalParameterization*>(this);
+bool LocalParamizationAdditionalInterfaces::verify(const double* x_raw, double purturbation_magnitude) const {
+  const ::ceres::LocalParameterization* casted = dynamic_cast<const ::ceres::LocalParameterization*>(this);
   if (!casted) {
     return false;
   }
@@ -34,8 +31,7 @@ bool LocalParamizationAdditionalInterfaces::verify(
   }
 
   // plusJacobian numDiff
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus_num_diff(
-      casted->GlobalSize(), casted->LocalSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus_num_diff(casted->GlobalSize(), casted->LocalSize());
   const double dx = 1.0e-9;
   for (int i = 0; i < casted->LocalSize(); ++i) {
     Eigen::VectorXd delta_p(casted->LocalSize());
@@ -56,10 +52,8 @@ bool LocalParamizationAdditionalInterfaces::verify(
   }
 
   // verify lift
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus(casted->GlobalSize(),
-                                                        casted->LocalSize());
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_lift(casted->LocalSize(),
-                                                        casted->GlobalSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus(casted->GlobalSize(), casted->LocalSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_lift(casted->LocalSize(), casted->GlobalSize());
   casted->ComputeJacobian(x_raw, J_plus.data());
   ComputeLiftJacobian(x_raw, J_lift.data());
   Eigen::MatrixXd identity(casted->LocalSize(), casted->LocalSize());
@@ -77,6 +71,5 @@ bool LocalParamizationAdditionalInterfaces::verify(
   return true;
 }
 
-} // namespace ceres
-} // namespace okvis
-
+}  // namespace ceres
+}  // namespace okvis

@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -30,78 +30,56 @@
  *      Author: Stefan Leutenegger (s.leutenegger@imperial.ac.uk)
  *********************************************************************************/
 
-#include <iostream>
 #include <gtest/gtest.h>
+#include <iostream>
 #include <memory>
 #include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <brisk/brisk.h>
 #pragma GCC diagnostic pop
-#include "okvis/cameras/PinholeCamera.hpp"
-#include "okvis/cameras/NoDistortion.hpp"
-#include "okvis/cameras/RadialTangentialDistortion.hpp"
 #include "okvis/cameras/EquidistantDistortion.hpp"
 #include "okvis/cameras/NCameraSystem.hpp"
+#include "okvis/cameras/NoDistortion.hpp"
+#include "okvis/cameras/PinholeCamera.hpp"
+#include "okvis/cameras/RadialTangentialDistortion.hpp"
 
-TEST(NCameraSystem, functions)
-{
-
+TEST(NCameraSystem, functions) {
   // instantiate all possible versions of test cameras
-  std::vector<std::shared_ptr<const okvis::cameras::CameraBase> > cameras;
+  std::vector<std::shared_ptr<const okvis::cameras::CameraBase>> cameras;
   std::vector<okvis::cameras::NCameraSystem::DistortionType> distortions;
-  cameras.push_back(
-      okvis::cameras::PinholeCamera<okvis::cameras::NoDistortion>::createTestObject());
+  cameras.push_back(okvis::cameras::PinholeCamera<okvis::cameras::NoDistortion>::createTestObject());
   distortions.push_back(okvis::cameras::NCameraSystem::NoDistortion);
-  cameras.push_back(
-      okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>::createTestObject());
+  cameras.push_back(okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>::createTestObject());
   distortions.push_back(okvis::cameras::NCameraSystem::RadialTangential);
-  cameras.push_back(
-      okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>::createTestObject());
+  cameras.push_back(okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>::createTestObject());
   distortions.push_back(okvis::cameras::NCameraSystem::Equidistant);
 
   // the mounting transformations. The third one is opposite direction
   std::vector<std::shared_ptr<const okvis::kinematics::Transformation>> T_SC;
-  T_SC.push_back(
-      std::shared_ptr<okvis::kinematics::Transformation>(
-          new okvis::kinematics::Transformation(Eigen::Vector3d(0.1, 0.1, 0.1),
-                                                Eigen::Quaterniond(1, 0, 0, 0))));
-  T_SC.push_back(
-      std::shared_ptr<okvis::kinematics::Transformation>(
-          new okvis::kinematics::Transformation(
-              Eigen::Vector3d(0.1, -0.1, -0.1), Eigen::Quaterniond(1, 0, 0, 0))));
-  T_SC.push_back(
-      std::shared_ptr<okvis::kinematics::Transformation>(
-          new okvis::kinematics::Transformation(
-              Eigen::Vector3d(0.1, -0.1, -0.1), Eigen::Quaterniond(0, 0, 1, 0))));
+  T_SC.push_back(std::shared_ptr<okvis::kinematics::Transformation>(
+      new okvis::kinematics::Transformation(Eigen::Vector3d(0.1, 0.1, 0.1), Eigen::Quaterniond(1, 0, 0, 0))));
+  T_SC.push_back(std::shared_ptr<okvis::kinematics::Transformation>(
+      new okvis::kinematics::Transformation(Eigen::Vector3d(0.1, -0.1, -0.1), Eigen::Quaterniond(1, 0, 0, 0))));
+  T_SC.push_back(std::shared_ptr<okvis::kinematics::Transformation>(
+      new okvis::kinematics::Transformation(Eigen::Vector3d(0.1, -0.1, -0.1), Eigen::Quaterniond(0, 0, 1, 0))));
 
   okvis::cameras::NCameraSystem nCameraSystem(T_SC, cameras, distortions, true);  // computes overlaps
 
   // verify self overlaps
-  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(0, 0),
-                    "No self overlap?");
-  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(1, 1),
-                    "No self overlap?");
-  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(2, 2),
-                    "No self overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(0, 0), "No self overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(1, 1), "No self overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(2, 2), "No self overlap?");
 
   // verify 0 and 1 overlap
-  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(0, 1),
-                    "No overlap?");
-  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(1, 0),
-                    "No overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(0, 1), "No overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, nCameraSystem.hasOverlap(1, 0), "No overlap?");
 
   // verify 1 and 2 do not overlap
-  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(1, 2),
-                    "Overlap?");
-  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(2, 1),
-                    "Overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(1, 2), "Overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(2, 1), "Overlap?");
 
   // verify 0 and 2 do not overlap
-  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(0, 2),
-                    "Overlap?");
-  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(2, 0),
-                    "Overlap?");
-
+  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(0, 2), "Overlap?");
+  OKVIS_ASSERT_TRUE(std::runtime_error, !nCameraSystem.hasOverlap(2, 0), "Overlap?");
 }
-

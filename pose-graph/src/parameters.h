@@ -1,12 +1,11 @@
 #pragma once
 
-#include <eigen3/Eigen/Dense>
+#include <cv_bridge/cv_bridge.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/image_encodings.h>
-#include <cv_bridge/cv_bridge.h>
-
+#include <eigen3/Eigen/Dense>
 
 extern Eigen::Vector3d tic;
 extern Eigen::Matrix3d qic;
@@ -25,4 +24,3 @@ extern double p_fx;
 extern double p_fy;
 extern double p_cx;
 extern double p_cy;
-

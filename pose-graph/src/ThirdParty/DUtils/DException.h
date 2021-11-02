@@ -1,4 +1,4 @@
-/*	
+/*
  * File: DException.h
  * Project: DUtils library
  * Author: Dorian Galvez-Lopez
@@ -20,46 +20,40 @@ using namespace std;
 namespace DUtils {
 
 /// General exception
-class DException :
-	public exception
-{
-public:
-	/**
-	 * Creates an exception with a general error message
-	 */
-	DException(void) throw(): m_message("DUtils exception"){}
-
-	/**
-	 * Creates an exception with a custom error message
-	 * @param msg: message
-	 */
-	DException(const char *msg) throw(): m_message(msg){}
-	
-	/**
-	 * Creates an exception with a custom error message
-	 * @param msg: message
-	 */
-	DException(const string &msg) throw(): m_message(msg){}
+class DException : public exception {
+ public:
+  /**
+   * Creates an exception with a general error message
+   */
+  DException(void) throw() : m_message("DUtils exception") {}
 
   /**
-	 * Destructor
-	 */
-	virtual ~DException(void) throw(){}
+   * Creates an exception with a custom error message
+   * @param msg: message
+   */
+  DException(const char* msg) throw() : m_message(msg) {}
 
-	/**
-	 * Returns the exception message
-	 */
-	virtual const char* what() const throw()
-	{
-		return m_message.c_str();
-	}
+  /**
+   * Creates an exception with a custom error message
+   * @param msg: message
+   */
+  DException(const string& msg) throw() : m_message(msg) {}
 
-protected:
+  /**
+   * Destructor
+   */
+  virtual ~DException(void) throw() {}
+
+  /**
+   * Returns the exception message
+   */
+  virtual const char* what() const throw() { return m_message.c_str(); }
+
+ protected:
   /// Error message
-	string m_message;
+  string m_message;
 };
 
-}
+}  // namespace DUtils
 
 #endif
-

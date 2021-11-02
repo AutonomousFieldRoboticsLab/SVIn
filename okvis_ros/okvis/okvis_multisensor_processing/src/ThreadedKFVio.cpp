@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,78 +44,71 @@
 
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/assert_macros.hpp>
+#include <okvis/cameras/PinholeCamera.hpp>               // Sharmin
+#include <okvis/cameras/RadialTangentialDistortion.hpp>  // Sharmin
 #include <okvis/ceres/ImuError.hpp>
-#include <okvis/cameras/PinholeCamera.hpp>  // Sharmin
-#include <okvis/cameras/RadialTangentialDistortion.hpp> // Sharmin
 
 /// @Sharmin
 #include <okvis/IdProvider.hpp>
 
-int nNextId = 0; // FIXME Sharmin To remove this global variable.
-int numKF = 0; // Sharmin: Number of keyframe
-int SKIP_CNT = 5; // Sharmin: to skip frames while publishing every frame
-int skip_cnt = 0; // Sharmin: to skip frames while publishing every frame
+int nNextId = 0;   // FIXME Sharmin To remove this global variable.
+int numKF = 0;     // Sharmin: Number of keyframe
+int SKIP_CNT = 5;  // Sharmin: to skip frames while publishing every frame
+int skip_cnt = 0;  // Sharmin: to skip frames while publishing every frame
 
 // Sharmin
-static Eigen::Vector3d R2ypr(const Eigen::Matrix3d &R)
-{
-	Eigen::Vector3d n = R.col(0);
-	Eigen::Vector3d o = R.col(1);
-	Eigen::Vector3d a = R.col(2);
+static Eigen::Vector3d R2ypr(const Eigen::Matrix3d& R) {
+  Eigen::Vector3d n = R.col(0);
+  Eigen::Vector3d o = R.col(1);
+  Eigen::Vector3d a = R.col(2);
 
-	Eigen::Vector3d ypr(3);
-	double y = atan2(n(1), n(0));
-	double p = atan2(-n(2), n(0) * cos(y) + n(1) * sin(y));
-	double r = atan2(a(0) * sin(y) - a(1) * cos(y), -o(0) * sin(y) + o(1) * cos(y));
-	ypr(0) = y;
-	ypr(1) = p;
-	ypr(2) = r;
+  Eigen::Vector3d ypr(3);
+  double y = atan2(n(1), n(0));
+  double p = atan2(-n(2), n(0) * cos(y) + n(1) * sin(y));
+  double r = atan2(a(0) * sin(y) - a(1) * cos(y), -o(0) * sin(y) + o(1) * cos(y));
+  ypr(0) = y;
+  ypr(1) = p;
+  ypr(2) = r;
 
-	return ypr / M_PI * 180.0;
+  return ypr / M_PI * 180.0;
 }
 
 // Sharmin
 template <typename Derived>
-static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBase<Derived> &ypr)
-{
-	typedef typename Derived::Scalar Scalar_t;
+static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBase<Derived>& ypr) {
+  typedef typename Derived::Scalar Scalar_t;
 
-	Scalar_t y = ypr(0) / 180.0 * M_PI;
-	Scalar_t p = ypr(1) / 180.0 * M_PI;
-	Scalar_t r = ypr(2) / 180.0 * M_PI;
+  Scalar_t y = ypr(0) / 180.0 * M_PI;
+  Scalar_t p = ypr(1) / 180.0 * M_PI;
+  Scalar_t r = ypr(2) / 180.0 * M_PI;
 
-	Eigen::Matrix<Scalar_t, 3, 3> Rz;
-	Rz << cos(y), -sin(y), 0,
-		sin(y), cos(y), 0,
-		0, 0, 1;
+  Eigen::Matrix<Scalar_t, 3, 3> Rz;
+  Rz << cos(y), -sin(y), 0, sin(y), cos(y), 0, 0, 0, 1;
 
-	Eigen::Matrix<Scalar_t, 3, 3> Ry;
-	Ry << cos(p), 0., sin(p),
-		0., 1., 0.,
-		-sin(p), 0., cos(p);
+  Eigen::Matrix<Scalar_t, 3, 3> Ry;
+  Ry << cos(p), 0., sin(p), 0., 1., 0., -sin(p), 0., cos(p);
 
-	Eigen::Matrix<Scalar_t, 3, 3> Rx;
-	Rx << 1., 0., 0.,
-		0., cos(r), -sin(r),
-		0., sin(r), cos(r);
+  Eigen::Matrix<Scalar_t, 3, 3> Rx;
+  Rx << 1., 0., 0., 0., cos(r), -sin(r), 0., sin(r), cos(r);
 
-	return Rz * Ry * Rx;
+  return Rz * Ry * Rx;
 }
-
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-long unsigned int frameCnt=0; // Sharmin
+long unsigned int frameCnt = 0;  // Sharmin
 
 static const int max_camera_input_queue_size = 10;
-static const okvis::Duration temporal_imu_data_overlap(0.02);  // overlap of imu data before and after two consecutive frames [seconds]
+static const okvis::Duration temporal_imu_data_overlap(
+    0.02);  // overlap of imu data before and after two consecutive frames [seconds]
 okvis::Duration temporal_relo_data_overlap(0.2);
 
 #ifdef USE_MOCK
 // Constructor for gmock.
-ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters, okvis::MockVioBackendInterface& estimator,
-    okvis::MockVioFrontendInterface& frontend)
+ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
+                             okvis::MockVioBackendInterface& estimator,
+                             okvis::MockVioFrontendInterface& frontend)
     : speedAndBiases_propagated_(okvis::SpeedAndBias::Zero()),
       imu_params_(parameters.imu),
       repropagationNeeded_(false),
@@ -140,9 +133,8 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
       estimator_(),
       frontend_(parameters.nCameraSystem.numCameras()),
       parameters_(parameters),
-      maxImuInputQueueSize_(
-          2 * max_camera_input_queue_size * parameters.imu.rate
-              / parameters.sensors_information.cameraRate) {
+      maxImuInputQueueSize_(2 * max_camera_input_queue_size * parameters.imu.rate /
+                            parameters.sensors_information.cameraRate) {
   setBlocking(false);
   init();
 }
@@ -153,16 +145,20 @@ void ThreadedKFVio::init() {
   assert(parameters_.nCameraSystem.numCameras() > 0);
   numCameras_ = parameters_.nCameraSystem.numCameras();
   numCameraPairs_ = 1;
-  kf_index_ = 0; // Sharmin
-  isNewReloMsg_ = false; // Sharmin
-  driftCorrected_T_WS_= okvis::kinematics::Transformation(); // Sharmin
+  kf_index_ = 0;                                               // Sharmin
+  isNewReloMsg_ = false;                                       // Sharmin
+  driftCorrected_T_WS_ = okvis::kinematics::Transformation();  // Sharmin
 
   frontend_.setBriskDetectionOctaves(parameters_.optimization.detectionOctaves);
   frontend_.setBriskDetectionThreshold(parameters_.optimization.detectionThreshold);
   frontend_.setBriskDetectionMaximumKeypoints(parameters_.optimization.maxNoKeypoints);
 
-  lastOptimizedStateTimestamp_ = okvis::Time(0.0) + temporal_imu_data_overlap;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
-  lastAddedStateTimestamp_ = okvis::Time(0.0) + temporal_imu_data_overlap;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
+  lastOptimizedStateTimestamp_ =
+      okvis::Time(0.0) +
+      temporal_imu_data_overlap;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
+  lastAddedStateTimestamp_ =
+      okvis::Time(0.0) +
+      temporal_imu_data_overlap;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
 
   estimator_.addImu(parameters_.imu);
   for (size_t i = 0; i < numCameras_; ++i) {
@@ -170,25 +166,24 @@ void ThreadedKFVio::init() {
     // do they ever change?
     estimator_.addCamera(parameters_.camera_extrinsics);
     cameraMeasurementsReceived_.emplace_back(
-          std::shared_ptr<threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement> > >
-          (new threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement> >()));
+        std::shared_ptr<threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement>>>(
+            new threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement>>()));
   }
-  
+
   // set up windows so things don't crash on Mac OS
-  if(parameters_.visualization.displayImages){
+  if (parameters_.visualization.displayImages) {
     for (size_t im = 0; im < parameters_.nCameraSystem.numCameras(); im++) {
       std::stringstream windowname;
       windowname << "OKVIS camera " << im;
-  	  cv::namedWindow(windowname.str());
+      cv::namedWindow(windowname.str());
     }
   }
-  
+
   startThreads();
 }
 
 // Start all threads.
 void ThreadedKFVio::startThreads() {
-
   // consumer threads
   for (size_t i = 0; i < numCameras_; ++i) {
     frameConsumerThreads_.emplace_back(&ThreadedKFVio::frameConsumerLoop, this, i);
@@ -199,31 +194,27 @@ void ThreadedKFVio::startThreads() {
   imuConsumerThread_ = std::thread(&ThreadedKFVio::imuConsumerLoop, this);
 
   // Sharmin
-  if (parameters_.sensorList.isSonarUsed){
-    sonarConsumerThread_ = std::thread(&ThreadedKFVio::sonarConsumerLoop, this);   // @Sharmin
+  if (parameters_.sensorList.isSonarUsed) {
+    sonarConsumerThread_ = std::thread(&ThreadedKFVio::sonarConsumerLoop, this);  // @Sharmin
   }
   // Sharmin
-  if (parameters_.sensorList.isDepthUsed){
-    depthConsumerThread_ = std::thread(&ThreadedKFVio::depthConsumerLoop, this);   // @Sharmin
+  if (parameters_.sensorList.isDepthUsed) {
+    depthConsumerThread_ = std::thread(&ThreadedKFVio::depthConsumerLoop, this);  // @Sharmin
   }
   // Sharmin
-  if (parameters_.relocParameters.isRelocalization){
-	  relocConsumerThread_ = std::thread(&ThreadedKFVio::relocConsumerLoop, this);   // @Sharmin
+  if (parameters_.relocParameters.isRelocalization) {
+    relocConsumerThread_ = std::thread(&ThreadedKFVio::relocConsumerLoop, this);  // @Sharmin
   }
-  positionConsumerThread_ = std::thread(&ThreadedKFVio::positionConsumerLoop,
-                                        this);
+  positionConsumerThread_ = std::thread(&ThreadedKFVio::positionConsumerLoop, this);
   gpsConsumerThread_ = std::thread(&ThreadedKFVio::gpsConsumerLoop, this);
-  magnetometerConsumerThread_ = std::thread(
-      &ThreadedKFVio::magnetometerConsumerLoop, this);
-  differentialConsumerThread_ = std::thread(
-      &ThreadedKFVio::differentialConsumerLoop, this);
+  magnetometerConsumerThread_ = std::thread(&ThreadedKFVio::magnetometerConsumerLoop, this);
+  differentialConsumerThread_ = std::thread(&ThreadedKFVio::differentialConsumerLoop, this);
 
   // algorithm threads
   visualizationThread_ = std::thread(&ThreadedKFVio::visualizationLoop, this);
   optimizationThread_ = std::thread(&ThreadedKFVio::optimizationLoop, this);
   publisherThread_ = std::thread(&ThreadedKFVio::publisherLoop, this);
 }
-
 
 // Destructor. This calls Shutdown() for all threadsafe queues and joins all threads.
 ThreadedKFVio::~ThreadedKFVio() {
@@ -234,16 +225,16 @@ ThreadedKFVio::~ThreadedKFVio() {
   matchedFrames_.Shutdown();
   imuMeasurementsReceived_.Shutdown();
   // Sharmin
-  if (parameters_.sensorList.isSonarUsed){
-      sonarMeasurementsReceived_.Shutdown();  // @Sharmin
+  if (parameters_.sensorList.isSonarUsed) {
+    sonarMeasurementsReceived_.Shutdown();  // @Sharmin
   }
   // Sharmin
-  if (parameters_.sensorList.isDepthUsed){
-      depthMeasurementsReceived_.Shutdown();  // @Sharmin
+  if (parameters_.sensorList.isDepthUsed) {
+    depthMeasurementsReceived_.Shutdown();  // @Sharmin
   }
   // Sharmin
-  if (parameters_.relocParameters.isRelocalization){
-	  relocMeasurementsReceived_.Shutdown();
+  if (parameters_.relocParameters.isRelocalization) {
+    relocMeasurementsReceived_.Shutdown();
   }
   optimizationResults_.Shutdown();
   visualizationData_.Shutdown();
@@ -259,16 +250,16 @@ ThreadedKFVio::~ThreadedKFVio() {
   }
   imuConsumerThread_.join();
   // Sharmin
-  if (parameters_.sensorList.isSonarUsed){
-      sonarConsumerThread_.join();
+  if (parameters_.sensorList.isSonarUsed) {
+    sonarConsumerThread_.join();
   }
   // Sharmin
-  if (parameters_.sensorList.isDepthUsed){
-      depthConsumerThread_.join();
+  if (parameters_.sensorList.isDepthUsed) {
+    depthConsumerThread_.join();
   }
   // Sharmin
-  if (parameters_.relocParameters.isRelocalization){
-	  relocConsumerThread_.join();
+  if (parameters_.relocParameters.isRelocalization) {
+    relocConsumerThread_.join();
   }
   positionConsumerThread_.join();
   gpsConsumerThread_.join();
@@ -290,23 +281,21 @@ ThreadedKFVio::~ThreadedKFVio() {
 }
 
 // Add a new image.
-bool ThreadedKFVio::addImage(const okvis::Time & stamp, size_t cameraIndex,
-                             const cv::Mat & image,
-                             const std::vector<cv::KeyPoint> * keypoints,
+bool ThreadedKFVio::addImage(const okvis::Time& stamp,
+                             size_t cameraIndex,
+                             const cv::Mat& image,
+                             const std::vector<cv::KeyPoint>* keypoints,
                              bool* /*asKeyframe*/) {
-  assert(cameraIndex<numCameras_);
+  assert(cameraIndex < numCameras_);
 
-  if (lastAddedImageTimestamp_ > stamp
-      && fabs((lastAddedImageTimestamp_ - stamp).toSec())
-          > parameters_.sensors_information.frameTimestampTolerance) {
-    LOG(ERROR)
-        << "Received image from the past. Dropping the image.";
+  if (lastAddedImageTimestamp_ > stamp &&
+      fabs((lastAddedImageTimestamp_ - stamp).toSec()) > parameters_.sensors_information.frameTimestampTolerance) {
+    LOG(ERROR) << "Received image from the past. Dropping the image.";
     return false;
   }
   lastAddedImageTimestamp_ = stamp;
 
-  std::shared_ptr<okvis::CameraMeasurement> frame = std::make_shared<
-      okvis::CameraMeasurement>();
+  std::shared_ptr<okvis::CameraMeasurement> frame = std::make_shared<okvis::CameraMeasurement>();
   frame->measurement.image = image;
   frame->timeStamp = stamp;
   frame->sensorId = cameraIndex;
@@ -322,99 +311,90 @@ bool ThreadedKFVio::addImage(const okvis::Time & stamp, size_t cameraIndex,
     cameraMeasurementsReceived_[cameraIndex]->PushBlockingIfFull(frame, 1);
     return true;
   } else {
-    cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(
-        frame, max_camera_input_queue_size);
+    cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(frame, max_camera_input_queue_size);
     return cameraMeasurementsReceived_[cameraIndex]->Size() == 1;
   }
 }
 
 // Add an abstracted image observation.
-bool ThreadedKFVio::addKeypoints(
-    const okvis::Time & /*stamp*/, size_t /*cameraIndex*/,
-    const std::vector<cv::KeyPoint> & /*keypoints*/,
-    const std::vector<uint64_t> & /*landmarkIds*/,
-    const cv::Mat & /*descriptors*/,
-    bool* /*asKeyframe*/) {
-  OKVIS_THROW(
-      Exception,
-      "ThreadedKFVio::addKeypoints() not implemented anymore since changes to _keypointMeasurements queue.");
+bool ThreadedKFVio::addKeypoints(const okvis::Time& /*stamp*/,
+                                 size_t /*cameraIndex*/,
+                                 const std::vector<cv::KeyPoint>& /*keypoints*/,
+                                 const std::vector<uint64_t>& /*landmarkIds*/,
+                                 const cv::Mat& /*descriptors*/,
+                                 bool* /*asKeyframe*/) {
+  OKVIS_THROW(Exception,
+              "ThreadedKFVio::addKeypoints() not implemented anymore since changes to _keypointMeasurements queue.");
   return false;
 }
 
 // @Sharmin
 // Add depth measurement
-bool ThreadedKFVio::addDepthMeasurement(const okvis::Time & stamp, double depth){
+bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) {
+  okvis::DepthMeasurement depth_measurement;
 
-	okvis::DepthMeasurement depth_measurement;
+  // For storing the first depth data
+  if (isFirstDepth_) {
+    firstDepth_ = depth;
+    isFirstDepth_ = false;
 
-	// For storing the first depth data
-	if (isFirstDepth_){
-		firstDepth_ = depth;
-		isFirstDepth_ = false;
+    LOG(INFO) << "First depth: " << depth;
+  }
 
-		LOG(INFO) << "First depth: "<< depth;
-	}
+  depth_measurement.timeStamp = stamp;
+  depth_measurement.measurement.depth = depth;
 
-	depth_measurement.timeStamp = stamp;
-	depth_measurement.measurement.depth = depth;
-
-	if (blocking_) {
-	    depthMeasurementsReceived_.PushBlockingIfFull(depth_measurement, 1);
-		return true;
-	} else {
-	    depthMeasurementsReceived_.PushNonBlockingDroppingIfFull(depth_measurement, maxDepthInputQueueSize_);
-		return depthMeasurementsReceived_.Size() == 1;
-	}
+  if (blocking_) {
+    depthMeasurementsReceived_.PushBlockingIfFull(depth_measurement, 1);
+    return true;
+  } else {
+    depthMeasurementsReceived_.PushNonBlockingDroppingIfFull(depth_measurement, maxDepthInputQueueSize_);
+    return depthMeasurementsReceived_.Size() == 1;
+  }
 }
 // @Sharmin
 // Add a Sonar measurement.
-bool ThreadedKFVio::addSonarMeasurement(const okvis::Time & stamp, double range, double heading){
+bool ThreadedKFVio::addSonarMeasurement(const okvis::Time& stamp, double range, double heading) {
+  okvis::SonarMeasurement sonar_measurement;
+  sonar_measurement.timeStamp = stamp;
+  sonar_measurement.measurement.range = range;
+  sonar_measurement.measurement.heading = heading;
 
-	okvis::SonarMeasurement sonar_measurement;
-	sonar_measurement.timeStamp = stamp;
-	sonar_measurement.measurement.range = range;
-	sonar_measurement.measurement.heading = heading;
-
-	if (blocking_) {
-      sonarMeasurementsReceived_.PushBlockingIfFull(sonar_measurement, 1);
-	  return true;
-	} else {
-      sonarMeasurementsReceived_.PushNonBlockingDroppingIfFull(
-    		  sonar_measurement, maxImuInputQueueSize_);   // Running same rate as imu
-	  return sonarMeasurementsReceived_.Size() == 1;
-	}
-
+  if (blocking_) {
+    sonarMeasurementsReceived_.PushBlockingIfFull(sonar_measurement, 1);
+    return true;
+  } else {
+    sonarMeasurementsReceived_.PushNonBlockingDroppingIfFull(sonar_measurement,
+                                                             maxImuInputQueueSize_);  // Running same rate as imu
+    return sonarMeasurementsReceived_.Size() == 1;
+  }
 }
 
 // @Sharmin
 // Add a Reloc measurement.
-bool ThreadedKFVio::addRelocMeasurement(const okvis::Time & stamp,
-		   const std::vector<Eigen::Vector3d> & matched_ids,
-		   const Eigen::Vector3d & relo_t,
-		   const Eigen::Quaterniond & relo_q){
+bool ThreadedKFVio::addRelocMeasurement(const okvis::Time& stamp,
+                                        const std::vector<Eigen::Vector3d>& matched_ids,
+                                        const Eigen::Vector3d& relo_t,
+                                        const Eigen::Quaterniond& relo_q) {
+  okvis::RelocMeasurement reloc_measurement;
+  reloc_measurement.timeStamp = stamp;
+  reloc_measurement.measurement.matched_ids = matched_ids;
+  reloc_measurement.measurement.relo_t = relo_t;
+  reloc_measurement.measurement.relo_q = relo_q;
 
-	okvis::RelocMeasurement reloc_measurement;
-	reloc_measurement.timeStamp = stamp;
-	reloc_measurement.measurement.matched_ids = matched_ids;
-	reloc_measurement.measurement.relo_t = relo_t;
-	reloc_measurement.measurement.relo_q = relo_q;
-
-	if (blocking_) {
-      relocMeasurementsReceived_.PushBlockingIfFull(reloc_measurement, 1);
-	  return true;
-	} else {
-		relocMeasurementsReceived_.PushNonBlockingDroppingIfFull(
-				reloc_measurement, maxRelocInputQueueSize_);
-	  return relocMeasurementsReceived_.Size() == 1;
-	}
-
+  if (blocking_) {
+    relocMeasurementsReceived_.PushBlockingIfFull(reloc_measurement, 1);
+    return true;
+  } else {
+    relocMeasurementsReceived_.PushNonBlockingDroppingIfFull(reloc_measurement, maxRelocInputQueueSize_);
+    return relocMeasurementsReceived_.Size() == 1;
+  }
 }
 
 // Add an IMU measurement.
-bool ThreadedKFVio::addImuMeasurement(const okvis::Time & stamp,
-                                      const Eigen::Vector3d & alpha,
-                                      const Eigen::Vector3d & omega) {
-
+bool ThreadedKFVio::addImuMeasurement(const okvis::Time& stamp,
+                                      const Eigen::Vector3d& alpha,
+                                      const Eigen::Vector3d& omega) {
   okvis::ImuMeasurement imu_measurement;
   imu_measurement.measurement.accelerometers = alpha;
   imu_measurement.measurement.gyroscopes = omega;
@@ -424,17 +404,16 @@ bool ThreadedKFVio::addImuMeasurement(const okvis::Time & stamp,
     imuMeasurementsReceived_.PushBlockingIfFull(imu_measurement, 1);
     return true;
   } else {
-    imuMeasurementsReceived_.PushNonBlockingDroppingIfFull(
-        imu_measurement, maxImuInputQueueSize_);
+    imuMeasurementsReceived_.PushNonBlockingDroppingIfFull(imu_measurement, maxImuInputQueueSize_);
     return imuMeasurementsReceived_.Size() == 1;
   }
 }
 
 // Add a position measurement.
-void ThreadedKFVio::addPositionMeasurement(const okvis::Time & stamp,
-                                           const Eigen::Vector3d & position,
-                                           const Eigen::Vector3d & positionOffset,
-                                           const Eigen::Matrix3d & positionCovariance) {
+void ThreadedKFVio::addPositionMeasurement(const okvis::Time& stamp,
+                                           const Eigen::Vector3d& position,
+                                           const Eigen::Vector3d& positionOffset,
+                                           const Eigen::Matrix3d& positionCovariance) {
   okvis::PositionMeasurement position_measurement;
   position_measurement.measurement.position = position;
   position_measurement.measurement.positionOffset = positionOffset;
@@ -445,35 +424,33 @@ void ThreadedKFVio::addPositionMeasurement(const okvis::Time & stamp,
     positionMeasurementsReceived_.PushBlockingIfFull(position_measurement, 1);
     return;
   } else {
-    positionMeasurementsReceived_.PushNonBlockingDroppingIfFull(
-        position_measurement, maxPositionInputQueueSize_);
+    positionMeasurementsReceived_.PushNonBlockingDroppingIfFull(position_measurement, maxPositionInputQueueSize_);
     return;
   }
 }
 
 // Add a GPS measurement.
-void ThreadedKFVio::addGpsMeasurement(const okvis::Time &, double, double,
-                                      double, const Eigen::Vector3d &,
-                                      const Eigen::Matrix3d &) {
+void ThreadedKFVio::addGpsMeasurement(const okvis::Time&,
+                                      double,
+                                      double,
+                                      double,
+                                      const Eigen::Vector3d&,
+                                      const Eigen::Matrix3d&) {
   OKVIS_THROW(Exception, "GPS measurements not supported")
 }
 
 // Add a magnetometer measurement.
-void ThreadedKFVio::addMagnetometerMeasurement(const okvis::Time &,
-                                               const Eigen::Vector3d &, double) {
+void ThreadedKFVio::addMagnetometerMeasurement(const okvis::Time&, const Eigen::Vector3d&, double) {
   OKVIS_THROW(Exception, "Magnetometer measurements not supported")
 }
 
 // Add a static pressure measurement.
-void ThreadedKFVio::addBarometerMeasurement(const okvis::Time &, double, double) {
-
+void ThreadedKFVio::addBarometerMeasurement(const okvis::Time&, double, double) {
   OKVIS_THROW(Exception, "Barometer measurements not supported")
 }
 
 // Add a differential pressure measurement.
-void ThreadedKFVio::addDifferentialPressureMeasurement(const okvis::Time &,
-                                                       double, double) {
-
+void ThreadedKFVio::addDifferentialPressureMeasurement(const okvis::Time&, double, double) {
   OKVIS_THROW(Exception, "Differential pressure measurements not supported")
 }
 
@@ -482,9 +459,9 @@ void ThreadedKFVio::addDifferentialPressureMeasurement(const okvis::Time &,
 void ThreadedKFVio::setBlocking(bool blocking) {
   blocking_ = blocking;
   // disable time limit for optimization
-  if(blocking_) {
+  if (blocking_) {
     std::lock_guard<std::mutex> lock(estimator_mutex_);
-    estimator_.setOptimizationTimeLimit(-1.0,parameters_.optimization.max_iterations);
+    estimator_.setOptimizationTimeLimit(-1.0, parameters_.optimization.max_iterations);
   }
 }
 
@@ -492,16 +469,18 @@ void ThreadedKFVio::setBlocking(bool blocking) {
 void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
   std::shared_ptr<okvis::CameraMeasurement> frame;
   std::shared_ptr<okvis::MultiFrame> multiFrame;
-  TimerSwitchable beforeDetectTimer("1.1 frameLoopBeforeDetect"+std::to_string(cameraIndex),true);
-  TimerSwitchable waitForFrameSynchronizerMutexTimer("1.1.1 waitForFrameSynchronizerMutex"+std::to_string(cameraIndex),true);
-  TimerSwitchable addNewFrameToSynchronizerTimer("1.1.2 addNewFrameToSynchronizer"+std::to_string(cameraIndex),true);
-  TimerSwitchable waitForStateVariablesMutexTimer("1.1.3 waitForStateVariablesMutex"+std::to_string(cameraIndex),true);
-  TimerSwitchable propagationTimer("1.1.4 propagationTimer"+std::to_string(cameraIndex),true);
-  TimerSwitchable detectTimer("1.2 detectAndDescribe"+std::to_string(cameraIndex),true);
-  TimerSwitchable afterDetectTimer("1.3 afterDetect"+std::to_string(cameraIndex),true);
-  TimerSwitchable waitForFrameSynchronizerMutexTimer2("1.3.1 waitForFrameSynchronizerMutex2"+std::to_string(cameraIndex),true);
-  TimerSwitchable waitForMatchingThreadTimer("1.4 waitForMatchingThread"+std::to_string(cameraIndex),true);
-
+  TimerSwitchable beforeDetectTimer("1.1 frameLoopBeforeDetect" + std::to_string(cameraIndex), true);
+  TimerSwitchable waitForFrameSynchronizerMutexTimer(
+      "1.1.1 waitForFrameSynchronizerMutex" + std::to_string(cameraIndex), true);
+  TimerSwitchable addNewFrameToSynchronizerTimer("1.1.2 addNewFrameToSynchronizer" + std::to_string(cameraIndex), true);
+  TimerSwitchable waitForStateVariablesMutexTimer("1.1.3 waitForStateVariablesMutex" + std::to_string(cameraIndex),
+                                                  true);
+  TimerSwitchable propagationTimer("1.1.4 propagationTimer" + std::to_string(cameraIndex), true);
+  TimerSwitchable detectTimer("1.2 detectAndDescribe" + std::to_string(cameraIndex), true);
+  TimerSwitchable afterDetectTimer("1.3 afterDetect" + std::to_string(cameraIndex), true);
+  TimerSwitchable waitForFrameSynchronizerMutexTimer2(
+      "1.3.1 waitForFrameSynchronizerMutex2" + std::to_string(cameraIndex), true);
+  TimerSwitchable waitForMatchingThreadTimer("1.4 waitForMatchingThread" + std::to_string(cameraIndex), true);
 
   for (;;) {
     // get data and check for termination request
@@ -529,227 +508,211 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
       T_WS = lastOptimized_T_WS_;
       speedAndBiases = lastOptimizedSpeedAndBiases_;
       lastTimestamp = lastOptimizedStateTimestamp_;
-      //std::cout<< "lastOptimizedStateTimestamp_: "<< lastOptimizedStateTimestamp_ << std::endl;
+      // std::cout<< "lastOptimizedStateTimestamp_: "<< lastOptimizedStateTimestamp_ << std::endl;
     }
 
     // @Sharmin
     // Reloc Measurements
 
-    if (parameters_.relocParameters.isRelocalization){
-
+    if (parameters_.relocParameters.isRelocalization) {
       okvis::Time relocDataEndTime = multiFrame->timestamp();
-	  okvis::Time relocDataBeginTime = lastTimestamp;
+      okvis::Time relocDataBeginTime = lastTimestamp;
 
-	  //OKVIS_ASSERT_TRUE_DBG(Exception,relocDataBeginTime < relocDataEndTime,"Reloc data end time is smaller than begin time.");
-	  bool skip_relo = false;
-	  if (relocDataBeginTime > relocDataEndTime){
-		skip_relo = true;
-	    //std::cout<<"Reloc data end time is smaller than begin time."<<std::endl;
-	  }
-
-	  if (!skip_relo){
-		  okvis::RelocMeasurementDeque relocData = getRelocMeasurements(relocDataBeginTime,
-																   relocDataEndTime);
-
-		  // if relocData is empty, either end_time > begin_time or
-		  // no measurements in timeframe
-		  // Sharmin: so skip the next steps
-
-		  //bool no_data = false;
-		  if (relocData.size() == 0) {
-			beforeDetectTimer.stop();
-
-			//continue;
-			//no_data = true;
-		  }else{
-			  isNewReloMsg_ = true;
-			  std::cout<< "Reloc data Found!!"<<std::endl;
-		  }
-
-
-		  if (isNewReloMsg_){
-
-			  if (relocData.front().timeStamp > frame->timeStamp) {
-				LOG(WARNING) << "Frame is newer than oldest Reloc measurement. Dropping it.";
-				std::cout<<"Frame is newer than oldest Reloc measurement. Dropping it."<<std::endl;
-				beforeDetectTimer.stop();
-				continue;
-			  }
-
-			  for (okvis::RelocMeasurementDeque::const_iterator cit = relocData.begin();
-				cit != relocData.end(); ++cit){
-
-				  size_t camIdx = 0; // Sharmin: left camera
-
-				  std::vector<Eigen::Vector3d> matched_ids = cit->measurement.matched_ids;
-				  Eigen::Vector3d old_t_WCa = cit->measurement.relo_t;
-				  Eigen::Quaterniond old_q_WCa = cit->measurement.relo_q;
-				  okvis::kinematics::Transformation old_T_WCa(old_t_WCa, old_q_WCa);
-
-
-				  // TODO Sharmin: calculate drift here
-				  size_t CamIndexA = 0;
-				  okvis::kinematics::Transformation T_WCa = T_WS * (*parameters_.nCameraSystem.T_SC(CamIndexA));
-				  okvis::kinematics::Transformation old_T_WS = old_T_WCa * (*parameters_.nCameraSystem.T_SC(CamIndexA)).inverse();
-
-
-				  okvis::Time reloMsgStamp = cit->timeStamp;
-
-				  // To publish Reloc path and odometry along with okvis_odometry
-				  // Note Sharmin: all transformations are as T_WS
-				  double driftCorrectYaw;
-				  driftCorrectYaw = R2ypr(old_T_WS.q().toRotationMatrix()).x() - R2ypr(T_WS.q().toRotationMatrix()).x();
-				  Eigen::Matrix3d driftCorrectedR = ypr2R(Eigen::Vector3d(driftCorrectYaw, 0, 0));
-				  Eigen::Vector3d driftCorrectedP = old_T_WS.r() - driftCorrectedR * T_WS.r();
-				  driftCorrected_T_WS_.set(driftCorrectedP, Eigen::Quaterniond(driftCorrectedR));
-				  std::cout << "Drift: " << driftCorrectedR << " , " << driftCorrectedP <<std::endl;
-
-				  //driftCorrected_T_WS_ = old_T_WS.inverse() * T_WS;
-
-
-				  //relocRelativeP = relo_r.transpose() * (Ps[relo_frame_local_index] - relo_t);
-				  //relo_relative_q = relo_r.transpose() * Rs[relo_frame_local_index];
-				  //relo_relative_yaw = Utility::normalizeAngle(Utility::R2ypr(Rs[relo_frame_local_index]).x() - Utility::R2ypr(relo_r).x());
-
-				  //relocRelativePoseCallback_(...);
-
-				  for (size_t num_matches = 0; num_matches < matched_ids.size(); num_matches++)
-				  {
-					  std::cout<< "Size for Matched points for Reloc: "<< matched_ids.size()<<std::endl;
-					  uint64_t landmarkId = (uint64_t) matched_ids[num_matches].x();
-					  uint64_t poseId = (uint64_t) matched_ids[num_matches].y();
-					  size_t keypointIdx = (size_t) matched_ids[num_matches].z();
-
-					  {
-						// TODO Sharmin: Double check
-						std::lock_guard<std::mutex> l(estimator_mutex_);
-						estimator_.addRelocObservation<
-						okvis::cameras::PinholeCamera<
-							okvis::cameras::RadialTangentialDistortion>>(landmarkId, poseId, camIdx, keypointIdx);
-					  }
-				  }
-			  }
-
-			  isNewReloMsg_ = false;
-	       }
+      // OKVIS_ASSERT_TRUE_DBG(Exception,relocDataBeginTime < relocDataEndTime,"Reloc data end time is smaller than
+      // begin time.");
+      bool skip_relo = false;
+      if (relocDataBeginTime > relocDataEndTime) {
+        skip_relo = true;
+        // std::cout<<"Reloc data end time is smaller than begin time."<<std::endl;
       }
 
-    }
+      if (!skip_relo) {
+        okvis::RelocMeasurementDeque relocData = getRelocMeasurements(relocDataBeginTime, relocDataEndTime);
 
+        // if relocData is empty, either end_time > begin_time or
+        // no measurements in timeframe
+        // Sharmin: so skip the next steps
+
+        // bool no_data = false;
+        if (relocData.size() == 0) {
+          beforeDetectTimer.stop();
+
+          // continue;
+          // no_data = true;
+        } else {
+          isNewReloMsg_ = true;
+          std::cout << "Reloc data Found!!" << std::endl;
+        }
+
+        if (isNewReloMsg_) {
+          if (relocData.front().timeStamp > frame->timeStamp) {
+            LOG(WARNING) << "Frame is newer than oldest Reloc measurement. Dropping it.";
+            std::cout << "Frame is newer than oldest Reloc measurement. Dropping it." << std::endl;
+            beforeDetectTimer.stop();
+            continue;
+          }
+
+          for (okvis::RelocMeasurementDeque::const_iterator cit = relocData.begin(); cit != relocData.end(); ++cit) {
+            size_t camIdx = 0;  // Sharmin: left camera
+
+            std::vector<Eigen::Vector3d> matched_ids = cit->measurement.matched_ids;
+            Eigen::Vector3d old_t_WCa = cit->measurement.relo_t;
+            Eigen::Quaterniond old_q_WCa = cit->measurement.relo_q;
+            okvis::kinematics::Transformation old_T_WCa(old_t_WCa, old_q_WCa);
+
+            // TODO Sharmin: calculate drift here
+            size_t CamIndexA = 0;
+            okvis::kinematics::Transformation T_WCa = T_WS * (*parameters_.nCameraSystem.T_SC(CamIndexA));
+            okvis::kinematics::Transformation old_T_WS =
+                old_T_WCa * (*parameters_.nCameraSystem.T_SC(CamIndexA)).inverse();
+
+            okvis::Time reloMsgStamp = cit->timeStamp;
+
+            // To publish Reloc path and odometry along with okvis_odometry
+            // Note Sharmin: all transformations are as T_WS
+            double driftCorrectYaw;
+            driftCorrectYaw = R2ypr(old_T_WS.q().toRotationMatrix()).x() - R2ypr(T_WS.q().toRotationMatrix()).x();
+            Eigen::Matrix3d driftCorrectedR = ypr2R(Eigen::Vector3d(driftCorrectYaw, 0, 0));
+            Eigen::Vector3d driftCorrectedP = old_T_WS.r() - driftCorrectedR * T_WS.r();
+            driftCorrected_T_WS_.set(driftCorrectedP, Eigen::Quaterniond(driftCorrectedR));
+            std::cout << "Drift: " << driftCorrectedR << " , " << driftCorrectedP << std::endl;
+
+            // driftCorrected_T_WS_ = old_T_WS.inverse() * T_WS;
+
+            // relocRelativeP = relo_r.transpose() * (Ps[relo_frame_local_index] - relo_t);
+            // relo_relative_q = relo_r.transpose() * Rs[relo_frame_local_index];
+            // relo_relative_yaw = Utility::normalizeAngle(Utility::R2ypr(Rs[relo_frame_local_index]).x() -
+            // Utility::R2ypr(relo_r).x());
+
+            // relocRelativePoseCallback_(...);
+
+            for (size_t num_matches = 0; num_matches < matched_ids.size(); num_matches++) {
+              std::cout << "Size for Matched points for Reloc: " << matched_ids.size() << std::endl;
+              uint64_t landmarkId = (uint64_t)matched_ids[num_matches].x();
+              uint64_t poseId = (uint64_t)matched_ids[num_matches].y();
+              size_t keypointIdx = (size_t)matched_ids[num_matches].z();
+
+              {
+                // TODO Sharmin: Double check
+                std::lock_guard<std::mutex> l(estimator_mutex_);
+                estimator_
+                    .addRelocObservation<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>>(
+                        landmarkId, poseId, camIdx, keypointIdx);
+              }
+            }
+          }
+
+          isNewReloMsg_ = false;
+        }
+      }
+    }
 
     // @Sharmin
     // Depth
-    if (parameters_.sensorList.isDepthUsed){
-		okvis::Time depthDataEndTime = multiFrame->timestamp();
-		okvis::Time depthDataBeginTime = lastTimestamp;
+    if (parameters_.sensorList.isDepthUsed) {
+      okvis::Time depthDataEndTime = multiFrame->timestamp();
+      okvis::Time depthDataBeginTime = lastTimestamp;
 
-		OKVIS_ASSERT_TRUE_DBG(Exception,depthDataBeginTime < depthDataEndTime,"Depth data end time is smaller than begin time.");
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
 
-		// wait until all relevant depth messages have arrived and check for termination request
-		if (depthFrameSynchronizer_.waitForUpToDateDepthData(
-		  okvis::Time(depthDataEndTime)) == false)  {
-		  return;
-		}
-		OKVIS_ASSERT_TRUE_DBG(Exception,
-							  depthDataEndTime < depthMeasurements_.back().timeStamp,
-							  "Waiting for up to date depth data seems to have failed!");
+      // wait until all relevant depth messages have arrived and check for termination request
+      if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+        return;
+      }
+      OKVIS_ASSERT_TRUE_DBG(Exception,
+                            depthDataEndTime < depthMeasurements_.back().timeStamp,
+                            "Waiting for up to date depth data seems to have failed!");
 
-		okvis::DepthMeasurementDeque depthData = getDepthMeasurements(depthDataBeginTime,
-															   depthDataEndTime);
+      okvis::DepthMeasurementDeque depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
 
-		// if depth_data is empty, either end_time > begin_time or
-		// no measurements in timeframe, should not happen, as we waited for measurements
-		if (depthData.size() == 0) {
-		  beforeDetectTimer.stop();
-		  continue;
-		}
+      // if depth_data is empty, either end_time > begin_time or
+      // no measurements in timeframe, should not happen, as we waited for measurements
+      if (depthData.size() == 0) {
+        beforeDetectTimer.stop();
+        continue;
+      }
 
-		if (depthData.front().timeStamp > frame->timeStamp) {
-		  LOG(WARNING) << "Frame is newer than oldest Depth measurement. Dropping it.";
-		  beforeDetectTimer.stop();
-		  continue;
-		}
+      if (depthData.front().timeStamp > frame->timeStamp) {
+        LOG(WARNING) << "Frame is newer than oldest Depth measurement. Dropping it.";
+        beforeDetectTimer.stop();
+        continue;
+      }
     }
     // Sonar
-    if (parameters_.sensorList.isSonarUsed){
-		// -- get relevant sonar messages for new state
-		okvis::Time sonarDataEndTime = multiFrame->timestamp();
-		okvis::Time sonarDataBeginTime = lastTimestamp;
+    if (parameters_.sensorList.isSonarUsed) {
+      // -- get relevant sonar messages for new state
+      okvis::Time sonarDataEndTime = multiFrame->timestamp();
+      okvis::Time sonarDataBeginTime = lastTimestamp;
 
-		OKVIS_ASSERT_TRUE_DBG(Exception,sonarDataBeginTime < sonarDataEndTime,"sonar data end time is smaller than begin time.");
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, sonarDataBeginTime < sonarDataEndTime, "sonar data end time is smaller than begin time.");
 
-		// wait until all relevant sonar messages have arrived and check for termination request
-		if (sonarFrameSynchronizer_.waitForUpToDateSonarData(
-		  okvis::Time(sonarDataEndTime)) == false)  {
-		  return;
-		}
-		OKVIS_ASSERT_TRUE_DBG(Exception,
-				sonarDataEndTime < sonarMeasurements_.back().timeStamp,
-							  "Waiting for up to date sonar data seems to have failed!");
+      // wait until all relevant sonar messages have arrived and check for termination request
+      if (sonarFrameSynchronizer_.waitForUpToDateSonarData(okvis::Time(sonarDataEndTime)) == false) {
+        return;
+      }
+      OKVIS_ASSERT_TRUE_DBG(Exception,
+                            sonarDataEndTime < sonarMeasurements_.back().timeStamp,
+                            "Waiting for up to date sonar data seems to have failed!");
 
-		okvis::SonarMeasurementDeque sonarData = getSonarMeasurements(sonarDataBeginTime,
-															   sonarDataEndTime);
+      okvis::SonarMeasurementDeque sonarData = getSonarMeasurements(sonarDataBeginTime, sonarDataEndTime);
 
-		// if sonar_data is empty, either end_time > begin_time or
-		// no measurements in timeframe, should not happen, as we waited for measurements
-		if (sonarData.size() == 0) {
-		  beforeDetectTimer.stop();
-		  continue;
-		}
+      // if sonar_data is empty, either end_time > begin_time or
+      // no measurements in timeframe, should not happen, as we waited for measurements
+      if (sonarData.size() == 0) {
+        beforeDetectTimer.stop();
+        continue;
+      }
 
-		if (sonarData.front().timeStamp > frame->timeStamp) {
-		  LOG(WARNING) << "Frame is newer than oldest Sonar measurement. Dropping it.";
-		  beforeDetectTimer.stop();
-		  continue;
-		}
+      if (sonarData.front().timeStamp > frame->timeStamp) {
+        LOG(WARNING) << "Frame is newer than oldest Sonar measurement. Dropping it.";
+        beforeDetectTimer.stop();
+        continue;
+      }
 
-		okvis::kinematics::Transformation T_WSo = T_WS * parameters_.sonar.T_SSo;
+      okvis::kinematics::Transformation T_WSo = T_WS * parameters_.sonar.T_SSo;
 
-		//LOG (INFO) << "StereoRig V2 translation T_SSo: " << T_SSo.r();
-		//LOG (INFO) << "StereoRig V2 rot T_SSo: " << T_SSo.q().toRotationMatrix();
+      // LOG (INFO) << "StereoRig V2 translation T_SSo: " << T_SSo.r();
+      // LOG (INFO) << "StereoRig V2 rot T_SSo: " << T_SSo.q().toRotationMatrix();
 
-		// TODO check it
-		// Add sonar landmark (in world frame) to the graph
-		for (okvis::SonarMeasurementDeque::const_iterator it = sonarData.begin();
-			 it != sonarData.end(); ++it){
+      // TODO check it
+      // Add sonar landmark (in world frame) to the graph
+      for (okvis::SonarMeasurementDeque::const_iterator it = sonarData.begin(); it != sonarData.end(); ++it) {
+        double range = it->measurement.range;
+        double heading = it->measurement.heading;
+        uint64_t lmId = okvis::IdProvider::instance().newId();
 
-			double range = it->measurement.range;
-			double heading = it->measurement.heading;
-			uint64_t lmId = okvis::IdProvider::instance().newId();
+        okvis::kinematics::Transformation sonar_point(Eigen::Vector3d(range * cos(heading), range * sin(heading), 0.0),
+                                                      Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
+        okvis::kinematics::Transformation T_WSo_point = T_WSo * sonar_point;
 
+        Eigen::Vector3d sonar_landmark = T_WSo_point.r();
 
-			okvis::kinematics::Transformation sonar_point(Eigen::Vector3d(range * cos(heading), range * sin(heading), 0.0),
-					Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
-			okvis::kinematics::Transformation T_WSo_point = T_WSo * sonar_point;
-
-			Eigen::Vector3d sonar_landmark = T_WSo_point.r();
-
-			{
-			  std::lock_guard<std::mutex> l(estimator_mutex_);
-			  estimator_.addSonarLandmark(lmId, Eigen::Vector4d(sonar_landmark[0], sonar_landmark[1], sonar_landmark[2], 1.0));
-			}
-		}
-
+        {
+          std::lock_guard<std::mutex> l(estimator_mutex_);
+          estimator_.addSonarLandmark(lmId,
+                                      Eigen::Vector4d(sonar_landmark[0], sonar_landmark[1], sonar_landmark[2], 1.0));
+        }
+      }
     }
 
     // -- get relevant imu messages for new state
-    okvis::Time imuDataEndTime = multiFrame->timestamp()
-        + temporal_imu_data_overlap;
+    okvis::Time imuDataEndTime = multiFrame->timestamp() + temporal_imu_data_overlap;
     okvis::Time imuDataBeginTime = lastTimestamp - temporal_imu_data_overlap;
 
-    OKVIS_ASSERT_TRUE_DBG(Exception,imuDataBeginTime < imuDataEndTime,"imu data end time is smaller than begin time.");
+    OKVIS_ASSERT_TRUE_DBG(
+        Exception, imuDataBeginTime < imuDataEndTime, "imu data end time is smaller than begin time.");
 
     // wait until all relevant imu messages have arrived and check for termination request
-    if (imuFrameSynchronizer_.waitForUpToDateImuData(
-      okvis::Time(imuDataEndTime)) == false)  {
+    if (imuFrameSynchronizer_.waitForUpToDateImuData(okvis::Time(imuDataEndTime)) == false) {
       return;
     }
     OKVIS_ASSERT_TRUE_DBG(Exception,
                           imuDataEndTime < imuMeasurements_.back().timeStamp,
                           "Waiting for up to date imu data seems to have failed!");
 
-    okvis::ImuMeasurementDeque imuData = getImuMeasurments(imuDataBeginTime,
-                                                           imuDataEndTime);
+    okvis::ImuMeasurementDeque imuData = getImuMeasurments(imuDataBeginTime, imuDataEndTime);
 
     // if imu_data is empty, either end_time > begin_time or
     // no measurements in timeframe, should not happen, as we waited for measurements
@@ -775,8 +738,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
         lastOptimizedSpeedAndBiases_.segment<3>(6) = imu_params_.a0;
         lastOptimizedStateTimestamp_ = multiFrame->timestamp();
       }
-      OKVIS_ASSERT_TRUE_DBG(Exception, success,
-          "pose could not be initialized from imu measurements.");
+      OKVIS_ASSERT_TRUE_DBG(Exception, success, "pose could not be initialized from imu measurements.");
       if (!success) {
         beforeDetectTimer.stop();
         continue;
@@ -784,19 +746,17 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     } else {
       // get old T_WS
       propagationTimer.start();
-      okvis::ceres::ImuError::propagation(imuData, parameters_.imu, T_WS,
-                                          speedAndBiases, lastTimestamp,
-                                          multiFrame->timestamp());
+      okvis::ceres::ImuError::propagation(
+          imuData, parameters_.imu, T_WS, speedAndBiases, lastTimestamp, multiFrame->timestamp());
       propagationTimer.stop();
     }
-    okvis::kinematics::Transformation T_WC = T_WS
-        * (*parameters_.nCameraSystem.T_SC(frame->sensorId));
+    okvis::kinematics::Transformation T_WC = T_WS * (*parameters_.nCameraSystem.T_SC(frame->sensorId));
     beforeDetectTimer.stop();
     detectTimer.start();
     frontend_.detectAndDescribe(frame->sensorId, multiFrame, T_WC, nullptr);
 
     // Added by Sharmin
-    //std::cout<<"detection for camera id: "<<frame->sensorId<<std::endl;
+    // std::cout<<"detection for camera id: "<<frame->sensorId<<std::endl;
 
     detectTimer.stop();
     afterDetectTimer.start();
@@ -808,11 +768,10 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
       waitForFrameSynchronizerMutexTimer2.stop();
       frameSynchronizer_.detectionEndedForMultiFrame(multiFrame->id());
 
-      if (frameSynchronizer_.detectionCompletedForAllCameras(
-          multiFrame->id())) {
-        //LOG(INFO) << "detection completed for multiframe with id "<< multiFrame->id();
+      if (frameSynchronizer_.detectionCompletedForAllCameras(multiFrame->id())) {
+        // LOG(INFO) << "detection completed for multiframe with id "<< multiFrame->id();
 
-    	        push = true;
+        push = true;
       }
     }  // unlocking frame synchronizer
     afterDetectTimer.stop();
@@ -831,114 +790,108 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
 
 // Loop that matches frames with existing frames.
 void ThreadedKFVio::matchingLoop() {
-  TimerSwitchable prepareToAddStateTimer("2.1 prepareToAddState",true);
-  TimerSwitchable waitForOptimizationTimer("2.2 waitForOptimization",true);
-  TimerSwitchable addStateTimer("2.3 addState",true);
-  TimerSwitchable matchingTimer("2.4 matching",true);
+  TimerSwitchable prepareToAddStateTimer("2.1 prepareToAddState", true);
+  TimerSwitchable waitForOptimizationTimer("2.2 waitForOptimization", true);
+  TimerSwitchable addStateTimer("2.3 addState", true);
+  TimerSwitchable matchingTimer("2.4 matching", true);
 
   for (;;) {
     // get new frame
     std::shared_ptr<okvis::MultiFrame> frame;
 
     // get data and check for termination request
-    if (keypointMeasurements_.PopBlocking(&frame) == false)
-      return;
+    if (keypointMeasurements_.PopBlocking(&frame) == false) return;
 
     prepareToAddStateTimer.start();
     // -- get relevant imu messages for new state
     okvis::Time imuDataEndTime = frame->timestamp() + temporal_imu_data_overlap;
-    okvis::Time imuDataBeginTime = lastAddedStateTimestamp_
-        - temporal_imu_data_overlap;
+    okvis::Time imuDataBeginTime = lastAddedStateTimestamp_ - temporal_imu_data_overlap;
 
-    OKVIS_ASSERT_TRUE_DBG(Exception,imuDataBeginTime < imuDataEndTime,
-        "imu data end time is smaller than begin time." <<
-        "current frametimestamp " << frame->timestamp() << " (id: " << frame->id() <<
-        "last timestamp         " << lastAddedStateTimestamp_ << " (id: " << estimator_.currentFrameId());
+    OKVIS_ASSERT_TRUE_DBG(Exception,
+                          imuDataBeginTime < imuDataEndTime,
+                          "imu data end time is smaller than begin time."
+                              << "current frametimestamp " << frame->timestamp() << " (id: " << frame->id()
+                              << "last timestamp         " << lastAddedStateTimestamp_
+                              << " (id: " << estimator_.currentFrameId());
 
     // wait until all relevant imu messages have arrived and check for termination request
-    if (imuFrameSynchronizer_.waitForUpToDateImuData(
-        okvis::Time(imuDataEndTime)) == false)
-      return; OKVIS_ASSERT_TRUE_DBG(Exception,
-        imuDataEndTime < imuMeasurements_.back().timeStamp,
-        "Waiting for up to date imu data seems to have failed!");
+    if (imuFrameSynchronizer_.waitForUpToDateImuData(okvis::Time(imuDataEndTime)) == false) return;
+    OKVIS_ASSERT_TRUE_DBG(Exception,
+                          imuDataEndTime < imuMeasurements_.back().timeStamp,
+                          "Waiting for up to date imu data seems to have failed!");
 
     // TODO @Sharmin: check if needed to wait until all relevant sonar messages
 
-    okvis::ImuMeasurementDeque imuData = getImuMeasurments(imuDataBeginTime,
-                                                           imuDataEndTime);
+    okvis::ImuMeasurementDeque imuData = getImuMeasurments(imuDataBeginTime, imuDataEndTime);
 
     prepareToAddStateTimer.stop();
     // if imu_data is empty, either end_time > begin_time or
     // no measurements in timeframe, should not happen, as we waited for measurements
-    if (imuData.size() == 0)
-      continue;
+    if (imuData.size() == 0) continue;
 
-
-	// @Sharmin
+    // @Sharmin
     // Sonar Data
     okvis::SonarMeasurementDeque sonarData;
-    if (parameters_.sensorList.isSonarUsed){
-		// -- get relevant sonar messages for new state
-		okvis::Time sonarDataEndTime = frame->timestamp();
-		okvis::Time sonarDataBeginTime = lastAddedStateTimestamp_;
+    if (parameters_.sensorList.isSonarUsed) {
+      // -- get relevant sonar messages for new state
+      okvis::Time sonarDataEndTime = frame->timestamp();
+      okvis::Time sonarDataBeginTime = lastAddedStateTimestamp_;
 
-		OKVIS_ASSERT_TRUE_DBG(Exception,sonarDataBeginTime < sonarDataEndTime,"sonar data end time is smaller than begin time.");
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, sonarDataBeginTime < sonarDataEndTime, "sonar data end time is smaller than begin time.");
 
-		// wait until all relevant sonar messages have arrived and check for termination request
-		if (sonarFrameSynchronizer_.waitForUpToDateSonarData(
-		  okvis::Time(sonarDataEndTime)) == false)  {
-		  return;
-		}
-		OKVIS_ASSERT_TRUE_DBG(Exception,
-				sonarDataEndTime < sonarMeasurements_.back().timeStamp,
-							  "Waiting for up to date sonar data seems to have failed!");
+      // wait until all relevant sonar messages have arrived and check for termination request
+      if (sonarFrameSynchronizer_.waitForUpToDateSonarData(okvis::Time(sonarDataEndTime)) == false) {
+        return;
+      }
+      OKVIS_ASSERT_TRUE_DBG(Exception,
+                            sonarDataEndTime < sonarMeasurements_.back().timeStamp,
+                            "Waiting for up to date sonar data seems to have failed!");
 
-		sonarData = getSonarMeasurements(sonarDataBeginTime, sonarDataEndTime);
-		//prepareToAddStateTimer.stop();
+      sonarData = getSonarMeasurements(sonarDataBeginTime, sonarDataEndTime);
+      // prepareToAddStateTimer.stop();
 
-		// if sonar_data is empty, either end_time > begin_time or
-		// no measurements in timeframe, should not happen, as we waited for measurements
-		if (sonarData.size() == 0)
-		  continue;
+      // if sonar_data is empty, either end_time > begin_time or
+      // no measurements in timeframe, should not happen, as we waited for measurements
+      if (sonarData.size() == 0) continue;
     }
     // Depth data
     okvis::DepthMeasurementDeque depthData;
-    if (parameters_.sensorList.isDepthUsed){
-		// -- get relevant depth message for new state
-		okvis::Time depthDataEndTime = frame->timestamp();
-		okvis::Time depthDataBeginTime = lastAddedStateTimestamp_;
+    if (parameters_.sensorList.isDepthUsed) {
+      // -- get relevant depth message for new state
+      okvis::Time depthDataEndTime = frame->timestamp();
+      okvis::Time depthDataBeginTime = lastAddedStateTimestamp_;
 
-		OKVIS_ASSERT_TRUE_DBG(Exception,depthDataBeginTime < depthDataEndTime,"Depth data end time is smaller than begin time.");
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
 
-		// wait until all relevant depth messages have arrived and check for termination request
-		if (depthFrameSynchronizer_.waitForUpToDateDepthData(
-		  okvis::Time(depthDataEndTime)) == false)  {
-		  return;
-		}
-		OKVIS_ASSERT_TRUE_DBG(Exception,
-				depthDataEndTime < depthMeasurements_.back().timeStamp,
-							  "Waiting for up to date depth data seems to have failed!");
+      // wait until all relevant depth messages have arrived and check for termination request
+      if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+        return;
+      }
+      OKVIS_ASSERT_TRUE_DBG(Exception,
+                            depthDataEndTime < depthMeasurements_.back().timeStamp,
+                            "Waiting for up to date depth data seems to have failed!");
 
-		depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
-		prepareToAddStateTimer.stop();
+      depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
+      prepareToAddStateTimer.stop();
 
-		// if depth_data is empty, either end_time > begin_time or
-		// no measurements in timeframe, should not happen, as we waited for measurements
-		if (depthData.size() == 0){
-			LOG (WARNING) << "NO DEPTH DATA!!!";
-			continue;
-		}
+      // if depth_data is empty, either end_time > begin_time or
+      // no measurements in timeframe, should not happen, as we waited for measurements
+      if (depthData.size() == 0) {
+        LOG(WARNING) << "NO DEPTH DATA!!!";
+        continue;
+      }
     }
 
-	// End @sharmin
+    // End @sharmin
 
     // make sure that optimization of last frame is over.
     // TODO If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be necessary
     {
       waitForOptimizationTimer.start();
       std::unique_lock<std::mutex> l(estimator_mutex_);
-      while (!optimizationDone_)
-        optimizationNotification_.wait(l);
+      while (!optimizationDone_) optimizationNotification_.wait(l);
       waitForOptimizationTimer.stop();
       addStateTimer.start();
       okvis::Time t0Matching = okvis::Time::now();
@@ -957,42 +910,36 @@ void ThreadedKFVio::matchingLoop() {
       okvis::kinematics::Transformation T_WS;
       estimator_.get_T_WS(frame->id(), T_WS);
       matchingTimer.start();
-      frontend_.dataAssociationAndInitialization(estimator_, T_WS, parameters_,
-                                                 map_, frame, &asKeyframe);
+      frontend_.dataAssociationAndInitialization(estimator_, T_WS, parameters_, map_, frame, &asKeyframe);
       matchingTimer.stop();
-      if (asKeyframe)
-        estimator_.setKeyframe(frame->id(), asKeyframe);
-      if(!blocking_) {
-        double timeLimit = parameters_.optimization.timeLimitForMatchingAndOptimization
-                           -(okvis::Time::now()-t0Matching).toSec();
-        estimator_.setOptimizationTimeLimit(std::max<double>(0.0, timeLimit),
-                                            parameters_.optimization.min_iterations);
+      if (asKeyframe) estimator_.setKeyframe(frame->id(), asKeyframe);
+      if (!blocking_) {
+        double timeLimit =
+            parameters_.optimization.timeLimitForMatchingAndOptimization - (okvis::Time::now() - t0Matching).toSec();
+        estimator_.setOptimizationTimeLimit(std::max<double>(0.0, timeLimit), parameters_.optimization.min_iterations);
       }
       optimizationDone_ = false;
     }  // unlock estimator_mutex_
 
     // use queue size 1 to propagate a congestion to the _matchedFrames queue
-    if (matchedFrames_.PushBlockingIfFull(frame, 1) == false)
-      return;
+    if (matchedFrames_.PushBlockingIfFull(frame, 1) == false) return;
   }
 }
 
 // Loop to process IMU measurements.
 void ThreadedKFVio::imuConsumerLoop() {
   okvis::ImuMeasurement data;
-  TimerSwitchable processImuTimer("0 processImuMeasurements",true);
+  TimerSwitchable processImuTimer("0 processImuMeasurements", true);
   for (;;) {
     // get data and check for termination request
-    if (imuMeasurementsReceived_.PopBlocking(&data) == false)
-      return;
+    if (imuMeasurementsReceived_.PopBlocking(&data) == false) return;
     processImuTimer.start();
     okvis::Time start;
     const okvis::Time* end;  // do not need to copy end timestamp
     {
       std::lock_guard<std::mutex> imuLock(imuMeasurements_mutex_);
       OKVIS_ASSERT_TRUE(Exception,
-                        imuMeasurements_.empty()
-                        || imuMeasurements_.back().timeStamp < data.timeStamp,
+                        imuMeasurements_.empty() || imuMeasurements_.back().timeStamp < data.timeStamp,
                         "IMU measurement from the past received");
 
       if (parameters_.publishing.publishImuPropagatedState) {
@@ -1014,67 +961,63 @@ void ThreadedKFVio::imuConsumerLoop() {
     // notify other threads that imu data with timeStamp is here.
     imuFrameSynchronizer_.gotImuData(data.timeStamp);
 
-
-
     if (parameters_.publishing.publishImuPropagatedState) {
       Eigen::Matrix<double, 15, 15> covariance;
       Eigen::Matrix<double, 15, 15> jacobian;
 
       // TODO: check if using sonarMeasurements_ is ok or not? @Sharmin
-      frontend_.propagation(imuMeasurements_, imu_params_, T_WS_propagated_,
-                            speedAndBiases_propagated_, start, *end, &covariance,
+      frontend_.propagation(imuMeasurements_,
+                            imu_params_,
+                            T_WS_propagated_,
+                            speedAndBiases_propagated_,
+                            start,
+                            *end,
+                            &covariance,
                             &jacobian);
       OptimizationResults result;
       result.stamp = *end;
       result.T_WS = T_WS_propagated_;
       result.speedAndBiases = speedAndBiases_propagated_;
-      result.omega_S = imuMeasurements_.back().measurement.gyroscopes
-          - speedAndBiases_propagated_.segment<3>(3);
+      result.omega_S = imuMeasurements_.back().measurement.gyroscopes - speedAndBiases_propagated_.segment<3>(3);
       for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
-        result.vector_of_T_SCi.push_back(
-            okvis::kinematics::Transformation(
-                *parameters_.nCameraSystem.T_SC(i)));
+        result.vector_of_T_SCi.push_back(okvis::kinematics::Transformation(*parameters_.nCameraSystem.T_SC(i)));
       }
       result.onlyPublishLandmarks = false;
-      optimizationResults_.PushNonBlockingDroppingIfFull(result,1);
+      optimizationResults_.PushNonBlockingDroppingIfFull(result, 1);
     }
     processImuTimer.stop();
   }
 }
 
-
 // @Sharmin
 // Loop to process reloc measurements.
 void ThreadedKFVio::relocConsumerLoop() {
   okvis::RelocMeasurement data;
-  TimerSwitchable processRelocTimer("0 processRelocMeasurements",true);
+  TimerSwitchable processRelocTimer("0 processRelocMeasurements", true);
   for (;;) {
     // get data and check for termination request
-    if (relocMeasurementsReceived_.PopBlocking(&data) == false)
-      return;
+    if (relocMeasurementsReceived_.PopBlocking(&data) == false) return;
     processRelocTimer.start();
     okvis::Time start;
     const okvis::Time* end;  // do not need to copy end timestamp
     {
-       std::lock_guard<std::mutex> relocLock(relocMeasurements_mutex_);
-       OKVIS_ASSERT_TRUE(Exception,
-                         relocMeasurements_.empty()
-                         || relocMeasurements_.back().timeStamp < data.timeStamp,
-                         "Reloc measurement from the past received");
-       if (relocMeasurements_.size() > 0)
-    	   start = relocMeasurements_.back().timeStamp;
-       else
-    	   start = okvis::Time(0, 0);
-       end = &data.timeStamp;
-       relocMeasurements_.push_back(data);
-       std::cout<<"Read reloc data is ts: "<<data.timeStamp<<std::endl;
-    } // unlock relocMeasurements_mutex_
+      std::lock_guard<std::mutex> relocLock(relocMeasurements_mutex_);
+      OKVIS_ASSERT_TRUE(Exception,
+                        relocMeasurements_.empty() || relocMeasurements_.back().timeStamp < data.timeStamp,
+                        "Reloc measurement from the past received");
+      if (relocMeasurements_.size() > 0)
+        start = relocMeasurements_.back().timeStamp;
+      else
+        start = okvis::Time(0, 0);
+      end = &data.timeStamp;
+      relocMeasurements_.push_back(data);
+      std::cout << "Read reloc data is ts: " << data.timeStamp << std::endl;
+    }  // unlock relocMeasurements_mutex_
 
     // notify other threads that reloc data with timeStamp is here.
     relocFrameSynchronizer_.gotRelocData(data.timeStamp);
 
     processRelocTimer.stop();
-
   }
 }
 
@@ -1082,80 +1025,70 @@ void ThreadedKFVio::relocConsumerLoop() {
 // Loop to process depth measurements.
 void ThreadedKFVio::depthConsumerLoop() {
   okvis::DepthMeasurement data;
-  TimerSwitchable processDepthTimer("0 processDepthMeasurements",true);
+  TimerSwitchable processDepthTimer("0 processDepthMeasurements", true);
   for (;;) {
     // get data and check for termination request
-    if (depthMeasurementsReceived_.PopBlocking(&data) == false)
-      return;
+    if (depthMeasurementsReceived_.PopBlocking(&data) == false) return;
     processDepthTimer.start();
     okvis::Time start;
     const okvis::Time* end;  // do not need to copy end timestamp
     {
-       std::lock_guard<std::mutex> depthLock(depthMeasurements_mutex_);
-       OKVIS_ASSERT_TRUE(Exception,
-                         depthMeasurements_.empty()
-                         || depthMeasurements_.back().timeStamp < data.timeStamp,
-                         "Depth measurement from the past received");
-       if (depthMeasurements_.size() > 0)
-    	   start = depthMeasurements_.back().timeStamp;
-       else
-    	   start = okvis::Time(0, 0);
-       end = &data.timeStamp;
-       depthMeasurements_.push_back(data);
-    } // unlock depthMeasurements_mutex_
+      std::lock_guard<std::mutex> depthLock(depthMeasurements_mutex_);
+      OKVIS_ASSERT_TRUE(Exception,
+                        depthMeasurements_.empty() || depthMeasurements_.back().timeStamp < data.timeStamp,
+                        "Depth measurement from the past received");
+      if (depthMeasurements_.size() > 0)
+        start = depthMeasurements_.back().timeStamp;
+      else
+        start = okvis::Time(0, 0);
+      end = &data.timeStamp;
+      depthMeasurements_.push_back(data);
+    }  // unlock depthMeasurements_mutex_
 
     // notify other threads that depth data with timeStamp is here.
     depthFrameSynchronizer_.gotDepthData(data.timeStamp);
 
-	processDepthTimer.stop();
-
+    processDepthTimer.stop();
   }
 }
-
-
 
 // @Sharmin
 // Loop to process sonar measurements.
 void ThreadedKFVio::sonarConsumerLoop() {
   okvis::SonarMeasurement data;
-  TimerSwitchable processSonarTimer("0 processSonarMeasurements",true);
+  TimerSwitchable processSonarTimer("0 processSonarMeasurements", true);
   for (;;) {
     // get data and check for termination request
-    if (sonarMeasurementsReceived_.PopBlocking(&data) == false)
-      return;
+    if (sonarMeasurementsReceived_.PopBlocking(&data) == false) return;
     processSonarTimer.start();
     okvis::Time start;
     const okvis::Time* end;  // do not need to copy end timestamp
     {
-       std::lock_guard<std::mutex> sonarLock(sonarMeasurements_mutex_);
-       OKVIS_ASSERT_TRUE(Exception,
-                         sonarMeasurements_.empty()
-                         || sonarMeasurements_.back().timeStamp < data.timeStamp,
-                         "Sonar measurement from the past received");
-       if (sonarMeasurements_.size() > 0)
-    	   start = sonarMeasurements_.back().timeStamp;
-       else
-    	   start = okvis::Time(0, 0);
-       end = &data.timeStamp;
-       sonarMeasurements_.push_back(data);
-    } // unlock sonarMeasurements_mutex_
+      std::lock_guard<std::mutex> sonarLock(sonarMeasurements_mutex_);
+      OKVIS_ASSERT_TRUE(Exception,
+                        sonarMeasurements_.empty() || sonarMeasurements_.back().timeStamp < data.timeStamp,
+                        "Sonar measurement from the past received");
+      if (sonarMeasurements_.size() > 0)
+        start = sonarMeasurements_.back().timeStamp;
+      else
+        start = okvis::Time(0, 0);
+      end = &data.timeStamp;
+      sonarMeasurements_.push_back(data);
+    }  // unlock sonarMeasurements_mutex_
 
     // notify other threads that sonar data with timeStamp is here.
     sonarFrameSynchronizer_.gotSonarData(data.timeStamp);
 
-	processSonarTimer.stop();
-
+    processSonarTimer.stop();
   }
 }
-
 
 // Loop to process position measurements.
 void ThreadedKFVio::positionConsumerLoop() {
   okvis::PositionMeasurement data;
   for (;;) {
     // get data and check for termination request
-    if (positionMeasurementsReceived_.PopBlocking(&data) == false)
-      return;
+    if (positionMeasurementsReceived_.PopBlocking(&data) == false) return;
     // collect
     {
       std::lock_guard<std::mutex> positionLock(positionMeasurements_mutex_);
@@ -1165,40 +1098,34 @@ void ThreadedKFVio::positionConsumerLoop() {
 }
 
 // Loop to process GPS measurements.
-void ThreadedKFVio::gpsConsumerLoop() {
-}
+void ThreadedKFVio::gpsConsumerLoop() {}
 
 // Loop to process magnetometer measurements.
-void ThreadedKFVio::magnetometerConsumerLoop() {
-}
+void ThreadedKFVio::magnetometerConsumerLoop() {}
 
 // Loop to process differential pressure measurements.
-void ThreadedKFVio::differentialConsumerLoop() {
-}
+void ThreadedKFVio::differentialConsumerLoop() {}
 
 // Loop that visualizes completed frames.
 void ThreadedKFVio::visualizationLoop() {
   okvis::VioVisualizer visualizer_(parameters_);
   for (;;) {
     VioVisualizer::VisualizationData::Ptr new_data;
-    if (visualizationData_.PopBlocking(&new_data) == false)
-      return;
-    //visualizer_.showDebugImages(new_data);
+    if (visualizationData_.PopBlocking(&new_data) == false) return;
+    // visualizer_.showDebugImages(new_data);
     std::vector<cv::Mat> out_images(parameters_.nCameraSystem.numCameras());
     for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
       out_images[i] = visualizer_.drawMatches(new_data, i);
     }
-	displayImages_.PushNonBlockingDroppingIfFull(out_images,1);
+    displayImages_.PushNonBlockingDroppingIfFull(out_images, 1);
   }
 }
 
 // trigger display (needed because OSX won't allow threaded display)
 void ThreadedKFVio::display() {
   std::vector<cv::Mat> out_images;
-  if (displayImages_.Size() == 0)
-	return;
-  if (displayImages_.PopBlocking(&out_images) == false)
-    return;
+  if (displayImages_.Size() == 0) return;
+  if (displayImages_.PopBlocking(&out_images) == false) return;
   // draw
   for (size_t im = 0; im < parameters_.nCameraSystem.numCameras(); im++) {
     if (debugImgCallback_) {
@@ -1217,27 +1144,22 @@ void ThreadedKFVio::display() {
 }
 
 // Get a subset of the recorded IMU measurements.
-okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(
-    okvis::Time& imuDataBeginTime, okvis::Time& imuDataEndTime) {
+okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(okvis::Time& imuDataBeginTime,
+                                                            okvis::Time& imuDataEndTime) {
   // sanity checks:
   // if end time is smaller than begin time, return empty queue.
   // if begin time is larger than newest imu time, return empty queue.
-  if (imuDataEndTime < imuDataBeginTime
-      || imuDataBeginTime > imuMeasurements_.back().timeStamp)
+  if (imuDataEndTime < imuDataBeginTime || imuDataBeginTime > imuMeasurements_.back().timeStamp)
     return okvis::ImuMeasurementDeque();
 
   std::lock_guard<std::mutex> lock(imuMeasurements_mutex_);
   // get iterator to imu data before previous frame
-  okvis::ImuMeasurementDeque::iterator first_imu_package = imuMeasurements_
-      .begin();
-  okvis::ImuMeasurementDeque::iterator last_imu_package =
-      imuMeasurements_.end();
+  okvis::ImuMeasurementDeque::iterator first_imu_package = imuMeasurements_.begin();
+  okvis::ImuMeasurementDeque::iterator last_imu_package = imuMeasurements_.end();
   // TODO go backwards through queue. Is probably faster.
-  for (auto iter = imuMeasurements_.begin(); iter != imuMeasurements_.end();
-      ++iter) {
+  for (auto iter = imuMeasurements_.begin(); iter != imuMeasurements_.end(); ++iter) {
     // move first_imu_package iterator back until iter->timeStamp is higher than requested begintime
-    if (iter->timeStamp <= imuDataBeginTime)
-      first_imu_package = iter;
+    if (iter->timeStamp <= imuDataBeginTime) first_imu_package = iter;
 
     // set last_imu_package iterator as soon as we hit first timeStamp higher than requested endtime & break
     if (iter->timeStamp >= imuDataEndTime) {
@@ -1254,37 +1176,29 @@ okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(
 }
 // @Sharmin
 // Get the reloc measurement in-between/nearest to start and end
-okvis::RelocMeasurementDeque ThreadedKFVio::getRelocMeasurements(
-    okvis::Time& beginTime, okvis::Time& endTime) {
-
-	if (relocMeasurements_.empty())  /// Sharmin
-		return okvis::RelocMeasurementDeque();
-	// Sharmin: Adding an offset
-	beginTime = beginTime - okvis::Duration(0.5);
+okvis::RelocMeasurementDeque ThreadedKFVio::getRelocMeasurements(okvis::Time& beginTime, okvis::Time& endTime) {
+  if (relocMeasurements_.empty())  /// Sharmin
+    return okvis::RelocMeasurementDeque();
+  // Sharmin: Adding an offset
+  beginTime = beginTime - okvis::Duration(0.5);
   // sanity checks:
   // if end time is smaller than begin time, return empty queue.
   // if begin time is larger than newest sonar time, return empty queue.
-  if (endTime < beginTime
-      || beginTime > relocMeasurements_.back().timeStamp){
-	  std::cout<<"begin time is larger than relo time"<<std::endl;
+  if (endTime < beginTime || beginTime > relocMeasurements_.back().timeStamp) {
+    std::cout << "begin time is larger than relo time" << std::endl;
     return okvis::RelocMeasurementDeque();
   }
 
   std::lock_guard<std::mutex> lock(relocMeasurements_mutex_);
   // get iterator to reloc data before previous frame
-  okvis::RelocMeasurementDeque::iterator first_reloc_package = relocMeasurements_
-      .begin();
-  okvis::RelocMeasurementDeque::iterator last_reloc_package =
-		  relocMeasurements_.end();
+  okvis::RelocMeasurementDeque::iterator first_reloc_package = relocMeasurements_.begin();
+  okvis::RelocMeasurementDeque::iterator last_reloc_package = relocMeasurements_.end();
 
   // TODO go backwards through queue. Is probably faster.
   // TODO @Sharmin check it
-  for (auto iter = relocMeasurements_.begin(); iter != relocMeasurements_.end();
-      ++iter) {
+  for (auto iter = relocMeasurements_.begin(); iter != relocMeasurements_.end(); ++iter) {
     // move reloc_package iterator back until iter->timeStamp is higher than requested begintime
-    if (iter->timeStamp <= beginTime)
-    	first_reloc_package = iter;
-
+    if (iter->timeStamp <= beginTime) first_reloc_package = iter;
 
     if (iter->timeStamp >= endTime) {
       last_reloc_package = iter;
@@ -1301,33 +1215,24 @@ okvis::RelocMeasurementDeque ThreadedKFVio::getRelocMeasurements(
   return copy_buffer;
 }
 
-
 // @Sharmin
 // Get the depth measurement in-between/nearest to start and end. Depth sensor has a slowed rate, 1 Hz.
-okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(
-    okvis::Time& beginTime, okvis::Time& endTime) {
+okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(okvis::Time& beginTime, okvis::Time& endTime) {
   // sanity checks:
   // if end time is smaller than begin time, return empty queue.
   // if begin time is larger than newest sonar time, return empty queue.
-  if (endTime < beginTime
-      || beginTime > depthMeasurements_.back().timeStamp)
-    return okvis::DepthMeasurementDeque();
+  if (endTime < beginTime || beginTime > depthMeasurements_.back().timeStamp) return okvis::DepthMeasurementDeque();
 
   std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);
   // get iterator to depth data before previous frame
-  okvis::DepthMeasurementDeque::iterator first_depth_package = depthMeasurements_
-      .begin();
-  okvis::DepthMeasurementDeque::iterator last_depth_package =
- 		  depthMeasurements_.end();
+  okvis::DepthMeasurementDeque::iterator first_depth_package = depthMeasurements_.begin();
+  okvis::DepthMeasurementDeque::iterator last_depth_package = depthMeasurements_.end();
 
   // TODO go backwards through queue. Is probably faster.
   // TODO @Sharmin check it
-  for (auto iter = depthMeasurements_.begin(); iter != depthMeasurements_.end();
-      ++iter) {
+  for (auto iter = depthMeasurements_.begin(); iter != depthMeasurements_.end(); ++iter) {
     // move depth_package iterator back until iter->timeStamp is higher than requested begintime
-    if (iter->timeStamp <= beginTime)
-    	first_depth_package = iter;
-
+    if (iter->timeStamp <= beginTime) first_depth_package = iter;
 
     if (iter->timeStamp >= endTime) {
       last_depth_package = iter;
@@ -1340,30 +1245,24 @@ okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(
   return okvis::DepthMeasurementDeque(first_depth_package, last_depth_package);
 }
 
-
 // @Sharmin
 // Get a subset of the recorded Sonar measurements.
-okvis::SonarMeasurementDeque ThreadedKFVio::getSonarMeasurements(
-    okvis::Time& sonarDataBeginTime, okvis::Time& sonarDataEndTime) {
+okvis::SonarMeasurementDeque ThreadedKFVio::getSonarMeasurements(okvis::Time& sonarDataBeginTime,
+                                                                 okvis::Time& sonarDataEndTime) {
   // sanity checks:
   // if end time is smaller than begin time, return empty queue.
   // if begin time is larger than newest sonar time, return empty queue.
-  if (sonarDataEndTime < sonarDataBeginTime
-      || sonarDataBeginTime > sonarMeasurements_.back().timeStamp)
+  if (sonarDataEndTime < sonarDataBeginTime || sonarDataBeginTime > sonarMeasurements_.back().timeStamp)
     return okvis::SonarMeasurementDeque();
 
   std::lock_guard<std::mutex> lock(sonarMeasurements_mutex_);
   // get iterator to sonar data before previous frame
-  okvis::SonarMeasurementDeque::iterator first_sonar_package = sonarMeasurements_
-      .begin();
-  okvis::SonarMeasurementDeque::iterator last_sonar_package =
-		  sonarMeasurements_.end();
+  okvis::SonarMeasurementDeque::iterator first_sonar_package = sonarMeasurements_.begin();
+  okvis::SonarMeasurementDeque::iterator last_sonar_package = sonarMeasurements_.end();
   // TODO go backwards through queue. Is probably faster.
-  for (auto iter = sonarMeasurements_.begin(); iter != sonarMeasurements_.end();
-      ++iter) {
+  for (auto iter = sonarMeasurements_.begin(); iter != sonarMeasurements_.end(); ++iter) {
     // move first_sonar_package iterator back until iter->timeStamp is higher than requested begintime
-    if (iter->timeStamp <= sonarDataBeginTime)
-      first_sonar_package = iter;
+    if (iter->timeStamp <= sonarDataBeginTime) first_sonar_package = iter;
 
     // set last_sonar_package iterator as soon as we hit first timeStamp higher than requested endtime & break
     if (iter->timeStamp >= sonarDataEndTime) {
@@ -1379,19 +1278,16 @@ okvis::SonarMeasurementDeque ThreadedKFVio::getSonarMeasurements(
   return okvis::SonarMeasurementDeque(first_sonar_package, last_sonar_package);
 }
 
-
 // Remove IMU measurements from the internal buffer.
 int ThreadedKFVio::deleteImuMeasurements(const okvis::Time& eraseUntil) {
   std::lock_guard<std::mutex> lock(imuMeasurements_mutex_);
-  if (imuMeasurements_.front().timeStamp > eraseUntil)
-    return 0;
+  if (imuMeasurements_.front().timeStamp > eraseUntil) return 0;
 
   okvis::ImuMeasurementDeque::iterator eraseEnd;
   int removed = 0;
   for (auto it = imuMeasurements_.begin(); it != imuMeasurements_.end(); ++it) {
     eraseEnd = it;
-    if (it->timeStamp >= eraseUntil)
-      break;
+    if (it->timeStamp >= eraseUntil) break;
     ++removed;
   }
 
@@ -1402,22 +1298,21 @@ int ThreadedKFVio::deleteImuMeasurements(const okvis::Time& eraseUntil) {
 
 // Loop that performs the optimization and marginalisation.
 void ThreadedKFVio::optimizationLoop() {
-  TimerSwitchable optimizationTimer("3.1 optimization",true);
-  TimerSwitchable marginalizationTimer("3.2 marginalization",true);
-  TimerSwitchable afterOptimizationTimer("3.3 afterOptimization",true);
+  TimerSwitchable optimizationTimer("3.1 optimization", true);
+  TimerSwitchable marginalizationTimer("3.2 marginalization", true);
+  TimerSwitchable afterOptimizationTimer("3.3 afterOptimization", true);
 
   for (;;) {
     std::shared_ptr<okvis::MultiFrame> frame_pairs;
     VioVisualizer::VisualizationData::Ptr visualizationDataPtr;
     okvis::Time deleteImuMeasurementsUntil(0, 0);
-    if (matchedFrames_.PopBlocking(&frame_pairs) == false)
-      return;
+    if (matchedFrames_.PopBlocking(&frame_pairs) == false) return;
     OptimizationResults result;
     {
       std::lock_guard<std::mutex> l(estimator_mutex_);
       optimizationTimer.start();
-      //if(frontend_.isInitialized()){
-        estimator_.optimize(parameters_.optimization.max_iterations, 2, false);
+      // if(frontend_.isInitialized()){
+      estimator_.optimize(parameters_.optimization.max_iterations, 2, false);
       //}
       /*if (estimator_.numFrames() > 0 && !frontend_.isInitialized()){
         // undo translation
@@ -1437,18 +1332,17 @@ void ThreadedKFVio::optimizationLoop() {
 
       optimizationTimer.stop();
 
-      // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
-      if (estimator_.numFrames()
-          > size_t(parameters_.optimization.numImuFrames)) {
-        deleteImuMeasurementsUntil = estimator_.multiFrame(
-            estimator_.frameIdByAge(parameters_.optimization.numImuFrames))
-            ->timestamp() - temporal_imu_data_overlap;
+      // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there
+      // (if not keyframe)
+      if (estimator_.numFrames() > size_t(parameters_.optimization.numImuFrames)) {
+        deleteImuMeasurementsUntil =
+            estimator_.multiFrame(estimator_.frameIdByAge(parameters_.optimization.numImuFrames))->timestamp() -
+            temporal_imu_data_overlap;
       }
 
       marginalizationTimer.start();
       estimator_.applyMarginalizationStrategy(
-          parameters_.optimization.numKeyframes,
-          parameters_.optimization.numImuFrames, result.transferredLandmarks);
+          parameters_.optimization.numKeyframes, parameters_.optimization.numImuFrames, result.transferredLandmarks);
       marginalizationTimer.stop();
       afterOptimizationTimer.start();
 
@@ -1459,8 +1353,7 @@ void ThreadedKFVio::optimizationLoop() {
       {
         std::lock_guard<std::mutex> lock(lastState_mutex_);
         estimator_.get_T_WS(frame_pairs->id(), lastOptimized_T_WS_);
-        estimator_.getSpeedAndBias(frame_pairs->id(), 0,
-                                   lastOptimizedSpeedAndBiases_);
+        estimator_.getSpeedAndBias(frame_pairs->id(), 0, lastOptimizedSpeedAndBiases_);
         lastOptimizedStateTimestamp_ = frame_pairs->timestamp();
 
         // if we publish the state after each IMU propagation we do not need to publish it here.
@@ -1469,8 +1362,7 @@ void ThreadedKFVio::optimizationLoop() {
           result.speedAndBiases = lastOptimizedSpeedAndBiases_;
           result.stamp = lastOptimizedStateTimestamp_;
           result.onlyPublishLandmarks = false;
-        }
-        else
+        } else
           result.onlyPublishLandmarks = true;
         estimator_.getLandmarks(result.landmarksVector);
 
@@ -1480,140 +1372,135 @@ void ThreadedKFVio::optimizationLoop() {
 
         // To publish the topics needed by pose-graph
 
-        if (estimator_.isKeyframe(frame_pairs->id()) || skip_cnt == SKIP_CNT)
-        {
-        	skip_cnt = 0;
+        if (estimator_.isKeyframe(frame_pairs->id()) || skip_cnt == SKIP_CNT) {
+          skip_cnt = 0;
 
-        	// publish keyframe image, pose, and points
-        	if (keyframeCallback_ && !result.landmarksVector.empty()){
+          // publish keyframe image, pose, and points
+          if (keyframeCallback_ && !result.landmarksVector.empty()) {
+            {
+              std::lock_guard<std::mutex> lock(kf_f_map_mutex_);
+              kf_f_map_.insert(std::make_pair(kf_index_, frame_pairs->id()));
+            }
 
-        		{
-					std::lock_guard<std::mutex> lock(kf_f_map_mutex_);
-					kf_f_map_.insert(std::make_pair(kf_index_, frame_pairs->id()));
-				}
+            // @Reloc: it's redundant, but reduces a lot of hassels
+            PointMap lmMap;  // get a copy of landmarksMap_
+            estimator_.getLandmarks(lmMap);
 
-        		// @Reloc: it's redundant, but reduces a lot of hassels
-        		PointMap lmMap; // get a copy of landmarksMap_
-        		estimator_.getLandmarks(lmMap);
+            const size_t CamIndexA = 0;                                 // for left camera
+            cv::Mat image_l = frame_pairs->frames_[CamIndexA].image();  // image to publish
 
-				const size_t CamIndexA = 0; // for left camera
-				cv::Mat image_l =  frame_pairs->frames_[CamIndexA].image();  // image to publish
+            std::vector<std::list<std::vector<double>>> kf_points;
+            int num_keypoint = 0;
+            cv::Mat temp_image = image_l;
 
-				std::vector<std::list<std::vector<double>>> kf_points;
-				int num_keypoint = 0;
-				cv::Mat temp_image = image_l;
+            for (PointMap::const_iterator cit = lmMap.begin(); cit != lmMap.end(); ++cit)  // @Reloc
+            {
+              std::map<okvis::KeypointIdentifier, uint64_t> observations =
+                  cit->second.observations;  // result.landmarksVector.at(l).observations;
 
-				for(PointMap::const_iterator cit=lmMap.begin(); cit!=lmMap.end(); ++cit)// @Reloc
-				{
+              for (std::map<okvis::KeypointIdentifier, uint64_t>::iterator mit = observations.begin();
+                   mit != observations.end();
+                   ++mit) {
+                if ((mit->first).frameId == frame_pairs->id()) {
+                  std::list<std::vector<double>> ptList;
+                  int obs_num = 0;
 
-					std::map<okvis::KeypointIdentifier, uint64_t> observations = cit->second.observations; //result.landmarksVector.at(l).observations;
+                  Eigen::Vector4d landmark = cit->second.point;  // 3D point to publish
+                  std::vector<double> pt3d;
+                  pt3d.push_back(landmark[0] / landmark[3]);
+                  pt3d.push_back(landmark[1] / landmark[3]);
+                  pt3d.push_back(landmark[2] / landmark[3]);
+                  ptList.push_back(pt3d);
 
-					for (std::map<okvis::KeypointIdentifier, uint64_t>::iterator mit = observations.begin(); mit != observations.end(); ++ mit){
-						if ((mit->first).frameId == frame_pairs->id()){
-							std::list<std::vector<double>> ptList;
-							int obs_num = 0;
+                  obs_num++;
 
-							Eigen::Vector4d landmark = cit->second.point;   // 3D point to publish
-							std::vector<double> pt3d;
-							pt3d.push_back(landmark[0]/landmark[3]);
-							pt3d.push_back(landmark[1]/landmark[3]);
-							pt3d.push_back(landmark[2]/landmark[3]);
-							ptList.push_back(pt3d);
+                  cv::KeyPoint cvkeypoint;  // Associated 2D point in left image to publish
+                  frame_pairs->getCvKeypoint(CamIndexA, (mit->first).keypointIndex, cvkeypoint);
 
-							obs_num++;
+                  if ((mit->first).keypointIndex >=
+                      frame_pairs->numKeypoints(
+                          CamIndexA)) {  // TODO Sharmin: check--> to avoid segfault for being keypoiny out-of-range
+                    LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
+                               << frame_pairs->numKeypoints(CamIndexA) << ")";
+                    break;
+                  }
 
-							cv::KeyPoint cvkeypoint; // Associated 2D point in left image to publish
-							frame_pairs->getCvKeypoint(CamIndexA, (mit->first).keypointIndex, cvkeypoint);
+                  std::vector<double> pt_id_w_uv;
+                  if (isnan(cvkeypoint.pt.x) || isnan(cvkeypoint.pt.y) ||
+                      isnan(cvkeypoint.size))  // TODO Sharmin: Better way to fix this?
+                    break;
 
-              if ((mit->first).keypointIndex >= frame_pairs->numKeypoints(CamIndexA)) {  // TODO Sharmin: check--> to avoid segfault for being keypoiny out-of-range
-                LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
-                           << frame_pairs->numKeypoints(CamIndexA) << ")";
-                break;
+                  // @Reloc
+                  pt_id_w_uv.push_back(cit->first);                  // landmarkId
+                  pt_id_w_uv.push_back(frame_pairs->id());           // poseId or MultiFrameId
+                  pt_id_w_uv.push_back((mit->first).keypointIndex);  // keypointIdx
+
+                  // cv::keypoint. Size 8
+                  pt_id_w_uv.push_back(kf_index_);
+                  pt_id_w_uv.push_back(cvkeypoint.pt.x);
+                  pt_id_w_uv.push_back(cvkeypoint.pt.y);
+
+                  pt_id_w_uv.push_back(cvkeypoint.size);
+                  pt_id_w_uv.push_back(cvkeypoint.angle);
+                  pt_id_w_uv.push_back((double)cvkeypoint.octave);
+                  pt_id_w_uv.push_back(cvkeypoint.response);
+                  pt_id_w_uv.push_back((double)cvkeypoint.class_id);
+
+                  ptList.push_back(pt_id_w_uv);
+
+                  obs_num++;
+
+                  for (std::map<okvis::KeypointIdentifier, uint64_t>::iterator mMPit = observations.begin();
+                       mMPit != observations.end();
+                       ++mMPit) {
+                    if ((mMPit->first).frameId == frame_pairs->id()) continue;
+
+                    {
+                      std::lock_guard<std::mutex> lock(kf_f_map_mutex_);
+                      for (std::map<int, size_t>::iterator mKfId = kf_f_map_.begin(); mKfId != kf_f_map_.end();
+                           ++mKfId) {
+                        if ((mMPit->first).frameId == mKfId->second) {
+                          ptList.push_back({mKfId->first});
+
+                          obs_num++;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                  kf_points.push_back(ptList);
+
+                  num_keypoint++;
+                  break;
+                }
               }
+            }
 
-							std::vector<double> pt_id_w_uv;
-							if (isnan(cvkeypoint.pt.x) || isnan(cvkeypoint.pt.y) || isnan(cvkeypoint.size))   // TODO Sharmin: Better way to fix this?
-								break;
+            okvis::kinematics::Transformation T_WCa =
+                lastOptimized_T_WS_ * (*parameters_.nCameraSystem.T_SC(CamIndexA));
+            keyframeCallback_(lastOptimizedStateTimestamp_, image_l, T_WCa, kf_points);
 
-							// @Reloc
-							pt_id_w_uv.push_back(cit->first);  // landmarkId
-							pt_id_w_uv.push_back(frame_pairs->id());  // poseId or MultiFrameId
-							pt_id_w_uv.push_back((mit->first).keypointIndex);  //keypointIdx
+            std::cout << "Keyframe Index: " << kf_index_ << std::endl;
+            kf_index_++;
+          }
 
-							// cv::keypoint. Size 8
-							pt_id_w_uv.push_back(kf_index_);
-							pt_id_w_uv.push_back(cvkeypoint.pt.x);
-							pt_id_w_uv.push_back(cvkeypoint.pt.y);
-
-							pt_id_w_uv.push_back(cvkeypoint.size);
-							pt_id_w_uv.push_back(cvkeypoint.angle);
-							pt_id_w_uv.push_back((double)cvkeypoint.octave);
-							pt_id_w_uv.push_back(cvkeypoint.response);
-							pt_id_w_uv.push_back((double)cvkeypoint.class_id);
-
-							ptList.push_back(pt_id_w_uv);
-
-							obs_num++;
-
-							for (std::map<okvis::KeypointIdentifier, uint64_t>::iterator mMPit = observations.begin(); mMPit != observations.end(); ++ mMPit){
-
-								if ( (mMPit->first).frameId == frame_pairs->id() )
-									continue;
-
-								{
-									std::lock_guard<std::mutex> lock(kf_f_map_mutex_);
-									for (std::map<int, size_t>::iterator mKfId = kf_f_map_.begin(); mKfId != kf_f_map_.end(); ++ mKfId){
-										if ( (mMPit->first).frameId == mKfId->second ){
-
-											ptList.push_back({mKfId->first});
-
-											obs_num++;
-											break;
-										}
-									}
-								}
-
-							}
-							kf_points.push_back(ptList);
-
-							num_keypoint++;
-							break;
-						}
-
-					}
-
-
-				}
-
-				okvis::kinematics::Transformation T_WCa = lastOptimized_T_WS_ * (*parameters_.nCameraSystem.T_SC(CamIndexA));
-				keyframeCallback_(lastOptimizedStateTimestamp_, image_l, T_WCa, kf_points);
-
-				std::cout<< "Keyframe Index: "<<kf_index_<<std::endl;
-				kf_index_++;
-        	}
-
+        } else {
+          skip_cnt++;
         }
-        else{
-        	skip_cnt++;
-        }
-
 
         //*********** End Added by Sharmin *******//
-
       }
 
       if (parameters_.visualization.displayImages || debugImgCallback_) {
         // fill in information that requires access to estimator.
-        visualizationDataPtr = VioVisualizer::VisualizationData::Ptr(
-            new VioVisualizer::VisualizationData());
+        visualizationDataPtr = VioVisualizer::VisualizationData::Ptr(new VioVisualizer::VisualizationData());
         visualizationDataPtr->observations.resize(frame_pairs->numKeypoints());
         okvis::MapPoint landmark;
-        okvis::ObservationVector::iterator it = visualizationDataPtr
-            ->observations.begin();
-        for (size_t camIndex = 0; camIndex < frame_pairs->numFrames();
-            ++camIndex) {
+        okvis::ObservationVector::iterator it = visualizationDataPtr->observations.begin();
+        for (size_t camIndex = 0; camIndex < frame_pairs->numFrames(); ++camIndex) {
           for (size_t k = 0; k < frame_pairs->numKeypoints(camIndex); ++k) {
-            OKVIS_ASSERT_TRUE_DBG(Exception,it != visualizationDataPtr->observations.end(),"Observation-vector not big enough");
+            OKVIS_ASSERT_TRUE_DBG(
+                Exception, it != visualizationDataPtr->observations.end(), "Observation-vector not big enough");
             it->keypointIdx = k;
             frame_pairs->getKeypoint(camIndex, k, it->keypointMeasurement);
             frame_pairs->getKeypointSize(camIndex, k, it->keypointSize);
@@ -1628,15 +1515,14 @@ void ThreadedKFVio::optimizationLoop() {
               else
                 it->isInitialized = false;
             } else {
-              it->landmark_W = Eigen::Vector4d(0, 0, 0, 0);  // set to infinity to tell visualizer that landmark is not added
+              it->landmark_W =
+                  Eigen::Vector4d(0, 0, 0, 0);  // set to infinity to tell visualizer that landmark is not added
             }
             ++it;
           }
         }
-        visualizationDataPtr->keyFrames = estimator_.multiFrame(
-            estimator_.currentKeyframeId());
-        estimator_.get_T_WS(estimator_.currentKeyframeId(),
-                            visualizationDataPtr->T_WS_keyFrame);
+        visualizationDataPtr->keyFrames = estimator_.multiFrame(estimator_.currentKeyframeId());
+        estimator_.get_T_WS(estimator_.currentKeyframeId(), visualizationDataPtr->T_WS_keyFrame);
       }
 
       optimizationDone_ = true;
@@ -1646,9 +1532,7 @@ void ThreadedKFVio::optimizationLoop() {
     if (!parameters_.publishing.publishImuPropagatedState) {
       // adding further elements to result that do not access estimator.
       for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
-        result.vector_of_T_SCi.push_back(
-            okvis::kinematics::Transformation(
-                *parameters_.nCameraSystem.T_SC(i)));
+        result.vector_of_T_SCi.push_back(okvis::kinematics::Transformation(*parameters_.nCameraSystem.T_SC(i)));
       }
     }
     optimizationResults_.Push(result);
@@ -1667,25 +1551,22 @@ void ThreadedKFVio::publisherLoop() {
   for (;;) {
     // get the result data
     OptimizationResults result;
-    if (optimizationResults_.PopBlocking(&result) == false)
-      return;
+    if (optimizationResults_.PopBlocking(&result) == false) return;
 
     // call all user callbacks
-    if (stateCallback_ && !result.onlyPublishLandmarks)
-      stateCallback_(result.stamp, result.T_WS);
+    if (stateCallback_ && !result.onlyPublishLandmarks) stateCallback_(result.stamp, result.T_WS);
 
     // Modified by Sharmin
     if (fullStateCallback_ && !result.onlyPublishLandmarks)
-      fullStateCallback_(result.stamp, result.T_WS, result.speedAndBiases,
-                         result.omega_S, driftCorrected_T_WS_);
+      fullStateCallback_(result.stamp, result.T_WS, result.speedAndBiases, result.omega_S, driftCorrected_T_WS_);
 
     if (fullStateCallbackWithExtrinsics_ && !result.onlyPublishLandmarks)
-      fullStateCallbackWithExtrinsics_(result.stamp, result.T_WS,
-                                       result.speedAndBiases, result.omega_S,
-                                       result.vector_of_T_SCi);
+      fullStateCallbackWithExtrinsics_(
+          result.stamp, result.T_WS, result.speedAndBiases, result.omega_S, result.vector_of_T_SCi);
     if (landmarksCallback_ && !result.landmarksVector.empty())
-      landmarksCallback_(result.stamp, result.landmarksVector,
-                         result.transferredLandmarks);  //TODO(gohlp): why two maps?
+      landmarksCallback_(result.stamp,
+                         result.landmarksVector,
+                         result.transferredLandmarks);  // TODO(gohlp): why two maps?
   }
 }
 

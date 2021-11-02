@@ -16,36 +16,29 @@
 #include "MockVioFrontendInterface.hpp"
 #include "testDataGenerators.hpp"
 
+using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Between;
 using ::testing::Return;
-using ::testing::_;
 
-TEST(OkvisVioInterfaces, testConstructionDestruction)
-{
-    using namespace okvis;
+TEST(OkvisVioInterfaces, testConstructionDestruction) {
+  using namespace okvis;
 
-    MockVioBackendInterface dummy;
-    EXPECT_CALL(dummy, addCamera(_))
-      .Times(2);
-    EXPECT_CALL(dummy, addImu(_))
-      .Times(1);
-    EXPECT_CALL(dummy, currentFrameId())
-      .Times(1);
-    EXPECT_CALL(dummy, get_T_WS(_,_))
-      .Times(1);
+  MockVioBackendInterface dummy;
+  EXPECT_CALL(dummy, addCamera(_)).Times(2);
+  EXPECT_CALL(dummy, addImu(_)).Times(1);
+  EXPECT_CALL(dummy, currentFrameId()).Times(1);
+  EXPECT_CALL(dummy, get_T_WS(_, _)).Times(1);
 
-    MockVioFrontendInterface mock_frontend;
-    okvis::VioParameters parameters;
-    parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);
-    // start with mock
+  MockVioFrontendInterface mock_frontend;
+  okvis::VioParameters parameters;
+  parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);
+  // start with mock
 
-    EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-        .Times(1);
-    EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-        .Times(1);
+  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_)).Times(1);
+  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_)).Times(1);
 
-    ThreadedKFVio vio(parameters);
+  ThreadedKFVio vio(parameters);
 }
 
 /* ThreadedKFVio needs IMU data to work
@@ -96,33 +89,22 @@ TEST(OkvisVioInterfaces, testDestructionWithImageData)
 }
 */
 
-TEST(OkvisVioInterfaces, testDestructionWithIMUData)
-{
+TEST(OkvisVioInterfaces, testDestructionWithIMUData) {
   using namespace okvis;
 
   MockVioBackendInterface dummy;
-  EXPECT_CALL(dummy, addCamera(_))
-    .Times(2);
-  EXPECT_CALL(dummy, addImu(_))
-    .Times(1);
-  EXPECT_CALL(dummy, optimize(_,_,_))
-    .Times(0);
-  EXPECT_CALL(dummy, currentFrameId())
-    .Times(1);
-  EXPECT_CALL(dummy, get_T_WS(_,_))
-    .Times(1);
-  EXPECT_CALL(dummy, setOptimizationTimeLimit(_,_))
-    .Times(1);
+  EXPECT_CALL(dummy, addCamera(_)).Times(2);
+  EXPECT_CALL(dummy, addImu(_)).Times(1);
+  EXPECT_CALL(dummy, optimize(_, _, _)).Times(0);
+  EXPECT_CALL(dummy, currentFrameId()).Times(1);
+  EXPECT_CALL(dummy, get_T_WS(_, _)).Times(1);
+  EXPECT_CALL(dummy, setOptimizationTimeLimit(_, _)).Times(1);
 
   MockVioFrontendInterface mock_frontend;
-  EXPECT_CALL(mock_frontend, detectAndDescribe(_,_,_,_))
-    .Times(0);
-  EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
-    .Times(Between(9, 10));
-  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-    .Times(1);
-  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-    .Times(1);
+  EXPECT_CALL(mock_frontend, detectAndDescribe(_, _, _, _)).Times(0);
+  EXPECT_CALL(mock_frontend, propagation(_, _, _, _, _, _, _, _)).Times(Between(9, 10));
+  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_)).Times(1);
+  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_)).Times(1);
 
   okvis::VioParameters parameters;
   parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);
@@ -140,6 +122,7 @@ TEST(OkvisVioInterfaces, testDestructionWithIMUData)
   imu_data.measurement.gyroscopes.Zero();
 
   for (int j = 0; j < 10; ++j) {
-    vio.addImuMeasurement(okvis::Time(now + j * 0.01), imu_data.measurement.accelerometers, imu_data.measurement.gyroscopes);
+    vio.addImuMeasurement(
+        okvis::Time(now + j * 0.01), imu_data.measurement.accelerometers, imu_data.measurement.gyroscopes);
   }
 }

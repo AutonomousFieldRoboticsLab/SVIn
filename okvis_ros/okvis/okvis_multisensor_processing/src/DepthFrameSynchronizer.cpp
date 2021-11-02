@@ -42,32 +42,28 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-DepthFrameSynchronizer::DepthFrameSynchronizer()
-  : shutdown_(false) {}
+DepthFrameSynchronizer::DepthFrameSynchronizer() : shutdown_(false) {}
 
 DepthFrameSynchronizer::~DepthFrameSynchronizer() {
-  if(!shutdown_)
-    shutdown();
+  if (!shutdown_) shutdown();
 }
 
 // Tell the synchronizer that a new Depth measurement has been registered.
 void DepthFrameSynchronizer::gotDepthData(const okvis::Time& stamp) {
   newestDepthDataStamp_ = stamp;
-  if(depthDataNeededUntil_ < stamp)
-    gotNeededDepthData_.notify_all();
+  if (depthDataNeededUntil_ < stamp) gotNeededDepthData_.notify_all();
 }
 
 // Wait until a Depth measurement with a timestamp equal or newer to the supplied one is registered.
 bool DepthFrameSynchronizer::waitForUpToDateDepthData(const okvis::Time& frame_stamp) {
   // if the newest depth data timestamp is smaller than frame_stamp, wait until
   // depth_data newer than frame_stamp arrives
-  if(newestDepthDataStamp_ <= frame_stamp && !shutdown_) {
+  if (newestDepthDataStamp_ <= frame_stamp && !shutdown_) {
     depthDataNeededUntil_ = frame_stamp;
     std::unique_lock<std::mutex> lock(mutex_);
     gotNeededDepthData_.wait(lock);
   }
-  if(shutdown_)
-    return false;
+  if (shutdown_) return false;
   return true;
 }
 

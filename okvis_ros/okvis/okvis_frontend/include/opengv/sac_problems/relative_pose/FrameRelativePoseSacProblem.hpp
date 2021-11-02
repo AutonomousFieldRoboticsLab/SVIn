@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,11 +40,11 @@
 #define INCLUDE_OKVIS_OPENGV_FRAMERELATIVEPOSESACPROBLEM_HPP_
 
 #include <okvis/assert_macros.hpp>
-#include <opengv/types.hpp>
-#include <opengv/triangulation/methods.hpp>
+#include <opengv/relative_pose/FrameRelativeAdapter.hpp>
 #include <opengv/relative_pose/methods.hpp>
 #include <opengv/sac_problems/relative_pose/CentralRelativePoseSacProblem.hpp>
-#include <opengv/relative_pose/FrameRelativeAdapter.hpp>
+#include <opengv/triangulation/methods.hpp>
+#include <opengv/types.hpp>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -67,7 +67,7 @@ namespace relative_pose {
  */
 class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
  public:
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   typedef CentralRelativePoseSacProblem base_t;
 
@@ -84,14 +84,12 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
    * \param[in] algorithm The algorithm we want to use.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRelativePoseSacProblem(adapter_t & adapter, algorithm_t algorithm)
+  FrameRelativePoseSacProblem(adapter_t& adapter, algorithm_t algorithm)
       : base_t(adapter, algorithm),
-        adapterDerived_(
-            *static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
-    OKVIS_ASSERT_TRUE(
-        Exception,
-        dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
-        "only opengv::absolute_pose::FrameRelativeAdapter supported");
+        adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
+    OKVIS_ASSERT_TRUE(Exception,
+                      dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
+                      "only opengv::absolute_pose::FrameRelativeAdapter supported");
   }
 
   /**
@@ -102,18 +100,14 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
    *                    correspondences.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRelativePoseSacProblem(adapter_t & adapter, algorithm_t algorithm,
-                              const std::vector<int> & indices)
+  FrameRelativePoseSacProblem(adapter_t& adapter, algorithm_t algorithm, const std::vector<int>& indices)
       : base_t(adapter, algorithm, indices),
-        adapterDerived_(
-            *static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
-    OKVIS_ASSERT_TRUE(
-        Exception,
-        dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
-        "only opengv::absolute_pose::FrameRelativeAdapter supported");
+        adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
+    OKVIS_ASSERT_TRUE(Exception,
+                      dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
+                      "only opengv::absolute_pose::FrameRelativeAdapter supported");
   }
-  virtual ~FrameRelativePoseSacProblem() {
-  }
+  virtual ~FrameRelativePoseSacProblem() {}
 
   /**
    * \brief Compute the distances of all samples whith respect to given model
@@ -123,9 +117,9 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
    * \param[out] scores The resulting distances of the selected samples. Low
    *                    distances mean a good fit.
    */
-  virtual void getSelectedDistancesToModel(const model_t & model,
-                                           const std::vector<int> & indices,
-                                           std::vector<double> & scores) const {
+  virtual void getSelectedDistancesToModel(const model_t& model,
+                                           const std::vector<int>& indices,
+                                           std::vector<double>& scores) const {
     translation_t translation = model.col(3);
     rotation_t rotation = model.block<3, 3>(0, 0);
     adapterDerived_.sett12(translation);
@@ -139,8 +133,7 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
     p_hom[3] = 1.0;
 
     for (size_t i = 0; i < indices.size(); i++) {
-      p_hom.block<3, 1>(0, 0) = opengv::triangulation::triangulate2(
-          adapterDerived_, indices[i]);
+      p_hom.block<3, 1>(0, 0) = opengv::triangulation::triangulate2(adapterDerived_, indices[i]);
       bearingVector_t reprojection1 = p_hom.block<3, 1>(0, 0);
       bearingVector_t reprojection2 = inverseSolution * p_hom;
       reprojection1 = reprojection1 / reprojection1.norm();
@@ -148,26 +141,23 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
       bearingVector_t f1 = adapterDerived_.getBearingVector1(indices[i]);
       bearingVector_t f2 = adapterDerived_.getBearingVector2(indices[i]);
 
-      //compute the score
+      // compute the score
       point_t error1 = (reprojection1 - f1);
       point_t error2 = (reprojection2 - f2);
       double error_squared1 = error1.transpose() * error1;
       double error_squared2 = error2.transpose() * error2;
-      scores.push_back(
-          error_squared1 * 0.5 / adapterDerived_.getSigmaAngle1(indices[i])
-              + error_squared2 * 0.5
-                  / adapterDerived_.getSigmaAngle2(indices[i]));
+      scores.push_back(error_squared1 * 0.5 / adapterDerived_.getSigmaAngle1(indices[i]) +
+                       error_squared2 * 0.5 / adapterDerived_.getSigmaAngle2(indices[i]));
     }
   }
 
  protected:
   /// The adapter holding the bearing, correspondences etc.
-  opengv::relative_pose::FrameRelativeAdapter & adapterDerived_;
-
+  opengv::relative_pose::FrameRelativeAdapter& adapterDerived_;
 };
 
-}
-}
-}
+}  // namespace relative_pose
+}  // namespace sac_problems
+}  // namespace opengv
 
 #endif /* INCLUDE_OKVIS_OPENGV_FRAMERELATIVEPOSESACPROBLEM_HPP_ */

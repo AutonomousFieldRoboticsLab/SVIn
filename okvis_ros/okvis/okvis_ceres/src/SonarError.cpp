@@ -36,8 +36,8 @@
  * @author Sharmin Rahman
  */
 
-#include <okvis/ceres/SonarError.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/SonarError.hpp>
 //#include <okvis/ceres/SonarLocalParameterization.hpp>
 
 /// \brief okvis Main namespace of this package.
@@ -53,87 +53,86 @@ namespace ceres {
 }*/
 
 // Construct with measurement, variance and LandmarkSubset.
-SonarError::SonarError(const okvis::VioParameters & params,
-    double range, double heading, const information_t & information, std::vector<Eigen::Vector3d> landmarkSubset): params_(params)
-    		{
+SonarError::SonarError(const okvis::VioParameters& params,
+                       double range,
+                       double heading,
+                       const information_t& information,
+                       std::vector<Eigen::Vector3d> landmarkSubset)
+    : params_(params) {
   setMeasurement(range, heading);
   setInformation(information);
-  //computeCovarianceMatrix(landmarkSubset);
+  // computeCovarianceMatrix(landmarkSubset);
   setLandmarkSubset(landmarkSubset);
 }
 
 /*void SonarError::computeCovarianceMatrix(const std::vector<Eigen::Vector4d> &landmarkSubset) {
-	Eigen::Matrix<double,3,3> covariance = Eigen::Matrix<double,3,3>::Zero();
-  	double mean[3] = {0, 0, 0};
-  	for (auto it = landmarkSubset.begin(); it != landmarkSubset.end(); ++it){
-  		mean[0] += (*it)[0] / (*it)[3]; // it[3] is always 1
-  		mean[1] += (*it)[1] / (*it)[3]; // it[3] is always 1
-  		mean[2] += (*it)[2] / (*it)[3]; // it[3] is always 1
-  	}
-  	mean[0] = mean[0] / landmarkSubset.size();
-  	mean[1] = mean[1] / landmarkSubset.size();
-  	mean[2] = mean[2] / landmarkSubset.size();
+        Eigen::Matrix<double,3,3> covariance = Eigen::Matrix<double,3,3>::Zero();
+        double mean[3] = {0, 0, 0};
+        for (auto it = landmarkSubset.begin(); it != landmarkSubset.end(); ++it){
+                mean[0] += (*it)[0] / (*it)[3]; // it[3] is always 1
+                mean[1] += (*it)[1] / (*it)[3]; // it[3] is always 1
+                mean[2] += (*it)[2] / (*it)[3]; // it[3] is always 1
+        }
+        mean[0] = mean[0] / landmarkSubset.size();
+        mean[1] = mean[1] / landmarkSubset.size();
+        mean[2] = mean[2] / landmarkSubset.size();
 
-  	for (int i = 0; i < 3; i++)
-  		for (int j = 0; j < 3; j++) {
-  			covariance(i,j) = 0.0;
-  			for (auto it = landmarkSubset.begin(); it != landmarkSubset.end(); ++it)
-  				covariance(i,j) += (mean[i] - (*it)[0]) * (mean[j] - (*it)[1]);
-  			covariance(i,j) /= landmarkSubset.size() - 1;
-  		}
-  	covariance_ = covariance;
-  	information_ = covariance.inverse();
-  	// perform the Cholesky decomposition on order to obtain the correct error weighting
-  	Eigen::LLT<information_t> lltOfInformation(information_);
-  	_squareRootInformation = lltOfInformation.matrixL().transpose();
-  	LOG(INFO) << covariance_;
-  	LOG(INFO) << information_;
-  	LOG(INFO) << _squareRootInformation;
+        for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++) {
+                        covariance(i,j) = 0.0;
+                        for (auto it = landmarkSubset.begin(); it != landmarkSubset.end(); ++it)
+                                covariance(i,j) += (mean[i] - (*it)[0]) * (mean[j] - (*it)[1]);
+                        covariance(i,j) /= landmarkSubset.size() - 1;
+                }
+        covariance_ = covariance;
+        information_ = covariance.inverse();
+        // perform the Cholesky decomposition on order to obtain the correct error weighting
+        Eigen::LLT<information_t> lltOfInformation(information_);
+        _squareRootInformation = lltOfInformation.matrixL().transpose();
+        LOG(INFO) << covariance_;
+        LOG(INFO) << information_;
+        LOG(INFO) << _squareRootInformation;
   }*/
 
-void SonarError::setInformation(const information_t & information) {
+void SonarError::setInformation(const information_t& information) {
   information_ = information;
   covariance_ = 1 / information;
   // perform the Cholesky decomposition on order to obtain the correct error weighting
-  //Eigen::LLT<information_t> lltOfInformation(information_);
+  // Eigen::LLT<information_t> lltOfInformation(information_);
   // TODO @Sharmin: Check if it's correct
   _squareRootInformation = sqrt(information);
 }
 
 // This evaluates the error term and additionally computes the Jacobians.
-bool SonarError::Evaluate(double const* const * parameters,
-                                     double* residuals,
-                                     double** jacobians) const {
+bool SonarError::Evaluate(double const* const* parameters, double* residuals, double** jacobians) const {
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);
 }
 
 // This evaluates the error term and additionally computes
 // the Jacobians in the minimal internal representation.
-bool SonarError::EvaluateWithMinimalJacobians(
-    double const* const * parameters, double* residuals, double** jacobians,
-    double** jacobiansMinimal) const {
-
+bool SonarError::EvaluateWithMinimalJacobians(double const* const* parameters,
+                                              double* residuals,
+                                              double** jacobians,
+                                              double** jacobiansMinimal) const {
   // compute error
   Eigen::Vector3d mean;
   mean.setZero();
   double range_corrected = 0.0, error = 0.0;
-  for (auto it = landmarkSubset_.begin(); it != landmarkSubset_.end(); ++it){
-		mean[0] += (*it)[0];
-		mean[1] += (*it)[1];
-		mean[2] += (*it)[2];
+  for (auto it = landmarkSubset_.begin(); it != landmarkSubset_.end(); ++it) {
+    mean[0] += (*it)[0];
+    mean[1] += (*it)[1];
+    mean[2] += (*it)[2];
   }
   mean = mean / landmarkSubset_.size();
   okvis::kinematics::Transformation T_WS(
-	  Eigen::Vector3d(parameters[0][0], parameters[0][1], parameters[0][2]),
-	  Eigen::Quaterniond(parameters[0][6], parameters[0][3], parameters[0][4],
-						 parameters[0][5]));
+      Eigen::Vector3d(parameters[0][0], parameters[0][1], parameters[0][2]),
+      Eigen::Quaterniond(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]));
 
   // calculating the distance between the T_WS and mean of landmarkSubset
   range_corrected = (T_WS.r() - mean).norm();
   error = range_ - range_corrected;
 
-
-  //LOG(INFO)<<hp.toHomogeneous().transpose() << " : " << measurement.transpose();
+  // LOG(INFO)<<hp.toHomogeneous().transpose() << " : " << measurement.transpose();
 
   // weight:
   double weighted_error = _squareRootInformation * error;
@@ -145,7 +144,7 @@ bool SonarError::EvaluateWithMinimalJacobians(
   okvis::kinematics::Transformation T_WSo = T_WS * params_.sonar.T_SSo;
 
   okvis::kinematics::Transformation sonar_point(Eigen::Vector3d(range_ * cos(heading_), range_ * sin(heading_), 0.0),
-  			Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
+                                                Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
   okvis::kinematics::Transformation T_WSo_point = T_WSo * sonar_point;
 
   sonar_landmark = T_WSo_point.r();
@@ -153,39 +152,35 @@ bool SonarError::EvaluateWithMinimalJacobians(
   // compute Jacobian...
   if (jacobians != NULL) {
     if (jacobians[0] != NULL) {
-      Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor> > J0(
-          jacobians[0]);
+      Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor> > J0(jacobians[0]);
       Eigen::Matrix<double, 1, 7, Eigen::RowMajor> J0_minimal;
       J0_minimal.setZero();
-      Eigen::Vector3d temp = (T_WS.r()- sonar_landmark) / range_;
-      J0_minimal(0,0) = temp[0];
-      J0_minimal(0,1) = temp[1];
-      J0_minimal(0,2) = temp[2];
-      //double J0_minimal;
+      Eigen::Vector3d temp = (T_WS.r() - sonar_landmark) / range_;
+      J0_minimal(0, 0) = temp[0];
+      J0_minimal(0, 1) = temp[1];
+      J0_minimal(0, 2) = temp[2];
+      // double J0_minimal;
 
       J0_minimal = (_squareRootInformation * J0_minimal).eval();
 
       // pseudo inverse of the local parametrization Jacobian:
-      //Eigen::Matrix<double, 7, 1, Eigen::RowMajor> J_lift;
-      //PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      // Eigen::Matrix<double, 7, 1, Eigen::RowMajor> J_lift;
+      // PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       J0 = J0_minimal;
 
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[0] != NULL) {
-          Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor> > J0_minimal_mapped(
-              jacobiansMinimal[0]);
+          Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor> > J0_minimal_mapped(jacobiansMinimal[0]);
           J0_minimal_mapped = J0_minimal;
         }
       }
     }
   }
 
-
   return true;
 }
 
 }  // namespace ceres
 }  // namespace okvis
-

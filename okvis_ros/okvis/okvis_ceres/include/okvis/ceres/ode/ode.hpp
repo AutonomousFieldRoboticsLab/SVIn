@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,12 +40,12 @@
 #define INCLUDE_OKVIS_CERES_ODE_ODE_HPP_
 
 #include <Eigen/Core>
-#include <okvis/kinematics/Transformation.hpp>
-#include <okvis/kinematics/operators.hpp>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/Variables.hpp>
 #include <okvis/assert_macros.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <okvis/kinematics/operators.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -57,8 +57,8 @@ namespace ode {
 // to make things a bit faster than using angle-axis conversion:
 __inline__ double sinc(double x) {
   if (fabs(x) > 1e-6) {
-   return sin(x) / x;
-   } else{
+    return sin(x) / x;
+  } else {
     static const double c_2 = 1.0 / 6.0;
     static const double c_4 = 1.0 / 120.0;
     static const double c_6 = 1.0 / 5040.0;
@@ -70,11 +70,16 @@ __inline__ double sinc(double x) {
 }
 
 // world-centric velocities
-__inline__ void evaluateContinuousTimeOde(const Eigen::Vector3d& gyr, const Eigen::Vector3d& acc, double g,
-                                          const Eigen::Vector3d& p_WS_W, const Eigen::Quaterniond& q_WS,
-                                          const okvis::SpeedAndBias& sb, Eigen::Vector3d& p_WS_W_dot,
-                                          Eigen::Vector4d& q_WS_dot, okvis::SpeedAndBias& sb_dot,
-                                          Eigen::Matrix<double, 15, 15>* F_c_ptr = 0){
+__inline__ void evaluateContinuousTimeOde(const Eigen::Vector3d& gyr,
+                                          const Eigen::Vector3d& acc,
+                                          double g,
+                                          const Eigen::Vector3d& p_WS_W,
+                                          const Eigen::Quaterniond& q_WS,
+                                          const okvis::SpeedAndBias& sb,
+                                          Eigen::Vector3d& p_WS_W_dot,
+                                          Eigen::Vector4d& q_WS_dot,
+                                          okvis::SpeedAndBias& sb_dot,
+                                          Eigen::Matrix<double, 15, 15>* F_c_ptr = 0) {
   // "true" rates and accelerations
   const Eigen::Vector3d omega_S = gyr - sb.segment<3>(3);
   const Eigen::Vector3d acc_S = acc - sb.tail<3>();
@@ -92,8 +97,8 @@ __inline__ void evaluateContinuousTimeOde(const Eigen::Vector3d& gyr, const Eige
   // the rest is straightforward
   // consider Earth's radius. Model the Earth as a sphere, since we neither
   // know the position nor yaw (except if coupled with GPS and magnetometer).
-  Eigen::Vector3d G = -p_WS_W - Eigen::Vector3d(0, 0, 6371009); // vector to Earth center
-  sb_dot.head<3>() = (C_WS * acc_S + g * G.normalized()); // s
+  Eigen::Vector3d G = -p_WS_W - Eigen::Vector3d(0, 0, 6371009);  // vector to Earth center
+  sb_dot.head<3>() = (C_WS * acc_S + g * G.normalized());        // s
   // biases
   sb_dot.tail<6>().setZero();
 
@@ -106,7 +111,6 @@ __inline__ void evaluateContinuousTimeOde(const Eigen::Vector3d& gyr, const Eige
     F_c_ptr->block<3, 3>(6, 12) -= C_WS;
   }
 }
-
 
 /*/ robo-centric velocities
 __inline__ void evaluateContinuousTimeOde(
@@ -157,20 +161,26 @@ __inline__ void evaluateContinuousTimeOde(
   }
 }*/
 
-__inline__ void integrateOneStep_RungeKutta(
-    const Eigen::Vector3d& gyr_0, const Eigen::Vector3d& acc_0,
-    const Eigen::Vector3d& gyr_1, const Eigen::Vector3d& acc_1, double g,
-    double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c,
-    double dt, Eigen::Vector3d& p_WS_W, Eigen::Quaterniond& q_WS,
-    okvis::SpeedAndBias& sb, Eigen::Matrix<double, 15, 15>* P_ptr = 0,
-    Eigen::Matrix<double, 15, 15>* F_tot_ptr = 0) {
-
+__inline__ void integrateOneStep_RungeKutta(const Eigen::Vector3d& gyr_0,
+                                            const Eigen::Vector3d& acc_0,
+                                            const Eigen::Vector3d& gyr_1,
+                                            const Eigen::Vector3d& acc_1,
+                                            double g,
+                                            double sigma_g_c,
+                                            double sigma_a_c,
+                                            double sigma_gw_c,
+                                            double sigma_aw_c,
+                                            double dt,
+                                            Eigen::Vector3d& p_WS_W,
+                                            Eigen::Quaterniond& q_WS,
+                                            okvis::SpeedAndBias& sb,
+                                            Eigen::Matrix<double, 15, 15>* P_ptr = 0,
+                                            Eigen::Matrix<double, 15, 15>* F_tot_ptr = 0) {
   Eigen::Vector3d k1_p_WS_W_dot;
   Eigen::Vector4d k1_q_WS_dot;
   okvis::SpeedAndBias k1_sb_dot;
   Eigen::Matrix<double, 15, 15> k1_F_c;
-  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W, q_WS, sb, k1_p_WS_W_dot,
-                            k1_q_WS_dot, k1_sb_dot, &k1_F_c);
+  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W, q_WS, sb, k1_p_WS_W_dot, k1_q_WS_dot, k1_sb_dot, &k1_F_c);
 
   Eigen::Vector3d p_WS_W1 = p_WS_W;
   Eigen::Quaterniond q_WS1 = q_WS;
@@ -190,9 +200,16 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector4d k2_q_WS_dot;
   okvis::SpeedAndBias k2_sb_dot;
   Eigen::Matrix<double, 15, 15> k2_F_c;
-  evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W1, q_WS1, sb1, k2_p_WS_W_dot, k2_q_WS_dot,
-                            k2_sb_dot, &k2_F_c);
+  evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1),
+                            0.5 * (acc_0 + acc_1),
+                            g,
+                            p_WS_W1,
+                            q_WS1,
+                            sb1,
+                            k2_p_WS_W_dot,
+                            k2_q_WS_dot,
+                            k2_sb_dot,
+                            &k2_F_c);
 
   Eigen::Vector3d p_WS_W2 = p_WS_W;
   Eigen::Quaterniond q_WS2 = q_WS;
@@ -204,7 +221,7 @@ __inline__ void integrateOneStep_RungeKutta(
   cos_theta_half = cos(theta_half);
   dq.vec() = sinc_theta_half * k2_q_WS_dot.head<3>() * dt;
   dq.w() = cos_theta_half;
-  //std::cout<<dq.transpose()<<std::endl;
+  // std::cout<<dq.transpose()<<std::endl;
   q_WS2 = q_WS2 * dq;
   sb2 += k1_sb_dot * dt;
 
@@ -212,9 +229,16 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector4d k3_q_WS_dot;
   okvis::SpeedAndBias k3_sb_dot;
   Eigen::Matrix<double, 15, 15> k3_F_c;
-  evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W2, q_WS2, sb2, k3_p_WS_W_dot, k3_q_WS_dot,
-                            k3_sb_dot, &k3_F_c);
+  evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1),
+                            0.5 * (acc_0 + acc_1),
+                            g,
+                            p_WS_W2,
+                            q_WS2,
+                            sb2,
+                            k3_p_WS_W_dot,
+                            k3_q_WS_dot,
+                            k3_sb_dot,
+                            &k3_F_c);
 
   Eigen::Vector3d p_WS_W3 = p_WS_W;
   Eigen::Quaterniond q_WS3 = q_WS;
@@ -226,7 +250,7 @@ __inline__ void integrateOneStep_RungeKutta(
   cos_theta_half = cos(theta_half);
   dq.vec() = sinc_theta_half * k3_q_WS_dot.head<3>() * dt;
   dq.w() = cos_theta_half;
-  //std::cout<<dq.transpose()<<std::endl;
+  // std::cout<<dq.transpose()<<std::endl;
   q_WS3 = q_WS3 * dq;
   sb3 += k3_sb_dot * dt;
 
@@ -234,16 +258,12 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector4d k4_q_WS_dot;
   okvis::SpeedAndBias k4_sb_dot;
   Eigen::Matrix<double, 15, 15> k4_F_c;
-  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W3, q_WS3, sb3, k4_p_WS_W_dot,
-                            k4_q_WS_dot, k4_sb_dot, &k4_F_c);
+  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W3, q_WS3, sb3, k4_p_WS_W_dot, k4_q_WS_dot, k4_sb_dot, &k4_F_c);
 
   // now assemble
-  p_WS_W +=
-      (k1_p_WS_W_dot + 2 * (k2_p_WS_W_dot + k3_p_WS_W_dot) + k4_p_WS_W_dot) * dt
-          / 6.0;
-  Eigen::Vector3d theta_half_vec = (k1_q_WS_dot.head<3>()
-      + 2 * (k2_q_WS_dot.head<3>() + k3_q_WS_dot.head<3>())
-      + k4_q_WS_dot.head<3>()) * dt / 6.0;
+  p_WS_W += (k1_p_WS_W_dot + 2 * (k2_p_WS_W_dot + k3_p_WS_W_dot) + k4_p_WS_W_dot) * dt / 6.0;
+  Eigen::Vector3d theta_half_vec =
+      (k1_q_WS_dot.head<3>() + 2 * (k2_q_WS_dot.head<3>() + k3_q_WS_dot.head<3>()) + k4_q_WS_dot.head<3>()) * dt / 6.0;
   theta_half = theta_half_vec.norm();
   sinc_theta_half = sinc(theta_half);
   cos_theta_half = cos(theta_half);
@@ -252,19 +272,18 @@ __inline__ void integrateOneStep_RungeKutta(
   q_WS = q_WS * dq;
   sb += (k1_sb_dot + 2 * (k2_sb_dot + k3_sb_dot) + k4_sb_dot) * dt / 6.0;
 
-  q_WS.normalize(); // do not accumulate errors!
+  q_WS.normalize();  // do not accumulate errors!
 
   if (F_tot_ptr) {
     // compute state transition matrix
     Eigen::Matrix<double, 15, 15>& F_tot = *F_tot_ptr;
     const Eigen::Matrix<double, 15, 15>& J1 = k1_F_c;
-    const Eigen::Matrix<double, 15, 15> J2=k2_F_c*(Eigen::Matrix<double, 15, 15>::Identity()+0.5*dt*J1);
-    const Eigen::Matrix<double, 15, 15> J3=k3_F_c*(Eigen::Matrix<double, 15, 15>::Identity()+0.5*dt*J2);
-    const Eigen::Matrix<double, 15, 15> J4=k4_F_c*(Eigen::Matrix<double, 15, 15>::Identity()+dt*J3);
-    Eigen::Matrix<double, 15, 15> F = Eigen::Matrix<double, 15, 15>::Identity()
-        + dt * (J1+2*(J2+J3)+J4) / 6.0;
-        //+ dt * J1;
-    //std::cout<<F<<std::endl;
+    const Eigen::Matrix<double, 15, 15> J2 = k2_F_c * (Eigen::Matrix<double, 15, 15>::Identity() + 0.5 * dt * J1);
+    const Eigen::Matrix<double, 15, 15> J3 = k3_F_c * (Eigen::Matrix<double, 15, 15>::Identity() + 0.5 * dt * J2);
+    const Eigen::Matrix<double, 15, 15> J4 = k4_F_c * (Eigen::Matrix<double, 15, 15>::Identity() + dt * J3);
+    Eigen::Matrix<double, 15, 15> F = Eigen::Matrix<double, 15, 15>::Identity() + dt * (J1 + 2 * (J2 + J3) + J4) / 6.0;
+    //+ dt * J1;
+    // std::cout<<F<<std::endl;
     F_tot = (F * F_tot).eval();
 
     if (P_ptr) {
@@ -293,10 +312,9 @@ __inline__ void integrateOneStep_RungeKutta(
       // cov = 0.5 * cov + 0.5 * cov.transpose().eval();
     }
   }
-
 }
 
-}
+}  // namespace ode
 
 }  // namespace ceres
 }  // namespace okvis

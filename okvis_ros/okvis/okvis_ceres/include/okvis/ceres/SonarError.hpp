@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,12 +39,12 @@
 #ifndef INCLUDE_OKVIS_CERES_SONARERROR_HPP_
 #define INCLUDE_OKVIS_CERES_SONARERROR_HPP_
 
-#include <vector>
-#include "ceres/ceres.h"
-#include <okvis/kinematics/Transformation.hpp>
+#include <okvis/VioParametersReader.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
-#include <okvis/VioParametersReader.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <vector>
+#include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -52,12 +52,11 @@ namespace okvis {
 namespace ceres {
 
 /// \brief Absolute error of a sonar homogeneous point (landmark).
-class SonarError : public ::ceres::SizedCostFunction<
-    1 /* number of residuals */, 7 /* size of first parameter */>,
-    public ErrorInterface {
+class SonarError : public ::ceres::SizedCostFunction<1 /* number of residuals */, 7 /* size of first parameter */>,
+                   public ErrorInterface {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief The base class type.
   typedef ::ceres::SizedCostFunction<1, 7> base_t;
@@ -77,19 +76,21 @@ class SonarError : public ::ceres::SizedCostFunction<
   /// \brief Construct with measurement and information matrix.
   /// @param[in] measurement The measurement.
   /// @param[in] information The information (weight) matrix.
- /* SonarError(const Eigen::Vector4d & measurement,
-                        const information_t & information);*/
+  /* SonarError(const Eigen::Vector4d & measurement,
+                         const information_t & information);*/
 
   /// \brief Construct with homogeneous measurement and variance.
   /// @param[in] measurement The measurement.
   /// @param[in] variance The variance of the measurement, i.e. information_ has variance in its diagonal.
   /// TODO document.
-  SonarError(const okvis::VioParameters & params, double range, double heading,  const information_t & information, std::vector<Eigen::Vector3d> landmarkSubset);
-
+  SonarError(const okvis::VioParameters& params,
+             double range,
+             double heading,
+             const information_t& information,
+             std::vector<Eigen::Vector3d> landmarkSubset);
 
   /// \brief Trivial destructor.
-  virtual ~SonarError() {
-  }
+  virtual ~SonarError() {}
 
   // setters
   /// \brief Set the measurement.
@@ -101,39 +102,29 @@ class SonarError : public ::ceres::SizedCostFunction<
 
   /// \brief Set the landmarkSubset.
   /// @param[in] landmarkSubset The landmarkSubset.
-  void setLandmarkSubset(const std::vector<Eigen::Vector3d> & landmarkSubset) {
-	  landmarkSubset_ = landmarkSubset;
-  }
+  void setLandmarkSubset(const std::vector<Eigen::Vector3d>& landmarkSubset) { landmarkSubset_ = landmarkSubset; }
 
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
-  void setInformation(const information_t & information);
+  void setInformation(const information_t& information);
 
   // calculates covariance
-  //void computeCovarianceMatrix(const std::vector<Eigen::Vector4d> & landmarkSubset);
+  // void computeCovarianceMatrix(const std::vector<Eigen::Vector4d> & landmarkSubset);
 
   // getters
   /// \brief Get the measurement.
   /// \return The measurement vector.
-  double range() const {
-    return range_;
-  }
+  double range() const { return range_; }
 
-  double heading() const {
-      return heading_;
-  }
+  double heading() const { return heading_; }
 
   /// \brief Get the information matrix.
   /// \return The information (weight) matrix.
-  const information_t& information() const {
-    return information_;
-  }
+  const information_t& information() const { return information_; }
 
   /// \brief Get the covariance matrix.
   /// \return The inverse information (covariance) matrix.
-  const information_t& covariance() const {
-    return covariance_;
-  }
+  const information_t& covariance() const { return covariance_; }
 
   /**
    * @brief This evaluates the error term and additionally computes the Jacobians.
@@ -142,8 +133,7 @@ class SonarError : public ::ceres::SizedCostFunction<
    * @param jacobians Pointer to the Jacobians (see ceres)
    * @return success of th evaluation.
    */
-  virtual bool Evaluate(double const* const * parameters, double* residuals,
-                        double** jacobians) const;
+  virtual bool Evaluate(double const* const* parameters, double* residuals, double** jacobians) const;
 
   /**
    * @brief EvaluateWithMinimalJacobians This evaluates the error term and additionally computes
@@ -154,21 +144,17 @@ class SonarError : public ::ceres::SizedCostFunction<
    * @param jacobiansMinimal Pointer to the minimal Jacobians (equivalent to jacobians).
    * @return Success of the evaluation.
    */
-  virtual bool EvaluateWithMinimalJacobians(double const* const * parameters,
+  virtual bool EvaluateWithMinimalJacobians(double const* const* parameters,
                                             double* residuals,
                                             double** jacobians,
                                             double** jacobiansMinimal) const;
 
   // sizes
   /// \brief Residual dimension.
-  size_t residualDim() const {
-    return kNumResiduals;
-  }
+  size_t residualDim() const { return kNumResiduals; }
 
   /// \brief Number of parameter blocks.
-  size_t parameterBlocks() const {
-    return base_t::parameter_block_sizes().size();
-  }
+  size_t parameterBlocks() const { return base_t::parameter_block_sizes().size(); }
 
   /// \brief Dimension of an individual parameter block.
   /// @param[in] parameterBlockId ID of the parameter block of interest.
@@ -178,25 +164,21 @@ class SonarError : public ::ceres::SizedCostFunction<
   }
 
   /// @brief Return parameter block type as string
-  virtual std::string typeInfo() const {
-    return "SonarError";
-  }
+  virtual std::string typeInfo() const { return "SonarError"; }
 
  protected:
-
   // the measurement
-  double range_; ///< The range measurement.
-  double heading_; ///< The heading measurement.
+  double range_;    ///< The range measurement.
+  double heading_;  ///< The heading measurement.
   std::vector<Eigen::Vector3d> landmarkSubset_;
 
   // weighting related
-  information_t information_; ///< The 6x6 information matrix.
-  information_t _squareRootInformation; ///< The 6x6 square root information matrix.
-  covariance_t covariance_; ///< The 6x6 covariance matrix.
+  information_t information_;            ///< The 6x6 information matrix.
+  information_t _squareRootInformation;  ///< The 6x6 square root information matrix.
+  covariance_t covariance_;              ///< The 6x6 covariance matrix.
 
  private:
-	const okvis::VioParameters params_; // Sharmin
-
+  const okvis::VioParameters params_;  // Sharmin
 };
 
 }  // namespace ceres

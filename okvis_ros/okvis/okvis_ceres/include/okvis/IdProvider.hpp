@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -41,8 +41,8 @@
 #define INCLUDE_OKVIS_IDPROVIDER_HPP_
 
 #include <stdint.h>
-#include <iostream>
 #include <atomic>
+#include <iostream>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -50,8 +50,7 @@ namespace okvis {
 /// \brief Provides IDs.
 namespace IdProvider {
 // emulating singleton syntax
-struct instance
-{
+struct instance {
   /// \brief get a unique new ID.
   static uint64_t newId();
 
@@ -62,7 +61,7 @@ struct instance
   static uint64_t currentId();
 };
 
-} // namespace IdProvider
-} // namespace okvis
+}  // namespace IdProvider
+}  // namespace okvis
 
 #endif /* INCLUDE_OKVIS_IDPROVIDER_HPP_ */

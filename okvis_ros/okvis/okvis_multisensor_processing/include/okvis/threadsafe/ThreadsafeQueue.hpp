@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -41,11 +41,11 @@
 #ifndef INCLUDE_OKVIS_THREADSAFE_THREADSAFEQUEUE_HPP_
 #define INCLUDE_OKVIS_THREADSAFE_THREADSAFEQUEUE_HPP_
 
-#include <atomic>
 #include <pthread.h>
+#include <sys/time.h>
+#include <atomic>
 #include <queue>
 #include <string>
-#include <sys/time.h>
 
 #include <glog/logging.h>
 
@@ -70,13 +70,14 @@ class ThreadSafeQueueBase {
  * @brief Class that implements a threadsafe FIFO queue.
  * @tparam QueueType Datatype that is safed in the queue.
  */
-template<typename QueueType>
+template <typename QueueType>
 class ThreadSafeQueue {
-  friend bool test_funcs(void* (*)(void*), void* (*)(void*),  // NOLINT
-                         const std::string&, bool);
+  friend bool test_funcs(void* (*)(void*),
+                         void* (*)(void*),  // NOLINT
+                         const std::string&,
+                         bool);
 
  public:
-
   /// \brief Notify all waiting threads. Only used in destructor and when shutting down.
   virtual void NotifyAll() const final {
     pthread_cond_broadcast(&condition_empty_);
@@ -113,9 +114,7 @@ class ThreadSafeQueue {
   }
 
   /// \brief Push non-blocking to the queue.
-  void Push(const QueueType& value) {
-    PushNonBlocking(value);
-  }
+  void Push(const QueueType& value) { PushNonBlocking(value); }
 
   /// \brief Push to the queue.
   void PushNonBlocking(const QueueType& value) {
@@ -168,8 +167,7 @@ class ThreadSafeQueue {
   /// \param[in] value New entry in queue.
   /// \param[in] max_queue_size Maximum queue size.
   /// \return True if oldest was dropped because queue was full.
-  bool PushNonBlockingDroppingIfFull(const QueueType& value,
-                                     size_t max_queue_size) {
+  bool PushNonBlockingDroppingIfFull(const QueueType& value, size_t max_queue_size) {
     pthread_mutex_lock(&mutex_);
     bool result = false;
     if (queue_.size() >= max_queue_size) {
@@ -187,9 +185,7 @@ class ThreadSafeQueue {
    * @param[out] value Oldest entry in queue.
    * @return False if shutdown is requested.
    */
-  bool Pop(QueueType* value) {
-    return PopBlocking(value);
-  }
+  bool Pop(QueueType* value) { return PopBlocking(value); }
 
   /**
    * @brief Get the oldest entry still in the queue. Blocking if queue is empty.
@@ -331,13 +327,11 @@ class ThreadSafeQueue {
     return true;
   }
 
-
   mutable pthread_mutex_t mutex_;           ///< The queue mutex.
   mutable pthread_cond_t condition_empty_;  ///< Condition variable to wait and signal that queue is not empty.
   mutable pthread_cond_t condition_full_;   ///< Condition variable to wait and signal when an element is popped.
   std::queue<QueueType> queue_;             ///< Actual queue.
   std::atomic_bool shutdown_;               ///< Flag if shutdown is requested.
-
 };
 
 }  // namespace threadsafe

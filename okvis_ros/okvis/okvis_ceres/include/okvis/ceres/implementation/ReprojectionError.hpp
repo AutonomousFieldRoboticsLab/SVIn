@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -36,8 +36,8 @@
  * @author Stefan Leutenegger
  */
 
-#include <okvis/kinematics/operators.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <okvis/kinematics/operators.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -45,16 +45,15 @@ namespace okvis {
 namespace ceres {
 
 // Default constructor.
-template<class GEOMETRY_T>
-ReprojectionError<GEOMETRY_T>::ReprojectionError()
-    : cameraGeometry_(new camera_geometry_t) {
-}
+template <class GEOMETRY_T>
+ReprojectionError<GEOMETRY_T>::ReprojectionError() : cameraGeometry_(new camera_geometry_t) {}
 
 // Construct with measurement and information matrix.
-template<class GEOMETRY_T>
-ReprojectionError<GEOMETRY_T>::ReprojectionError(
-    std::shared_ptr<const camera_geometry_t> cameraGeometry, uint64_t cameraId,
-    const measurement_t & measurement, const covariance_t & information) {
+template <class GEOMETRY_T>
+ReprojectionError<GEOMETRY_T>::ReprojectionError(std::shared_ptr<const camera_geometry_t> cameraGeometry,
+                                                 uint64_t cameraId,
+                                                 const measurement_t& measurement,
+                                                 const covariance_t& information) {
   setCameraId(cameraId);
   setMeasurement(measurement);
   setInformation(information);
@@ -62,9 +61,8 @@ ReprojectionError<GEOMETRY_T>::ReprojectionError(
 }
 
 // Set the information.
-template<class GEOMETRY_T>
-void ReprojectionError<GEOMETRY_T>::setInformation(
-    const covariance_t& information) {
+template <class GEOMETRY_T>
+void ReprojectionError<GEOMETRY_T>::setInformation(const covariance_t& information) {
   information_ = information;
   covariance_ = information.inverse();
   // perform the Cholesky decomposition on order to obtain the correct error weighting
@@ -73,38 +71,35 @@ void ReprojectionError<GEOMETRY_T>::setInformation(
 }
 
 // This evaluates the error term and additionally computes the Jacobians.
-template<class GEOMETRY_T>
-bool ReprojectionError<GEOMETRY_T>::Evaluate(double const* const * parameters,
+template <class GEOMETRY_T>
+bool ReprojectionError<GEOMETRY_T>::Evaluate(double const* const* parameters,
                                              double* residuals,
                                              double** jacobians) const {
-
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);  // debug test only
 }
 
 // This evaluates the error term and additionally computes
 // the Jacobians in the minimal internal representation.
-template<class GEOMETRY_T>
-bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
-    double const* const * parameters, double* residuals, double** jacobians,
-    double** jacobiansMinimal) const {
-
+template <class GEOMETRY_T>
+bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(double const* const* parameters,
+                                                                 double* residuals,
+                                                                 double** jacobians,
+                                                                 double** jacobiansMinimal) const {
   // We avoid the use of okvis::kinematics::Transformation here due to quaternion normalization and so forth.
   // This only matters in order to be able to check Jacobians with numeric differentiation chained,
   // first w.r.t. q and then d_alpha.
 
   // pose: world to sensor transformation
   Eigen::Map<const Eigen::Vector3d> t_WS_W(&parameters[0][0]);
-  const Eigen::Quaterniond q_WS(parameters[0][6], parameters[0][3],
-                                parameters[0][4], parameters[0][5]);
+  const Eigen::Quaterniond q_WS(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]);
 
   // the point in world coordinates
   Eigen::Map<const Eigen::Vector4d> hp_W(&parameters[1][0]);
-  //std::cout << hp_W.transpose() << std::endl;
+  // std::cout << hp_W.transpose() << std::endl;
 
   // the sensor to camera transformation
   Eigen::Map<const Eigen::Vector3d> t_SC_S(&parameters[2][0]);
-  const Eigen::Quaterniond q_SC(parameters[2][6], parameters[2][3],
-                                parameters[2][4], parameters[2][5]);
+  const Eigen::Quaterniond q_SC(parameters[2][6], parameters[2][3], parameters[2][4], parameters[2][5]);
 
   // transform the point into the camera:
   Eigen::Matrix3d C_SC = q_SC.toRotationMatrix();
@@ -145,7 +140,7 @@ bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
   if (fabs(hp_C[3]) > 1.0e-8) {
     Eigen::Vector3d p_C = hp_C.template head<3>() / hp_C[3];
     if (p_C[2] < 0.2) {  // 20 cm - not very generic... but reasonable
-      //std::cout<<"INVALID POINT"<<std::endl;
+      // std::cout<<"INVALID POINT"<<std::endl;
       valid = false;
     }
   }
@@ -163,41 +158,35 @@ bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
       // compute the minimal version
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
       J0_minimal = Jh_weighted * T_CS * J;
-      if (!valid)
-        J0_minimal.setZero();
+      if (!valid) J0_minimal.setZero();
 
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
       PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
-      Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J0(
-          jacobians[0]);
+      Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J0(jacobians[0]);
       J0 = J0_minimal * J_lift;
 
       // if requested, provide minimal Jacobians
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[0] != NULL) {
-          Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor> > J0_minimal_mapped(
-              jacobiansMinimal[0]);
+          Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor> > J0_minimal_mapped(jacobiansMinimal[0]);
           J0_minimal_mapped = J0_minimal;
         }
       }
-
     }
     if (jacobians[1] != NULL) {
       Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor> > J1(
           jacobians[1]);  // map the raw pointer to an Eigen matrix for convenience
       Eigen::Matrix4d T_CW = (T_CS * T_SW);
       J1 = -Jh_weighted * T_CW;
-      if (!valid)
-        J1.setZero();
+      if (!valid) J1.setZero();
 
       // if requested, provide minimal Jacobians
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[1] != NULL) {
-          Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor> > J1_minimal_mapped(
-              jacobiansMinimal[1]);
+          Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor> > J1_minimal_mapped(jacobiansMinimal[1]);
           Eigen::Matrix<double, 4, 3> S;
           S.setZero();
           S.topLeftCorner<3, 3>().setIdentity();
@@ -215,23 +204,20 @@ bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
       // compute the minimal version
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J2_minimal;
       J2_minimal = Jh_weighted * J;
-      if (!valid)
-        J2_minimal.setZero();
+      if (!valid) J2_minimal.setZero();
 
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
       PoseLocalParameterization::liftJacobian(parameters[2], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
-      Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J2(
-          jacobians[2]);
+      Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J2(jacobians[2]);
       J2 = J2_minimal * J_lift;
 
       // if requested, provide minimal Jacobians
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[2] != NULL) {
-          Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor> > J2_minimal_mapped(
-              jacobiansMinimal[2]);
+          Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor> > J2_minimal_mapped(jacobiansMinimal[2]);
           J2_minimal_mapped = J2_minimal;
         }
       }
@@ -241,5 +227,5 @@ bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
   return true;
 }
 
-}
-}
+}  // namespace ceres
+}  // namespace okvis

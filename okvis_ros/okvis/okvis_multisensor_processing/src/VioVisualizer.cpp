@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,45 +40,37 @@
  * @author Andreas Forster
  */
 
-
 #include <okvis/kinematics/Transformation.hpp>
 
-#include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/FrameTypedefs.hpp>
+#include <okvis/cameras/NCameraSystem.hpp>
 
 #include "okvis/VioVisualizer.hpp"
 
 // cameras and distortions
-#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/EquidistantDistortion.hpp>
+#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-VioVisualizer::VioVisualizer(okvis::VioParameters& parameters)
-    : parameters_(parameters) {
+VioVisualizer::VioVisualizer(okvis::VioParameters& parameters) : parameters_(parameters) {
   if (parameters.nCameraSystem.numCameras() > 0) {
     init(parameters);
   }
 }
 
-VioVisualizer::~VioVisualizer() {
-}
+VioVisualizer::~VioVisualizer() {}
 
-void VioVisualizer::init(okvis::VioParameters& parameters) {
-  parameters_ = parameters;
-}
+void VioVisualizer::init(okvis::VioParameters& parameters) { parameters_ = parameters; }
 
-cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
-                                   size_t image_number) {
-
+cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data, size_t image_number) {
   std::shared_ptr<okvis::MultiFrame> keyframe = data->keyFrames;
   std::shared_ptr<okvis::MultiFrame> frame = data->currentFrames;
 
-  if (keyframe == nullptr)
-    return frame->image(image_number);
+  if (keyframe == nullptr) return frame->image(image_number);
 
   // allocate an image
   const unsigned int im_cols = frame->image(image_number).cols;
@@ -96,22 +88,19 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
   // the keyframe trafo
   Eigen::Vector2d keypoint;
   Eigen::Vector4d landmark;
-  okvis::kinematics::Transformation lastKeyframeT_CW = parameters_.nCameraSystem
-      .T_SC(image_number)->inverse() * data->T_WS_keyFrame.inverse();
+  okvis::kinematics::Transformation lastKeyframeT_CW =
+      parameters_.nCameraSystem.T_SC(image_number)->inverse() * data->T_WS_keyFrame.inverse();
 
   // find distortion type
-  okvis::cameras::NCameraSystem::DistortionType distortionType = parameters_.nCameraSystem
-      .distortionType(0);
+  okvis::cameras::NCameraSystem::DistortionType distortionType = parameters_.nCameraSystem.distortionType(0);
   for (size_t i = 1; i < parameters_.nCameraSystem.numCameras(); ++i) {
     OKVIS_ASSERT_TRUE(Exception,
                       distortionType == parameters_.nCameraSystem.distortionType(i),
                       "mixed frame types are not supported yet");
   }
 
-  for (auto it = data->observations.begin(); it != data->observations.end();
-      ++it) {
-    if (it->cameraIdx != image_number)
-      continue;
+  for (auto it = data->observations.begin(); it != data->observations.end(); ++it) {
+    if (it->cameraIdx != image_number) continue;
 
     cv::Scalar color;
 
@@ -135,32 +124,21 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
       Eigen::Vector4d hP_C = lastKeyframeT_CW * hPoint;
       switch (distortionType) {
         case okvis::cameras::NCameraSystem::RadialTangential: {
-          if (frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion>>(image_number)
-              ->projectHomogeneous(hP_C, &keyframePt)
-              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+          if (frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>>(image_number)
+                  ->projectHomogeneous(hP_C, &keyframePt) == okvis::cameras::CameraBase::ProjectionStatus::Successful)
             isVisibleInKeyframe = true;
           break;
         }
         case okvis::cameras::NCameraSystem::Equidistant: {
-          if (frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::EquidistantDistortion>>(image_number)
-              ->projectHomogeneous(hP_C, &keyframePt)
-              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+          if (frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>>(image_number)
+                  ->projectHomogeneous(hP_C, &keyframePt) == okvis::cameras::CameraBase::ProjectionStatus::Successful)
             isVisibleInKeyframe = true;
           break;
         }
         case okvis::cameras::NCameraSystem::RadialTangential8: {
           if (frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion8>>(
-              image_number)->projectHomogeneous(hP_C, &keyframePt)
-              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+                  ->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion8>>(image_number)
+                  ->projectHomogeneous(hP_C, &keyframePt) == okvis::cameras::CameraBase::ProjectionStatus::Successful)
             isVisibleInKeyframe = true;
           break;
         }
@@ -176,34 +154,33 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
 
       if (isVisibleInKeyframe) {
         // found in the keyframe. draw line
-        cv::line(outimg, cv::Point2f(keyframePt[0], keyframePt[1]),
-                 cv::Point2f(keypoint[0], keypoint[1] + rowJump), color, 1,
+        cv::line(outimg,
+                 cv::Point2f(keyframePt[0], keyframePt[1]),
+                 cv::Point2f(keypoint[0], keypoint[1] + rowJump),
+                 color,
+                 1,
                  cv::LINE_AA);
-        cv::circle(actKeyframe, cv::Point2f(keyframePt[0], keyframePt[1]),
-                   0.5 * it->keypointSize, color, 1, cv::LINE_AA);
+        cv::circle(
+            actKeyframe, cv::Point2f(keyframePt[0], keyframePt[1]), 0.5 * it->keypointSize, color, 1, cv::LINE_AA);
       }
     }
     // draw keypoint
     const double r = 0.5 * it->keypointSize;
-    cv::circle(current, cv::Point2f(keypoint[0], keypoint[1]), r, color, 1,
-    cv::LINE_AA);
+    cv::circle(current, cv::Point2f(keypoint[0], keypoint[1]), r, color, 1, cv::LINE_AA);
     cv::KeyPoint cvKeypoint;
     frame->getCvKeypoint(image_number, it->keypointIdx, cvKeypoint);
     const double angle = cvKeypoint.angle / 180.0 * M_PI;
-    cv::line(
-        outimg,
-        cv::Point2f(keypoint[0], keypoint[1] + rowJump),
-        cv::Point2f(keypoint[0], keypoint[1] + rowJump)
-            + cv::Point2f(cos(angle), sin(angle)) * r,
-        color, 1,
-        cv::LINE_AA);
+    cv::line(outimg,
+             cv::Point2f(keypoint[0], keypoint[1] + rowJump),
+             cv::Point2f(keypoint[0], keypoint[1] + rowJump) + cv::Point2f(cos(angle), sin(angle)) * r,
+             color,
+             1,
+             cv::LINE_AA);
   }
   return outimg;
 }
 
-cv::Mat VioVisualizer::drawKeypoints(VisualizationData::Ptr& data,
-                                     size_t cameraIndex) {
-
+cv::Mat VioVisualizer::drawKeypoints(VisualizationData::Ptr& data, size_t cameraIndex) {
   std::shared_ptr<okvis::MultiFrame> currentFrames = data->currentFrames;
   const cv::Mat currentImage = currentFrames->image(cameraIndex);
 
@@ -219,12 +196,10 @@ cv::Mat VioVisualizer::drawKeypoints(VisualizationData::Ptr& data,
     double angle = keypoint.angle / 180.0 * M_PI;
 
     cv::circle(outimg, keypoint.pt, radius, greenColor);
-    cv::line(
-        outimg,
-        keypoint.pt,
-        cv::Point2f(keypoint.pt.x + radius * cos(angle),
-                    keypoint.pt.y - radius * sin(angle)),
-        greenColor);
+    cv::line(outimg,
+             keypoint.pt,
+             cv::Point2f(keypoint.pt.x + radius * cos(angle), keypoint.pt.y - radius * sin(angle)),
+             greenColor);
   }
 
   return outimg;
@@ -243,7 +218,7 @@ void VioVisualizer::showDebugImages(VisualizationData::Ptr& data) {
     if (!out_images[im].empty()) {
       cv::imshow(windowname.str(), out_images[im]);  // Prevent crashes from display
     }
-	cv::waitKey(1);
+    cv::waitKey(1);
   }
 }
 

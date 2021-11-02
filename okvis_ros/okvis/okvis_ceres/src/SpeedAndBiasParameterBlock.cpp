@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,19 +44,15 @@ namespace okvis {
 namespace ceres {
 
 // Default constructor (assumes not fixed).
-SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock()
-    : base_t::ParameterBlockSized() {
-  setFixed(false);
-}
+SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock() : base_t::ParameterBlockSized() { setFixed(false); }
 
 // Trivial destructor.
-SpeedAndBiasParameterBlock::~SpeedAndBiasParameterBlock() {
-}
+SpeedAndBiasParameterBlock::~SpeedAndBiasParameterBlock() {}
 
 // Constructor with estimate and time.
-SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock(
-    const SpeedAndBias& speedAndBias, uint64_t id,
-    const okvis::Time& timestamp) {
+SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock(const SpeedAndBias& speedAndBias,
+                                                       uint64_t id,
+                                                       const okvis::Time& timestamp) {
   setEstimate(speedAndBias);
   setId(id);
   setTimestamp(timestamp);
@@ -66,16 +62,14 @@ SpeedAndBiasParameterBlock::SpeedAndBiasParameterBlock(
 // setters
 // Set estimate of this parameter block.
 void SpeedAndBiasParameterBlock::setEstimate(const SpeedAndBias& speedAndBias) {
-  for (int i = 0; i < base_t::Dimension; ++i)
-    parameters_[i] = speedAndBias[i];
+  for (int i = 0; i < base_t::Dimension; ++i) parameters_[i] = speedAndBias[i];
 }
 
 // getters
 // Get estimate.
 SpeedAndBias SpeedAndBiasParameterBlock::estimate() const {
   SpeedAndBias speedAndBias;
-  for (int i = 0; i < base_t::Dimension; ++i)
-    speedAndBias[i] = parameters_[i];
+  for (int i = 0; i < base_t::Dimension; ++i) speedAndBias[i] = parameters_[i];
   return speedAndBias;
 }
 

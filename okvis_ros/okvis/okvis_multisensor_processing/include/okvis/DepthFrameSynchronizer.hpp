@@ -41,8 +41,8 @@
 #define INCLUDE_OKVIS_DEPTHFRAMESYNCHRONIZER_H_
 
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 #include <okvis/Time.hpp>
 
@@ -77,11 +77,11 @@ class DepthFrameSynchronizer {
   void shutdown();
 
  private:
-  okvis::Time newestDepthDataStamp_;           ///< Newest Depth data timestamp.
-  okvis::Time depthDataNeededUntil_;           ///< A thread is waiting for Depth data newer or equal to this timestamp.
-  std::condition_variable gotNeededDepthData_; ///< Condition variable for waiting and notyfing.
-  std::mutex mutex_;                         ///< Mutex.
-  std::atomic_bool shutdown_;                ///< True if shutdown() was called.
+  okvis::Time newestDepthDataStamp_;  ///< Newest Depth data timestamp.
+  okvis::Time depthDataNeededUntil_;  ///< A thread is waiting for Depth data newer or equal to this timestamp.
+  std::condition_variable gotNeededDepthData_;  ///< Condition variable for waiting and notyfing.
+  std::mutex mutex_;                            ///< Mutex.
+  std::atomic_bool shutdown_;                   ///< True if shutdown() was called.
 };
 
 } /* namespace okvis */

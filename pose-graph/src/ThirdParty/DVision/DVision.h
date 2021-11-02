@@ -15,7 +15,7 @@
  *
  * Written by Dorian Galvez-Lopez,
  * University of Zaragoza
- * 
+ *
  * Check my website to obtain updates: http://webdiis.unizar.es/~dorian
  *
  * \section requirements Requirements
@@ -23,8 +23,8 @@
  *
  * \section license License
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License (LGPL) as 
- * published by the Free Software Foundation, either version 3 of the License, 
+ * it under the terms of the GNU Lesser General Public License (LGPL) as
+ * published by the Free Software Foundation, either version 3 of the License,
  * or any later version.
  *
  */
@@ -32,11 +32,8 @@
 #ifndef __D_VISION__
 #define __D_VISION__
 
-
 /// Computer vision functions
-namespace DVision
-{
-}
+namespace DVision {}
 
 #include "BRIEF.h"
 

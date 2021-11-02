@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -28,7 +28,7 @@
  *
  *  Created on: Aug 28, 2017
  *      Author: Sharmin Rahman
- *    
+ *
  *********************************************************************************/
 
 /**
@@ -41,8 +41,8 @@
 #define INCLUDE_OKVIS_SONARFRAMESYNCHRONIZER_H_
 
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 #include <okvis/Time.hpp>
 
@@ -77,11 +77,11 @@ class SonarFrameSynchronizer {
   void shutdown();
 
  private:
-  okvis::Time newestSonarDataStamp_;           ///< Newest Sonar data timestamp.
-  okvis::Time sonarDataNeededUntil_;           ///< A thread is waiting for Sonar data newer or equal to this timestamp.
-  std::condition_variable gotNeededSonarData_; ///< Condition variable for waiting and notyfing.
-  std::mutex mutex_;                         ///< Mutex.
-  std::atomic_bool shutdown_;                ///< True if shutdown() was called.
+  okvis::Time newestSonarDataStamp_;  ///< Newest Sonar data timestamp.
+  okvis::Time sonarDataNeededUntil_;  ///< A thread is waiting for Sonar data newer or equal to this timestamp.
+  std::condition_variable gotNeededSonarData_;  ///< Condition variable for waiting and notyfing.
+  std::mutex mutex_;                            ///< Mutex.
+  std::atomic_bool shutdown_;                   ///< True if shutdown() was called.
 };
 
 } /* namespace okvis */

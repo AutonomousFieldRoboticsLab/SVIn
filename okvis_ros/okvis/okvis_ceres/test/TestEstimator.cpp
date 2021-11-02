@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -34,31 +34,27 @@
 #include <okvis/Estimator.hpp>
 #include <okvis/IdProvider.hpp>
 #include <okvis/MultiFrame.hpp>
+#include <okvis/assert_macros.hpp>
+#include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
-#include <okvis/cameras/EquidistantDistortion.hpp>
-#include <okvis/cameras/EquidistantDistortion.hpp>
-#include <okvis/cameras/EquidistantDistortion.hpp>
-#include <okvis/ceres/PoseParameterBlock.hpp>
-#include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/ImuError.hpp>
-#include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/PoseError.hpp>
-#include <okvis/ceres/SpeedAndBiasError.hpp>
+#include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/RelativePoseError.hpp>
-#include <okvis/assert_macros.hpp>
-
+#include <okvis/ceres/ReprojectionError.hpp>
+#include <okvis/ceres/SpeedAndBiasError.hpp>
+#include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 
 TEST(okvisTestSuite, Estimator) {
-  //srand((unsigned int) time(0)); // disabled: make unit tests deterministic...
+  // srand((unsigned int) time(0)); // disabled: make unit tests deterministic...
 
   // different cases of camera extrinsics;
   for (size_t c = 0; c < 4; ++c) {
-
     OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error);
 
-    const double DURATION = 10.0;  // 10 seconds motion
-    const double IMU_RATE = 100.0;  // 1 kHz
+    const double DURATION = 10.0;      // 10 seconds motion
+    const double IMU_RATE = 100.0;     // 1 kHz
     const double DT = 1.0 / IMU_RATE;  // time increments
 
     // set the imu parameters
@@ -80,38 +76,31 @@ TEST(okvisTestSuite, Estimator) {
     speedAndBias.setZero();
     speedAndBias.head<3>() = Eigen::Vector3d(0, 1, 0);
     okvis::ImuMeasurementDeque imuMeasurements;
-    okvis::ImuSensorReadings nominalImuSensorReadings(
-        Eigen::Vector3d::Zero(), Eigen::Vector3d(0, 0, imuParameters.g));
+    okvis::ImuSensorReadings nominalImuSensorReadings(Eigen::Vector3d::Zero(), Eigen::Vector3d(0, 0, imuParameters.g));
     okvis::Time t0 = okvis::Time::now();
     for (size_t i = 0; i <= DURATION * IMU_RATE; ++i) {
-      Eigen::Vector3d gyr = nominalImuSensorReadings.gyroscopes
-          + Eigen::Vector3d::Random() * imuParameters.sigma_g_c * sqrt(DT);
-      Eigen::Vector3d acc = nominalImuSensorReadings.accelerometers
-          + Eigen::Vector3d::Random() * imuParameters.sigma_a_c * sqrt(DT);
+      Eigen::Vector3d gyr =
+          nominalImuSensorReadings.gyroscopes + Eigen::Vector3d::Random() * imuParameters.sigma_g_c * sqrt(DT);
+      Eigen::Vector3d acc =
+          nominalImuSensorReadings.accelerometers + Eigen::Vector3d::Random() * imuParameters.sigma_a_c * sqrt(DT);
       imuMeasurements.push_back(
-          okvis::ImuMeasurement(t0 + okvis::Duration(DT * i),
-                                okvis::ImuSensorReadings(gyr, acc)));
+          okvis::ImuMeasurement(t0 + okvis::Duration(DT * i), okvis::ImuSensorReadings(gyr, acc)));
     }
 
     // create the map
     std::shared_ptr<okvis::ceres::Map> mapPtr(new okvis::ceres::Map);
 
     // camera extrinsics:
-    std::shared_ptr<const okvis::kinematics::Transformation> T_SC_0(
-        new okvis::kinematics::Transformation());
+    std::shared_ptr<const okvis::kinematics::Transformation> T_SC_0(new okvis::kinematics::Transformation());
     std::shared_ptr<const okvis::kinematics::Transformation> T_SC_1(
-        new okvis::kinematics::Transformation(Eigen::Vector3d(0,0.1,0),Eigen::Quaterniond(1,0,0,0)));
+        new okvis::kinematics::Transformation(Eigen::Vector3d(0, 0.1, 0), Eigen::Quaterniond(1, 0, 0, 0)));
 
     // some parameters on how to do the online estimation:
     okvis::ExtrinsicsEstimationParameters extrinsicsEstimationParameters;
-    extrinsicsEstimationParameters.sigma_absolute_translation = 1.0e-3
-        * (c % 2);
-    extrinsicsEstimationParameters.sigma_absolute_orientation = 1.0e-4
-        * (c % 2);
-    extrinsicsEstimationParameters.sigma_c_relative_translation = 1e-8
-        * (c / 2);
-    extrinsicsEstimationParameters.sigma_c_relative_orientation = 1e-7
-        * (c / 2);
+    extrinsicsEstimationParameters.sigma_absolute_translation = 1.0e-3 * (c % 2);
+    extrinsicsEstimationParameters.sigma_absolute_orientation = 1.0e-4 * (c % 2);
+    extrinsicsEstimationParameters.sigma_c_relative_translation = 1e-8 * (c / 2);
+    extrinsicsEstimationParameters.sigma_c_relative_orientation = 1e-7 * (c / 2);
 
     // set up camera with intrinsics
     std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry0(
@@ -120,20 +109,16 @@ TEST(okvisTestSuite, Estimator) {
         okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>::createTestObject());
 
     // create an N-camera system:
-    std::shared_ptr<okvis::cameras::NCameraSystem> cameraSystem(
-        new okvis::cameras::NCameraSystem);
-    cameraSystem->addCamera(T_SC_0, cameraGeometry0,
-                            okvis::cameras::NCameraSystem::DistortionType::Equidistant);
-    cameraSystem->addCamera(T_SC_1, cameraGeometry1,
-                            okvis::cameras::NCameraSystem::DistortionType::Equidistant);
+    std::shared_ptr<okvis::cameras::NCameraSystem> cameraSystem(new okvis::cameras::NCameraSystem);
+    cameraSystem->addCamera(T_SC_0, cameraGeometry0, okvis::cameras::NCameraSystem::DistortionType::Equidistant);
+    cameraSystem->addCamera(T_SC_1, cameraGeometry1, okvis::cameras::NCameraSystem::DistortionType::Equidistant);
 
     // create an Estimator
     okvis::Estimator estimator(mapPtr);
 
     // create landmark grid
     const okvis::kinematics::Transformation T_WS_0;
-    std::vector<Eigen::Vector4d,
-        Eigen::aligned_allocator<Eigen::Vector4d> > homogeneousPoints;
+    std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>> homogeneousPoints;
     std::vector<uint64_t> lmIds;
     for (double y = -10.0; y <= DURATION * T_SC_1->r()[1] + 10.0; y += 0.5) {
       for (double z = -10.0; z <= 10.0; z += 0.5) {
@@ -154,9 +139,8 @@ TEST(okvisTestSuite, Estimator) {
     okvis::SpeedAndBias speedAndBias_est;
     for (size_t k = 0; k < K + 1; ++k) {
       // calculate the transformation
-      okvis::kinematics::Transformation T_WS(
-          T_WS_0.r() + speedAndBias.head<3>() * double(k) * DURATION / double(K),
-          T_WS_0.q());
+      okvis::kinematics::Transformation T_WS(T_WS_0.r() + speedAndBias.head<3>() * double(k) * DURATION / double(K),
+                                             T_WS_0.q());
 
       // assemble a multi-frame
       std::shared_ptr<okvis::MultiFrame> mf(new okvis::MultiFrame);
@@ -180,23 +164,16 @@ TEST(okvisTestSuite, Estimator) {
       for (size_t j = 0; j < homogeneousPoints.size(); ++j) {
         for (size_t i = 0; i < mf->numFrames(); ++i) {
           Eigen::Vector2d projection;
-          Eigen::Vector4d point_C = mf->T_SC(i)->inverse()
-              * T_WS.inverse() * homogeneousPoints[j];
-          okvis::cameras::CameraBase::ProjectionStatus status = mf
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::EquidistantDistortion>>(i)->projectHomogeneous(
-              point_C, &projection);
+          Eigen::Vector4d point_C = mf->T_SC(i)->inverse() * T_WS.inverse() * homogeneousPoints[j];
+          okvis::cameras::CameraBase::ProjectionStatus status =
+              mf->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>>(i)
+                  ->projectHomogeneous(point_C, &projection);
           if (status == okvis::cameras::CameraBase::ProjectionStatus::Successful) {
             Eigen::Vector2d kpt;
             Eigen::Vector2d measurement(projection + Eigen::Vector2d::Random());
-            keypoints.push_back(
-                cv::KeyPoint(measurement[0], measurement[1], 8.0));
-            mf->resetKeypoints(i,keypoints);
-            estimator
-                .addObservation<
-                    okvis::cameras::PinholeCamera<
-                        okvis::cameras::EquidistantDistortion>>(
+            keypoints.push_back(cv::KeyPoint(measurement[0], measurement[1], 8.0));
+            mf->resetKeypoints(i, keypoints);
+            estimator.addObservation<okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>>(
                 lmIds[j], mf->id(), i, mf->numKeypoints(i) - 1);
           }
         }
@@ -217,22 +194,16 @@ TEST(okvisTestSuite, Estimator) {
     estimator.getSpeedAndBias(id, 0, speedAndBias_est);
 
     // inspect convergence:
-    okvis::kinematics::Transformation T_WS(
-         T_WS_0.r() + speedAndBias.head<3>() * DURATION,
-         T_WS_0.q());
+    okvis::kinematics::Transformation T_WS(T_WS_0.r() + speedAndBias.head<3>() * DURATION, T_WS_0.q());
 
     std::cout << "estimated T_WS: " << std::endl << T_WS_est.T() << std::endl;
     std::cout << "correct T_WS: " << std::endl << T_WS.T() << std::endl;
 
     std::cout << (speedAndBias_est - speedAndBias).norm() << std::endl;
 
-    OKVIS_ASSERT_TRUE(Exception, (speedAndBias_est - speedAndBias).norm()<
-                   0.04, "speed and biases not close enough");
+    OKVIS_ASSERT_TRUE(Exception, (speedAndBias_est - speedAndBias).norm() < 0.04, "speed and biases not close enough");
     OKVIS_ASSERT_TRUE(
-        Exception,
-        2*(T_WS.q()*T_WS_est.q().inverse()).vec().norm()<1e-2,
-                "quaternions not close enough");
-    OKVIS_ASSERT_TRUE(Exception, (T_WS.r() - T_WS_est.r()).norm()<1e-1,
-                   "translation not close enough");
+        Exception, 2 * (T_WS.q() * T_WS_est.q().inverse()).vec().norm() < 1e-2, "quaternions not close enough");
+    OKVIS_ASSERT_TRUE(Exception, (T_WS.r() - T_WS_est.r()).norm() < 1e-1, "translation not close enough");
   }
 }

@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -56,7 +56,6 @@ namespace ceres {
  */
 class CeresIterationCallback : public ::ceres::IterationCallback {
  public:
-
   /**
    * @brief The constructor.
    * @param[in] timeLimit Time budget for the optimization.
@@ -64,22 +63,17 @@ class CeresIterationCallback : public ::ceres::IterationCallback {
    *            disregarding the time.
    */
   CeresIterationCallback(double timeLimit, int iterationMinimum)
-      : timeLimit_(timeLimit),
-        iterationMinimum_(iterationMinimum) {
-  }
+      : timeLimit_(timeLimit), iterationMinimum_(iterationMinimum) {}
 
   /// \brief Trivial Destructor.
-  ~CeresIterationCallback() {
-  }
+  ~CeresIterationCallback() {}
 
   /// @brief This method is called after every iteration in ceres.
   /// @param[in] summary The iteration summary.
-  ::ceres::CallbackReturnType operator()(
-      const ::ceres::IterationSummary& summary) {
+  ::ceres::CallbackReturnType operator()(const ::ceres::IterationSummary& summary) {
     // assume next iteration takes the same time as current iteration
-    if (summary.iteration >= iterationMinimum_
-        && summary.cumulative_time_in_seconds
-            + summary.iteration_time_in_seconds > timeLimit_) {
+    if (summary.iteration >= iterationMinimum_ &&
+        summary.cumulative_time_in_seconds + summary.iteration_time_in_seconds > timeLimit_) {
       return ::ceres::SOLVER_TERMINATE_SUCCESSFULLY;
     }
     return ::ceres::SOLVER_CONTINUE;
@@ -92,22 +86,18 @@ class CeresIterationCallback : public ::ceres::IterationCallback {
    *        to the maximum iteration.
    * @param[in] timeLimit desired time limit in seconds
    */
-  void setTimeLimit(double timeLimit) {
-    timeLimit_ = timeLimit;
-  }
+  void setTimeLimit(double timeLimit) { timeLimit_ = timeLimit; }
 
   /**
    * @brief setMinimumIterations changes the minimum iterations the optimization
    *        goes through disregarding the time limit
    * @param iterationMinimum
    */
-  void setMinimumIterations(int iterationMinimum) {
-    iterationMinimum_ = iterationMinimum;
-  }
+  void setMinimumIterations(int iterationMinimum) { iterationMinimum_ = iterationMinimum; }
 
  private:
-  double timeLimit_; ///< The set time limit.
-  int iterationMinimum_; ///< The set maximum no. iterations.
+  double timeLimit_;      ///< The set time limit.
+  int iterationMinimum_;  ///< The set maximum no. iterations.
 };
 
 }  // namespace ceres

@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,22 +39,21 @@
 #ifndef INCLUDE_OKVIS_CERES_MARGINALIZATIONERROR_HPP_
 #define INCLUDE_OKVIS_CERES_MARGINALIZATIONERROR_HPP_
 
-#include <vector>
+#include <Eigen/Core>
 #include <deque>
 #include <memory>
-#include <Eigen/Core>
-#include <okvis/kinematics/Transformation.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/Variables.hpp>
-#include "ceres/ceres.h"
-#include <okvis/kinematics/Transformation.hpp>
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
+#include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
+#include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
-#include <okvis/ceres/Map.hpp>
-#include <okvis/ceres/ErrorInterface.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <vector>
+#include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -62,20 +61,16 @@ namespace okvis {
 namespace ceres {
 
 // not sized, in order to be flexible.
-class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
-{
+class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface {
  public:
-
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief The base class type.
   typedef ::ceres::CostFunction base_t;
 
   /// \brief Trivial destructor.
-  virtual ~MarginalizationError()
-  {
-  }
+  virtual ~MarginalizationError() {}
 
   /// \brief Default constructor. Initialises a new okvis::ceres::Map.
   MarginalizationError();
@@ -87,8 +82,7 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
   /// \brief Constructor from okvis::ceres::Map and directly add some residuals
   /// @param[in] map The underlying okvis::ceres::Map.
   /// @param[in] residualBlockIds Residual block IDs to be added directly (\see okvis::ceres::addResidualBlocks)
-  MarginalizationError(
-      Map& map, std::vector< ::ceres::ResidualBlockId > & residualBlockIds);
+  MarginalizationError(Map& map, std::vector< ::ceres::ResidualBlockId>& residualBlockIds);
 
   // initialization
   /// \brief Set the underlying okvis::ceres::Map.
@@ -100,17 +94,15 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
   ///          at exactly the points passed here.
   /// @param[in] residualBlockIds Vector of residual block ids, the corresponding terms of which will be added.
   /// @param[in] keepResidualBlocks Currently not in use.
-  bool addResidualBlocks(
-      const std::vector< ::ceres::ResidualBlockId > & residualBlockIds,
-      const std::vector<bool> & keepResidualBlocks = std::vector<bool>());
+  bool addResidualBlocks(const std::vector< ::ceres::ResidualBlockId>& residualBlockIds,
+                         const std::vector<bool>& keepResidualBlocks = std::vector<bool>());
 
   /// \brief Add one residual to this marginalisation error. This means, it will get linearised.
   /// \warning Note that once added here, it will be removed from the okvis::ceres::Map and stay linerised
   ///          at exactly the point passed here.
   /// @param[in] residualBlockId Residual block id, the corresponding term of which will be added.
   /// @param[in] keepResidualBlock Currently not in use.
-  bool addResidualBlock(::ceres::ResidualBlockId residualBlockId,
-                        bool keepResidualBlock = false);
+  bool addResidualBlock(::ceres::ResidualBlockId residualBlockId, bool keepResidualBlock = false);
 
   /// \brief Info: is this parameter block connected to this marginalization error?
   /// @param[in] parameterBlockId Parameter block id of interest.
@@ -122,9 +114,8 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
   /// \warning The parameter blocks to be marginalised must have been added before.
   ///          Also: make sure to add all the needed residual blocks beforehand for this to make sense.
   /// \return False if not all necessary residual blocks were added before.
-  bool marginalizeOut(const std::vector<uint64_t> & parameterBlockIds,
-                      const std::vector<bool> & keepParameterBlocks =
-                          std::vector<bool>());
+  bool marginalizeOut(const std::vector<uint64_t>& parameterBlockIds,
+                      const std::vector<bool>& keepParameterBlocks = std::vector<bool>());
 
   /// \brief This must be called before optimization after adding residual blocks and/or marginalizing,
   ///        since it performs all the lhs and rhs computations on from a given _H and _b.
@@ -132,19 +123,17 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
 
   /// \brief Call this in order to (re-)add this error term after whenever it had been modified.
   /// @param[in] parameterBlockPtrs Parameter block pointers in question.
-  void getParameterBlockPtrs(
-      std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);
+  void getParameterBlockPtrs(std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);
 
   // error term and Jacobian implementation (inherited pure virtuals from ::ceres::CostFunction)
   /**
-    * @brief This evaluates the error term and additionally computes the Jacobians.
-    * @param parameters Pointer to the parameters (see ceres)
-    * @param residuals Pointer to the residual vector (see ceres)
-    * @param jacobians Pointer to the Jacobians (see ceres)
-    * @return success of th evaluation.
-    */
-  virtual bool Evaluate(double const* const * parameters, double* residuals,
-                        double** jacobians) const;
+   * @brief This evaluates the error term and additionally computes the Jacobians.
+   * @param parameters Pointer to the parameters (see ceres)
+   * @param residuals Pointer to the residual vector (see ceres)
+   * @param jacobians Pointer to the Jacobians (see ceres)
+   * @return success of th evaluation.
+   */
+  virtual bool Evaluate(double const* const* parameters, double* residuals, double** jacobians) const;
 
   /**
    * @brief This evaluates the error term and additionally computes
@@ -155,37 +144,27 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
    * @param jacobiansMinimal Pointer to the minimal Jacobians (equivalent to jacobians).
    * @return Success of the evaluation.
    */
-  bool EvaluateWithMinimalJacobians(double const* const * parameters,
-                                    double* residuals, double** jacobians,
+  bool EvaluateWithMinimalJacobians(double const* const* parameters,
+                                    double* residuals,
+                                    double** jacobians,
                                     double** jacobiansMinimal) const;
 
   // sizes (inherited pure virtuals from ::okvis::ceres::ErrorInterface)
   /// \brief Residual dimension.
-  size_t residualDim() const
-  {
-    return base_t::num_residuals();
-  }
+  size_t residualDim() const { return base_t::num_residuals(); }
 
   /// \brief Number of parameter blocks.
-  size_t parameterBlocks() const
-  {
-    return base_t::parameter_block_sizes().size();
-  }
+  size_t parameterBlocks() const { return base_t::parameter_block_sizes().size(); }
 
   /// \brief Dimension of an individual parameter block.
   /// @param[in] parameterBlockId ID of the parameter block of interest.
   /// \return The dimension.
-  size_t parameterBlockDim(size_t parameterBlockId) const
-  {
+  size_t parameterBlockDim(size_t parameterBlockId) const {
     return base_t::parameter_block_sizes().at(parameterBlockId);
   }
 
   /// @brief Return parameter block type as string
-  virtual std::string typeInfo() const
-  {
-    return "MarginalizationError";
-  }
-
+  virtual std::string typeInfo() const { return "MarginalizationError"; }
 
   /**
    * @brief Pseudo inversion of a symmetric matrix.
@@ -198,11 +177,11 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
    * @param[out] rank Optional rank.
    * @return
    */
-  template<typename Derived>
-  static bool pseudoInverseSymm(
-      const Eigen::MatrixBase<Derived>&a,
-      const Eigen::MatrixBase<Derived>&result, double epsilon =
-          std::numeric_limits<typename Derived::Scalar>::epsilon(), int * rank = 0);
+  template <typename Derived>
+  static bool pseudoInverseSymm(const Eigen::MatrixBase<Derived>& a,
+                                const Eigen::MatrixBase<Derived>& result,
+                                double epsilon = std::numeric_limits<typename Derived::Scalar>::epsilon(),
+                                int* rank = 0);
 
   /**
    * @brief Pseudo inversion and square root (Cholesky decomposition) of a symmetric matrix.
@@ -215,12 +194,11 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
    * @param[out] rank The rank, if of interest.
    * @return
    */
-  template<typename Derived>
-  static bool pseudoInverseSymmSqrt(
-      const Eigen::MatrixBase<Derived>&a,
-      const Eigen::MatrixBase<Derived>&result, double epsilon =
-          std::numeric_limits<typename Derived::Scalar>::epsilon(),
-      int* rank = NULL);
+  template <typename Derived>
+  static bool pseudoInverseSymmSqrt(const Eigen::MatrixBase<Derived>& a,
+                                    const Eigen::MatrixBase<Derived>& result,
+                                    double epsilon = std::numeric_limits<typename Derived::Scalar>::epsilon(),
+                                    int* rank = NULL);
 
   /**
    * @brief Block-wise pseudo inversion of a symmetric matrix with non-zero diagonal blocks.
@@ -233,12 +211,10 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
    * @param[in] epsilon The tolerance.
    * @return
    */
-  template<typename Derived, int blockDim>
-  static void blockPinverse(
-      const Eigen::MatrixBase<Derived>& M_in,
-      const Eigen::MatrixBase<Derived>& M_out, double epsilon =
-          std::numeric_limits<typename Derived::Scalar>::epsilon());
-
+  template <typename Derived, int blockDim>
+  static void blockPinverse(const Eigen::MatrixBase<Derived>& M_in,
+                            const Eigen::MatrixBase<Derived>& M_out,
+                            double epsilon = std::numeric_limits<typename Derived::Scalar>::epsilon());
 
   /**
    * @brief Block-wise pseudo inversion and square root (Cholesky decomposition)
@@ -252,15 +228,14 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
    * @param[in] epsilon The tolerance.
    * @return
    */
-  template<typename Derived, int blockDim>
-  static void blockPinverseSqrt(
-      const Eigen::MatrixBase<Derived>& M_in,
-      const Eigen::MatrixBase<Derived>& M_out, double epsilon =
-          std::numeric_limits<typename Derived::Scalar>::epsilon());
+  template <typename Derived, int blockDim>
+  static void blockPinverseSqrt(const Eigen::MatrixBase<Derived>& M_in,
+                                const Eigen::MatrixBase<Derived>& M_out,
+                                double epsilon = std::numeric_limits<typename Derived::Scalar>::epsilon());
 
  protected:
-  Map* mapPtr_; ///< The underlying map.
-  ::ceres::ResidualBlockId residualBlockId_; ///< The residual block id of this.
+  Map* mapPtr_;                               ///< The underlying map.
+  ::ceres::ResidualBlockId residualBlockId_;  ///< The residual block id of this.
 
   /// \brief Checks the internal datastructure (debug)
   void check();
@@ -269,26 +244,23 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
   bool computeDeltaChi(Eigen::VectorXd& DeltaChi) const;  // use the stored estimates
 
   /// \brief Computes the linearized deviation from the references (linearization points)
-  bool computeDeltaChi(double const* const * parameters,
+  bool computeDeltaChi(double const* const* parameters,
                        Eigen::VectorXd& DeltaChi) const;  // use the provided estimates
 
   /// \brief Split for Schur complement op.
-  template<typename Derived_A, typename Derived_U, typename Derived_W,
-      typename Derived_V>
-  static void splitSymmetricMatrix(
-      const std::vector<std::pair<int, int> >& marginalizationStartIdxAndLengthPairs,
-      const Eigen::MatrixBase<Derived_A>& A,  // input
-      const Eigen::MatrixBase<Derived_U>& U,  // output
-      const Eigen::MatrixBase<Derived_W>& W,  // output
-      const Eigen::MatrixBase<Derived_V>& V);  // output
+  template <typename Derived_A, typename Derived_U, typename Derived_W, typename Derived_V>
+  static void splitSymmetricMatrix(const std::vector<std::pair<int, int> >& marginalizationStartIdxAndLengthPairs,
+                                   const Eigen::MatrixBase<Derived_A>& A,   // input
+                                   const Eigen::MatrixBase<Derived_U>& U,   // output
+                                   const Eigen::MatrixBase<Derived_W>& W,   // output
+                                   const Eigen::MatrixBase<Derived_V>& V);  // output
 
   /// \brief Split for Schur complement op.
-  template<typename Derived_b, typename Derived_b_a, typename Derived_b_b>
-  static void splitVector(
-      const std::vector<std::pair<int, int> >& marginalizationStartIdxAndLengthPairs,
-      const Eigen::MatrixBase<Derived_b>& b,  // input
-      const Eigen::MatrixBase<Derived_b_a>& b_a,  // output
-      const Eigen::MatrixBase<Derived_b_b>& b_b);  // output
+  template <typename Derived_b, typename Derived_b_a, typename Derived_b_b>
+  static void splitVector(const std::vector<std::pair<int, int> >& marginalizationStartIdxAndLengthPairs,
+                          const Eigen::MatrixBase<Derived_b>& b,       // input
+                          const Eigen::MatrixBase<Derived_b_a>& b_a,   // output
+                          const Eigen::MatrixBase<Derived_b_b>& b_b);  // output
 
   /// @name The internal storage of the linearised system.
   /// lhs and rhs:
@@ -300,23 +272,23 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
   /// _e = -pinv(J^T) * _b + J*Delta_Chi .
   /// _e = _e0 + J*Delta_Chi .
   /// @{
-  Eigen::MatrixXd H_;  ///< lhs - Hessian
-  Eigen::VectorXd b0_;  ///<  rhs constant part
-  Eigen::VectorXd e0_;  ///<  _e0 := pinv(J^T) * _b0
-  Eigen::MatrixXd J_;  ///<  Jacobian such that _J^T * J == _H
-  Eigen::MatrixXd U_;  ///<  H_ = _U*_S*_U^T lhs Eigen decomposition
-  Eigen::VectorXd S_;  ///<  singular values
-  Eigen::VectorXd S_sqrt_;  ///<  cwise sqrt of _S, i.e. _S_sqrt*_S_sqrt=_S; _J=_U^T*_S_sqrt
-  Eigen::VectorXd S_pinv_;  ///<  pseudo inverse of _S
+  Eigen::MatrixXd H_;            ///< lhs - Hessian
+  Eigen::VectorXd b0_;           ///<  rhs constant part
+  Eigen::VectorXd e0_;           ///<  _e0 := pinv(J^T) * _b0
+  Eigen::MatrixXd J_;            ///<  Jacobian such that _J^T * J == _H
+  Eigen::MatrixXd U_;            ///<  H_ = _U*_S*_U^T lhs Eigen decomposition
+  Eigen::VectorXd S_;            ///<  singular values
+  Eigen::VectorXd S_sqrt_;       ///<  cwise sqrt of _S, i.e. _S_sqrt*_S_sqrt=_S; _J=_U^T*_S_sqrt
+  Eigen::VectorXd S_pinv_;       ///<  pseudo inverse of _S
   Eigen::VectorXd S_pinv_sqrt_;  ///<  cwise sqrt of _S_pinv, i.e. pinv(J^T)=_U^T*_S_pinv_sqrt
   Eigen::VectorXd p_;
   Eigen::VectorXd p_inv_;
-  volatile bool errorComputationValid_;  ///<  adding residual blocks will invalidate this. before optimizing, call updateErrorComputation()
+  volatile bool errorComputationValid_;  ///<  adding residual blocks will invalidate this. before optimizing, call
+                                         ///<  updateErrorComputation()
 
   /// \brief Book-keeping of the ordering.
-  struct ParameterBlockInfo
-  {
-    OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  struct ParameterBlockInfo {
+    OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
     uint64_t parameterBlockId;
     std::shared_ptr<ParameterBlock> parameterBlockPtr;
     size_t orderingIdx;
@@ -332,51 +304,43 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
           dimension(0),
           minimalDimension(0),
           localDimension(0),
-          isLandmark(false)
-    {
-    }
+          isLandmark(false) {}
     ParameterBlockInfo(uint64_t parameterBlockId,
                        std::shared_ptr<ParameterBlock> parameterBlockPtr,
-                       size_t orderingIdx, bool isLandmark)
+                       size_t orderingIdx,
+                       bool isLandmark)
         : parameterBlockId(parameterBlockId),
           parameterBlockPtr(parameterBlockPtr),
           orderingIdx(orderingIdx),
-          isLandmark(isLandmark)
-    {
+          isLandmark(isLandmark) {
       dimension = parameterBlockPtr->dimension();
       minimalDimension = parameterBlockPtr->minimalDimension();
       if (parameterBlockPtr->localParameterizationPtr()) {
-        localDimension = parameterBlockPtr->localParameterizationPtr()
-            ->LocalSize();
+        localDimension = parameterBlockPtr->localParameterizationPtr()->LocalSize();
       } else {
         localDimension = minimalDimension;
       }
       if (parameterBlockPtr->fixed()) {
         minimalDimension = 0;
         localDimension = 0;
-		  }
-      linearizationPoint.reset(new double[dimension],
-                               std::default_delete<double[]>());
-      memcpy(linearizationPoint.get(), parameterBlockPtr->parameters(),
-             dimension * sizeof(double));
+      }
+      linearizationPoint.reset(new double[dimension], std::default_delete<double[]>());
+      memcpy(linearizationPoint.get(), parameterBlockPtr->parameters(), dimension * sizeof(double));
     }
 
     /// \brief Reset the linearisation point. Use with caution.
-    void resetLinearizationPoint(
-        std::shared_ptr<ParameterBlock> parameterBlockPtr)
-    {
-      OKVIS_ASSERT_TRUE_DBG(Exception,dimension==parameterBlockPtr->dimension(),"not initialised.")
-      memcpy(linearizationPoint.get(), parameterBlockPtr->parameters(),
-             dimension * sizeof(double));
+    void resetLinearizationPoint(std::shared_ptr<ParameterBlock> parameterBlockPtr) {
+      OKVIS_ASSERT_TRUE_DBG(Exception, dimension == parameterBlockPtr->dimension(), "not initialised.")
+      memcpy(linearizationPoint.get(), parameterBlockPtr->parameters(), dimension * sizeof(double));
     }
   };
 
   std::vector<ParameterBlockInfo> parameterBlockInfos_;  ///< Book keeper.
-  std::map<uint64_t, size_t> parameterBlockId2parameterBlockInfoIdx_;  ///< Maps parameter block Ids to index in _parameterBlockInfos
-  size_t denseIndices_;  ///< Keep track of the size of the dense part of the equation system
+  std::map<uint64_t, size_t>
+      parameterBlockId2parameterBlockInfoIdx_;  ///< Maps parameter block Ids to index in _parameterBlockInfos
+  size_t denseIndices_;                         ///< Keep track of the size of the dense part of the equation system
 
   /// @}
-
 };
 
 }  // namespace ceres

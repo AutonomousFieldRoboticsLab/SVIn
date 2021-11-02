@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -30,48 +30,39 @@
  *      Author: Stefan Leutenegger (s.leutenegger@imperial.ac.uk)
  *********************************************************************************/
 
-#include <iostream>
 #include <gtest/gtest.h>
+#include <iostream>
 #include <memory>
 #include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <brisk/brisk.h>
 #pragma GCC diagnostic pop
-#include "okvis/cameras/PinholeCamera.hpp"
-#include "okvis/cameras/NoDistortion.hpp"
-#include "okvis/cameras/RadialTangentialDistortion.hpp"
-#include "okvis/cameras/EquidistantDistortion.hpp"
 #include "okvis/Frame.hpp"
+#include "okvis/cameras/EquidistantDistortion.hpp"
+#include "okvis/cameras/NoDistortion.hpp"
+#include "okvis/cameras/PinholeCamera.hpp"
+#include "okvis/cameras/RadialTangentialDistortion.hpp"
 
-TEST(Frame, functions)
-{
-
+TEST(Frame, functions) {
   // instantiate all possible versions of test cameras
   std::vector<std::shared_ptr<okvis::cameras::CameraBase> > cameras;
-  cameras.push_back(
-      okvis::cameras::PinholeCamera<okvis::cameras::NoDistortion>::createTestObject());
-  cameras.push_back(
-      okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>::createTestObject());
-  cameras.push_back(
-      okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>::createTestObject());
+  cameras.push_back(okvis::cameras::PinholeCamera<okvis::cameras::NoDistortion>::createTestObject());
+  cameras.push_back(okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>::createTestObject());
+  cameras.push_back(okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>::createTestObject());
 
   for (size_t c = 0; c < cameras.size(); ++c) {
-
 #ifdef __ARM_NEON__
-   std::shared_ptr<cv::FeatureDetector> detector(
-        new brisk::BriskFeatureDetector(34, 2));
+    std::shared_ptr<cv::FeatureDetector> detector(new brisk::BriskFeatureDetector(34, 2));
 #else
-   std::shared_ptr<cv::FeatureDetector> detector(
-        new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(
-            34, 2, 800, 450));
+    std::shared_ptr<cv::FeatureDetector> detector(
+        new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(34, 2, 800, 450));
 #endif
- 
-    std::shared_ptr<cv::DescriptorExtractor> extractor(
-        new cv::BriskDescriptorExtractor(true, false));
+
+    std::shared_ptr<cv::DescriptorExtractor> extractor(new cv::BriskDescriptorExtractor(true, false));
 
     // create a stupid random image
-    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> eigenImage(752,480);
+    Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> eigenImage(752, 480);
     eigenImage.setRandom();
     cv::Mat image(480, 752, CV_8UC1, eigenImage.data());
     okvis::Frame frame(image, cameras.at(c), detector, extractor);
@@ -81,4 +72,3 @@ TEST(Frame, functions)
     frame.describe();
   }
 }
-

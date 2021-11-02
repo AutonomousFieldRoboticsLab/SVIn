@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -36,7 +36,6 @@
  * @author Stefan Leutenegger
  */
 
-
 #include <Eigen/LU>
 #include <iostream>
 
@@ -46,19 +45,10 @@ namespace okvis {
 namespace cameras {
 
 // The default constructor with all zero ki
-EquidistantDistortion::EquidistantDistortion()
-    : k1_(0.0),
-      k2_(0.0),
-      k3_(0.0),
-      k4_(0.0)
-{
-  parameters_.setZero();
-}
+EquidistantDistortion::EquidistantDistortion() : k1_(0.0), k2_(0.0), k3_(0.0), k4_(0.0) { parameters_.setZero(); }
 
 // Constructor initialising ki
-EquidistantDistortion::EquidistantDistortion(double k1, double k2, double k3,
-                                             double k4)
-{
+EquidistantDistortion::EquidistantDistortion(double k1, double k2, double k3, double k4) {
   parameters_[0] = k1;
   parameters_[1] = k2;
   parameters_[2] = k3;
@@ -69,8 +59,7 @@ EquidistantDistortion::EquidistantDistortion(double k1, double k2, double k3,
   k4_ = k4;
 }
 
-bool EquidistantDistortion::setParameters(const Eigen::VectorXd & parameters)
-{
+bool EquidistantDistortion::setParameters(const Eigen::VectorXd& parameters) {
   if (parameters.cols() != NumDistortionIntrinsics) {
     return false;
   }
@@ -82,9 +71,7 @@ bool EquidistantDistortion::setParameters(const Eigen::VectorXd & parameters)
   return true;
 }
 
-bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
-                                    Eigen::Vector2d * pointDistorted) const
-{
+bool EquidistantDistortion::distort(const Eigen::Vector2d& pointUndistorted, Eigen::Vector2d* pointDistorted) const {
   // distortion only:
   const double u0 = pointUndistorted[0];
   const double u1 = pointUndistorted[1];
@@ -94,19 +81,17 @@ bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
   const double theta4 = theta2 * theta2;
   const double theta6 = theta4 * theta2;
   const double theta8 = theta4 * theta4;
-  const double thetad = theta
-      * (1 + k1_ * theta2 + k2_ * theta4 + k3_ * theta6 + k4_ * theta8);
+  const double thetad = theta * (1 + k1_ * theta2 + k2_ * theta4 + k3_ * theta6 + k4_ * theta8);
 
   const double scaling = (r > 1e-8) ? thetad / r : 1.0;
   (*pointDistorted)[0] = scaling * u0;
   (*pointDistorted)[1] = scaling * u1;
   return true;
 }
-bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
-                                    Eigen::Vector2d * pointDistorted,
-                                    Eigen::Matrix2d * pointJacobian,
-                                    Eigen::Matrix2Xd * parameterJacobian) const
-{
+bool EquidistantDistortion::distort(const Eigen::Vector2d& pointUndistorted,
+                                    Eigen::Vector2d* pointDistorted,
+                                    Eigen::Matrix2d* pointJacobian,
+                                    Eigen::Matrix2Xd* parameterJacobian) const {
   // distortion first:
   const double u0 = pointUndistorted[0];
   const double u1 = pointUndistorted[1];
@@ -116,14 +101,13 @@ bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
   const double theta4 = theta2 * theta2;
   const double theta6 = theta4 * theta2;
   const double theta8 = theta4 * theta4;
-  const double thetad = theta
-      * (1 + k1_ * theta2 + k2_ * theta4 + k3_ * theta6 + k4_ * theta8);
+  const double thetad = theta * (1 + k1_ * theta2 + k2_ * theta4 + k3_ * theta6 + k4_ * theta8);
 
   const double scaling = (r > 1e-8) ? thetad / r : 1.0;
   (*pointDistorted)[0] = scaling * u0;
   (*pointDistorted)[1] = scaling * u1;
 
-  Eigen::Matrix2d & J = *pointJacobian;
+  Eigen::Matrix2d& J = *pointJacobian;
   if (r > 1e-8) {
     // mostly matlab generated...
     double t2;
@@ -152,25 +136,21 @@ bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
     t18 = 1.0 / t4;
     t19 = 1.0 / sqrt(t4 * t4 * t4);
     t20 = t6 * t8 * t17;
-    t25 = ((k2_ * t6 * t7 * t8 * t11 * u1 * 4.0
-        + k3_ * t6 * t8 * t9 * t11 * u1 * 6.0)
-        + k4_ * t6 * t7 * t8 * t9 * t11 * u1 * 8.0)
-        + k1_ * t6 * t8 * t11 * u1 * 2.0;
-    t4 = ((k2_ * t6 * t7 * t8 * t11 * u0 * 4.0
-        + k3_ * t6 * t8 * t9 * t11 * u0 * 6.0)
-        + k4_ * t6 * t7 * t8 * t9 * t11 * u0 * 8.0)
-        + k1_ * t6 * t8 * t11 * u0 * 2.0;
+    t25 = ((k2_ * t6 * t7 * t8 * t11 * u1 * 4.0 + k3_ * t6 * t8 * t9 * t11 * u1 * 6.0) +
+           k4_ * t6 * t7 * t8 * t9 * t11 * u1 * 8.0) +
+          k1_ * t6 * t8 * t11 * u1 * 2.0;
+    t4 = ((k2_ * t6 * t7 * t8 * t11 * u0 * 4.0 + k3_ * t6 * t8 * t9 * t11 * u0 * 6.0) +
+          k4_ * t6 * t7 * t8 * t9 * t11 * u0 * 8.0) +
+         k1_ * t6 * t8 * t11 * u0 * 2.0;
     t7 = t11 * t17 * t18 * u0 * u1;
     J(0, 1) = (t7 + t6 * t8 * t25 * u0) - t6 * t17 * t19 * u0 * u1;
-    J(1, 1) = ((t20 - t3 * t6 * t17 * t19) + t3 * t11 * t17 * t18)
-        + t6 * t8 * t25 * u1;
-    J(0, 0) = ((t20 - t2 * t6 * t17 * t19) + t2 * t11 * t17 * t18)
-        + t6 * t8 * t4 * u0;
+    J(1, 1) = ((t20 - t3 * t6 * t17 * t19) + t3 * t11 * t17 * t18) + t6 * t8 * t25 * u1;
+    J(0, 0) = ((t20 - t2 * t6 * t17 * t19) + t2 * t11 * t17 * t18) + t6 * t8 * t4 * u0;
     J(1, 0) = (t7 + t6 * t8 * t4 * u1) - t6 * t17 * t19 * u0 * u1;
 
     if (parameterJacobian) {
-      Eigen::Matrix2Xd & Ji = *parameterJacobian;
-      Ji.resize(2,NumDistortionIntrinsics);
+      Eigen::Matrix2Xd& Ji = *parameterJacobian;
+      Ji.resize(2, NumDistortionIntrinsics);
       // mostly matlab generated...
       double t6;
       double t2;
@@ -192,12 +172,11 @@ bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
       Ji(1, 2) = t2 * t3 * t8 * t6 * u1;
       Ji(0, 3) = t2 * t6 * t10 * u0;
       Ji(1, 3) = t2 * t6 * t10 * u1;
-
     }
   } else {
     // handle limit case for [u0,u1]->0
     if (parameterJacobian) {
-      parameterJacobian->resize(2,NumDistortionIntrinsics);
+      parameterJacobian->resize(2, NumDistortionIntrinsics);
       parameterJacobian->setZero();
     }
     J.setIdentity();
@@ -205,11 +184,11 @@ bool EquidistantDistortion::distort(const Eigen::Vector2d & pointUndistorted,
 
   return true;
 }
-bool EquidistantDistortion::distortWithExternalParameters(
-    const Eigen::Vector2d & pointUndistorted,
-    const Eigen::VectorXd & parameters, Eigen::Vector2d * pointDistorted,
-    Eigen::Matrix2d * pointJacobian, Eigen::Matrix2Xd * parameterJacobian) const
-{
+bool EquidistantDistortion::distortWithExternalParameters(const Eigen::Vector2d& pointUndistorted,
+                                                          const Eigen::VectorXd& parameters,
+                                                          Eigen::Vector2d* pointDistorted,
+                                                          Eigen::Matrix2d* pointJacobian,
+                                                          Eigen::Matrix2Xd* parameterJacobian) const {
   // decompose parameters
 
   const double k1 = parameters[0];
@@ -225,14 +204,13 @@ bool EquidistantDistortion::distortWithExternalParameters(
   const double theta4 = theta2 * theta2;
   const double theta6 = theta4 * theta2;
   const double theta8 = theta4 * theta4;
-  const double thetad = theta
-      * (1 + k1 * theta2 + k2 * theta4 + k3 * theta6 + k4 * theta8);
+  const double thetad = theta * (1 + k1 * theta2 + k2 * theta4 + k3 * theta6 + k4 * theta8);
 
   const double scaling = (r > 1e-8) ? thetad / r : 1.0;
   (*pointDistorted)[0] = scaling * u0;
   (*pointDistorted)[1] = scaling * u1;
 
-  Eigen::Matrix2d & J = *pointJacobian;
+  Eigen::Matrix2d& J = *pointJacobian;
   if (r > 1e-8) {
     // mostly matlab generated...
     double t2;
@@ -261,24 +239,20 @@ bool EquidistantDistortion::distortWithExternalParameters(
     t18 = 1.0 / t4;
     t19 = 1.0 / sqrt(t4 * t4 * t4);
     t20 = t6 * t8 * t17;
-    t25 = ((k2 * t6 * t7 * t8 * t11 * u1 * 4.0
-        + k3 * t6 * t8 * t9 * t11 * u1 * 6.0)
-        + k4 * t6 * t7 * t8 * t9 * t11 * u1 * 8.0)
-        + k1 * t6 * t8 * t11 * u1 * 2.0;
-    t4 = ((k2 * t6 * t7 * t8 * t11 * u0 * 4.0
-        + k3 * t6 * t8 * t9 * t11 * u0 * 6.0)
-        + k4 * t6 * t7 * t8 * t9 * t11 * u0 * 8.0)
-        + k1 * t6 * t8 * t11 * u0 * 2.0;
+    t25 = ((k2 * t6 * t7 * t8 * t11 * u1 * 4.0 + k3 * t6 * t8 * t9 * t11 * u1 * 6.0) +
+           k4 * t6 * t7 * t8 * t9 * t11 * u1 * 8.0) +
+          k1 * t6 * t8 * t11 * u1 * 2.0;
+    t4 = ((k2 * t6 * t7 * t8 * t11 * u0 * 4.0 + k3 * t6 * t8 * t9 * t11 * u0 * 6.0) +
+          k4 * t6 * t7 * t8 * t9 * t11 * u0 * 8.0) +
+         k1 * t6 * t8 * t11 * u0 * 2.0;
     t7 = t11 * t17 * t18 * u0 * u1;
     J(0, 0) = (t7 + t6 * t8 * t25 * u0) - t6 * t17 * t19 * u0 * u1;
-    J(1, 0) = ((t20 - t3 * t6 * t17 * t19) + t3 * t11 * t17 * t18)
-        + t6 * t8 * t25 * u1;
-    J(0, 1) = ((t20 - t2 * t6 * t17 * t19) + t2 * t11 * t17 * t18)
-        + t6 * t8 * t4 * u0;
+    J(1, 0) = ((t20 - t3 * t6 * t17 * t19) + t3 * t11 * t17 * t18) + t6 * t8 * t25 * u1;
+    J(0, 1) = ((t20 - t2 * t6 * t17 * t19) + t2 * t11 * t17 * t18) + t6 * t8 * t4 * u0;
     J(1, 1) = (t7 + t6 * t8 * t4 * u1) - t6 * t17 * t19 * u0 * u1;
     if (parameterJacobian) {
-      Eigen::Matrix2Xd & Ji = *parameterJacobian;
-      Ji.resize(2,NumDistortionIntrinsics);
+      Eigen::Matrix2Xd& Ji = *parameterJacobian;
+      Ji.resize(2, NumDistortionIntrinsics);
       // mostly matlab generated...
       double t6;
       double t2;
@@ -300,12 +274,11 @@ bool EquidistantDistortion::distortWithExternalParameters(
       Ji(1, 2) = t2 * t3 * t8 * t6 * u1;
       Ji(0, 3) = t2 * t6 * t10 * u0;
       Ji(1, 3) = t2 * t6 * t10 * u1;
-
     }
   } else {
     // handle limit case for [u0,u1]->0
     if (parameterJacobian) {
-      parameterJacobian->resize(2,NumDistortionIntrinsics);
+      parameterJacobian->resize(2, NumDistortionIntrinsics);
       parameterJacobian->setZero();
     }
     J.setIdentity();
@@ -313,17 +286,14 @@ bool EquidistantDistortion::distortWithExternalParameters(
 
   return true;
 }
-bool EquidistantDistortion::undistort(const Eigen::Vector2d & pointDistorted,
-                                      Eigen::Vector2d * pointUndistorted) const
-{
+bool EquidistantDistortion::undistort(const Eigen::Vector2d& pointDistorted, Eigen::Vector2d* pointUndistorted) const {
   // this is expensive: we solve with Gauss-Newton...
   Eigen::Vector2d x_bar = pointDistorted;  // initialise at distorted point
-  const int n = 5;  // just 5 iterations max.
-  Eigen::Matrix2d E;  // error Jacobian
+  const int n = 5;                         // just 5 iterations max.
+  Eigen::Matrix2d E;                       // error Jacobian
 
   bool success = false;
   for (int i = 0; i < n; i++) {
-
     Eigen::Vector2d x_tmp;
 
     distort(x_bar, &x_tmp, &E);
@@ -337,29 +307,26 @@ bool EquidistantDistortion::undistort(const Eigen::Vector2d & pointDistorted,
     if (chi2 < 1e-2) {
       success = true;
     }
-    //std::cout<<"chi2"<<chi2<<std::endl;
+    // std::cout<<"chi2"<<chi2<<std::endl;
     if (chi2 < 1e-15) {
       success = true;
       break;
     }
-
   }
   *pointUndistorted = x_bar;
 
   return success;
 }
-bool EquidistantDistortion::undistort(const Eigen::Vector2d & pointDistorted,
-                                      Eigen::Vector2d * pointUndistorted,
-                                      Eigen::Matrix2d * pointJacobian) const
-{
+bool EquidistantDistortion::undistort(const Eigen::Vector2d& pointDistorted,
+                                      Eigen::Vector2d* pointUndistorted,
+                                      Eigen::Matrix2d* pointJacobian) const {
   // this is expensive: we solve with Gauss-Newton...
   Eigen::Vector2d x_bar = pointDistorted;  // initialise at distorted point
-  const int n = 5;  // just 5 iterations max.
-  Eigen::Matrix2d E;  // error Jacobian
+  const int n = 5;                         // just 5 iterations max.
+  Eigen::Matrix2d E;                       // error Jacobian
 
   bool success = false;
   for (int i = 0; i < n; i++) {
-
     Eigen::Vector2d x_tmp;
 
     distort(x_bar, &x_tmp, &E);
@@ -377,7 +344,6 @@ bool EquidistantDistortion::undistort(const Eigen::Vector2d & pointDistorted,
       success = true;
       break;
     }
-
   }
   *pointUndistorted = x_bar;
 

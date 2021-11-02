@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,23 +44,20 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-  typedef Eigen::Matrix<double,9,1> SpeedAndBias;
+typedef Eigen::Matrix<double, 9, 1> SpeedAndBias;
 
-  typedef Eigen::Matrix<double,3,1> Speed;
+typedef Eigen::Matrix<double, 3, 1> Speed;
 
-  typedef Eigen::Matrix<double,3,1> GyroBias;
-  typedef Eigen::Matrix<double,3,1> AccBias;
-  typedef Eigen::Matrix<double,6,1> ImuBias;
+typedef Eigen::Matrix<double, 3, 1> GyroBias;
+typedef Eigen::Matrix<double, 3, 1> AccBias;
+typedef Eigen::Matrix<double, 6, 1> ImuBias;
 
-  typedef Eigen::Matrix<double,3,1> MagnetometerBias;
-  typedef Eigen::Matrix<double,1,1> MagnetometerWorldZBias;
+typedef Eigen::Matrix<double, 3, 1> MagnetometerBias;
+typedef Eigen::Matrix<double, 1, 1> MagnetometerWorldZBias;
 
-  typedef Eigen::Matrix<double,3,1> Wind;
-  typedef Eigen::Matrix<double,1,1> Qff;
+typedef Eigen::Matrix<double, 3, 1> Wind;
+typedef Eigen::Matrix<double, 1, 1> Qff;
 
-
-
-} // namespace okvis
-
+}  // namespace okvis
 
 #endif /* INCLUDE_OKVIS_VARIABLES_HPP_ */

@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,8 +44,8 @@
 #define INCLUDE_OKVIS_IMUFRAMESYNCHRONIZER_H_
 
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 #include <okvis/Time.hpp>
 
@@ -80,11 +80,11 @@ class ImuFrameSynchronizer {
   void shutdown();
 
  private:
-  okvis::Time newestImuDataStamp_;           ///< Newest IMU data timestamp.
-  okvis::Time imuDataNeededUntil_;           ///< A thread is waiting for IMU data newer or equal to this timestamp.
-  std::condition_variable gotNeededImuData_; ///< Condition variable for waiting and notyfing.
-  std::mutex mutex_;                         ///< Mutex.
-  std::atomic_bool shutdown_;                ///< True if shutdown() was called.
+  okvis::Time newestImuDataStamp_;            ///< Newest IMU data timestamp.
+  okvis::Time imuDataNeededUntil_;            ///< A thread is waiting for IMU data newer or equal to this timestamp.
+  std::condition_variable gotNeededImuData_;  ///< Condition variable for waiting and notyfing.
+  std::mutex mutex_;                          ///< Mutex.
+  std::atomic_bool shutdown_;                 ///< True if shutdown() was called.
 };
 
 } /* namespace okvis */

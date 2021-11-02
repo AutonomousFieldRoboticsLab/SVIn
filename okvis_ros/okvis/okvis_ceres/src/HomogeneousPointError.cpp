@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -45,21 +45,19 @@ namespace okvis {
 namespace ceres {
 
 // Construct with measurement and information matrix.
-HomogeneousPointError::HomogeneousPointError(
-    const Eigen::Vector4d & measurement, const information_t & information) {
+HomogeneousPointError::HomogeneousPointError(const Eigen::Vector4d& measurement, const information_t& information) {
   setMeasurement(measurement);
   setInformation(information);
 }
 
 // Construct with measurement and variance.
-HomogeneousPointError::HomogeneousPointError(
-    const Eigen::Vector4d & measurement, double variance) {
+HomogeneousPointError::HomogeneousPointError(const Eigen::Vector4d& measurement, double variance) {
   setMeasurement(measurement);
   setInformation(Eigen::Matrix3d::Identity() * 1.0 / variance);
 }
 
 // Construct with measurement and variance.
-void HomogeneousPointError::setInformation(const information_t & information) {
+void HomogeneousPointError::setInformation(const information_t& information) {
   information_ = information;
   covariance_ = information.inverse();
   // perform the Cholesky decomposition on order to obtain the correct error weighting
@@ -68,27 +66,23 @@ void HomogeneousPointError::setInformation(const information_t & information) {
 }
 
 // This evaluates the error term and additionally computes the Jacobians.
-bool HomogeneousPointError::Evaluate(double const* const * parameters,
-                                     double* residuals,
-                                     double** jacobians) const {
+bool HomogeneousPointError::Evaluate(double const* const* parameters, double* residuals, double** jacobians) const {
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);
 }
 
 // This evaluates the error term and additionally computes
 // the Jacobians in the minimal internal representation.
-bool HomogeneousPointError::EvaluateWithMinimalJacobians(
-    double const* const * parameters, double* residuals, double** jacobians,
-    double** jacobiansMinimal) const {
-
+bool HomogeneousPointError::EvaluateWithMinimalJacobians(double const* const* parameters,
+                                                         double* residuals,
+                                                         double** jacobians,
+                                                         double** jacobiansMinimal) const {
   // compute error
-  Eigen::Vector4d hp(parameters[0][0], parameters[0][1], parameters[0][2],
-                     parameters[0][3]);
+  Eigen::Vector4d hp(parameters[0][0], parameters[0][1], parameters[0][2], parameters[0][3]);
   // delta
   Eigen::Vector3d error;
-  HomogeneousPointLocalParameterization::minus(&measurement_[0],
-                                               &parameters[0][0], &error[0]);
+  HomogeneousPointLocalParameterization::minus(&measurement_[0], &parameters[0][0], &error[0]);
 
-  //LOG(INFO)<<hp.toHomogeneous().transpose() << " : " << measurement.transpose();
+  // LOG(INFO)<<hp.toHomogeneous().transpose() << " : " << measurement.transpose();
 
   // weigh it
   Eigen::Map<Eigen::Vector3d> weighted_error(residuals);
@@ -99,14 +93,11 @@ bool HomogeneousPointError::EvaluateWithMinimalJacobians(
     if (jacobians[0] != NULL) {
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 3, 4, Eigen::RowMajor> J_lift;
-      HomogeneousPointLocalParameterization::liftJacobian(parameters[0],
-                                                          J_lift.data());
+      HomogeneousPointLocalParameterization::liftJacobian(parameters[0], J_lift.data());
       Eigen::Matrix<double, 4, 3, Eigen::RowMajor> J_plus;
-      HomogeneousPointLocalParameterization::plusJacobian(parameters[0],
-                                                          J_plus.data());
+      HomogeneousPointLocalParameterization::plusJacobian(parameters[0], J_plus.data());
 
-      Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> > J0(
-          jacobians[0]);
+      Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> > J0(jacobians[0]);
       Eigen::Matrix<double, 3, 3, Eigen::RowMajor> J0_minimal = J_lift * J_plus;
       J0_minimal = (_squareRootInformation * J0_minimal).eval();
 
@@ -115,8 +106,7 @@ bool HomogeneousPointError::EvaluateWithMinimalJacobians(
 
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[0] != NULL) {
-          Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor> > J0_minimal_mapped(
-              jacobiansMinimal[0]);
+          Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor> > J0_minimal_mapped(jacobiansMinimal[0]);
           J0_minimal_mapped = J0_minimal;
         }
       }
@@ -128,4 +118,3 @@ bool HomogeneousPointError::EvaluateWithMinimalJacobians(
 
 }  // namespace ceres
 }  // namespace okvis
-

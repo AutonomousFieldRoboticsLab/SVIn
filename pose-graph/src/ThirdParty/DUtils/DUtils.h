@@ -15,17 +15,16 @@
  *
  * Written by Dorian Galvez-Lopez,
  * University of Zaragoza
- * 
+ *
  * Check my website to obtain updates: http://webdiis.unizar.es/~dorian
  *
  * \section license License
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License (LGPL) as 
- * published by the Free Software Foundation, either version 3 of the License, 
+ * it under the terms of the GNU Lesser General Public License (LGPL) as
+ * published by the Free Software Foundation, either version 3 of the License,
  * or any later version.
  *
  */
-
 
 #pragma once
 
@@ -33,9 +32,7 @@
 #define __D_UTILS__
 
 /// Several utilities for C++ programs
-namespace DUtils
-{
-}
+namespace DUtils {}
 
 // Exception
 #include "DException.h"
@@ -43,6 +40,5 @@ namespace DUtils
 #include "Timestamp.h"
 // Random numbers
 #include "Random.h"
-
 
 #endif

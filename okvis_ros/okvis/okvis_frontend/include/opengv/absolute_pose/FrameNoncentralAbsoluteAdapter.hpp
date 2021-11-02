@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,14 +40,14 @@
 #define INCLUDE_OKVIS_OPENGV_FRAMENONCENTRALABSOLUTEADAPTER_HPP_
 
 #include <stdlib.h>
-#include <vector>
 #include <memory>
-#include <opengv/types.hpp>
-#include <opengv/absolute_pose/NoncentralAbsoluteAdapter.hpp>
-#include <okvis/kinematics/Transformation.hpp>
-#include <okvis/FrameTypedefs.hpp>
 #include <okvis/Estimator.hpp>
+#include <okvis/FrameTypedefs.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <opengv/absolute_pose/NoncentralAbsoluteAdapter.hpp>
+#include <opengv/types.hpp>
+#include <vector>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -62,12 +62,12 @@ namespace absolute_pose {
 ///        i.e. could be a multi-camera-setup.
 class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
  private:
-  using AbsoluteAdapterBase::_t;
   using AbsoluteAdapterBase::_R;
+  using AbsoluteAdapterBase::_t;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief type for describing matches.
   typedef std::vector<int> matches_t;
@@ -78,13 +78,11 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
    * @param nCameraSystem Camera configuration and parameters.
    * @param frame         The multiframe.
    */
-  FrameNoncentralAbsoluteAdapter(
-      const okvis::Estimator & estimator,
-      const okvis::cameras::NCameraSystem & nCameraSystem,
-      std::shared_ptr<okvis::MultiFrame> frame);
+  FrameNoncentralAbsoluteAdapter(const okvis::Estimator& estimator,
+                                 const okvis::cameras::NCameraSystem& nCameraSystem,
+                                 std::shared_ptr<okvis::MultiFrame> frame);
 
-  virtual ~FrameNoncentralAbsoluteAdapter() {
-  }
+  virtual ~FrameNoncentralAbsoluteAdapter() {}
 
   /// @name Algorithm input
   /// @{
@@ -137,14 +135,14 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
    * @param index The serialized index of the correspondence.
    * @return Camera index of the correspondence.
    */
-  int camIndex(size_t index) const {return camIndices_.at(index);}
+  int camIndex(size_t index) const { return camIndices_.at(index); }
 
   /**
    * @brief Get the keypoint index for a specific correspondence
    * @param index The serialized index of the correspondence.
    * @return Keypoint index belonging to the correspondence.
    */
-  int keypointIndex(size_t index) const {return keypointIndices_.at(index);}
+  int keypointIndex(size_t index) const { return keypointIndices_.at(index); }
 
   /**
    * \brief Retrieve the weight of a correspondence. The weight is supposed to
@@ -152,9 +150,7 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
    *        0 and 1.
    * \warning This is not implemented and always returns 1.0.
    */
-  virtual double getWeight(size_t) const {
-    return 1.0;
-  }  // TODO : figure out if needed...
+  virtual double getWeight(size_t) const { return 1.0; }  // TODO : figure out if needed...
 
   // custom:
   /**
@@ -185,10 +181,9 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
 
   /// The standard deviations of the bearing vectors in [rad].
   std::vector<double> sigmaAngles_;
-
 };
 
-}
-}
+}  // namespace absolute_pose
+}  // namespace opengv
 
 #endif /* INCLUDE_OKVIS_OPENGV_FRAMENONCENTRALABSOLUTEADAPTER_HPP_ */

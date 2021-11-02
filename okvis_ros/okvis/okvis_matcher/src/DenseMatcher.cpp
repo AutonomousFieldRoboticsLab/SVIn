@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -38,28 +38,21 @@
  * @author Stefan Leutenegger
  */
 
-
 #include <okvis/DenseMatcher.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
 // Initialize the dense matcher.
-DenseMatcher::DenseMatcher(unsigned char numMatcherThreads,
-                           unsigned char numBest,
-                           bool useDistanceRatioThreshold)
-    : numMatcherThreads_(numMatcherThreads),
-      numBest_(numBest),
-      useDistanceRatioThreshold_(useDistanceRatioThreshold){
+DenseMatcher::DenseMatcher(unsigned char numMatcherThreads, unsigned char numBest, bool useDistanceRatioThreshold)
+    : numMatcherThreads_(numMatcherThreads), numBest_(numBest), useDistanceRatioThreshold_(useDistanceRatioThreshold) {
   matcherThreadPool_.reset(new okvis::ThreadPool(numMatcherThreads_));
 }
 
-DenseMatcher::~DenseMatcher() {
-  matcherThreadPool_->stop();
-}
+DenseMatcher::~DenseMatcher() { matcherThreadPool_->stop(); }
 
 // Execute a matching algorithm. This is the slow, runtime polymorphic version. Don't use this.
-void DenseMatcher::matchSlow(MatchingAlgorithm & matchingAlgorithm)
+void DenseMatcher::matchSlow(MatchingAlgorithm& matchingAlgorithm)
 
 {
   match(matchingAlgorithm);
@@ -69,42 +62,38 @@ void DenseMatcher::matchSlow(MatchingAlgorithm & matchingAlgorithm)
 void DenseMatcher::assignbest(int indexToAssignFromListA,
                               pairing_list_t& vPairsWithScore,
                               std::vector<std::vector<pairing_t> >& aiBestList,
-                              std::mutex* mutexes, int startidx) {
-  //the top matches for the current index
+                              std::mutex* mutexes,
+                              int startidx) {
+  // the top matches for the current index
   const std::vector<pairing_t>& aiBest = aiBestList[indexToAssignFromListA];
-  for (int index = startidx; index < numBest_ && aiBest[index].indexA != -1;
-      ++index) {
-    //fetch index to pair with myidx
+  for (int index = startidx; index < numBest_ && aiBest[index].indexA != -1; ++index) {
+    // fetch index to pair with myidx
     const int pairIndexFromListB = aiBest[index].indexA;
     // synchronize this
     mutexes[pairIndexFromListB].lock();
     if (vPairsWithScore[pairIndexFromListB].indexA == -1) {
-      // if we are not paired yet 
+      // if we are not paired yet
       // pair with me
       vPairsWithScore[pairIndexFromListB].indexA = indexToAssignFromListA;
-      // set my distance		
+      // set my distance
       vPairsWithScore[pairIndexFromListB].distance = aiBest[index].distance;
       mutexes[pairIndexFromListB].unlock();
       return;
     } else {
-      //already paired, so check the score of that pairing
-      if (aiBest[index].distance
-          < vPairsWithScore[pairIndexFromListB].distance) {
+      // already paired, so check the score of that pairing
+      if (aiBest[index].distance < vPairsWithScore[pairIndexFromListB].distance) {
         // My distance is better!
         // save vals of old pairing
-        const int oldPairIndexFromListA = vPairsWithScore[pairIndexFromListB]
-            .indexA;
-        // pair with me			
-        vPairsWithScore[pairIndexFromListB] = pairing_t(indexToAssignFromListA,
-                                                        aiBest[index].distance);
+        const int oldPairIndexFromListA = vPairsWithScore[pairIndexFromListB].indexA;
+        // pair with me
+        vPairsWithScore[pairIndexFromListB] = pairing_t(indexToAssignFromListA, aiBest[index].distance);
         mutexes[pairIndexFromListB].unlock();
         // now reassign the old paring recursivly
         // note: skip element at position zero since we just assigned a match with better score,
         // so we start the reassignment at position 1
-        assignbest(oldPairIndexFromListA, vPairsWithScore, aiBestList, mutexes,
-                   1);
+        assignbest(oldPairIndexFromListA, vPairsWithScore, aiBestList, mutexes, 1);
         return;
-      }  //else test next alternative
+      }  // else test next alternative
       mutexes[pairIndexFromListB].unlock();
     }
   }

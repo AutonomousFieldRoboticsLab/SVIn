@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -51,122 +51,87 @@ namespace okvis {
 MultiFrame::MultiFrame() : id_(0) {}
 
 // Construct from NCameraSystem
-MultiFrame::MultiFrame(const cameras::NCameraSystem & cameraSystem,
-                       const okvis::Time & timestamp, uint64_t id)
-    : timestamp_(timestamp),
-      id_(id)
-{
+MultiFrame::MultiFrame(const cameras::NCameraSystem& cameraSystem, const okvis::Time& timestamp, uint64_t id)
+    : timestamp_(timestamp), id_(id) {
   resetCameraSystemAndFrames(cameraSystem);
 }
 
-MultiFrame::~MultiFrame()
-{
-
-}
+MultiFrame::~MultiFrame() {}
 
 // (Re)set the NCameraSystem -- which clears the frames as well.
-void MultiFrame::resetCameraSystemAndFrames(
-    const cameras::NCameraSystem & cameraSystem)
-{
+void MultiFrame::resetCameraSystemAndFrames(const cameras::NCameraSystem& cameraSystem) {
   cameraSystem_ = cameraSystem;
   frames_.clear();  // erase -- for safety
   frames_.resize(cameraSystem.numCameras());
 
   // copy cameras
-  for(size_t c = 0; c<numFrames(); ++c){
+  for (size_t c = 0; c < numFrames(); ++c) {
     frames_[c].setGeometry(cameraSystem.cameraGeometry(c));
   }
 }
 
 // (Re)set the timestamp
-void MultiFrame::setTimestamp(const okvis::Time & timestamp)
-{
-  timestamp_ = timestamp;
-}
+void MultiFrame::setTimestamp(const okvis::Time& timestamp) { timestamp_ = timestamp; }
 
 // (Re)set the id
-void MultiFrame::setId(uint64_t id)
-{
-  id_ = id;
-}
+void MultiFrame::setId(uint64_t id) { id_ = id; }
 
 // Obtain the frame timestamp
-const okvis::Time & MultiFrame::timestamp() const
-{
-  return timestamp_;
-}
+const okvis::Time& MultiFrame::timestamp() const { return timestamp_; }
 
 // Obtain the frame id
-uint64_t MultiFrame::id() const
-{
-  return id_;
-}
+uint64_t MultiFrame::id() const { return id_; }
 
 // The number of frames/cameras
-size_t MultiFrame::numFrames() const
-{
-  return frames_.size();
-}
+size_t MultiFrame::numFrames() const { return frames_.size(); }
 
 std::shared_ptr<const okvis::kinematics::Transformation> MultiFrame::T_SC(size_t cameraIdx) const {
   return cameraSystem_.T_SC(cameraIdx);
 }
-
 
 //////////////////////////////////////////////////////////////
 // The following mirror the Frame functionality.
 //
 
 // Set the frame image;
-void MultiFrame::setImage(size_t cameraIdx, const cv::Mat & image)
-{
+void MultiFrame::setImage(size_t cameraIdx, const cv::Mat& image) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   frames_[cameraIdx].setImage(image);
 }
 
 // Set the geometry
-void MultiFrame::setGeometry(
-    size_t cameraIdx, std::shared_ptr<const cameras::CameraBase> cameraGeometry)
-{
+void MultiFrame::setGeometry(size_t cameraIdx, std::shared_ptr<const cameras::CameraBase> cameraGeometry) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   frames_[cameraIdx].setGeometry(cameraGeometry);
 }
 
 // Set the detector
-void MultiFrame::setDetector(size_t cameraIdx,
-                             std::shared_ptr<cv::FeatureDetector> detector)
-{
+void MultiFrame::setDetector(size_t cameraIdx, std::shared_ptr<cv::FeatureDetector> detector) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   frames_[cameraIdx].setDetector(detector);
 }
 
 // Set the extractor
-void MultiFrame::setExtractor(
-    size_t cameraIdx, std::shared_ptr<cv::DescriptorExtractor> extractor)
-{
+void MultiFrame::setExtractor(size_t cameraIdx, std::shared_ptr<cv::DescriptorExtractor> extractor) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   frames_[cameraIdx].setExtractor(extractor);
 }
 
 // Obtain the image
-const cv::Mat & MultiFrame::image(size_t cameraIdx) const
-{
+const cv::Mat& MultiFrame::image(size_t cameraIdx) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].image();
 }
 
 // get the base class geometry (will be slow to use)
-std::shared_ptr<const cameras::CameraBase> MultiFrame::geometry(
-    size_t cameraIdx) const
-{
+std::shared_ptr<const cameras::CameraBase> MultiFrame::geometry(size_t cameraIdx) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].geometry();
 }
 
 // Get the specific geometry (will be fast to use)
-template<class GEOMETRY_T>
-std::shared_ptr<const GEOMETRY_T> MultiFrame::geometryAs(size_t cameraIdx) const
-{
+template <class GEOMETRY_T>
+std::shared_ptr<const GEOMETRY_T> MultiFrame::geometryAs(size_t cameraIdx) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].geometryAs<GEOMETRY_T>();
 }
@@ -174,8 +139,7 @@ std::shared_ptr<const GEOMETRY_T> MultiFrame::geometryAs(size_t cameraIdx) const
 // Detect keypoints. This uses virtual function calls.
 ///        That's a negligibly small overhead for many detections.
 ///        returns the number of detected points.
-int MultiFrame::detect(size_t cameraIdx)
-{
+int MultiFrame::detect(size_t cameraIdx) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].detect();
 }
@@ -184,57 +148,43 @@ int MultiFrame::detect(size_t cameraIdx)
 ///        That's a negligibly small overhead for many detections.
 ///        \param extractionDirection the extraction direction in camera frame
 ///        returns the number of detected points.
-int MultiFrame::describe(size_t cameraIdx,
-                         const Eigen::Vector3d & extractionDirection)
-{
+int MultiFrame::describe(size_t cameraIdx, const Eigen::Vector3d& extractionDirection) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].describe(extractionDirection);
 }
-template<class GEOMETRY_T>
-int MultiFrame::describeAs(size_t cameraIdx,
-                           const Eigen::Vector3d & extractionDirection)
-{
+template <class GEOMETRY_T>
+int MultiFrame::describeAs(size_t cameraIdx, const Eigen::Vector3d& extractionDirection) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
-  return frames_[cameraIdx].template describeAs <GEOMETRY_T> (extractionDirection);
+  return frames_[cameraIdx].template describeAs<GEOMETRY_T>(extractionDirection);
 }
 
 // Access a specific keypoint in OpenCV format
-bool MultiFrame::getCvKeypoint(size_t cameraIdx, size_t keypointIdx,
-                               cv::KeyPoint & keypoint) const
-{
+bool MultiFrame::getCvKeypoint(size_t cameraIdx, size_t keypointIdx, cv::KeyPoint& keypoint) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].getCvKeypoint(keypointIdx, keypoint);
 }
 
 // Get a specific keypoint
-bool MultiFrame::getKeypoint(size_t cameraIdx, size_t keypointIdx,
-                             Eigen::Vector2d & keypoint) const
-{
+bool MultiFrame::getKeypoint(size_t cameraIdx, size_t keypointIdx, Eigen::Vector2d& keypoint) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].getKeypoint(keypointIdx, keypoint);
 }
 
 // Get the size of a specific keypoint
-bool MultiFrame::getKeypointSize(size_t cameraIdx, size_t keypointIdx,
-                                 double & keypointSize) const
-{
+bool MultiFrame::getKeypointSize(size_t cameraIdx, size_t keypointIdx, double& keypointSize) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].getKeypointSize(keypointIdx, keypointSize);
 }
 
 // Access the descriptor -- CAUTION: high-speed version.
 ///        returns NULL if out of bounds.
-const unsigned char * MultiFrame::keypointDescriptor(size_t cameraIdx,
-                                                     size_t keypointIdx)
-{
+const unsigned char* MultiFrame::keypointDescriptor(size_t cameraIdx, size_t keypointIdx) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].keypointDescriptor(keypointIdx);
 }
 
 // Set the landmark ID
-bool MultiFrame::setLandmarkId(size_t cameraIdx, size_t keypointIdx,
-                               uint64_t landmarkId)
-{
+bool MultiFrame::setLandmarkId(size_t cameraIdx, size_t keypointIdx, uint64_t landmarkId) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].setLandmarkId(keypointIdx, landmarkId);
 }
@@ -249,8 +199,7 @@ bool MultiFrame::setLandmarkId(size_t cameraIdx, size_t keypointIdx,
 }*/
 
 // Access the landmark ID
-uint64_t MultiFrame::landmarkId(size_t cameraIdx, size_t keypointIdx) const
-{
+uint64_t MultiFrame::landmarkId(size_t cameraIdx, size_t keypointIdx) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].landmarkId(keypointIdx);
 }
@@ -263,28 +212,26 @@ uint64_t MultiFrame::landmarkId(size_t cameraIdx, size_t keypointIdx) const
 }*/
 
 // number of keypoints
-size_t MultiFrame::numKeypoints(size_t cameraIdx) const
-{
+size_t MultiFrame::numKeypoints(size_t cameraIdx) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].numKeypoints();
 }
 
 // @Sharmin
 // number of keypoints
-size_t MultiFrame::contour_numKeypoints(size_t cameraIdx) const
-{
+size_t MultiFrame::contour_numKeypoints(size_t cameraIdx) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].contour_numKeypoints();
 }
 
 // provide keypoints externally
-bool MultiFrame::resetKeypoints(size_t cameraIdx, const std::vector<cv::KeyPoint> & keypoints){
+bool MultiFrame::resetKeypoints(size_t cameraIdx, const std::vector<cv::KeyPoint>& keypoints) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].resetKeypoints(keypoints);
 }
 
 // provide descriptors externally
-bool MultiFrame::resetDescriptors(size_t cameraIdx, const cv::Mat & descriptors) {
+bool MultiFrame::resetDescriptors(size_t cameraIdx, const cv::Mat& descriptors) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIdx < frames_.size(), "Out of range");
   return frames_[cameraIdx].resetDescriptors(descriptors);
 }
@@ -292,8 +239,7 @@ bool MultiFrame::resetDescriptors(size_t cameraIdx, const cv::Mat & descriptors)
 //
 
 // get the total number of keypoints in all frames.
-size_t MultiFrame::numKeypoints() const
-{
+size_t MultiFrame::numKeypoints() const {
   size_t numKeypoints = 0;
   for (size_t i = 0; i < frames_.size(); ++i) {
     numKeypoints += frames_[i].numKeypoints();
@@ -302,17 +248,18 @@ size_t MultiFrame::numKeypoints() const
 }
 
 // Compute the reprojection error.
-bool MultiFrame::computeReprojectionError4( size_t camIndex, Eigen::Vector2d kp,
-    const Eigen::Vector4d& homogeneousPoint, double& outError) const {
-
-	// FIXME Sharmin: KeypointSize == keypointStdDev == 4.0 (when contour keypoints were made)
-	double keypointStdDev = 4.0 ;
+bool MultiFrame::computeReprojectionError4(size_t camIndex,
+                                           Eigen::Vector2d kp,
+                                           const Eigen::Vector4d& homogeneousPoint,
+                                           double& outError) const {
+  // FIXME Sharmin: KeypointSize == keypointStdDev == 4.0 (when contour keypoints were made)
+  double keypointStdDev = 4.0;
 
   Eigen::Vector2d y;
-  okvis::cameras::CameraBase::ProjectionStatus status = frames_[camIndex].cameraGeometry_->projectHomogeneous(homogeneousPoint, &y);
+  okvis::cameras::CameraBase::ProjectionStatus status =
+      frames_[camIndex].cameraGeometry_->projectHomogeneous(homogeneousPoint, &y);
 
   if (status == okvis::cameras::CameraBase::ProjectionStatus::Successful) {
-
     /*Eigen::Matrix2d inverseCov = Eigen::Matrix2d::Identity();
 
     keypointStdDev = 0.8 * keypointStdDev / 12.0;
@@ -325,57 +272,56 @@ bool MultiFrame::computeReprojectionError4( size_t camIndex, Eigen::Vector2d kp,
     return false;
 }
 
-
 /*
 bool MultiFrame::stereoTriangulateInMultiFrame(okvis::kinematics::Transformation & T_CaCb,
-		Eigen::Vector2d keypointCoordinatesA, Eigen::Vector2d keypointCoordinatesB, float depth, Eigen::Vector4d & outHomogeneousPoint_A,
-		  bool & outCanBeInitializedInaccuarate, double sigmaRay) const{
+                Eigen::Vector2d keypointCoordinatesA, Eigen::Vector2d keypointCoordinatesB, float depth, Eigen::Vector4d
+& outHomogeneousPoint_A, bool & outCanBeInitializedInaccuarate, double sigmaRay) const{
 
-	  // chose the source of uncertainty
-	  double sigmaR = sigmaRay;
+          // chose the source of uncertainty
+          double sigmaR = sigmaRay;
 
-	  // call triangulation
-	  bool isValid;
-	  bool isParallel;
+          // call triangulation
+          bool isValid;
+          bool isParallel;
 
-	  Eigen::Vector3d backProjectionDirectionA_inA, backProjectionDirectionB_inA;
+          Eigen::Vector3d backProjectionDirectionA_inA, backProjectionDirectionB_inA;
 
-	  back_project(keypointCoordinatesA, depth, backProjectionDirectionA_inA);
-	  back_project(keypointCoordinatesB, depth, backProjectionDirectionB_inA);  // direction in frame B
-	  backProjectionDirectionB_inA = T_CaCb.C() * backProjectionDirectionB_inA;
+          back_project(keypointCoordinatesA, depth, backProjectionDirectionA_inA);
+          back_project(keypointCoordinatesB, depth, backProjectionDirectionB_inA);  // direction in frame B
+          backProjectionDirectionB_inA = T_CaCb.C() * backProjectionDirectionB_inA;
 
-	  Eigen::Vector4d hpA = triangulation::triangulateFast(
-	      Eigen::Vector3d(0, 0, 0),  // center of A in A coordinates (0,0,0)
-	      backProjectionDirectionA_inA.normalized(), T_CaCb.r(),  // center of B in A coordinates
-	      backProjectionDirectionB_inA.normalized(), sigmaR, isValid, isParallel);
-	  outCanBeInitializedInaccuarate = !isParallel;
+          Eigen::Vector4d hpA = triangulation::triangulateFast(
+              Eigen::Vector3d(0, 0, 0),  // center of A in A coordinates (0,0,0)
+              backProjectionDirectionA_inA.normalized(), T_CaCb.r(),  // center of B in A coordinates
+              backProjectionDirectionB_inA.normalized(), sigmaR, isValid, isParallel);
+          outCanBeInitializedInaccuarate = !isParallel;
 
-	  if (!isValid) {
-	    return false;
-	  }
+          if (!isValid) {
+            return false;
+          }
 
-	  // check reprojection:
-	  //double errA, errB;
-	  //size_t CamIndexA = 0;
-	  //isValid = computeReprojectionError4(CamIndexA, keypointCoordinatesA, hpA, errA);
-	  //if (!isValid) {
-	    //return false;
-	  //}
-	  //Eigen::Vector4d outHomogeneousPoint_B = T_CaCb.inverse() * Eigen::Vector4d(hpA);
-	  //size_t CamIndexB = 1;
-	  //if (!computeReprojectionError4(CamIndexB, keypointCoordinatesB,
-	                                 //outHomogeneousPoint_B, errB)) {
-	    //isValid = false;
-	    //return false;
-	  //}
-	  //if (errA > 4.0 || errB > 4.0) {
-	    //isValid = false;
-	  //}
+          // check reprojection:
+          //double errA, errB;
+          //size_t CamIndexA = 0;
+          //isValid = computeReprojectionError4(CamIndexA, keypointCoordinatesA, hpA, errA);
+          //if (!isValid) {
+            //return false;
+          //}
+          //Eigen::Vector4d outHomogeneousPoint_B = T_CaCb.inverse() * Eigen::Vector4d(hpA);
+          //size_t CamIndexB = 1;
+          //if (!computeReprojectionError4(CamIndexB, keypointCoordinatesB,
+                                         //outHomogeneousPoint_B, errB)) {
+            //isValid = false;
+            //return false;
+          //}
+          //if (errA > 4.0 || errB > 4.0) {
+            //isValid = false;
+          //}
 
-	  // assign output
-	  outHomogeneousPoint_A = Eigen::Vector4d(hpA);
+          // assign output
+          outHomogeneousPoint_A = Eigen::Vector4d(hpA);
 
-	  return isValid;
+          return isValid;
 }*/
 
-}// namespace okvis
+}  // namespace okvis

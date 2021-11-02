@@ -39,11 +39,11 @@
 #ifndef INCLUDE_OKVIS_CERES_DEPTHERROR_HPP_
 #define INCLUDE_OKVIS_CERES_DEPTHERROR_HPP_
 
-#include <vector>
-#include "ceres/ceres.h"
-#include <okvis/kinematics/Transformation.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <vector>
+#include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -51,12 +51,11 @@ namespace okvis {
 namespace ceres {
 
 /// \brief Absolute error of a depth measurement.
-class DepthError : public ::ceres::SizedCostFunction<
-    1 /* number of residuals */, 7 /* size of first parameter */>,
-    public ErrorInterface {
+class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */, 7 /* size of first parameter */>,
+                   public ErrorInterface {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief The base class type.
   typedef ::ceres::SizedCostFunction<1, 7> base_t;
@@ -73,17 +72,14 @@ class DepthError : public ::ceres::SizedCostFunction<
   /// \brief Default constructor.
   DepthError();
 
-
   /// \brief Construct with homogeneous measurement and variance.
   /// @param[in] measurement The measurement.
   /// @param[in] variance The variance of the measurement, i.e. information_ has variance in its diagonal.
   /// TODO document.
-  DepthError(double depth, const information_t & information, double first_depth);
-
+  DepthError(double depth, const information_t& information, double first_depth);
 
   /// \brief Trivial destructor.
-  virtual ~DepthError() {
-  }
+  virtual ~DepthError() {}
 
   // setters
   /// \brief Set the measurement.
@@ -95,26 +91,20 @@ class DepthError : public ::ceres::SizedCostFunction<
 
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
-  void setInformation(const information_t & information);
+  void setInformation(const information_t& information);
 
   // getters
   /// \brief Get the measurement.
   /// \return The measurement vector.
-  double depth() const {
-    return depth_;
-  }
+  double depth() const { return depth_; }
 
   /// \brief Get the information matrix.
   /// \return The information (weight) matrix.
-  const information_t& information() const {
-    return information_;
-  }
+  const information_t& information() const { return information_; }
 
   /// \brief Get the covariance matrix.
   /// \return The inverse information (covariance) matrix.
-  const information_t& covariance() const {
-    return covariance_;
-  }
+  const information_t& covariance() const { return covariance_; }
 
   /**
    * @brief This evaluates the error term and additionally computes the Jacobians.
@@ -123,8 +113,7 @@ class DepthError : public ::ceres::SizedCostFunction<
    * @param jacobians Pointer to the Jacobians (see ceres)
    * @return success of th evaluation.
    */
-  virtual bool Evaluate(double const* const * parameters, double* residuals,
-                        double** jacobians) const;
+  virtual bool Evaluate(double const* const* parameters, double* residuals, double** jacobians) const;
 
   /**
    * @brief EvaluateWithMinimalJacobians This evaluates the error term and additionally computes
@@ -135,21 +124,17 @@ class DepthError : public ::ceres::SizedCostFunction<
    * @param jacobiansMinimal Pointer to the minimal Jacobians (equivalent to jacobians).
    * @return Success of the evaluation.
    */
-  virtual bool EvaluateWithMinimalJacobians(double const* const * parameters,
+  virtual bool EvaluateWithMinimalJacobians(double const* const* parameters,
                                             double* residuals,
                                             double** jacobians,
                                             double** jacobiansMinimal) const;
 
   // sizes
   /// \brief Residual dimension.
-  size_t residualDim() const {
-    return kNumResiduals;
-  }
+  size_t residualDim() const { return kNumResiduals; }
 
   /// \brief Number of parameter blocks.
-  size_t parameterBlocks() const {
-    return base_t::parameter_block_sizes().size();
-  }
+  size_t parameterBlocks() const { return base_t::parameter_block_sizes().size(); }
 
   /// \brief Dimension of an individual parameter block.
   /// @param[in] parameterBlockId ID of the parameter block of interest.
@@ -159,21 +144,17 @@ class DepthError : public ::ceres::SizedCostFunction<
   }
 
   /// @brief Return parameter block type as string
-  virtual std::string typeInfo() const {
-    return "DepthError";
-  }
+  virtual std::string typeInfo() const { return "DepthError"; }
 
  protected:
-
   // the measurement
-  double depth_; ///< The depth measurement.
+  double depth_;  ///< The depth measurement.
   double first_depth_;
 
   // weighting related
-  information_t information_; ///< The 6x6 information matrix.
-  information_t _squareRootInformation; ///< The 6x6 square root information matrix.
-  covariance_t covariance_; ///< The 6x6 covariance matrix.
-
+  information_t information_;            ///< The 6x6 information matrix.
+  information_t _squareRootInformation;  ///< The 6x6 square root information matrix.
+  covariance_t covariance_;              ///< The 6x6 covariance matrix.
 };
 
 }  // namespace ceres

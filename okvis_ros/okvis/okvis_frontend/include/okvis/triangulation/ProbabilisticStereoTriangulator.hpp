@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,11 +44,11 @@
 #include <memory>
 
 #include <Eigen/Core>
-#include <okvis/kinematics/Transformation.hpp>
-#include <okvis/assert_macros.hpp>
 #include <okvis/FrameTypedefs.hpp>
-#include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/MultiFrame.hpp>
+#include <okvis/assert_macros.hpp>
+#include <okvis/ceres/PoseParameterBlock.hpp>
+#include <okvis/kinematics/Transformation.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -58,7 +58,7 @@ namespace triangulation {
  * \brief The ProbabilisticStereoTriangulator class
  * \tparam CAMERA_GEOMETRY_T Camera geometry model. See also okvis::cameras::CameraBase.
  */
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 class ProbabilisticStereoTriangulator {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -84,7 +84,8 @@ class ProbabilisticStereoTriangulator {
    */
   ProbabilisticStereoTriangulator(std::shared_ptr<okvis::MultiFrame> frameA_ptr,
                                   std::shared_ptr<okvis::MultiFrame> frameB_ptr,
-                                  size_t camIdA, size_t camIdB,
+                                  size_t camIdA,
+                                  size_t camIdB,
                                   const okvis::kinematics::Transformation& T_AB,
                                   const Eigen::Matrix<double, 6, 6>& UOplus,
                                   double pixelSigma = 0.5);
@@ -99,8 +100,10 @@ class ProbabilisticStereoTriangulator {
    *  \param UOplus Oplus-type uncertainty of T_AB.
    */
   void resetFrames(std::shared_ptr<okvis::MultiFrame> frameA_ptr,
-                   std::shared_ptr<okvis::MultiFrame> frameB_ptr, size_t camIdA,
-                   size_t camIdB, const okvis::kinematics::Transformation& T_AB,
+                   std::shared_ptr<okvis::MultiFrame> frameB_ptr,
+                   size_t camIdA,
+                   size_t camIdB,
+                   const okvis::kinematics::Transformation& T_AB,
                    const Eigen::Matrix<double, 6, 6>& UOplus);
 
   /// \brief Default destructor.
@@ -116,9 +119,10 @@ class ProbabilisticStereoTriangulator {
    *  \param[in]  sigmaRay Ray uncertainty.
    * \return 3-sigma consistency check result, in A-coordinates.
    */
-  bool stereoTriangulate(size_t keypointIdxA, size_t keypointIdxB,
-                         Eigen::Vector4d & outHomogeneousPoint_A,
-                         bool & outCanBeInitializedInaccuarate,
+  bool stereoTriangulate(size_t keypointIdxA,
+                         size_t keypointIdxB,
+                         Eigen::Vector4d& outHomogeneousPoint_A,
+                         bool& outCanBeInitializedInaccuarate,
                          double sigmaRay = -1.0) const;
 
   /**
@@ -131,10 +135,11 @@ class ProbabilisticStereoTriangulator {
    *  \param[in]  sigmaRay Ray uncertainty.
    *  \return 3-sigma consistency check result.
    */
-  bool stereoTriangulate(size_t keypointIdxA, size_t keypointIdxB,
-                         Eigen::Vector4d & outHomogeneousPoint_A,
-                         Eigen::Matrix3d & outPointUOplus_A,
-                         bool & outCanBeInitialized,
+  bool stereoTriangulate(size_t keypointIdxA,
+                         size_t keypointIdxB,
+                         Eigen::Vector4d& outHomogeneousPoint_A,
+                         Eigen::Matrix3d& outPointUOplus_A,
+                         bool& outCanBeInitialized,
                          double sigmaRay = -1.0) const;
 
   /**
@@ -145,10 +150,11 @@ class ProbabilisticStereoTriangulator {
    *  \param[out] outPointUOplus_A: Output uncertainty, represented w.r.t. ceres disturbance, in A-coordinates.
    *  \param[out] outCanBeInitialized Whether or not the triangulation can be considered initialized.
    */
-  void getUncertainty(size_t keypointIdxA, size_t keypointIdxB,
-                      const Eigen::Vector4d & homogeneousPoint_A,
+  void getUncertainty(size_t keypointIdxA,
+                      size_t keypointIdxB,
+                      const Eigen::Vector4d& homogeneousPoint_A,
                       Eigen::Matrix3d& outPointUOplus_A,
-                      bool & outCanBeInitialized) const;
+                      bool& outCanBeInitialized) const;
 
  protected:
   double sigmaRay_;  ///< ray uncertainty
@@ -186,10 +192,11 @@ class ProbabilisticStereoTriangulator {
    * @param[out] outError         Reprojection error.
    * @return True if reprojection was successful.
    */
-  bool computeReprojectionError4(
-      const std::shared_ptr<okvis::MultiFrame> &frame, size_t camId,
-      size_t keypointId, const Eigen::Vector4d& homogeneousPoint,
-      double& outError) const;
+  bool computeReprojectionError4(const std::shared_ptr<okvis::MultiFrame>& frame,
+                                 size_t camId,
+                                 size_t keypointId,
+                                 const Eigen::Vector4d& homogeneousPoint,
+                                 double& outError) const;
 };
 
 }  // namespace triangulation

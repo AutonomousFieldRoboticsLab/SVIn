@@ -42,32 +42,28 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-RelocFrameSynchronizer::RelocFrameSynchronizer()
-  : shutdown_(false) {}
+RelocFrameSynchronizer::RelocFrameSynchronizer() : shutdown_(false) {}
 
 RelocFrameSynchronizer::~RelocFrameSynchronizer() {
-  if(!shutdown_)
-    shutdown();
+  if (!shutdown_) shutdown();
 }
 
 // Tell the synchronizer that a new Reloc measurement has been registered.
 void RelocFrameSynchronizer::gotRelocData(const okvis::Time& stamp) {
   newestRelocDataStamp_ = stamp;
-  if(relocDataNeededUntil_ < stamp)
-    gotNeededRelocData_.notify_all();
+  if (relocDataNeededUntil_ < stamp) gotNeededRelocData_.notify_all();
 }
 
 // Wait until a Reloc measurement with a timestamp equal or newer to the supplied one is registered.
 bool RelocFrameSynchronizer::waitForUpToDateRelocData(const okvis::Time& frame_stamp) {
   // if the newest depth data timestamp is smaller than frame_stamp, wait until
   // depth_data newer than frame_stamp arrives
-  if(newestRelocDataStamp_ <= frame_stamp && !shutdown_) {
-	  relocDataNeededUntil_ = frame_stamp;
+  if (newestRelocDataStamp_ <= frame_stamp && !shutdown_) {
+    relocDataNeededUntil_ = frame_stamp;
     std::unique_lock<std::mutex> lock(mutex_);
     gotNeededRelocData_.wait(lock);
   }
-  if(shutdown_)
-    return false;
+  if (shutdown_) return false;
   return true;
 }
 

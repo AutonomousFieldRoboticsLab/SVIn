@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -38,32 +38,30 @@
  * @author Andreas Forster
  */
 
-#include <opengv/absolute_pose/FrameNoncentralAbsoluteAdapter.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
+#include <opengv/absolute_pose/FrameNoncentralAbsoluteAdapter.hpp>
 
 // cameras and distortions
-#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/EquidistantDistortion.hpp>
+#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
 
 // Constructor.
 opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAdapter(
-    const okvis::Estimator & estimator,
-    const okvis::cameras::NCameraSystem & nCameraSystem,
+    const okvis::Estimator& estimator,
+    const okvis::cameras::NCameraSystem& nCameraSystem,
     std::shared_ptr<okvis::MultiFrame> frame) {
-
   size_t numCameras = nCameraSystem.numCameras();
 
   // find distortion type
-  okvis::cameras::NCameraSystem::DistortionType distortionType= nCameraSystem.distortionType(0);
+  okvis::cameras::NCameraSystem::DistortionType distortionType = nCameraSystem.distortionType(0);
   for (size_t i = 1; i < nCameraSystem.numCameras(); ++i) {
-    OKVIS_ASSERT_TRUE(Exception, distortionType == nCameraSystem.distortionType(i),
-                            "mixed frame types are not supported yet");
+    OKVIS_ASSERT_TRUE(
+        Exception, distortionType == nCameraSystem.distortionType(i), "mixed frame types are not supported yet");
   }
 
   for (size_t im = 0; im < numCameras; ++im) {
-
     // store transformation. note: the T_SC estimates might actually slightly differ,
     // but we ignore this here.
     camOffsets_.push_back(frame->T_SC(im)->r());
@@ -76,19 +74,16 @@ opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAd
       uint64_t lmId = frame->landmarkId(im, k);
 
       // check if in the map and good enough
-      if (lmId == 0 || !estimator.isLandmarkAdded(lmId))
-        continue;
+      if (lmId == 0 || !estimator.isLandmarkAdded(lmId)) continue;
       okvis::MapPoint landmark;
       estimator.getLandmark(lmId, landmark);
-      if (landmark.observations.size() < 2)
-        continue;
+      if (landmark.observations.size() < 2) continue;
 
       // get it
       const Eigen::Vector4d hp = landmark.point;
 
       // check if not at infinity
-      if (fabs(hp[3]) < 1.0e-8)
-        continue;
+      if (fabs(hp[3]) < 1.0e-8) continue;
 
       // add landmark here
       points_.push_back(hp.head<3>() / hp[3]);
@@ -103,38 +98,24 @@ opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAd
       double fu = 1.0;
       switch (distortionType) {
         case okvis::cameras::NCameraSystem::RadialTangential: {
-          frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion> >(im)
+          frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion> >(im)
               ->backProject(keypoint, &bearing);
-          fu = frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion> >(im)
-              ->focalLengthU();
+          fu = frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion> >(im)
+                   ->focalLengthU();
           break;
         }
         case okvis::cameras::NCameraSystem::RadialTangential8: {
-          frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion8> >(im)
+          frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion8> >(im)
               ->backProject(keypoint, &bearing);
-          fu = frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion8> >(im)
-              ->focalLengthU();
+          fu = frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion8> >(im)
+                   ->focalLengthU();
           break;
         }
         case okvis::cameras::NCameraSystem::Equidistant: {
-          frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::EquidistantDistortion> >(im)->backProject(
+          frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion> >(im)->backProject(
               keypoint, &bearing);
-          fu = frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion> >(im)->focalLengthU();
+          fu = frame->geometryAs<okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion> >(im)
+                   ->focalLengthU();
           break;
         }
         default:
@@ -156,34 +137,29 @@ opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAd
 
       // store keypoint index
       keypointIndices_.push_back(k);
-
     }
   }
 }
 
 // Retrieve the bearing vector of a correspondence.
-opengv::bearingVector_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getBearingVector(
-    size_t index) const {
+opengv::bearingVector_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getBearingVector(size_t index) const {
   assert(index < bearingVectors_.size());
   return bearingVectors_[index];
 }
 
 // Retrieve the world point of a correspondence.
-opengv::point_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getPoint(
-    size_t index) const {
+opengv::point_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getPoint(size_t index) const {
   assert(index < bearingVectors_.size());
   return points_[index];
 }
 
 // Retrieve the position of a camera of a correspondence seen from the viewpoint origin.
-opengv::translation_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getCamOffset(
-    size_t index) const {
+opengv::translation_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getCamOffset(size_t index) const {
   return camOffsets_[camIndices_[index]];
 }
 
 // Retrieve the rotation from a camera of a correspondence to the viewpoint origin.
-opengv::rotation_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getCamRotation(
-    size_t index) const {
+opengv::rotation_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getCamRotation(size_t index) const {
   return camRotations_[camIndices_[index]];
 }
 
@@ -195,7 +171,6 @@ size_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getNumberCorrespon
 }
 
 // Obtain the angular standard deviation in [rad].
-double opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getSigmaAngle(
-    size_t index) {
+double opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getSigmaAngle(size_t index) {
   return sigmaAngles_[index];
 }

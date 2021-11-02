@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,9 +39,9 @@
 #ifndef INCLUDE_OKVIS_CERES_SONARLOCALPARAMETERIZATION_HPP_
 #define INCLUDE_OKVIS_CERES_SONARLOCALPARAMETERIZATION_HPP_
 
-#include "ceres/ceres.h"
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -50,17 +50,12 @@ namespace ceres {
 
 /// \brief Local parameterisation of a homogeneous point [x,y,z,w]^T.
 ///        We use a Euclidean-type perturbation, i.e. only affect the x-y-z-part.
-class SonarLocalParameterization :
-    public ::ceres::LocalParameterization,
-    public LocalParamizationAdditionalInterfaces
-{
+class SonarLocalParameterization : public ::ceres::LocalParameterization, public LocalParamizationAdditionalInterfaces {
  public:
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief Destructor (does nothing)
-  virtual ~SonarLocalParameterization()
-  {
-  }
+  virtual ~SonarLocalParameterization() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -68,16 +63,14 @@ class SonarLocalParameterization :
   /// @param[in] x Variable.
   /// @param[in] delta Perturbation.
   /// @param[out] x_plus_delta Perturbed x.
-  virtual bool Plus(const double* x, const double* delta,
-                    double* x_plus_delta) const;
+  virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta,
-                     double* delta) const;
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
@@ -119,16 +112,10 @@ class SonarLocalParameterization :
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const
-  {
-    return 4;
-  }
+  virtual int GlobalSize() const { return 4; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const
-  {
-    return 3;
-  }
+  virtual int LocalSize() const { return 3; }
 };
 
 }  // namespace ceres

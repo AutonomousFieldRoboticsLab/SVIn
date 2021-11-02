@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -43,9 +43,9 @@
 
 #include <string>
 
+#include <okvis/Parameters.hpp>
 #include <okvis/VioParametersReader.hpp>
 #include <okvis/assert_macros.hpp>
-#include <okvis/Parameters.hpp>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -54,17 +54,17 @@
 #include <ros/callback_queue.h>
 
 #ifdef HAVE_VISENSOR
-  #ifdef USE_VISENSORNODE_V1_1 // TODO: remove this as soon as the public visensor_node gets updated!
-    #include <visensor_node/visensor_calibration.h>
-    #include <visensor_node/visensor_calibration_service.h>
-    namespace visensor_msgs = visensor_node;
-  #else
-    #include <visensor_msgs/visensor_calibration.h>
-    #include <visensor_msgs/visensor_calibration_service.h>
-  #endif
+#ifdef USE_VISENSORNODE_V1_1  // TODO: remove this as soon as the public visensor_node gets updated!
+#include <visensor_node/visensor_calibration.h>
+#include <visensor_node/visensor_calibration_service.h>
+namespace visensor_msgs = visensor_node;
+#else
+#include <visensor_msgs/visensor_calibration.h>
+#include <visensor_msgs/visensor_calibration_service.h>
+#endif
 #endif
 #ifdef HAVE_LIBVISENSOR
-  #include <visensor/visensor_api.hpp>
+#include <visensor/visensor_api.hpp>
 #endif
 
 /// \brief okvis Main namespace of this package.
@@ -75,8 +75,7 @@ namespace okvis {
  */
 class RosParametersReader : public VioParametersReader {
  public:
-
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief The default constructor.
   RosParametersReader();
@@ -88,7 +87,6 @@ class RosParametersReader : public VioParametersReader {
   RosParametersReader(const std::string& filename);
 
  private:
-
   /**
    * @brief Get the camera calibration.
    *
@@ -103,7 +101,7 @@ class RosParametersReader : public VioParametersReader {
    * @return True if reading of the calibration was successful.
    */
   virtual bool getCameraCalibration(
-      std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations,
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,
       cv::FileStorage& configurationFile);
 
   /**
@@ -112,7 +110,7 @@ class RosParametersReader : public VioParametersReader {
    * @return True if successful.
    */
   bool getCalibrationViaRosService(
-      std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations) const;
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;
 
   /**
    * @brief Get the camera calibration via the ROS topic /calibrationX.
@@ -121,10 +119,9 @@ class RosParametersReader : public VioParametersReader {
    * @return True if successful.
    */
   bool getCalibrationViaRosTopic(
-      std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations) const;
-
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;
 };
 
-}
+}  // namespace okvis
 
 #endif /* INCLUDE_OKVIS_ROSPARAMETERSREADER_HPP_ */

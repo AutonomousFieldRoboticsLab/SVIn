@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -46,8 +46,8 @@
 #include <memory>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
-#include <okvis/VioInterface.hpp>
 #include <okvis/Parameters.hpp>
+#include <okvis/VioInterface.hpp>
 #include <okvis/assert_macros.hpp>
 
 /// \brief okvis Main namespace of this package.
@@ -81,13 +81,12 @@ class FrameSynchronizer {
    * @param frame New frame.
    * @return Multiframe with the added frame in it.
    */
-  std::shared_ptr<okvis::MultiFrame> addNewFrame(
-      std::shared_ptr<okvis::CameraMeasurement> &frame);
+  std::shared_ptr<okvis::MultiFrame> addNewFrame(std::shared_ptr<okvis::CameraMeasurement>& frame);
 
   /**
    * @brief Inform the synchronizer that a frame in the multiframe has completed keypoint detection and description.
-   * @warning This function does not check whether the multiframe contains newly detected keypoints and their descriptors.
-   *          Therefore only call it when you are sure a frame has been processed for which you have not called this
+   * @warning This function does not check whether the multiframe contains newly detected keypoints and their
+   * descriptors. Therefore only call it when you are sure a frame has been processed for which you have not called this
    *          function before.
    * @param multiFrameId ID of the multiframe that contains the frame with the newly detected keypoints.
    * @return True if the multiframe was found in the synchronizer. If it returns false this means that the multiframe
@@ -108,7 +107,6 @@ class FrameSynchronizer {
   bool detectionCompletedForAllCameras(uint64_t multiFrameId);
 
  private:
-
   /**
    * @brief Find a multiframe in the buffer that has a timestamp within the tolerances of the given one. The tolerance
    *        is given as a parameter in okvis::VioParameters::sensors_information::frameTimestampTolerance
@@ -144,7 +142,6 @@ class FrameSynchronizer {
   okvis::Time lastCompletedFrameTimestamp_;
   /// ID of the last multiframe that returned true in detectionCompletedForAllCameras().
   uint64_t lastCompletedFrameId_;
-
 };
 
 } /* namespace okvis */

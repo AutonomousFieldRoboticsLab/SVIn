@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -30,24 +30,24 @@
  *      Author: Stefan Leutenegger (s.leutenegger@imperial.ac.uk)
  *********************************************************************************/
 
-#include <memory>
+#include <ceres/ceres.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <ceres/ceres.h>
-#include <okvis/cameras/PinholeCamera.hpp>
+#include <memory>
+#include <okvis/FrameTypedefs.hpp>
+#include <okvis/Time.hpp>
+#include <okvis/assert_macros.hpp>
 #include <okvis/cameras/EquidistantDistortion.hpp>
+#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/ceres/HomogeneousPointError.hpp>
-#include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
+#include <okvis/ceres/Map.hpp>
 #include <okvis/kinematics/Transformation.hpp>
-#include <okvis/Time.hpp>
-#include <okvis/FrameTypedefs.hpp>
-#include <okvis/assert_macros.hpp>
 
 TEST(okvisTestSuite, HomogeneousPointError) {
   // initialize random number generator
-  //srand((unsigned int) time(0)); // disabled: make unit tests deterministic...
+  // srand((unsigned int) time(0)); // disabled: make unit tests deterministic...
 
   // Build the problem.
   okvis::ceres::Map map;
@@ -65,18 +65,15 @@ TEST(okvisTestSuite, HomogeneousPointError) {
     std::shared_ptr<okvis::ceres::HomogeneousPointParameterBlock> homogeneousPointParameterBlock(
         new okvis::ceres::HomogeneousPointParameterBlock(point, i));
     // add it as optimizable thing.
-    map.addParameterBlock(homogeneousPointParameterBlock,
-                          okvis::ceres::Map::HomogeneousPoint);
+    map.addParameterBlock(homogeneousPointParameterBlock, okvis::ceres::Map::HomogeneousPoint);
     map.setParameterBlockVariable(i);
 
     // invent a point error
     std::shared_ptr<okvis::ceres::HomogeneousPointError> homogeneousPointError(
-        new okvis::ceres::HomogeneousPointError(
-            homogeneousPointParameterBlock->estimate(), 0.1));
+        new okvis::ceres::HomogeneousPointError(homogeneousPointParameterBlock->estimate(), 0.1));
 
     // add it
-    ::ceres::ResidualBlockId id = map.addResidualBlock(
-        homogeneousPointError, NULL, homogeneousPointParameterBlock);
+    ::ceres::ResidualBlockId id = map.addResidualBlock(homogeneousPointError, NULL, homogeneousPointParameterBlock);
 
     // disturb
     Eigen::Vector4d point_disturbed = point;
@@ -84,8 +81,7 @@ TEST(okvisTestSuite, HomogeneousPointError) {
     homogeneousPointParameterBlock->setEstimate(point_disturbed);
 
     // check Jacobian
-    OKVIS_ASSERT_TRUE(Exception, map.isJacobianCorrect(id),
-                   "Jacobian verification on homogeneous point error failed.");
+    OKVIS_ASSERT_TRUE(Exception, map.isJacobianCorrect(id), "Jacobian verification on homogeneous point error failed.");
   }
 
   // Run the solver!
@@ -94,11 +90,10 @@ TEST(okvisTestSuite, HomogeneousPointError) {
   map.solve();
 
   // print some infos about the optimization
-  //std::cout << map.summary.BriefReport() << "\n";
+  // std::cout << map.summary.BriefReport() << "\n";
 
   // check convergence. this must converge to zero, since it is not an overdetermined system.
-  OKVIS_ASSERT_TRUE(
-      Exception,
-      map.summary.final_cost < 1.0e-10,
-      "No convergence. this must converge to zero, since it is not an overdetermined system.");
+  OKVIS_ASSERT_TRUE(Exception,
+                    map.summary.final_cost < 1.0e-10,
+                    "No convergence. this must converge to zero, since it is not an overdetermined system.");
 }

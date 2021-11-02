@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -36,7 +36,6 @@
  * @author Stefan Leutenegger
  */
 
-
 #ifndef INCLUDE_OKVIS_TRIANGULATION_STEREO_TRIANGULATION_HPP_
 #define INCLUDE_OKVIS_TRIANGULATION_STEREO_TRIANGULATION_HPP_
 
@@ -59,12 +58,14 @@ namespace triangulation {
  * @param[out] isParallel Are the rays parallel?
  * @return Homogeneous coordinates of triangulated point.
  */
-Eigen::Vector4d triangulateFast(const Eigen::Vector3d & p1,
-                                const Eigen::Vector3d & e1,
-                                const Eigen::Vector3d & p2,
-                                const Eigen::Vector3d & e2, double sigma,
-                                bool & isValid, bool & isParallel);
-}
-}
+Eigen::Vector4d triangulateFast(const Eigen::Vector3d& p1,
+                                const Eigen::Vector3d& e1,
+                                const Eigen::Vector3d& p2,
+                                const Eigen::Vector3d& e2,
+                                double sigma,
+                                bool& isValid,
+                                bool& isParallel);
+}  // namespace triangulation
+}  // namespace okvis
 
 #endif /* INCLUDE_OKVIS_TRIANGULATION_STEREO_TRIANGULATION_HPP_ */

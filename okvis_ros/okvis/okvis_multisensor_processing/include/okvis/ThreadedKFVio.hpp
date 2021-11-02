@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -41,32 +41,32 @@
 #ifndef INCLUDE_OKVIS_THREADEDKFVIO_HPP_
 #define INCLUDE_OKVIS_THREADEDKFVIO_HPP_
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
-#include <okvis/cameras/NCameraSystem.hpp>
-#include <okvis/Measurements.hpp>
 #include <okvis/Frontend.hpp>
+#include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/assert_macros.hpp>
+#include <okvis/cameras/NCameraSystem.hpp>
 
-#include <okvis/SonarFrameSynchronizer.hpp> // @Sharmin
-#include <okvis/DepthFrameSynchronizer.hpp> // @Sharmin
-#include <okvis/RelocFrameSynchronizer.hpp> // @Sharmin
+#include <okvis/DepthFrameSynchronizer.hpp>  // @Sharmin
+#include <okvis/RelocFrameSynchronizer.hpp>  // @Sharmin
+#include <okvis/SonarFrameSynchronizer.hpp>  // @Sharmin
 #include <okvis/kinematics/Transformation.hpp>
 
-#include <okvis/ImuFrameSynchronizer.hpp>
 #include <okvis/FrameSynchronizer.hpp>
+#include <okvis/ImuFrameSynchronizer.hpp>
 #include <okvis/VioVisualizer.hpp>
-#include <okvis/timing/Timer.hpp>
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
+#include <okvis/timing/Timer.hpp>
 
 #ifdef USE_MOCK
-#include <../test/MockVioFrontendInterface.hpp>
 #include <../test/MockVioBackendInterface.hpp>
+#include <../test/MockVioFrontendInterface.hpp>
 #else
 #include <okvis/Estimator.hpp>
 #include <okvis/VioFrontendInterface.hpp>
@@ -92,7 +92,6 @@ namespace okvis {
  */
 class ThreadedKFVio : public VioInterface {
  public:
-
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
@@ -105,8 +104,9 @@ class ThreadedKFVio : public VioInterface {
 #ifdef USE_MOCK
 
   /// \brief constructor for gmock
-  ThreadedKFVio(okvis::VioParameters& parameters, okvis::MockVioBackendInterface& estimator,
-      okvis::MockVioFrontendInterface& frontend);
+  ThreadedKFVio(okvis::VioParameters& parameters,
+                okvis::MockVioBackendInterface& estimator,
+                okvis::MockVioFrontendInterface& frontend);
 
 #else
   /**
@@ -132,9 +132,10 @@ class ThreadedKFVio : public VioInterface {
    * \warning Already specifying whether this frame should be a keyframe is not implemented yet.
    * \return             Returns true normally. False, if the previous one has not been processed yet.
    */
-  virtual bool addImage(const okvis::Time & stamp, size_t cameraIndex,
-                        const cv::Mat & image,
-                        const std::vector<cv::KeyPoint> * keypoints = 0,
+  virtual bool addImage(const okvis::Time& stamp,
+                        size_t cameraIndex,
+                        const cv::Mat& image,
+                        const std::vector<cv::KeyPoint>* keypoints = 0,
                         bool* asKeyframe = 0);
 
   /**
@@ -148,9 +149,10 @@ class ThreadedKFVio : public VioInterface {
    * \param asKeyframe  Optionally force keyframe or not.
    * \return            Returns true normally. False, if the previous one has not been processed yet.
    */
-  virtual bool addKeypoints(const okvis::Time & stamp, size_t cameraIndex,
-                            const std::vector<cv::KeyPoint> & keypoints,
-                            const std::vector<uint64_t> & landmarkIds,
+  virtual bool addKeypoints(const okvis::Time& stamp,
+                            size_t cameraIndex,
+                            const std::vector<cv::KeyPoint>& keypoints,
+                            const std::vector<uint64_t>& landmarkIds,
                             const cv::Mat& descriptors = cv::Mat(),
                             bool* asKeyframe = 0);
 
@@ -161,25 +163,20 @@ class ThreadedKFVio : public VioInterface {
    * \param omega    The angular velocity measured at this time.
    * \return Returns true normally. False if the previous one has not been processed yet.
    */
-  virtual bool addImuMeasurement(const okvis::Time & stamp,
-                                 const Eigen::Vector3d & alpha,
-                                 const Eigen::Vector3d & omega);
+  virtual bool addImuMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& alpha, const Eigen::Vector3d& omega);
   /// @Sharmin
   /// \brief          Add an Depth measurement.
   /// \param stamp    The measurement timestamp.
-  virtual bool addRelocMeasurement(const okvis::Time & stamp,
-					   const std::vector<Eigen::Vector3d> & matched_ids,
-					   const Eigen::Vector3d & relo_t,
-					   const Eigen::Quaterniond & relo_q);
-
+  virtual bool addRelocMeasurement(const okvis::Time& stamp,
+                                   const std::vector<Eigen::Vector3d>& matched_ids,
+                                   const Eigen::Vector3d& relo_t,
+                                   const Eigen::Quaterniond& relo_q);
 
   /// @Sharmin
   /// \brief          Add an Depth measurement.
   /// \param stamp    The measurement timestamp.
   /// \param depth    Depth measurement in meter
-  virtual bool addDepthMeasurement(const okvis::Time & stamp,
-  							   double depth);
-
+  virtual bool addDepthMeasurement(const okvis::Time& stamp, double depth);
 
   /// @Sharmin
   /// \brief          Add an Sonar measurement.
@@ -187,8 +184,7 @@ class ThreadedKFVio : public VioInterface {
   /// \param point    The sonar point measured (in world coordinate) at this time.
   /// \param range    Distance where sonar beam hit
   /// \param heading  head position of sonar beam.
-  virtual bool addSonarMeasurement(const okvis::Time & stamp,
-							   double range, double heading);
+  virtual bool addSonarMeasurement(const okvis::Time& stamp, double range, double heading);
   /**
    * \brief                      Add a position measurement.
    * \warning Not implemented.
@@ -197,10 +193,10 @@ class ThreadedKFVio : public VioInterface {
    * \param positionOffset       Body frame antenna position offset [m].
    * \param positionCovariance   The position measurement covariance matrix.
    */
-  virtual void addPositionMeasurement(
-      const okvis::Time & stamp, const Eigen::Vector3d & position,
-      const Eigen::Vector3d & positionOffset,
-      const Eigen::Matrix3d & positionCovariance);
+  virtual void addPositionMeasurement(const okvis::Time& stamp,
+                                      const Eigen::Vector3d& position,
+                                      const Eigen::Vector3d& positionOffset,
+                                      const Eigen::Matrix3d& positionCovariance);
 
   /**
    * \brief                       Add a GPS measurement.
@@ -212,11 +208,12 @@ class ThreadedKFVio : public VioInterface {
    * \param positionOffset        Body frame antenna position offset [m].
    * \param positionCovarianceENU The position measurement covariance matrix.
    */
-  virtual void addGpsMeasurement(const okvis::Time & stamp,
-                                 double lat_wgs84_deg, double lon_wgs84_deg,
+  virtual void addGpsMeasurement(const okvis::Time& stamp,
+                                 double lat_wgs84_deg,
+                                 double lon_wgs84_deg,
                                  double alt_wgs84_deg,
-                                 const Eigen::Vector3d & positionOffset,
-                                 const Eigen::Matrix3d & positionCovarianceENU);
+                                 const Eigen::Vector3d& positionOffset,
+                                 const Eigen::Matrix3d& positionCovarianceENU);
 
   /**
    * \brief                      Add a magnetometer measurement.
@@ -225,9 +222,9 @@ class ThreadedKFVio : public VioInterface {
    * \param fluxDensityMeas      Measured magnetic flux density (sensor frame) [uT].
    * \param stdev                Measurement std deviation [uT].
    */
-  virtual void addMagnetometerMeasurement(
-      const okvis::Time & stamp, const Eigen::Vector3d & fluxDensityMeas,
-      double stdev);
+  virtual void addMagnetometerMeasurement(const okvis::Time& stamp,
+                                          const Eigen::Vector3d& fluxDensityMeas,
+                                          double stdev);
 
   /**
    * \brief                      Add a static pressure measurement.
@@ -236,8 +233,7 @@ class ThreadedKFVio : public VioInterface {
    * \param staticPressure       Measured static pressure [Pa].
    * \param stdev                Measurement std deviation [Pa].
    */
-  virtual void addBarometerMeasurement(const okvis::Time & stamp,
-                                       double staticPressure, double stdev);
+  virtual void addBarometerMeasurement(const okvis::Time& stamp, double staticPressure, double stdev);
 
   /**
    * \brief                      Add a differential pressure measurement.
@@ -246,9 +242,7 @@ class ThreadedKFVio : public VioInterface {
    * \param differentialPressure Measured differential pressure [Pa].
    * \param stdev                Measurement std deviation [Pa].
    */
-  virtual void addDifferentialPressureMeasurement(const okvis::Time & stamp,
-                                                  double differentialPressure,
-                                                  double stdev);
+  virtual void addDifferentialPressureMeasurement(const okvis::Time& stamp, double differentialPressure, double stdev);
 
   /// \}
   /// \name Setters
@@ -271,7 +265,6 @@ class ThreadedKFVio : public VioInterface {
   void init();
 
  private:
-
   /// \brief Loop to process frames from camera with index cameraIndex
   void frameConsumerLoop(size_t cameraIndex);
   /// \brief Loop that matches frames with existing frames.
@@ -316,33 +309,29 @@ class ThreadedKFVio : public VioInterface {
    * @remark This function is threadsafe.
    * @return The IMU Measurement spanning at least the time between start and end.
    */
-  okvis::ImuMeasurementDeque getImuMeasurments(okvis::Time& start,
-                                               okvis::Time& end);
+  okvis::ImuMeasurementDeque getImuMeasurments(okvis::Time& start, okvis::Time& end);
 
   /**
    * @Sharmin
    * @brief Get the reloc measurement in-between/nearest to start and end.
    */
-  okvis::RelocMeasurementDeque getRelocMeasurements(okvis::Time& start,
-											   okvis::Time& end);
+  okvis::RelocMeasurementDeque getRelocMeasurements(okvis::Time& start, okvis::Time& end);
 
   /**
    * @Sharmin
    * @brief Get the depth measurement in-between/nearest to start and end. Depth sensor has a slowed rate, 1 Hz.
    */
-  okvis::DepthMeasurementDeque getDepthMeasurements(okvis::Time& start,
-                                                 okvis::Time& end);
+  okvis::DepthMeasurementDeque getDepthMeasurements(okvis::Time& start, okvis::Time& end);
 
   /**
-    * @Sharmin
-	* @brief Get a subset of the recorded Sonar measurements.
-	* @param start The first Sonar measurement in the return value will be older than this timestamp.
-	* @param end The last Sonar measurement in the return value will be newer than this timestamp.
-	* @remark This function is threadsafe.
-	* @return The Sonar Measurement spanning at least the time between start and end.
-	*/
-   okvis::SonarMeasurementDeque getSonarMeasurements(okvis::Time& start,
-											 okvis::Time& end);
+   * @Sharmin
+   * @brief Get a subset of the recorded Sonar measurements.
+   * @param start The first Sonar measurement in the return value will be older than this timestamp.
+   * @param end The last Sonar measurement in the return value will be newer than this timestamp.
+   * @remark This function is threadsafe.
+   * @return The Sonar Measurement spanning at least the time between start and end.
+   */
+  okvis::SonarMeasurementDeque getSonarMeasurements(okvis::Time& start, okvis::Time& end);
 
   /**
    * @brief Remove IMU measurements from the internal buffer.
@@ -352,33 +341,33 @@ class ThreadedKFVio : public VioInterface {
   int deleteImuMeasurements(const okvis::Time& eraseUntil);
 
  private:
-
   /// @brief This struct contains the results of the optimization for ease of publication.
   ///        It is also used for publishing poses that have been propagated with the IMU
   ///        measurements.
   struct OptimizationResults {
-		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    okvis::Time stamp;                          ///< Timestamp of the optimized/propagated pose.
-    okvis::kinematics::Transformation T_WS;     ///< The pose.
-    okvis::SpeedAndBias speedAndBiases;         ///< The speeds and biases.
-    Eigen::Matrix<double, 3, 1> omega_S;        ///< The rotational speed of the sensor.
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    okvis::Time stamp;                       ///< Timestamp of the optimized/propagated pose.
+    okvis::kinematics::Transformation T_WS;  ///< The pose.
+    okvis::SpeedAndBias speedAndBiases;      ///< The speeds and biases.
+    Eigen::Matrix<double, 3, 1> omega_S;     ///< The rotational speed of the sensor.
     /// The relative transformation of the cameras to the sensor (IMU) frame
-    std::vector<okvis::kinematics::Transformation,
-        Eigen::aligned_allocator<okvis::kinematics::Transformation> > vector_of_T_SCi;
-    okvis::MapPointVector landmarksVector;      ///< Vector containing the current landmarks.
-    okvis::MapPointVector transferredLandmarks; ///< Vector of the landmarks that have been marginalized out.
-    bool onlyPublishLandmarks;                  ///< Boolean to signalise the publisherLoop() that only the landmarks should be published
+    std::vector<okvis::kinematics::Transformation, Eigen::aligned_allocator<okvis::kinematics::Transformation>>
+        vector_of_T_SCi;
+    okvis::MapPointVector landmarksVector;       ///< Vector containing the current landmarks.
+    okvis::MapPointVector transferredLandmarks;  ///< Vector of the landmarks that have been marginalized out.
+    bool
+        onlyPublishLandmarks;  ///< Boolean to signalise the publisherLoop() that only the landmarks should be published
   };
 
   /// @name State variables
   /// @{
 
-  okvis::SpeedAndBias speedAndBiases_propagated_;     ///< The speeds and IMU biases propagated by the IMU measurements.
+  okvis::SpeedAndBias speedAndBiases_propagated_;  ///< The speeds and IMU biases propagated by the IMU measurements.
   /// \brief The IMU parameters.
   /// \warning Duplicate of parameters_.imu
   okvis::ImuParameters imu_params_;
-  okvis::kinematics::Transformation T_WS_propagated_; ///< The pose propagated by the IMU measurements
-  std::shared_ptr<okvis::MapPointVector> map_;        ///< The map. Unused.
+  okvis::kinematics::Transformation T_WS_propagated_;  ///< The pose propagated by the IMU measurements
+  std::shared_ptr<okvis::MapPointVector> map_;         ///< The map. Unused.
 
   // lock lastState_mutex_ when accessing these
   /// \brief Resulting pose of the last optimization
@@ -407,16 +396,15 @@ class ThreadedKFVio : public VioInterface {
   /// \warning Lock with frameSynchronizer_mutex_
   okvis::FrameSynchronizer frameSynchronizer_;
 
-  okvis::Time lastAddedStateTimestamp_; ///< Timestamp of the newest state in the Estimator.
-  okvis::Time lastAddedImageTimestamp_; ///< Timestamp of the newest image added to the image input queue.
-
+  okvis::Time lastAddedStateTimestamp_;  ///< Timestamp of the newest state in the Estimator.
+  okvis::Time lastAddedImageTimestamp_;  ///< Timestamp of the newest image added to the image input queue.
 
   /// @name Measurement input queues
   /// @{
 
   /// Camera measurement input queues. For each camera in the configuration one.
-  std::vector<std::shared_ptr<
-      okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement> > > > cameraMeasurementsReceived_;
+  std::vector<std::shared_ptr<okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement>>>>
+      cameraMeasurementsReceived_;
   /// IMU measurement input queue.
   okvis::threadsafe::ThreadSafeQueue<okvis::ImuMeasurement> imuMeasurementsReceived_;
 
@@ -440,7 +428,7 @@ class ThreadedKFVio : public VioInterface {
   /// @{
 
   /// The queue containing multiframes with completely detected frames.
-  okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::MultiFrame> > keypointMeasurements_;
+  okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::MultiFrame>> keypointMeasurements_;
   /// The queue containing multiframes with completely matched frames. These are already part of the estimator state.
   okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::MultiFrame>> matchedFrames_;
   /// \brief The IMU measurements.
@@ -448,9 +436,9 @@ class ThreadedKFVio : public VioInterface {
   okvis::ImuMeasurementDeque imuMeasurements_;
   /// \brief The Sonar measurements.
   /// \warning Lock with sonarMeasurements_mutex_.
-  okvis::SonarMeasurementDeque sonarMeasurements_; /// @Sharmin
-  okvis::DepthMeasurementDeque depthMeasurements_; /// @Sharmin
-  okvis::RelocMeasurementDeque relocMeasurements_; /// @Sharmin
+  okvis::SonarMeasurementDeque sonarMeasurements_;  /// @Sharmin
+  okvis::DepthMeasurementDeque depthMeasurements_;  /// @Sharmin
+  okvis::RelocMeasurementDeque relocMeasurements_;  /// @Sharmin
   /// \brief The Position measurements.
   /// \warning Lock with positionMeasurements_mutex_.
   okvis::PositionMeasurementDeque positionMeasurements_;
@@ -465,18 +453,18 @@ class ThreadedKFVio : public VioInterface {
   /// @name Mutexes
   /// @{
 
-  std::mutex sonarMeasurements_mutex_;      ///< Lock when accessing sonarMeasurements_ @Sharmin
-  std::mutex depthMeasurements_mutex_;      ///< Lock when accessing depthMeasurements_ @Sharmin
-  std::mutex relocMeasurements_mutex_;      ///< Lock when accessing relocMeasurements_ @Sharmin
-  std::mutex imuMeasurements_mutex_;      ///< Lock when accessing imuMeasurements_
-  std::mutex positionMeasurements_mutex_;      ///< Lock when accessing imuMeasurements_
-  std::mutex frameSynchronizer_mutex_;    ///< Lock when accessing the frameSynchronizer_.
-  std::mutex estimator_mutex_;            ///< Lock when accessing the estimator_.
+  std::mutex sonarMeasurements_mutex_;     ///< Lock when accessing sonarMeasurements_ @Sharmin
+  std::mutex depthMeasurements_mutex_;     ///< Lock when accessing depthMeasurements_ @Sharmin
+  std::mutex relocMeasurements_mutex_;     ///< Lock when accessing relocMeasurements_ @Sharmin
+  std::mutex imuMeasurements_mutex_;       ///< Lock when accessing imuMeasurements_
+  std::mutex positionMeasurements_mutex_;  ///< Lock when accessing imuMeasurements_
+  std::mutex frameSynchronizer_mutex_;     ///< Lock when accessing the frameSynchronizer_.
+  std::mutex estimator_mutex_;             ///< Lock when accessing the estimator_.
   ///< Condition variable to signalise that optimization is done.
   std::condition_variable optimizationNotification_;
   /// Boolean flag for whether optimization is done for the last state that has been added to the estimator.
   std::atomic_bool optimizationDone_;
-  std::mutex lastState_mutex_;            ///< Lock when accessing any of the 'lastOptimized*' variables.
+  std::mutex lastState_mutex_;  ///< Lock when accessing any of the 'lastOptimized*' variables.
 
   /// @}
   /// @name Consumer threads
@@ -486,22 +474,22 @@ class ThreadedKFVio : public VioInterface {
   std::vector<std::thread> frameConsumerThreads_;
   std::vector<std::thread> keypointConsumerThreads_;  ///< Threads running matchingLoop().
   std::vector<std::thread> matchesConsumerThreads_;   ///< Unused.
-  std::thread imuConsumerThread_;           ///< Thread running imuConsumerLoop().
-  std::thread sonarConsumerThread_;         ///< Thread running sonarConsumerLoop().   @Sharmin
-  std::thread depthConsumerThread_;         ///< Thread running depthConsumerLoop().   @Sharmin
-  std::thread relocConsumerThread_;         ///< Thread running relocConsumerLoop().   @Sharmin
-  std::thread positionConsumerThread_;      ///< Thread running positionConsumerLoop().
-  std::thread gpsConsumerThread_;           ///< Thread running gpsConsumerLoop().
-  std::thread magnetometerConsumerThread_;  ///< Thread running magnetometerConsumerLoop().
-  std::thread differentialConsumerThread_;  ///< Thread running differentialConsumerLoop().
+  std::thread imuConsumerThread_;                     ///< Thread running imuConsumerLoop().
+  std::thread sonarConsumerThread_;                   ///< Thread running sonarConsumerLoop().   @Sharmin
+  std::thread depthConsumerThread_;                   ///< Thread running depthConsumerLoop().   @Sharmin
+  std::thread relocConsumerThread_;                   ///< Thread running relocConsumerLoop().   @Sharmin
+  std::thread positionConsumerThread_;                ///< Thread running positionConsumerLoop().
+  std::thread gpsConsumerThread_;                     ///< Thread running gpsConsumerLoop().
+  std::thread magnetometerConsumerThread_;            ///< Thread running magnetometerConsumerLoop().
+  std::thread differentialConsumerThread_;            ///< Thread running differentialConsumerLoop().
 
   /// @}
   /// @name Algorithm threads
   /// @{
 
-  std::thread visualizationThread_; ///< Thread running visualizationLoop().
-  std::thread optimizationThread_;  ///< Thread running optimizationLoop().
-  std::thread publisherThread_;     ///< Thread running publisherLoop().
+  std::thread visualizationThread_;  ///< Thread running visualizationLoop().
+  std::thread optimizationThread_;   ///< Thread running optimizationLoop().
+  std::thread publisherThread_;      ///< Thread running publisherLoop().
 
   /// @}
   /// @name Algorithm objects.
@@ -511,16 +499,16 @@ class ThreadedKFVio : public VioInterface {
   okvis::MockVioBackendInterface& estimator_;
   okvis::MockVioFrontendInterface& frontend_;
 #else
-  okvis::Estimator estimator_;    ///< The backend estimator.
-  okvis::Frontend frontend_;      ///< The frontend.
+  okvis::Estimator estimator_;  ///< The backend estimator.
+  okvis::Frontend frontend_;    ///< The frontend.
 #endif
 
   /// @}
 
-  size_t numCameras_;     ///< Number of cameras in the system.
-  size_t numCameraPairs_; ///< Number of camera pairs in the system.
+  size_t numCameras_;      ///< Number of cameras in the system.
+  size_t numCameraPairs_;  ///< Number of camera pairs in the system.
 
-  okvis::VioParameters parameters_; ///< The parameters and settings.
+  okvis::VioParameters parameters_;  ///< The parameters and settings.
 
   /// The maximum input queue size before IMU measurements are dropped.
   /// The maximum input queue size for the camera measurements is proportionally higher
@@ -534,23 +522,22 @@ class ThreadedKFVio : public VioInterface {
   bool isFirstDepth_ = true;
   double firstDepth_;
 
-
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;
-  //std::vector<Eigen::Vector3d> stereoMatch_;  // Sharmin
-  //okvis::kinematics::Transformation kf_T_WS_;     // Sharmin: keyframe pose.
-  //std::vector<Eigen::Matrix<double, Dynamic, 3>> kf_points_; // Sharmin: keyframe points.
-  int kf_index_;  // Sharmin: keyframe index
-  std::map<int, size_t> kf_f_map_; // Sharmin: for publishing MapPoint observation
+  // std::vector<Eigen::Vector3d> stereoMatch_;  // Sharmin
+  // okvis::kinematics::Transformation kf_T_WS_;     // Sharmin: keyframe pose.
+  // std::vector<Eigen::Matrix<double, Dynamic, 3>> kf_points_; // Sharmin: keyframe points.
+  int kf_index_;                    // Sharmin: keyframe index
+  std::map<int, size_t> kf_f_map_;  // Sharmin: for publishing MapPoint observation
   std::mutex kf_f_map_mutex_;
 
   // Sharmin: for easy access to relocalization related info
   bool isNewReloMsg_;
   okvis::kinematics::Transformation driftCorrected_T_WS_;
-  //Eigen::Matrix3d driftCorrectedR_;
-  //Eigen::Vector3d driftCorrectedP_;
-  //Eigen::Vector3d prev_relo_t;
-  //Eigen::Matrix3d prev_relo_r;
+  // Eigen::Matrix3d driftCorrectedR_;
+  // Eigen::Vector3d driftCorrectedP_;
+  // Eigen::Vector3d prev_relo_t;
+  // Eigen::Matrix3d prev_relo_r;
   Eigen::Vector3d relocRelativeP_;
   Eigen::Quaterniond relocRelativeQ_;
   double relocRelativeYaw_;

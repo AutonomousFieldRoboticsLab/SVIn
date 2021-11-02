@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -31,11 +31,11 @@
  *    Modified: Stefan Leutenegger (s.leutenegger@imperial.ac.uk)
  *********************************************************************************/
 
-#include "gtest/gtest.h"
-#include <memory>
-#include "testDataGenerators.hpp"
 #include "okvis/FrameSynchronizer.hpp"
 #include <glog/logging.h>
+#include <memory>
+#include "gtest/gtest.h"
+#include "testDataGenerators.hpp"
 
 using namespace okvis;
 
@@ -44,19 +44,15 @@ static const size_t num_test_frames = 10;
 
 class FrameSynchronizerTest : public ::testing::Test {
  protected:
-
-  FrameSynchronizerTest()
- : parameters(),
-   frame_syncer(parameters){
+  FrameSynchronizerTest() : parameters(), frame_syncer(parameters) {
     parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(num_cameras);
     frame_syncer.init(parameters);
   }
 
-  virtual ~FrameSynchronizerTest() {
-  }
+  virtual ~FrameSynchronizerTest() {}
 
   virtual void SetUp() {
-    double now = 0.1;//okvis::Time::now().toSec();
+    double now = 0.1;  // okvis::Time::now().toSec();
 
     // test Observations
     cv::Mat image_cam;
@@ -74,7 +70,7 @@ class FrameSynchronizerTest : public ::testing::Test {
         new_frame->sensorId = j;
         new_frame->timeStamp = okvis::Time(now);
         new_frame->measurement.image = image_cam.clone();
-        new_frame->measurement.image.data[0] = i; // store frame data in image
+        new_frame->measurement.image.data[0] = i;  // store frame data in image
         new_frame->measurement.image.data[1] = j;
 
         test_frames[i].push_back(new_frame);
@@ -84,21 +80,16 @@ class FrameSynchronizerTest : public ::testing::Test {
     }
   }
 
-  virtual void TearDown() {
-  }
+  virtual void TearDown() {}
 
   std::vector<std::vector<std::shared_ptr<okvis::CameraMeasurement> > > test_frames;
   okvis::VioParameters parameters;
   FrameSynchronizer frame_syncer;
-
 };
 
-TEST_F(FrameSynchronizerTest, ConstructDestruct)
-{
-}
+TEST_F(FrameSynchronizerTest, ConstructDestruct) {}
 
-TEST_F(FrameSynchronizerTest, CorrectOrder)
-{
+TEST_F(FrameSynchronizerTest, CorrectOrder) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
     frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
@@ -114,13 +105,12 @@ TEST_F(FrameSynchronizerTest, CorrectOrder)
   }
 }
 
-TEST_F(FrameSynchronizerTest, OneMissing)
-{
+TEST_F(FrameSynchronizerTest, OneMissing) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
     frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
-    if(i == 3) {
+    if (i == 3) {
       EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     } else {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
@@ -135,13 +125,12 @@ TEST_F(FrameSynchronizerTest, OneMissing)
   }
 }
 
-TEST_F(FrameSynchronizerTest, TwoMissing)
-{
+TEST_F(FrameSynchronizerTest, TwoMissing) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
     frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
-    if(i == 3 || i == 5) {
+    if (i == 3 || i == 5) {
       EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     } else {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
@@ -156,13 +145,12 @@ TEST_F(FrameSynchronizerTest, TwoMissing)
   }
 }
 
-TEST_F(FrameSynchronizerTest, OneDouble)
-{
+TEST_F(FrameSynchronizerTest, OneDouble) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
     frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
-    if(i == 3) {
+    if (i == 3) {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
       frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
@@ -184,8 +172,7 @@ TEST_F(FrameSynchronizerTest, OneDouble)
   }
 }
 
-TEST_F(FrameSynchronizerTest, OneOutOfOrder)
-{
+TEST_F(FrameSynchronizerTest, OneOutOfOrder) {
   okvis::MultiFramePtr multiFrame;
   multiFrame = frame_syncer.addNewFrame(test_frames.at(0).at(0));
   frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
@@ -224,7 +211,7 @@ TEST_F(FrameSynchronizerTest, OneOutOfOrder)
   multiFrame3 = frame_syncer.addNewFrame(test_frames.at(3).at(1));
   frame_syncer.detectionEndedForMultiFrame(multiFrame3->id());
   // This will result in an assertion failing as the order is wrong.
-//  EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame3->id()));
+  //  EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame3->id()));
 
   frame_syncer.addNewFrame(test_frames.at(5).at(0));
   frame_syncer.addNewFrame(test_frames.at(5).at(1));
@@ -232,4 +219,3 @@ TEST_F(FrameSynchronizerTest, OneOutOfOrder)
   frame_syncer.addNewFrame(test_frames.at(6).at(0));
   frame_syncer.addNewFrame(test_frames.at(6).at(1));
 }
-

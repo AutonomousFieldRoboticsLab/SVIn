@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -36,7 +36,6 @@
  * @author Stefan Leutenegger
  */
 
-
 #include <Eigen/LU>
 #include <iostream>
 
@@ -46,19 +45,12 @@ namespace okvis {
 namespace cameras {
 
 // The default constructor with all zero ki
-RadialTangentialDistortion::RadialTangentialDistortion()
-    : k1_(0.0),
-      k2_(0.0),
-      p1_(0.0),
-      p2_(0.0)
-{
+RadialTangentialDistortion::RadialTangentialDistortion() : k1_(0.0), k2_(0.0), p1_(0.0), p2_(0.0) {
   parameters_.setZero();
 }
 
 // Constructor initialising ki
-RadialTangentialDistortion::RadialTangentialDistortion(double k1, double k2,
-                                                       double p1, double p2)
-{
+RadialTangentialDistortion::RadialTangentialDistortion(double k1, double k2, double p1, double p2) {
   parameters_[0] = k1;
   parameters_[1] = k2;
   parameters_[2] = p1;
@@ -69,9 +61,7 @@ RadialTangentialDistortion::RadialTangentialDistortion(double k1, double k2,
   p2_ = p2;
 }
 
-bool RadialTangentialDistortion::setParameters(
-    const Eigen::VectorXd & parameters)
-{
+bool RadialTangentialDistortion::setParameters(const Eigen::VectorXd& parameters) {
   if (parameters.cols() != NumDistortionIntrinsics) {
     return false;
   }
@@ -83,10 +73,8 @@ bool RadialTangentialDistortion::setParameters(
   return true;
 }
 
-bool RadialTangentialDistortion::distort(
-    const Eigen::Vector2d & pointUndistorted,
-    Eigen::Vector2d * pointDistorted) const
-{
+bool RadialTangentialDistortion::distort(const Eigen::Vector2d& pointUndistorted,
+                                         Eigen::Vector2d* pointDistorted) const {
   // just compute the distorted point
   const double u0 = pointUndistorted[0];
   const double u1 = pointUndistorted[1];
@@ -95,18 +83,14 @@ bool RadialTangentialDistortion::distort(
   const double mxy_u = u0 * u1;
   const double rho_u = mx_u + my_u;
   const double rad_dist_u = k1_ * rho_u + k2_ * rho_u * rho_u;
-  (*pointDistorted)[0] = u0 + u0 * rad_dist_u + 2.0 * p1_ * mxy_u
-      + p2_ * (rho_u + 2.0 * mx_u);
-  (*pointDistorted)[1] = u1 + u1 * rad_dist_u + 2.0 * p2_ * mxy_u
-      + p1_ * (rho_u + 2.0 * my_u);
+  (*pointDistorted)[0] = u0 + u0 * rad_dist_u + 2.0 * p1_ * mxy_u + p2_ * (rho_u + 2.0 * mx_u);
+  (*pointDistorted)[1] = u1 + u1 * rad_dist_u + 2.0 * p2_ * mxy_u + p1_ * (rho_u + 2.0 * my_u);
   return true;
-
 }
-bool RadialTangentialDistortion::distort(
-    const Eigen::Vector2d & pointUndistorted, Eigen::Vector2d * pointDistorted,
-    Eigen::Matrix2d * pointJacobian,
-    Eigen::Matrix2Xd * parameterJacobian) const
-{
+bool RadialTangentialDistortion::distort(const Eigen::Vector2d& pointUndistorted,
+                                         Eigen::Vector2d* pointDistorted,
+                                         Eigen::Matrix2d* pointJacobian,
+                                         Eigen::Matrix2Xd* parameterJacobian) const {
   // first compute the distorted point
   const double u0 = pointUndistorted[0];
   const double u1 = pointUndistorted[1];
@@ -115,25 +99,20 @@ bool RadialTangentialDistortion::distort(
   const double mxy_u = u0 * u1;
   const double rho_u = mx_u + my_u;
   const double rad_dist_u = k1_ * rho_u + k2_ * rho_u * rho_u;
-  (*pointDistorted)[0] = u0 + u0 * rad_dist_u + 2.0 * p1_ * mxy_u
-      + p2_ * (rho_u + 2.0 * mx_u);
-  (*pointDistorted)[1] = u1 + u1 * rad_dist_u + 2.0 * p2_ * mxy_u
-      + p1_ * (rho_u + 2.0 * my_u);
+  (*pointDistorted)[0] = u0 + u0 * rad_dist_u + 2.0 * p1_ * mxy_u + p2_ * (rho_u + 2.0 * mx_u);
+  (*pointDistorted)[1] = u1 + u1 * rad_dist_u + 2.0 * p2_ * mxy_u + p1_ * (rho_u + 2.0 * my_u);
 
   // next the Jacobian w.r.t. changes on the undistorted point
-  Eigen::Matrix2d & J = *pointJacobian;
-  J(0, 0) = 1 + rad_dist_u + k1_ * 2.0 * mx_u + k2_ * rho_u * 4 * mx_u
-      + 2.0 * p1_ * u1 + 6 * p2_ * u0;
-  J(1, 0) = k1_ * 2.0 * u0 * u1 + k2_ * 4 * rho_u * u0 * u1 + p1_ * 2.0 * u0
-      + 2.0 * p2_ * u1;
+  Eigen::Matrix2d& J = *pointJacobian;
+  J(0, 0) = 1 + rad_dist_u + k1_ * 2.0 * mx_u + k2_ * rho_u * 4 * mx_u + 2.0 * p1_ * u1 + 6 * p2_ * u0;
+  J(1, 0) = k1_ * 2.0 * u0 * u1 + k2_ * 4 * rho_u * u0 * u1 + p1_ * 2.0 * u0 + 2.0 * p2_ * u1;
   J(0, 1) = J(1, 0);
-  J(1, 1) = 1 + rad_dist_u + k1_ * 2.0 * my_u + k2_ * rho_u * 4 * my_u
-      + 6 * p1_ * u1 + 2.0 * p2_ * u0;
+  J(1, 1) = 1 + rad_dist_u + k1_ * 2.0 * my_u + k2_ * rho_u * 4 * my_u + 6 * p1_ * u1 + 2.0 * p2_ * u0;
 
   if (parameterJacobian) {
     // the Jacobian w.r.t. intrinsics parameters
-    Eigen::Matrix2Xd & J2 = *parameterJacobian;
-    J2.resize(2,NumDistortionIntrinsics);
+    Eigen::Matrix2Xd& J2 = *parameterJacobian;
+    J2.resize(2, NumDistortionIntrinsics);
     const double r2 = rho_u;
     const double r4 = r2 * r2;
 
@@ -152,12 +131,11 @@ bool RadialTangentialDistortion::distort(
   }
   return true;
 }
-bool RadialTangentialDistortion::distortWithExternalParameters(
-    const Eigen::Vector2d & pointUndistorted,
-    const Eigen::VectorXd & parameters, Eigen::Vector2d * pointDistorted,
-    Eigen::Matrix2d * pointJacobian,
-    Eigen::Matrix2Xd * parameterJacobian) const
-{
+bool RadialTangentialDistortion::distortWithExternalParameters(const Eigen::Vector2d& pointUndistorted,
+                                                               const Eigen::VectorXd& parameters,
+                                                               Eigen::Vector2d* pointDistorted,
+                                                               Eigen::Matrix2d* pointJacobian,
+                                                               Eigen::Matrix2Xd* parameterJacobian) const {
   const double k1 = parameters[0];
   const double k2 = parameters[1];
   const double p1 = parameters[2];
@@ -170,26 +148,21 @@ bool RadialTangentialDistortion::distortWithExternalParameters(
   const double mxy_u = u0 * u1;
   const double rho_u = mx_u + my_u;
   const double rad_dist_u = k1 * rho_u + k2 * rho_u * rho_u;
-  (*pointDistorted)[0] = u0 + u0 * rad_dist_u + 2.0 * p1 * mxy_u
-      + p2 * (rho_u + 2.0 * mx_u);
-  (*pointDistorted)[1] = u1 + u1 * rad_dist_u + 2.0 * p2 * mxy_u
-      + p1 * (rho_u + 2.0 * my_u);
+  (*pointDistorted)[0] = u0 + u0 * rad_dist_u + 2.0 * p1 * mxy_u + p2 * (rho_u + 2.0 * mx_u);
+  (*pointDistorted)[1] = u1 + u1 * rad_dist_u + 2.0 * p2 * mxy_u + p1 * (rho_u + 2.0 * my_u);
 
   // next the Jacobian w.r.t. changes on the undistorted point
-  Eigen::Matrix2d & J = *pointJacobian;
-  J(0, 0) = 1 + rad_dist_u + k1 * 2.0 * mx_u + k2 * rho_u * 4 * mx_u
-      + 2.0 * p1 * u1 + 6 * p2 * u0;
-  J(1, 0) = k1 * 2.0 * u0 * u1 + k2 * 4 * rho_u * u0 * u1 + p1 * 2.0 * u0
-      + 2.0 * p2 * u1;
+  Eigen::Matrix2d& J = *pointJacobian;
+  J(0, 0) = 1 + rad_dist_u + k1 * 2.0 * mx_u + k2 * rho_u * 4 * mx_u + 2.0 * p1 * u1 + 6 * p2 * u0;
+  J(1, 0) = k1 * 2.0 * u0 * u1 + k2 * 4 * rho_u * u0 * u1 + p1 * 2.0 * u0 + 2.0 * p2 * u1;
   J(0, 1) = J(1, 0);
-  J(1, 1) = 1 + rad_dist_u + k1 * 2.0 * my_u + k2 * rho_u * 4 * my_u
-      + 6 * p1 * u1 + 2.0 * p2 * u0;
+  J(1, 1) = 1 + rad_dist_u + k1 * 2.0 * my_u + k2 * rho_u * 4 * my_u + 6 * p1 * u1 + 2.0 * p2 * u0;
 
   if (parameterJacobian) {
     // the Jacobian w.r.t. intrinsics parameters
-    Eigen::Matrix2Xd & J2 = *parameterJacobian;
-    J2.resize(2,NumDistortionIntrinsics);
-    const double r2 =rho_u;
+    Eigen::Matrix2Xd& J2 = *parameterJacobian;
+    J2.resize(2, NumDistortionIntrinsics);
+    const double r2 = rho_u;
     const double r4 = r2 * r2;
 
     //[ u0*(u0^2 + u1^2), u0*(u0^2 + u1^2)^2,       2*u0*u1, 3*u0^2 + u1^2]
@@ -207,18 +180,15 @@ bool RadialTangentialDistortion::distortWithExternalParameters(
   }
   return true;
 }
-bool RadialTangentialDistortion::undistort(
-    const Eigen::Vector2d & pointDistorted,
-    Eigen::Vector2d * pointUndistorted) const
-{
+bool RadialTangentialDistortion::undistort(const Eigen::Vector2d& pointDistorted,
+                                           Eigen::Vector2d* pointUndistorted) const {
   // this is expensive: we solve with Gauss-Newton...
-  Eigen::Vector2d x_bar = pointDistorted; // initialise at distorted point
-  const int n = 5;  // just 5 iterations max.
-  Eigen::Matrix2d E;  // error Jacobian
+  Eigen::Vector2d x_bar = pointDistorted;  // initialise at distorted point
+  const int n = 5;                         // just 5 iterations max.
+  Eigen::Matrix2d E;                       // error Jacobian
 
   bool success = false;
   for (int i = 0; i < n; i++) {
-
     Eigen::Vector2d x_tmp;
 
     distort(x_bar, &x_tmp, &E);
@@ -237,28 +207,25 @@ bool RadialTangentialDistortion::undistort(
       success = true;
       break;
     }
-
   }
   *pointUndistorted = x_bar;
 
-  if(!success){
-    std::cout<<(E.transpose() * E)<<std::endl;
+  if (!success) {
+    std::cout << (E.transpose() * E) << std::endl;
   }
 
   return success;
 }
-bool RadialTangentialDistortion::undistort(
-    const Eigen::Vector2d & pointDistorted, Eigen::Vector2d * pointUndistorted,
-    Eigen::Matrix2d * pointJacobian) const
-{
+bool RadialTangentialDistortion::undistort(const Eigen::Vector2d& pointDistorted,
+                                           Eigen::Vector2d* pointUndistorted,
+                                           Eigen::Matrix2d* pointJacobian) const {
   // this is expensive: we solve with Gauss-Newton...
-  Eigen::Vector2d x_bar = pointDistorted; // initialise at distorted point
-  const int n = 5;  // just 5 iterations max.
-  Eigen::Matrix2d E;  // error Jacobian
+  Eigen::Vector2d x_bar = pointDistorted;  // initialise at distorted point
+  const int n = 5;                         // just 5 iterations max.
+  Eigen::Matrix2d E;                       // error Jacobian
 
   bool success = false;
   for (int i = 0; i < n; i++) {
-
     Eigen::Vector2d x_tmp;
 
     distort(x_bar, &x_tmp, &E);
@@ -276,7 +243,6 @@ bool RadialTangentialDistortion::undistort(
       success = true;
       break;
     }
-
   }
   *pointUndistorted = x_bar;
 

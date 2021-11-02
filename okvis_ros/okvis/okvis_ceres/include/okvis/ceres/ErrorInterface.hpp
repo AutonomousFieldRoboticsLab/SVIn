@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,9 +40,9 @@
 #ifndef INCLUDE_OKVIS_CERES_ERRORINTERFACE_HPP_
 #define INCLUDE_OKVIS_CERES_ERRORINTERFACE_HPP_
 
-#include <vector>
 #include <Eigen/Core>
 #include <okvis/assert_macros.hpp>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -56,11 +56,9 @@ class ErrorInterface {
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// @brief Constructor
-  ErrorInterface() {
-  }
+  ErrorInterface() {}
   /// @brief Destructor (does nothing).
-  virtual ~ErrorInterface() {
-  }
+  virtual ~ErrorInterface() {}
 
   /// @name Sizes
   /// @{
@@ -91,9 +89,10 @@ class ErrorInterface {
    * @param jacobiansMinimal Pointer to the minimal Jacobians (equivalent to jacobians).
    * @return Success of the evaluation.
    */
-  virtual bool EvaluateWithMinimalJacobians(
-      double const* const * parameters, double* residuals, double** jacobians,
-      double** jacobiansMinimal) const = 0;
+  virtual bool EvaluateWithMinimalJacobians(double const* const* parameters,
+                                            double* residuals,
+                                            double** jacobians,
+                                            double** jacobiansMinimal) const = 0;
 
   /// @brief Residual block type as string
   virtual std::string typeInfo() const = 0;

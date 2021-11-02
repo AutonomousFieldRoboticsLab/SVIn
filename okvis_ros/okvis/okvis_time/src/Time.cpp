@@ -46,20 +46,20 @@
  * @author Stefan Leutenegger
  * @author Andreas Forster
  */
- 
+
 #ifdef _MSC_VER
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #endif
 
-#include <okvis/Time.hpp>
-#include <okvis/implementation/Time.hpp>
 #include <cmath>
 #include <ctime>
 #include <iomanip>
-#include <stdexcept>
 #include <limits>
+#include <okvis/Time.hpp>
+#include <okvis/implementation/Time.hpp>
+#include <stdexcept>
 
 /*********************************************************************
  ** Preprocessor
@@ -80,10 +80,10 @@ namespace okvis {
  ** Variables
  *********************************************************************/
 
-const Duration DURATION_MAX(std::numeric_limits < int32_t > ::max(), 999999999);
-const Duration DURATION_MIN(std::numeric_limits < int32_t > ::min(), 0);
+const Duration DURATION_MAX(std::numeric_limits<int32_t>::max(), 999999999);
+const Duration DURATION_MIN(std::numeric_limits<int32_t>::min(), 0);
 
-const Time TIME_MAX(std::numeric_limits < uint32_t > ::max(), 999999999);
+const Time TIME_MAX(std::numeric_limits<uint32_t>::max(), 999999999);
 const Time TIME_MIN(0, 1);
 
 /*********************************************************************
@@ -94,8 +94,8 @@ const Time TIME_MIN(0, 1);
  * (i.e. not exposed to users of the time classes)
  */
 void okvis_walltime(uint32_t& sec, uint32_t& nsec)
-#ifndef WIN32    
-                        throw (NoHighPerformanceTimersException)
+#ifndef WIN32
+    throw(NoHighPerformanceTimersException)
 #endif
 {
 #ifndef WIN32
@@ -124,8 +124,7 @@ void okvis_walltime(uint32_t& sec, uint32_t& nsec)
   static LARGE_INTEGER cpu_freq, init_cpu_time;
   uint32_t start_sec = 0;
   uint32_t start_nsec = 0;
-  if ( ( start_sec == 0 ) && ( start_nsec == 0 ) )
-  {
+  if ((start_sec == 0) && (start_nsec == 0)) {
     QueryPerformanceFrequency(&cpu_freq);
     if (cpu_freq.QuadPart == 0) {
       throw NoHighPerformanceTimersException();
@@ -153,9 +152,9 @@ void okvis_walltime(uint32_t& sec, uint32_t& nsec)
   delta_cpu_time.QuadPart = cur_time.QuadPart - init_cpu_time.QuadPart;
   // todo: how to handle cpu clock drift. not sure it's a big deal for us.
   // also, think about clock wraparound. seems extremely unlikey, but possible
-  double d_delta_cpu_time = delta_cpu_time.QuadPart / (double) cpu_freq.QuadPart;
-  uint32_t delta_sec = (uint32_t) floor(d_delta_cpu_time);
-  uint32_t delta_nsec = (uint32_t) std::round((d_delta_cpu_time-delta_sec) * 1e9);
+  double d_delta_cpu_time = delta_cpu_time.QuadPart / (double)cpu_freq.QuadPart;
+  uint32_t delta_sec = (uint32_t)floor(d_delta_cpu_time);
+  uint32_t delta_nsec = (uint32_t)std::round((d_delta_cpu_time - delta_sec) * 1e9);
 
   int64_t sec_sum = (int64_t)start_sec + (int64_t)delta_sec;
   int64_t nsec_sum = (int64_t)start_nsec + (int64_t)delta_nsec;
@@ -170,32 +169,27 @@ void okvis_walltime(uint32_t& sec, uint32_t& nsec)
 /**
  * @brief Simple representation of the rt library nanosleep function.
  */
-int okvis_nanosleep(const uint32_t &sec, const uint32_t &nsec) {
+int okvis_nanosleep(const uint32_t& sec, const uint32_t& nsec) {
 #if defined(WIN32)
   HANDLE timer = NULL;
   LARGE_INTEGER sleepTime;
-  sleepTime.QuadPart = -
-  static_cast<int64_t>(sec)*10000000LL -
-  static_cast<int64_t>(nsec) / 100LL;
+  sleepTime.QuadPart = -static_cast<int64_t>(sec) * 10000000LL - static_cast<int64_t>(nsec) / 100LL;
 
   timer = CreateWaitableTimer(NULL, TRUE, NULL);
-  if (timer == NULL)
-  {
+  if (timer == NULL) {
     return -1;
   }
 
-  if (!SetWaitableTimer (timer, &sleepTime, 0, NULL, NULL, 0))
-  {
+  if (!SetWaitableTimer(timer, &sleepTime, 0, NULL, NULL, 0)) {
     return -1;
   }
 
-  if (WaitForSingleObject (timer, INFINITE) != WAIT_OBJECT_0)
-  {
+  if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0) {
     return -1;
   }
   return 0;
 #else
-  timespec req = { sec, nsec };
+  timespec req = {sec, nsec};
   return nanosleep(&req, NULL);
 #endif
 }
@@ -207,10 +201,10 @@ int okvis_nanosleep(const uint32_t &sec, const uint32_t &nsec) {
  */
 bool okvis_wallsleep(uint32_t sec, uint32_t nsec) {
 #if defined(WIN32)
-  okvis_nanosleep(sec,nsec);
+  okvis_nanosleep(sec, nsec);
 #else
-  timespec req = { sec, nsec };
-  timespec rem = { 0, 0 };
+  timespec req = {sec, nsec};
+  timespec rem = {0, 0};
   while (nanosleep(&req, &rem)) {
     req = rem;
   }
@@ -222,43 +216,28 @@ bool okvis_wallsleep(uint32_t sec, uint32_t nsec) {
  ** Class Methods
  *********************************************************************/
 
-bool Time::useSystemTime() {
-  return true;
-}
+bool Time::useSystemTime() { return true; }
 
-bool Time::isSimTime() {
-  return false;
-}
+bool Time::isSimTime() { return false; }
 
-bool Time::isSystemTime() {
-  return !isSimTime();
-}
+bool Time::isSystemTime() { return !isSimTime(); }
 
 Time Time::now() {
-
   Time t;
   okvis_walltime(t.sec, t.nsec);
 
   return t;
 }
 
-void Time::setNow(const Time&) {
-  throw std::runtime_error("Unimplemented function");
-}
+void Time::setNow(const Time&) { throw std::runtime_error("Unimplemented function"); }
 
-void Time::init() {
-}
+void Time::init() {}
 
-void Time::shutdown() {
-}
+void Time::shutdown() {}
 
-bool Time::isValid() {
-  return true;
-}
+bool Time::isValid() { return true; }
 
-bool Time::waitForValid() {
-  return waitForValid(okvis::WallDuration());
-}
+bool Time::waitForValid() { return waitForValid(okvis::WallDuration()); }
 
 bool Time::waitForValid(const okvis::WallDuration& /*timeout*/) {
   /*okvis::WallTime start = ros::WallTime::now();
@@ -276,7 +255,7 @@ bool Time::waitForValid(const okvis::WallDuration& /*timeout*/) {
   return false;
 }
 
-std::ostream& operator<<(std::ostream& os, const Time &rhs) {
+std::ostream& operator<<(std::ostream& os, const Time& rhs) {
   os << rhs.sec << "." << std::setw(9) << std::setfill('0') << rhs.nsec;
   return os;
 }
@@ -346,7 +325,7 @@ bool Duration::sleep() const {
   }
 }
 
-std::ostream &operator<<(std::ostream& os, const WallTime &rhs) {
+std::ostream& operator<<(std::ostream& os, const WallTime& rhs) {
   os << rhs.sec << "." << std::setw(9) << std::setfill('0') << rhs.nsec;
   return os;
 }
@@ -358,21 +337,18 @@ WallTime WallTime::now() {
   return t;
 }
 
-std::ostream &operator<<(std::ostream& os, const WallDuration& rhs) {
+std::ostream& operator<<(std::ostream& os, const WallDuration& rhs) {
   os << rhs.sec << "." << std::setw(9) << std::setfill('0') << rhs.nsec;
   return os;
 }
 
-bool WallDuration::sleep() const {
-  return okvis_wallsleep(sec, nsec);
-}
+bool WallDuration::sleep() const { return okvis_wallsleep(sec, nsec); }
 
 void normalizeSecNSec(uint64_t& sec, uint64_t& nsec) {
   uint64_t nsec_part = nsec % 1000000000UL;
   uint64_t sec_part = nsec / 1000000000UL;
 
-  if (sec_part > UINT_MAX)
-    throw std::runtime_error("Time is out of dual 32-bit range");
+  if (sec_part > UINT_MAX) throw std::runtime_error("Time is out of dual 32-bit range");
 
   sec += sec_part;
   nsec = nsec_part;
@@ -384,8 +360,8 @@ void normalizeSecNSec(uint32_t& sec, uint32_t& nsec) {
 
   normalizeSecNSec(sec64, nsec64);
 
-  sec = (uint32_t) sec64;
-  nsec = (uint32_t) nsec64;
+  sec = (uint32_t)sec64;
+  nsec = (uint32_t)nsec64;
 }
 
 void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec) {
@@ -401,14 +377,12 @@ void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec) {
     --sec_part;
   }
 
-  if (sec_part < 0 || sec_part > INT_MAX)
-    throw std::runtime_error("Time is out of dual 32-bit range");
+  if (sec_part < 0 || sec_part > INT_MAX) throw std::runtime_error("Time is out of dual 32-bit range");
 
   sec = sec_part;
   nsec = nsec_part;
 }
 
-template class TimeBase<Time, Duration> ;
-template class TimeBase<WallTime, WallDuration> ;
-}
-
+template class TimeBase<Time, Duration>;
+template class TimeBase<WallTime, WallDuration>;
+}  // namespace okvis

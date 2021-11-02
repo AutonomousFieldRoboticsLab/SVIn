@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,9 +39,9 @@
 #ifndef INCLUDE_OKVIS_CERES_POSELOCALPARAMETERIZATION_HPP_
 #define INCLUDE_OKVIS_CERES_POSELOCALPARAMETERIZATION_HPP_
 
-#include "ceres/ceres.h"
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -49,13 +49,10 @@ namespace okvis {
 namespace ceres {
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
-class PoseLocalParameterization : public ::ceres::LocalParameterization,
-    public LocalParamizationAdditionalInterfaces {
+class PoseLocalParameterization : public ::ceres::LocalParameterization, public LocalParamizationAdditionalInterfaces {
  public:
-
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization() {
-  }
+  virtual ~PoseLocalParameterization() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -63,16 +60,14 @@ class PoseLocalParameterization : public ::ceres::LocalParameterization,
   /// @param[in] x Variable.
   /// @param[in] delta Perturbation.
   /// @param[out] x_plus_delta Perturbed x.
-  virtual bool Plus(const double* x, const double* delta,
-                    double* x_plus_delta) const;
+  virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta,
-                     double* delta) const;
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
@@ -114,29 +109,22 @@ class PoseLocalParameterization : public ::ceres::LocalParameterization,
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const {
-    return 7;
-  }
+  virtual int GlobalSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const {
-    return 6;
-  }
+  virtual int LocalSize() const { return 6; }
 
   // added convenient check
-  bool VerifyJacobianNumDiff(const double* x, double* jacobian,
-                             double* jacobianNumDiff);
+  bool VerifyJacobianNumDiff(const double* x, double* jacobian, double* jacobianNumDiff);
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
 ///        Here, we only perturb the translation though.
 class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
-    public LocalParamizationAdditionalInterfaces {
+                                    public LocalParamizationAdditionalInterfaces {
  public:
-
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization3d() {
-  }
+  virtual ~PoseLocalParameterization3d() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -144,16 +132,14 @@ class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
   /// @param[in] x Variable.
   /// @param[in] delta Perturbation.
   /// @param[out] x_plus_delta Perturbed x.
-  virtual bool Plus(const double* x, const double* delta,
-                    double* x_plus_delta) const;
+  virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta,
-                     double* delta) const;
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
@@ -179,25 +165,19 @@ class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const {
-    return 7;
-  }
+  virtual int GlobalSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const {
-    return 3;
-  }
+  virtual int LocalSize() const { return 3; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
 ///        Here, we only perturb the translation and yaw though.
 class PoseLocalParameterization4d : public ::ceres::LocalParameterization,
-    public LocalParamizationAdditionalInterfaces {
+                                    public LocalParamizationAdditionalInterfaces {
  public:
-
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization4d() {
-  }
+  virtual ~PoseLocalParameterization4d() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -205,16 +185,14 @@ class PoseLocalParameterization4d : public ::ceres::LocalParameterization,
   /// @param[in] x Variable.
   /// @param[in] delta Perturbation.
   /// @param[out] x_plus_delta Perturbed x.
-  virtual bool Plus(const double* x, const double* delta,
-                    double* x_plus_delta) const;
+  virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta,
-                     double* delta) const;
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
@@ -240,25 +218,19 @@ class PoseLocalParameterization4d : public ::ceres::LocalParameterization,
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const {
-    return 7;
-  }
+  virtual int GlobalSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const {
-    return 4;
-  }
+  virtual int LocalSize() const { return 4; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
 ///        Here, we only perturb roll and pitch, i.e. dalpha = [dalpha1, dalpha2, 0]^T.
 class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
-    public LocalParamizationAdditionalInterfaces {
+                                    public LocalParamizationAdditionalInterfaces {
  public:
-
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization2d() {
-  }
+  virtual ~PoseLocalParameterization2d() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -266,16 +238,14 @@ class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
   /// @param[in] x Variable.
   /// @param[in] delta Perturbation.
   /// @param[out] x_plus_delta Perturbed x.
-  virtual bool Plus(const double* x, const double* delta,
-                    double* x_plus_delta) const;
+  virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta,
-                     double* delta) const;
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
@@ -301,13 +271,9 @@ class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const {
-    return 7;
-  }
+  virtual int GlobalSize() const { return 7; }
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const {
-    return 2;
-  }
+  virtual int LocalSize() const { return 2; }
 };
 
 }  // namespace ceres

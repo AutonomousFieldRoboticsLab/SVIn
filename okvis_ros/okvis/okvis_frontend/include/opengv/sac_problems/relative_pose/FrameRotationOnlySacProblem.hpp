@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,10 +40,10 @@
 #define INCLUDE_OKVIS_OPENGV_FRAMEROTATIONONLYSACPROBLEM_HPP_
 
 #include <okvis/assert_macros.hpp>
-#include <opengv/types.hpp>
+#include <opengv/relative_pose/FrameRelativeAdapter.hpp>
 #include <opengv/relative_pose/methods.hpp>
 #include <opengv/sac_problems/relative_pose/RotationOnlySacProblem.hpp>
-#include <opengv/relative_pose/FrameRelativeAdapter.hpp>
+#include <opengv/types.hpp>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -66,7 +66,7 @@ namespace relative_pose {
  */
 class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
  public:
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   typedef RotationOnlySacProblem base_t;
 
@@ -80,14 +80,11 @@ class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
    * \param[in] adapter Visitor holding bearing vector correspondences etc.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRotationOnlySacProblem(adapter_t & adapter)
-      : base_t(adapter),
-        adapterDerived_(
-            *static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
-    OKVIS_ASSERT_TRUE(
-        Exception,
-        dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
-        "only opengv::absolute_pose::FrameRelativeAdapter supported");
+  FrameRotationOnlySacProblem(adapter_t& adapter)
+      : base_t(adapter), adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
+    OKVIS_ASSERT_TRUE(Exception,
+                      dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
+                      "only opengv::absolute_pose::FrameRelativeAdapter supported");
   }
 
   /**
@@ -97,19 +94,15 @@ class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
    *                    correspondences.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRotationOnlySacProblem(adapter_t & adapter,
-                              const std::vector<int> & indices)
+  FrameRotationOnlySacProblem(adapter_t& adapter, const std::vector<int>& indices)
       : base_t(adapter, indices),
-        adapterDerived_(
-            *static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
-    OKVIS_ASSERT_TRUE(
-        Exception,
-        dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
-        "only opengv::absolute_pose::FrameRelativeAdapter supported");
+        adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
+    OKVIS_ASSERT_TRUE(Exception,
+                      dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
+                      "only opengv::absolute_pose::FrameRelativeAdapter supported");
   }
 
-  virtual ~FrameRotationOnlySacProblem() {
-  }
+  virtual ~FrameRotationOnlySacProblem() {}
 
   /**
    * \brief Compute the distances of all samples whith respect to given model
@@ -119,38 +112,35 @@ class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
    * \param[out] scores The resulting distances of the selected samples. Low
    *                    distances mean a good fit.
    */
-  virtual void getSelectedDistancesToModel(const model_t & model,
-                                           const std::vector<int> & indices,
-                                           std::vector<double> & scores) const {
+  virtual void getSelectedDistancesToModel(const model_t& model,
+                                           const std::vector<int>& indices,
+                                           std::vector<double>& scores) const {
     for (size_t i = 0; i < indices.size(); i++) {
       bearingVector_t f1 = adapterDerived_.getBearingVector1(indices[i]);
       bearingVector_t f2 = adapterDerived_.getBearingVector2(indices[i]);
 
-      //unrotate bearing-vector f2
+      // unrotate bearing-vector f2
       bearingVector_t f2_unrotated = model * f2;
 
-      //unrotate bearing-vector f1
+      // unrotate bearing-vector f1
       bearingVector_t f1_unrotated = model.transpose() * f1;
 
       point_t error1 = (f2_unrotated - f1);
       point_t error2 = (f1_unrotated - f2);
       double error_squared1 = error1.transpose() * error1;
       double error_squared2 = error2.transpose() * error2;
-      scores.push_back(
-          error_squared1 * 0.5 / adapterDerived_.getSigmaAngle1(indices[i])
-              + error_squared2 * 0.5
-                  / adapterDerived_.getSigmaAngle2(indices[i]));
+      scores.push_back(error_squared1 * 0.5 / adapterDerived_.getSigmaAngle1(indices[i]) +
+                       error_squared2 * 0.5 / adapterDerived_.getSigmaAngle2(indices[i]));
     }
   }
 
  protected:
   /// The adapter holding the bearing, correspondences etc.
-  opengv::relative_pose::FrameRelativeAdapter & adapterDerived_;
-
+  opengv::relative_pose::FrameRelativeAdapter& adapterDerived_;
 };
 
-}
-}
-}
+}  // namespace relative_pose
+}  // namespace sac_problems
+}  // namespace opengv
 
 #endif /* INCLUDE_OKVIS_OPENGV_FRAMEROTATIONONLYPOSESACPROBLEM_HPP_ */

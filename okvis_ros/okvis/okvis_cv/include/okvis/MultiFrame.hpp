@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -41,29 +41,25 @@
 #ifndef INCLUDE_OKVIS_MULTIFRAME_HPP_
 #define INCLUDE_OKVIS_MULTIFRAME_HPP_
 
+#include <brisk/internal/hamming.h>  // Sharmin: for Brisk descriptor distance
 #include <memory>
-#include <okvis/assert_macros.hpp>
 #include <okvis/Frame.hpp>
+#include <okvis/assert_macros.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
-#include <opencv2/imgproc/imgproc.hpp>  // Sharmin
 #include <opencv2/highgui/highgui.hpp>  // Sharmin
-#include <brisk/internal/hamming.h> // Sharmin: for Brisk descriptor distance
-
+#include <opencv2/imgproc/imgproc.hpp>  // Sharmin
 
 #include "../../../okvis_frontend/include/okvis/triangulation/stereo_triangulation.hpp"
-
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
 /// \class MultiFrame
 /// \brief A multi camera frame that uses okvis::Frame underneath.
-class MultiFrame
-{
+class MultiFrame {
  public:
-
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief Default constructor
   inline MultiFrame();
@@ -72,20 +68,18 @@ class MultiFrame
   /// @param[in] cameraSystem The camera system for which this is a multi-frame.
   /// @param[in] timestamp The time this frame was recorded.
   /// @param[in] id A unique frame Id.
-  inline MultiFrame(const cameras::NCameraSystem & cameraSystem,
-                    const okvis::Time & timestamp, uint64_t id = 0);
+  inline MultiFrame(const cameras::NCameraSystem& cameraSystem, const okvis::Time& timestamp, uint64_t id = 0);
 
   /// \brief Destructor...
   inline virtual ~MultiFrame();
 
   /// \brief (Re)set the NCameraSystem -- which clears the frames as well.
   /// @param[in] cameraSystem The camera system for which this is a multi-frame.
-  inline void resetCameraSystemAndFrames(
-      const cameras::NCameraSystem & cameraSystem);
+  inline void resetCameraSystemAndFrames(const cameras::NCameraSystem& cameraSystem);
 
   /// \brief (Re)set the timestamp
   /// @param[in] timestamp The time this frame was recorded.
-  inline void setTimestamp(const okvis::Time & timestamp);
+  inline void setTimestamp(const okvis::Time& timestamp);
 
   /// \brief (Re)set the id
   /// @param[in] id A unique frame Id.
@@ -93,7 +87,7 @@ class MultiFrame
 
   /// \brief Obtain the frame timestamp
   /// \return The time this frame was recorded.
-  inline const okvis::Time & timestamp() const;
+  inline const okvis::Time& timestamp() const;
 
   /// \brief Obtain the frame id
   /// \return The unique frame Id.
@@ -106,8 +100,7 @@ class MultiFrame
   /// \brief Get the extrinsics of a camera
   /// @param[in] cameraIdx The camera index for which the extrinsics are queried.
   /// \return The extrinsics as T_SC.
-  inline std::shared_ptr<const okvis::kinematics::Transformation> T_SC(
-      size_t cameraIdx) const;
+  inline std::shared_ptr<const okvis::kinematics::Transformation> T_SC(size_t cameraIdx) const;
 
   //////////////////////////////////////////////////////////////
   /// \name The following mirror the Frame functionality.
@@ -116,44 +109,38 @@ class MultiFrame
   /// \brief Set the frame image;
   /// @param[in] cameraIdx The camera index that took the image.
   /// @param[in] image The image.
-  inline void setImage(size_t cameraIdx, const cv::Mat & image);
+  inline void setImage(size_t cameraIdx, const cv::Mat& image);
 
   /// \brief Set the geometry
   /// @param[in] cameraIdx The camera index.
   /// @param[in] cameraGeometry The camera geometry.
-  inline void setGeometry(
-      size_t cameraIdx,
-      std::shared_ptr<const cameras::CameraBase> cameraGeometry);
+  inline void setGeometry(size_t cameraIdx, std::shared_ptr<const cameras::CameraBase> cameraGeometry);
 
   /// \brief Set the detector
   /// @param[in] cameraIdx The camera index.
   /// @param[in] detector The detector to be used.
-  inline void setDetector(size_t cameraIdx,
-                          std::shared_ptr<cv::FeatureDetector> detector);
+  inline void setDetector(size_t cameraIdx, std::shared_ptr<cv::FeatureDetector> detector);
 
   /// \brief Set the extractor
   /// @param[in] cameraIdx The camera index.
   /// @param[in] extractor The extractor to be used.
-  inline void setExtractor(
-      size_t cameraIdx,
-      std::shared_ptr<cv::DescriptorExtractor> extractor);
+  inline void setExtractor(size_t cameraIdx, std::shared_ptr<cv::DescriptorExtractor> extractor);
 
   /// \brief Obtain the image
   /// @param[in] cameraIdx The camera index.
   /// \return The image.
-  inline const cv::Mat & image(size_t cameraIdx) const;
+  inline const cv::Mat& image(size_t cameraIdx) const;
 
   /// \brief get the base class geometry (will be slow to use)
   /// @param[in] cameraIdx The camera index.
   /// \return The camera geometry.
-  inline std::shared_ptr<const cameras::CameraBase> geometry(
-      size_t cameraIdx) const;
+  inline std::shared_ptr<const cameras::CameraBase> geometry(size_t cameraIdx) const;
 
   /// \brief Get the specific geometry (will be fast to use)
   /// \tparam GEOMETRY_T The type for the camera geometry requested.
   /// @param[in] cameraIdx The camera index.
   /// \return The camera geometry.
-  template<class GEOMETRY_T>
+  template <class GEOMETRY_T>
   inline std::shared_ptr<const GEOMETRY_T> geometryAs(size_t cameraIdx) const;
 
   /// \brief Detect keypoints. This uses virtual function calls.
@@ -161,68 +148,62 @@ class MultiFrame
   /// \return The number of detected points.
   inline int detect(size_t cameraIdx);
 
-  /*inline bool stereoTriangulateInMultiFrame(okvis::kinematics::Transformation & T_CaCb, Eigen::Vector2d keypointCoordinatesA, Eigen::Vector2d keypointCoordinatesB, float depth, Eigen::Vector4d & outHomogeneousPoint_A,
-		  bool & outCanBeInitializedInaccuarate, double sigmaRay) const;*/
-  inline bool computeReprojectionError4( size_t camIndex, Eigen::Vector2d kp, const Eigen::Vector4d& homogeneousPoint, double& outError) const;
-
+  /*inline bool stereoTriangulateInMultiFrame(okvis::kinematics::Transformation & T_CaCb, Eigen::Vector2d
+     keypointCoordinatesA, Eigen::Vector2d keypointCoordinatesB, float depth, Eigen::Vector4d & outHomogeneousPoint_A,
+                  bool & outCanBeInitializedInaccuarate, double sigmaRay) const;*/
+  inline bool computeReprojectionError4(size_t camIndex,
+                                        Eigen::Vector2d kp,
+                                        const Eigen::Vector4d& homogeneousPoint,
+                                        double& outError) const;
 
   /// \brief Describe keypoints. This uses virtual function calls.
   ///        That's a negligibly small overhead for many detections.
   /// @param[in] cameraIdx The camera index.
   /// @param[in] extractionDirection The extraction direction in camera frame
   /// \return the number of detected points.
-  inline int describe(size_t cameraIdx,
-                      const Eigen::Vector3d & extractionDirection =
-                          Eigen::Vector3d(0, 0, 1));
+  inline int describe(size_t cameraIdx, const Eigen::Vector3d& extractionDirection = Eigen::Vector3d(0, 0, 1));
   /// \brief Describe keypoints. This uses virtual function calls.
   ///        That's a negligibly small overhead for many detections.
   /// \tparam GEOMETRY_T The type for the camera geometry requested.
   /// @param[in] cameraIdx The camera index.
   /// @param[in] extractionDirection The extraction direction in camera frame
   /// \return the number of detected points.
-  template<class GEOMETRY_T>
-  inline int describeAs(size_t cameraIdx,
-                        const Eigen::Vector3d & extractionDirection =
-                            Eigen::Vector3d(0, 0, 1));
+  template <class GEOMETRY_T>
+  inline int describeAs(size_t cameraIdx, const Eigen::Vector3d& extractionDirection = Eigen::Vector3d(0, 0, 1));
 
   /// \brief Access a specific keypoint in OpenCV format
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypoint The requested keypoint.
   /// \return whether or not the operation was successful.
-  inline bool getCvKeypoint(size_t cameraIdx, size_t keypointIdx,
-                            cv::KeyPoint & keypoint) const;
+  inline bool getCvKeypoint(size_t cameraIdx, size_t keypointIdx, cv::KeyPoint& keypoint) const;
 
   /// \brief Get a specific keypoint
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypoint The requested keypoint.
   /// \return whether or not the operation was successful.
-  inline bool getKeypoint(size_t cameraIdx, size_t keypointIdx,
-                          Eigen::Vector2d & keypoint) const;
+  inline bool getKeypoint(size_t cameraIdx, size_t keypointIdx, Eigen::Vector2d& keypoint) const;
 
   /// \brief Get the size of a specific keypoint
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypointSize The requested keypoint's size.
   /// \return whether or not the operation was successful.
-  inline bool getKeypointSize(size_t cameraIdx, size_t keypointIdx,
-                              double & keypointSize) const;
+  inline bool getKeypointSize(size_t cameraIdx, size_t keypointIdx, double& keypointSize) const;
 
   /// \brief Access the descriptor -- CAUTION: high-speed version.
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// \return The descriptor data pointer; NULL if out of bounds.
-  inline const unsigned char * keypointDescriptor(size_t cameraIdx,
-                                                  size_t keypointIdx);
+  inline const unsigned char* keypointDescriptor(size_t cameraIdx, size_t keypointIdx);
 
   /// \brief Set the landmark ID
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[in] landmarkId The landmark Id.
   /// \return whether or not the operation was successful.
-  inline bool setLandmarkId(size_t cameraIdx, size_t keypointIdx,
-                            uint64_t landmarkId);
+  inline bool setLandmarkId(size_t cameraIdx, size_t keypointIdx, uint64_t landmarkId);
 
   /*inline bool setContourLandmarkId(size_t cameraIdx, size_t keypointIdx,
                               uint64_t landmarkId); // @Sharmin*/
@@ -233,27 +214,26 @@ class MultiFrame
   /// \return The landmark Id.
   inline uint64_t landmarkId(size_t cameraIdx, size_t keypointIdx) const;
 
-  //inline uint64_t contour_landmarkId(size_t cameraIdx, size_t keypointIdx) const; // @Sharmin
+  // inline uint64_t contour_landmarkId(size_t cameraIdx, size_t keypointIdx) const; // @Sharmin
 
   /// \brief provide keypoints externally
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypoints A vector of keyoints.
   /// \return whether or not the operation was successful.
-  inline bool resetKeypoints(size_t cameraIdx,
-                             const std::vector<cv::KeyPoint> & keypoints);
+  inline bool resetKeypoints(size_t cameraIdx, const std::vector<cv::KeyPoint>& keypoints);
 
   /// \brief provide descriptors externally
   /// @param[in] cameraIdx The camera index.
   /// @param[in] descriptors A vector of descriptors.
   /// \return whether or not the operation was successful.
-  inline bool resetDescriptors(size_t cameraIdx, const cv::Mat & descriptors);
+  inline bool resetDescriptors(size_t cameraIdx, const cv::Mat& descriptors);
 
   /// \brief the number of keypoints
   /// @param[in] cameraIdx The camera index.
   /// \return The number of keypoints.
   inline size_t numKeypoints(size_t cameraIdx) const;
 
-  inline size_t contour_numKeypoints(size_t cameraIdx) const; // @Sharmin
+  inline size_t contour_numKeypoints(size_t cameraIdx) const;  // @Sharmin
 
   /// @}
 
@@ -266,9 +246,7 @@ class MultiFrame
   /// @param[in] cameraIndexSeenBy The camera index for one camera.
   /// @param[in] cameraIndex The camera index for the other camera.
   /// @return The overlap mask image.
-  inline const cv::Mat overlap(size_t cameraIndexSeenBy,
-                               size_t cameraIndex) const
-  {
+  inline const cv::Mat overlap(size_t cameraIndexSeenBy, size_t cameraIndex) const {
     return cameraSystem_.overlap(cameraIndexSeenBy, cameraIndex);
   }
 
@@ -276,15 +254,15 @@ class MultiFrame
   /// @param[in] cameraIndexSeenBy The camera index for one camera.
   /// @param[in] cameraIndex The camera index for the other camera.
   /// @return True, if there is at least one pixel of overlap.
-  inline bool hasOverlap(size_t cameraIndexSeenBy, size_t cameraIndex) const
-  {
+  inline bool hasOverlap(size_t cameraIndexSeenBy, size_t cameraIndex) const {
     return cameraSystem_.hasOverlap(cameraIndexSeenBy, cameraIndex);
   }
 
-  std::vector<Frame, Eigen::aligned_allocator<Frame>> frames_;  ///< the individual frames // TODO Sharmin moved it from protected to public
+  std::vector<Frame, Eigen::aligned_allocator<Frame>>
+      frames_;  ///< the individual frames // TODO Sharmin moved it from protected to public
  protected:
-  okvis::Time timestamp_;  ///< the frame timestamp
-  uint64_t id_;  ///< the frame id
+  okvis::Time timestamp_;                ///< the frame timestamp
+  uint64_t id_;                          ///< the frame id
   cameras::NCameraSystem cameraSystem_;  ///< the camera system
 
   // Sharmin: Corresponding stereo coordinate and depth for each contour keypoint.

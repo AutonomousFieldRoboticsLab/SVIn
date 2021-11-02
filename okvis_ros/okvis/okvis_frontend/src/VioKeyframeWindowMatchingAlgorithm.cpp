@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -38,49 +38,49 @@
  * @author Andreas Forster
  */
 
-#include <okvis/VioKeyframeWindowMatchingAlgorithm.hpp>
-#include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/IdProvider.hpp>
-#include <okvis/cameras/CameraBase.hpp>
 #include <okvis/MultiFrame.hpp>
+#include <okvis/VioKeyframeWindowMatchingAlgorithm.hpp>
+#include <okvis/cameras/CameraBase.hpp>
+#include <okvis/ceres/ReprojectionError.hpp>
 
 // cameras and distortions
-#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/EquidistantDistortion.hpp>
+#include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
 
-#include <opencv2/features2d/features2d.hpp> // for cv::KeyPoint
+#include <opencv2/features2d/features2d.hpp>  // for cv::KeyPoint
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
 // Constructor.
 // Sharmin: useSCM = false
-template<class CAMERA_GEOMETRY_T>
-VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::VioKeyframeWindowMatchingAlgorithm(
-    okvis::Estimator& estimator, int matchingType, float distanceThreshold,
-    bool usePoseUncertainty, bool useSCM) {
+template <class CAMERA_GEOMETRY_T>
+VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::VioKeyframeWindowMatchingAlgorithm(okvis::Estimator& estimator,
+                                                                                          int matchingType,
+                                                                                          float distanceThreshold,
+                                                                                          bool usePoseUncertainty,
+                                                                                          bool useSCM) {
   matchingType_ = matchingType;
   distanceThreshold_ = distanceThreshold;
   estimator_ = &estimator;
   usePoseUncertainty_ = usePoseUncertainty;
   useSCM_ = useSCM;
-  //std::cout << "USE SCM: "<< useSCM <<std::endl;
+  // std::cout << "USE SCM: "<< useSCM <<std::endl;
 }
 
-template<class CAMERA_GEOMETRY_T>
-VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::~VioKeyframeWindowMatchingAlgorithm() {
-
-}
+template <class CAMERA_GEOMETRY_T>
+VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::~VioKeyframeWindowMatchingAlgorithm() {}
 
 // Set which frames to match.
-template<class CAMERA_GEOMETRY_T>
-void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(
-    uint64_t mfIdA, uint64_t mfIdB, size_t camIdA, size_t camIdB) {
-
-  OKVIS_ASSERT_TRUE(Exception, !(mfIdA == mfIdB && camIdA == camIdB),
-                    "trying to match identical frames.");
+template <class CAMERA_GEOMETRY_T>
+void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(uint64_t mfIdA,
+                                                                      uint64_t mfIdB,
+                                                                      size_t camIdA,
+                                                                      size_t camIdB) {
+  OKVIS_ASSERT_TRUE(Exception, !(mfIdA == mfIdB && camIdA == camIdB), "trying to match identical frames.");
 
   // remember indices
   mfIdA_ = mfIdA;
@@ -114,16 +114,14 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(
 }
 
 // Set the matching type.
-template<class CAMERA_GEOMETRY_T>
-void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setMatchingType(
-    int matchingType) {
+template <class CAMERA_GEOMETRY_T>
+void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setMatchingType(int matchingType) {
   matchingType_ = matchingType;
 }
 
 // This will be called exactly once for each call to DenseMatcher::match().
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
-
   // setup stereo triangulator
   // first, let's get the relative uncertainty.
   okvis::kinematics::Transformation T_CaCb;
@@ -145,8 +143,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
   }
 
   // now set the frames and uncertainty
-  probabilisticStereoTriangulator_.resetFrames(frameA_, frameB_, camIdA_,
-                                               camIdB_, T_CaCb_, UOplus);
+  probabilisticStereoTriangulator_.resetFrames(frameA_, frameB_, camIdA_, camIdB_, T_CaCb_, UOplus);
 
   // reset the match counter
   numMatches_ = 0;
@@ -159,10 +156,8 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
   // calculate projections only once
   if (matchingType_ == Match3D2D) {
     // allocate a matrix to store projections
-    projectionsIntoB_ = Eigen::Matrix<double, Eigen::Dynamic, 2>::Zero(sizeA(),
-                                                                       2);
-    projectionsIntoBUncertainties_ =
-        Eigen::Matrix<double, Eigen::Dynamic, 2>::Zero(sizeA() * 2, 2);
+    projectionsIntoB_ = Eigen::Matrix<double, Eigen::Dynamic, 2>::Zero(sizeA(), 2);
+    projectionsIntoBUncertainties_ = Eigen::Matrix<double, Eigen::Dynamic, 2>::Zero(sizeA() * 2, 2);
 
     // do the projections for each keypoint, if applicable
     for (size_t k = 0; k < numA; ++k) {
@@ -187,9 +182,8 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
       // project (distorted)
       Eigen::Vector2d kptB;
       const Eigen::Vector4d hp_Cb = T_CbW_ * hp_W;
-      if (frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->projectHomogeneous(
-          hp_Cb, &kptB)
-          != okvis::cameras::CameraBase::ProjectionStatus::Successful) {
+      if (frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->projectHomogeneous(hp_Cb, &kptB) !=
+          okvis::cameras::CameraBase::ProjectionStatus::Successful) {
         skipA_[k] = true;
         continue;
       }
@@ -204,10 +198,8 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
       Eigen::Matrix<double, 2, 4> jacobian;
       Eigen::Matrix4d P_C = Eigen::Matrix4d::Zero();
       P_C.topLeftCorner<3, 3>() = UOplus.topLeftCorner<3, 3>();  // get from before -- velocity scaled
-      frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->projectHomogeneous(
-          hp_Cb, &kptB, &jacobian);
-      projectionsIntoBUncertainties_.block<2, 2>(2 * k, 0) = jacobian * P_C
-          * jacobian.transpose();
+      frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->projectHomogeneous(hp_Cb, &kptB, &jacobian);
+      projectionsIntoBUncertainties_.block<2, 2>(2 * k, 0) = jacobian * P_C * jacobian.transpose();
       projectionsIntoB_.row(k) = kptB;
 
       // precalculate ray uncertainties
@@ -226,8 +218,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
         continue;
       }
       if (estimator_->isLandmarkAdded(frameA_->landmarkId(camIdA_, k))) {
-        if (estimator_->isLandmarkInitialized(
-            frameA_->landmarkId(camIdA_, k))) {
+        if (estimator_->isLandmarkInitialized(frameA_->landmarkId(camIdA_, k))) {
           skipA_[k] = true;
         }
       }
@@ -241,13 +232,10 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
   if (matchingType_ == Match3D2D) {
     for (size_t k = 0; k < numB; ++k) {
       okvis::MapPoint landmark;
-      if (frameB_->landmarkId(camIdB_, k) != 0
-          && estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
+      if (frameB_->landmarkId(camIdB_, k) != 0 && estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
         estimator_->getLandmark(frameB_->landmarkId(camIdB_, k), landmark);
-        skipB_.push_back(
-            landmark.observations.find(
-                okvis::KeypointIdentifier(mfIdB_, camIdB_, k))
-                != landmark.observations.end());
+        skipB_.push_back(landmark.observations.find(okvis::KeypointIdentifier(mfIdB_, camIdB_, k)) !=
+                         landmark.observations.end());
       } else {
         skipB_.push_back(false);
       }
@@ -268,8 +256,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
         continue;
       }
       if (estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
-        skipB_.push_back(
-            estimator_->isLandmarkInitialized(frameB_->landmarkId(camIdB_, k)));  // old: isSet - check.
+        skipB_.push_back(estimator_->isLandmarkInitialized(frameB_->landmarkId(camIdB_, k)));  // old: isSet - check.
       } else {
         skipB_.push_back(false);
       }
@@ -279,54 +266,51 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
   //*********** Added by Sharmin for Stereo Contour Matching *****************//
   // FIXME Sharmin
   /*if (useSCM_){
-	  std::cout<< "This should not be executing!!"<< std::endl;
-	  scm_numMatches_ = 0;
-	  scm_numUncertainMatches_ = 0;
-	  const size_t scm_numA = frameA_->contour_numKeypoints(camIdA_);
-	  std::cout<< "frameA: "<<scm_numA << std::endl;
-	  scm_skipA_.clear();
-	  scm_skipA_.resize(scm_numA, false);
-	  scm_raySigmasA_.resize(scm_numA);
+          std::cout<< "This should not be executing!!"<< std::endl;
+          scm_numMatches_ = 0;
+          scm_numUncertainMatches_ = 0;
+          const size_t scm_numA = frameA_->contour_numKeypoints(camIdA_);
+          std::cout<< "frameA: "<<scm_numA << std::endl;
+          scm_skipA_.clear();
+          scm_skipA_.resize(scm_numA, false);
+          scm_raySigmasA_.resize(scm_numA);
 
-	  for (size_t k = 0; k < scm_numA; ++k) {
-		  double keypointAStdDev;
-		  frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);
-		  keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
-		  scm_raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;
-	   }
+          for (size_t k = 0; k < scm_numA; ++k) {
+                  double keypointAStdDev;
+                  frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);
+                  keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
+                  scm_raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;
+           }
 
-	  const size_t scm_numB = frameB_->contour_numKeypoints(camIdB_);
-	  std::cout<< "frameB: "<<scm_numB << std::endl;
-	  scm_skipB_.clear();
-	  scm_skipB_.reserve(scm_numB);
-	  scm_raySigmasB_.resize(scm_numB);
-	  // do the projections for each keypoint, if applicable
+          const size_t scm_numB = frameB_->contour_numKeypoints(camIdB_);
+          std::cout<< "frameB: "<<scm_numB << std::endl;
+          scm_skipB_.clear();
+          scm_skipB_.reserve(scm_numB);
+          scm_raySigmasB_.resize(scm_numB);
+          // do the projections for each keypoint, if applicable
 
-	  for (size_t k = 0; k < scm_numB; ++k) {
-		  double keypointBStdDev;
-		  frameB_->getKeypointSize(camIdB_, k, keypointBStdDev);
-		  keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-		  scm_raySigmasB_[k] = sqrt(sqrt(2)) * keypointBStdDev / fB_;
+          for (size_t k = 0; k < scm_numB; ++k) {
+                  double keypointBStdDev;
+                  frameB_->getKeypointSize(camIdB_, k, keypointBStdDev);
+                  keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
+                  scm_raySigmasB_[k] = sqrt(sqrt(2)) * keypointBStdDev / fB_;
 
-		  // FIXME Sharmin
-		  /*if (frameB_->landmarkId(camIdB_, k) == 0) {
-			skipB_.push_back(false);
-			continue;
-		  }
-		  if (estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
-			skipB_.push_back(
-				estimator_->isLandmarkInitialized(frameB_->landmarkId(camIdB_, k)));  // old: isSet - check.
-		  } else {
-			skipB_.push_back(false);
-	      }
-	  }
+                  // FIXME Sharmin
+                  /*if (frameB_->landmarkId(camIdB_, k) == 0) {
+                        skipB_.push_back(false);
+                        continue;
+                  }
+                  if (estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
+                        skipB_.push_back(
+                                estimator_->isLandmarkInitialized(frameB_->landmarkId(camIdB_, k)));  // old: isSet -
+  check. } else { skipB_.push_back(false);
+              }
+          }
 
   }*/
 
   //*********** End Added by Sharmin for Stereo Contour Matching *****************//
-
 }
-
 
 // Added by Sharmin
 /*template<class CAMERA_GEOMETRY_T>
@@ -339,38 +323,33 @@ size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::scm_sizeB() const 
   return frameB_->contour_numKeypoints(camIdB_);
 }*/
 
-
 // What is the size of list A?
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::sizeA() const {
   return frameA_->numKeypoints(camIdA_);
 }
 // What is the size of list B?
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::sizeB() const {
   return frameB_->numKeypoints(camIdB_);
 }
 
 // Set the distance threshold for which matches exceeding it will not be returned as matches.
-template<class CAMERA_GEOMETRY_T>
-void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setDistanceThreshold(
-    float distanceThreshold) {
+template <class CAMERA_GEOMETRY_T>
+void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setDistanceThreshold(float distanceThreshold) {
   distanceThreshold_ = distanceThreshold;
 }
 
 // Get the distance threshold for which matches exceeding it will not be returned as matches.
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 float VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::distanceThreshold() const {
   return distanceThreshold_;
 }
 
 // Geometric verification of a match.
-template<class CAMERA_GEOMETRY_T>
-bool VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::verifyMatch(
-    size_t indexA, size_t indexB) const {
-
+template <class CAMERA_GEOMETRY_T>
+bool VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::verifyMatch(size_t indexA, size_t indexB) const {
   if (matchingType_ == Match2D2D) {
-
     // potential 2d2d match - verify by triangulation
     Eigen::Vector4d hP;
     bool isParallel;
@@ -387,9 +366,8 @@ bool VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::verifyMatch(
     double keypointBStdDev;
     frameB_->getKeypointSize(camIdB_, indexB, keypointBStdDev);
     keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-    Eigen::Matrix2d U = Eigen::Matrix2d::Identity() * keypointBStdDev
-        * keypointBStdDev
-        + projectionsIntoBUncertainties_.block<2, 2>(2 * indexA, 0);
+    Eigen::Matrix2d U = Eigen::Matrix2d::Identity() * keypointBStdDev * keypointBStdDev +
+                        projectionsIntoBUncertainties_.block<2, 2>(2 * indexA, 0);
 
     Eigen::Vector2d keypointBMeasurement;
     frameB_->getKeypoint(camIdB_, indexB, keypointBMeasurement);
@@ -404,14 +382,13 @@ bool VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::verifyMatch(
 }
 
 // A function that tells you how many times setMatching() will be called.
-template<class CAMERA_GEOMETRY_T>
-void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::reserveMatches(
-    size_t /*numMatches*/) {
+template <class CAMERA_GEOMETRY_T>
+void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::reserveMatches(size_t /*numMatches*/) {
   //_triangulatedPoints.clear();
 }
 
 // Get the number of matches.
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::numMatches() {
   return numMatches_;
 }
@@ -422,25 +399,23 @@ size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::scm_numMatches() {
   return scm_numMatches_;
 }*/
 
-
 // Get the number of uncertain matches.
-template<class CAMERA_GEOMETRY_T>
+template <class CAMERA_GEOMETRY_T>
 size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::numUncertainMatches() {
   return numUncertainMatches_;
 }
 
 // At the end of the matching step, this function is called once
 // for each pair of matches discovered.
-template<class CAMERA_GEOMETRY_T>
-void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
-    size_t indexA, size_t indexB, double /*distance*/) {
-
+template <class CAMERA_GEOMETRY_T>
+void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(size_t indexA,
+                                                                         size_t indexB,
+                                                                         double /*distance*/) {
   // assign correspondences
   uint64_t lmIdA = frameA_->landmarkId(camIdA_, indexA);
   uint64_t lmIdB = frameB_->landmarkId(camIdB_, indexB);
 
   if (matchingType_ == Match2D2D) {
-
     // check that not both are set
     if (lmIdA != 0 && lmIdB != 0) {
       return;
@@ -451,8 +426,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     Eigen::Vector4d hP_Ca;
     bool canBeInitialized;
     bool valid = probabilisticStereoTriangulator_.stereoTriangulate(
-        indexA, indexB, hP_Ca, canBeInitialized,
-        std::max(raySigmasA_[indexA], raySigmasB_[indexB]));
+        indexA, indexB, hP_Ca, canBeInitialized, std::max(raySigmasA_[indexA], raySigmasB_[indexB]));
     if (!valid) {
       return;
     }
@@ -460,9 +434,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     // get the uncertainty
     if (canBeInitialized) {  // know more exactly
       Eigen::Matrix3d pointUOplus_A;
-      probabilisticStereoTriangulator_.getUncertainty(indexA, indexB, hP_Ca,
-                                                      pointUOplus_A,
-                                                      canBeInitialized);
+      probabilisticStereoTriangulator_.getUncertainty(indexA, indexB, hP_Ca, pointUOplus_A, canBeInitialized);
     }
 
     // check and adapt landmark status
@@ -500,11 +472,9 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     // add landmark to graph if necessary
     if (insertHomogeneousPointParameterBlock) {
       estimator_->addLandmark(lmId, T_WCa_ * hP_Ca);
-      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmId),
-                        lmId<<" not added, bug");
+      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmId), lmId << " not added, bug");
       estimator_->setLandmarkInitialized(lmId, canBeInitialized);
     } else {
-
       // update initialization status, set better estimate, if possible
       if (canBeInitialized) {
         estimator_->setLandmarkInitialized(lmId, true);
@@ -514,45 +484,36 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
 
     // in image A
     okvis::MapPoint landmark;
-    if (insertA
-        && landmark.observations.find(
-            okvis::KeypointIdentifier(mfIdA_, camIdA_, indexA))
-            == landmark.observations.end()) {  // ensure no double observations...
-            // TODO hp_Sa NOT USED!
+    if (insertA && landmark.observations.find(okvis::KeypointIdentifier(mfIdA_, camIdA_, indexA)) ==
+                       landmark.observations.end()) {  // ensure no double observations...
+                                                       // TODO hp_Sa NOT USED!
       Eigen::Vector4d hp_Sa(T_SaCa_ * hP_Ca);
       hp_Sa.normalize();
       frameA_->setLandmarkId(camIdA_, indexA, lmId);
       lmIdA = lmId;
       // initialize in graph
-      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmId),
-                        "landmark id=" << lmId<<" not added");
-      estimator_->addObservation<camera_geometry_t>(lmId, mfIdA_, camIdA_,
-                                                    indexA);
+      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmId), "landmark id=" << lmId << " not added");
+      estimator_->addObservation<camera_geometry_t>(lmId, mfIdA_, camIdA_, indexA);
     }
 
     // in image B
-    if (insertB
-        && landmark.observations.find(
-            okvis::KeypointIdentifier(mfIdB_, camIdB_, indexB))
-            == landmark.observations.end()) {  // ensure no double observations...
+    if (insertB && landmark.observations.find(okvis::KeypointIdentifier(mfIdB_, camIdB_, indexB)) ==
+                       landmark.observations.end()) {  // ensure no double observations...
       Eigen::Vector4d hp_Sb(T_SbCb_ * T_CbCa_ * hP_Ca);
       hp_Sb.normalize();
       frameB_->setLandmarkId(camIdB_, indexB, lmId);
       lmIdB = lmId;
       // initialize in graph
-      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmId),
-                        "landmark " << lmId << " not added");
-      estimator_->addObservation<camera_geometry_t>(lmId, mfIdB_, camIdB_,
-                                                    indexB);
+      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmId), "landmark " << lmId << " not added");
+      estimator_->addObservation<camera_geometry_t>(lmId, mfIdB_, camIdB_, indexB);
     }
 
     // let's check for consistency with other observations:
     okvis::ceres::HomogeneousPointParameterBlock point(T_WCa_ * hP_Ca, 0);
-    if(canBeInitialized)
-      estimator_->setLandmark(lmId, point.estimate());
+    if (canBeInitialized) estimator_->setLandmark(lmId, point.estimate());
 
   } else {
-    OKVIS_ASSERT_TRUE_DBG(Exception,lmIdB==0,"bug. Id in frame B already set.");
+    OKVIS_ASSERT_TRUE_DBG(Exception, lmIdB == 0, "bug. Id in frame B already set.");
 
     // get projection into B
     Eigen::Vector2d kptB = projectionsIntoB_.row(indexA);
@@ -563,9 +524,8 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     double keypointBStdDev;
     frameB_->getKeypointSize(camIdB_, indexB, keypointBStdDev);
     keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-    Eigen::Matrix2d U_tot = Eigen::Matrix2d::Identity() * keypointBStdDev
-        * keypointBStdDev
-        + projectionsIntoBUncertainties_.block<2, 2>(2 * indexA, 0);
+    Eigen::Matrix2d U_tot = Eigen::Matrix2d::Identity() * keypointBStdDev * keypointBStdDev +
+                            projectionsIntoBUncertainties_.block<2, 2>(2 * indexA, 0);
 
     const double chi2 = err.transpose().eval() * U_tot.inverse() * err;
 
@@ -576,7 +536,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     // saturate allowed image uncertainty
     if (U_tot.norm() > 25.0 / (keypointBStdDev * keypointBStdDev * sqrt(2))) {
       numUncertainMatches_++;
-      //return;
+      // return;
     }
 
     frameB_->setLandmarkId(camIdB_, indexB, lmIdA);
@@ -585,28 +545,24 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     estimator_->getLandmark(lmIdA, landmark);
 
     // initialize in graph
-    if (landmark.observations.find(
-        okvis::KeypointIdentifier(mfIdB_, camIdB_, indexB))
-        == landmark.observations.end()) {  // ensure no double observations...
-      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmIdB),
-                        "not added");
-      estimator_->addObservation<camera_geometry_t>(lmIdB, mfIdB_, camIdB_,
-                                                    indexB);
+    if (landmark.observations.find(okvis::KeypointIdentifier(mfIdB_, camIdB_, indexB)) ==
+        landmark.observations.end()) {  // ensure no double observations...
+      OKVIS_ASSERT_TRUE(Exception, estimator_->isLandmarkAdded(lmIdB), "not added");
+      estimator_->addObservation<camera_geometry_t>(lmIdB, mfIdB_, camIdB_, indexB);
     }
-
   }
   numMatches_++;
   /*if (useSCM_) // Added by Sharmin
-	  scm_numMatches_++;*/
+          scm_numMatches_++;*/
 }
 
 template class VioKeyframeWindowMatchingAlgorithm<
-    okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion> > ;
+    okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion> >;
 
 template class VioKeyframeWindowMatchingAlgorithm<
-    okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion> > ;
+    okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion> >;
 
 template class VioKeyframeWindowMatchingAlgorithm<
-    okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion8> > ;
+    okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion8> >;
 
-}
+}  // namespace okvis

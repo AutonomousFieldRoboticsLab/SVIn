@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -42,11 +42,11 @@
 #define INCLUDE_OKVIS_FRONTEND_HPP_
 
 #include <mutex>
-#include <okvis/assert_macros.hpp>
+#include <okvis/DenseMatcher.hpp>
 #include <okvis/Estimator.hpp>
 #include <okvis/VioFrontendInterface.hpp>
+#include <okvis/assert_macros.hpp>
 #include <okvis/timing/Timer.hpp>
-#include <okvis/DenseMatcher.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -69,8 +69,7 @@ class Frontend : public VioFrontendInterface {
    * @param numCameras Number of cameras in the sensor configuration.
    */
   Frontend(size_t numCameras);
-  virtual ~Frontend() {
-  }
+  virtual ~Frontend() {}
 
   ///@{
   /**
@@ -88,7 +87,7 @@ class Frontend : public VioFrontendInterface {
   virtual bool detectAndDescribe(size_t cameraIndex,
                                  std::shared_ptr<okvis::MultiFrame> frameOut,
                                  const okvis::kinematics::Transformation& T_WC,
-                                 const std::vector<cv::KeyPoint> * keypoints);
+                                 const std::vector<cv::KeyPoint>* keypoints);
 
   /**
    * @brief Matching as well as initialization of landmarks and state.
@@ -102,12 +101,12 @@ class Frontend : public VioFrontendInterface {
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
-  virtual bool dataAssociationAndInitialization(
-      okvis::Estimator& estimator,
-      okvis::kinematics::Transformation& T_WS_propagated,
-      const okvis::VioParameters & params,
-      const std::shared_ptr<okvis::MapPointVector> map,
-      std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe);
+  virtual bool dataAssociationAndInitialization(okvis::Estimator& estimator,
+                                                okvis::kinematics::Transformation& T_WS_propagated,
+                                                const okvis::VioParameters& params,
+                                                const std::shared_ptr<okvis::MapPointVector> map,
+                                                std::shared_ptr<okvis::MultiFrame> framesInOut,
+                                                bool* asKeyframe);
 
   /**
    * @brief Propagates pose, speeds and biases with given IMU measurements.
@@ -123,11 +122,12 @@ class Frontend : public VioFrontendInterface {
    * @param[out] jacobian Jacobian w.r.t. start states.
    * @return True on success.
    */
-  virtual bool propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
-                           const okvis::ImuParameters & imuParams,
+  virtual bool propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
+                           const okvis::ImuParameters& imuParams,
                            okvis::kinematics::Transformation& T_WS_propagated,
-                           okvis::SpeedAndBias & speedAndBiases,
-                           const okvis::Time& t_start, const okvis::Time& t_end,
+                           okvis::SpeedAndBias& speedAndBiases,
+                           const okvis::Time& t_start,
+                           const okvis::Time& t_end,
                            Eigen::Matrix<double, 15, 15>* covariance,
                            Eigen::Matrix<double, 15, 15>* jacobian) const;
 
@@ -136,62 +136,42 @@ class Frontend : public VioFrontendInterface {
   /// @{
 
   /// @brief Get the number of octaves of the BRISK detector.
-  size_t getBriskDetectionOctaves() const {
-    return briskDetectionOctaves_;
-  }
+  size_t getBriskDetectionOctaves() const { return briskDetectionOctaves_; }
 
   /// @brief Get the detection threshold of the BRISK detector.
-  double getBriskDetectionThreshold() const {
-    return briskDetectionThreshold_;
-  }
+  double getBriskDetectionThreshold() const { return briskDetectionThreshold_; }
 
   /// @brief Get the absolute threshold of the BRISK detector.
-  double getBriskDetectionAbsoluteThreshold() const {
-    return briskDetectionAbsoluteThreshold_;
-  }
+  double getBriskDetectionAbsoluteThreshold() const { return briskDetectionAbsoluteThreshold_; }
 
   /// @brief Get the maximum amount of keypoints of the BRISK detector.
-  size_t getBriskDetectionMaximumKeypoints() const {
-    return briskDetectionMaximumKeypoints_;
-  }
+  size_t getBriskDetectionMaximumKeypoints() const { return briskDetectionMaximumKeypoints_; }
 
   ///@}
   /// @name Getters related to the BRISK descriptor
   /// @{
 
   /// @brief Get the rotation invariance setting of the BRISK descriptor.
-  bool getBriskDescriptionRotationInvariance() const {
-    return briskDescriptionRotationInvariance_;
-  }
+  bool getBriskDescriptionRotationInvariance() const { return briskDescriptionRotationInvariance_; }
 
   /// @brief Get the scale invariance setting of the BRISK descriptor.
-  bool getBriskDescriptionScaleInvariance() const {
-    return briskDescriptionScaleInvariance_;
-  }
+  bool getBriskDescriptionScaleInvariance() const { return briskDescriptionScaleInvariance_; }
 
   ///@}
   /// @name Other getters
   /// @{
 
   /// @brief Get the matching threshold.
-  double getBriskMatchingThreshold() const {
-    return briskMatchingThreshold_;
-  }
+  double getBriskMatchingThreshold() const { return briskMatchingThreshold_; }
 
   /// @brief Get the area overlap threshold under which a new keyframe is inserted.
-  float getKeyframeInsertionOverlapThershold() const {
-    return keyframeInsertionOverlapThreshold_;
-  }
+  float getKeyframeInsertionOverlapThershold() const { return keyframeInsertionOverlapThreshold_; }
 
   /// @brief Get the matching ratio threshold under which a new keyframe is inserted.
-  float getKeyframeInsertionMatchingRatioThreshold() const {
-    return keyframeInsertionMatchingRatioThreshold_;
-  }
+  float getKeyframeInsertionMatchingRatioThreshold() const { return keyframeInsertionMatchingRatioThreshold_; }
 
   /// @brief Returns true if the initialization has been completed (RANSAC with actual translation)
-  bool isInitialized() {
-    return isInitialized_;
-  }
+  bool isInitialized() { return isInitialized_; }
 
   /// @}
   /// @name Setters related to the BRISK detector
@@ -242,14 +222,10 @@ class Frontend : public VioFrontendInterface {
   /// @{
 
   /// @brief Set the matching threshold.
-  void setBriskMatchingThreshold(double threshold) {
-    briskMatchingThreshold_ = threshold;
-  }
+  void setBriskMatchingThreshold(double threshold) { briskMatchingThreshold_ = threshold; }
 
   /// @brief Set the area overlap threshold under which a new keyframe is inserted.
-  void setKeyframeInsertionOverlapThreshold(float threshold) {
-    keyframeInsertionOverlapThreshold_ = threshold;
-  }
+  void setKeyframeInsertionOverlapThreshold(float threshold) { keyframeInsertionOverlapThreshold_ = threshold; }
 
   /// @brief Set the matching ratio threshold under which a new keyframe is inserted.
   void setKeyframeInsertionMatchingRatioThreshold(float threshold) {
@@ -259,7 +235,6 @@ class Frontend : public VioFrontendInterface {
   /// @}
 
  private:
-
   /**
    * @brief   feature detectors with the current settings.
    *          The vector contains one for each camera to ensure that there are no problems with parallel detection.
@@ -275,15 +250,15 @@ class Frontend : public VioFrontendInterface {
   /// Mutexes for feature detectors and descriptors.
   std::vector<std::unique_ptr<std::mutex> > featureDetectorMutexes_;
 
-  bool isInitialized_;        ///< Is the pose initialised?
-  const size_t numCameras_;   ///< Number of cameras in the configuration.
-  bool isScaleRefined_ = true;//false; // FIXME Sharmin: make it private and create set/get functions
-  int numStatesToRefineScale_ = 0; // FIXME Sharmin: make it private and create set/get functions
+  bool isInitialized_;              ///< Is the pose initialised?
+  const size_t numCameras_;         ///< Number of cameras in the configuration.
+  bool isScaleRefined_ = true;      // false; // FIXME Sharmin: make it private and create set/get functions
+  int numStatesToRefineScale_ = 0;  // FIXME Sharmin: make it private and create set/get functions
 
   // Note Sharmin ransac2d2d_R, ransac2d2d_t, imu_interal_deltaP, imu_interal_deltaV, imu_interal_dt must have same size
-  std::vector<Eigen::Matrix3d> ransac2d2d_R_WS; // Sharmin: to refine scale
-  std::vector<Eigen::Vector3d> ransac2d2d_t_WC; // Sharmin: to refine scale
-  std::vector<Eigen::Vector3d> ransac2d2d_t_SC; // Sharmin: to refine scale
+  std::vector<Eigen::Matrix3d> ransac2d2d_R_WS;  // Sharmin: to refine scale
+  std::vector<Eigen::Vector3d> ransac2d2d_t_WC;  // Sharmin: to refine scale
+  std::vector<Eigen::Vector3d> ransac2d2d_t_SC;  // Sharmin: to refine scale
   std::vector<Eigen::Vector3d> imu_interal_deltaP;
   std::vector<Eigen::Vector3d> imu_interal_deltaV;
   std::vector<double> imu_interal_dt;
@@ -300,18 +275,18 @@ class Frontend : public VioFrontendInterface {
   /// @name BRISK descriptor extractor parameters
   /// @{
 
-  bool briskDescriptionRotationInvariance_; ///< The set rotation invariance setting.
-  bool briskDescriptionScaleInvariance_;    ///< The set scale invariance setting.
+  bool briskDescriptionRotationInvariance_;  ///< The set rotation invariance setting.
+  bool briskDescriptionScaleInvariance_;     ///< The set scale invariance setting.
 
   ///@}
   /// @name BRISK matching parameters
   ///@{
 
-  double briskMatchingThreshold_; ///< The set BRISK matching threshold.
+  double briskMatchingThreshold_;  ///< The set BRISK matching threshold.
 
   ///@}
 
-  std::unique_ptr<okvis::DenseMatcher> matcher_; ///< Matcher object.
+  std::unique_ptr<okvis::DenseMatcher> matcher_;  ///< Matcher object.
 
   /**
    * @brief If the hull-area around all matched keypoints of the current frame (with existing landmarks)
@@ -319,14 +294,14 @@ class Frontend : public VioFrontendInterface {
    *        this threshold it should be a new keyframe.
    * @see   doWeNeedANewKeyframe()
    */
-  float keyframeInsertionOverlapThreshold_;  //0.6
+  float keyframeInsertionOverlapThreshold_;  // 0.6
   /**
    * @brief If the number of matched keypoints of the current frame with an older frame
    *        divided by the amount of points inside the convex hull around all keypoints
    *        is lower than the threshold it should be a keyframe.
    * @see   doWeNeedANewKeyframe()
    */
-  float keyframeInsertionMatchingRatioThreshold_;  //0.2
+  float keyframeInsertionMatchingRatioThreshold_;  // 0.2
 
   /**
    * @brief Decision whether a new frame should be keyframe or not.
@@ -351,10 +326,11 @@ class Frontend : public VioFrontendInterface {
    * @param[in]  removeOutliers         Remove outliers during RANSAC.
    * @return The number of matches in total.
    */
-  template<class MATCHING_ALGORITHM>
+  template <class MATCHING_ALGORITHM>
   int matchToKeyframes(okvis::Estimator& estimator,
                        const okvis::VioParameters& params,
-                       const uint64_t currentFrameId, bool& rotationOnly,
+                       const uint64_t currentFrameId,
+                       bool& rotationOnly,
                        bool usePoseUncertainty = true,
                        double* uncertainMatchFraction = 0,
                        bool removeOutliers = true);  // for wide-baseline matches (good initial guess)
@@ -370,7 +346,7 @@ class Frontend : public VioFrontendInterface {
    * @param removeOutliers      Remove outliers during RANSAC.
    * @return The number of matches in total.
    */
-  template<class MATCHING_ALGORITHM>
+  template <class MATCHING_ALGORITHM>
   int matchToLastFrame(okvis::Estimator& estimator,
                        const okvis::VioParameters& params,
                        const uint64_t currentFrameId,
@@ -384,9 +360,9 @@ class Frontend : public VioFrontendInterface {
    * @param estimator   Estimator.
    * @param multiFrame  Multiframe containing the frames to match.
    */
-  template<class MATCHING_ALGORITHM>
+  template <class MATCHING_ALGORITHM>
   void matchStereo(okvis::Estimator& estimator,
-		           const okvis::VioParameters& params,
+                   const okvis::VioParameters& params,
                    std::shared_ptr<okvis::MultiFrame> multiFrame);
 
   /**
@@ -399,7 +375,7 @@ class Frontend : public VioFrontendInterface {
    * @return Number of inliers.
    */
   int runRansac3d2d(okvis::Estimator& estimator,
-                    const okvis::cameras::NCameraSystem &nCameraSystem,
+                    const okvis::cameras::NCameraSystem& nCameraSystem,
                     std::shared_ptr<okvis::MultiFrame> currentFrame,
                     bool removeOutliers);
 
@@ -416,20 +392,25 @@ class Frontend : public VioFrontendInterface {
    * @return Number of inliers.
    */
   int runRansac2d2d(okvis::Estimator& estimator,
-                    const okvis::VioParameters& params, uint64_t currentFrameId,
-                    uint64_t olderFrameId, bool initializePose,
-                    bool removeOutliers, bool &rotationOnly);
+                    const okvis::VioParameters& params,
+                    uint64_t currentFrameId,
+                    uint64_t olderFrameId,
+                    bool initializePose,
+                    bool removeOutliers,
+                    bool& rotationOnly);
   // Added by Sharmin
   int runRansac2d2dToRefineScale(okvis::Estimator& estimator,
-                      const okvis::VioParameters& params, uint64_t currentFrameId,
-                      uint64_t olderFrameId, bool initializePose,
-                      bool removeOutliers, bool &rotationOnly);
+                                 const okvis::VioParameters& params,
+                                 uint64_t currentFrameId,
+                                 uint64_t olderFrameId,
+                                 bool initializePose,
+                                 bool removeOutliers,
+                                 bool& rotationOnly);
 
   /// (re)instantiates feature detectors and descriptor extractors. Used after settings changed or at startup.
   void initialiseBriskFeatureDetectors();
-
 };
 
 }  // namespace okvis
 
-#endif // INCLUDE_OKVIS_FRONTEND_HPP_
+#endif  // INCLUDE_OKVIS_FRONTEND_HPP_

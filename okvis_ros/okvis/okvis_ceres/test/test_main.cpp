@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -34,7 +34,7 @@
 #include "glog/logging.h"
 
 /// Run all the tests that were declared with TEST()
-int main(int argc, char **argv){
+int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
   return RUN_ALL_TESTS();

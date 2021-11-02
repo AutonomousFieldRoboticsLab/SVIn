@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,12 +39,12 @@
 #ifndef INCLUDE_OKVIS_CERES_PARAMETERBLOCKSIZED_HPP_
 #define INCLUDE_OKVIS_CERES_PARAMETERBLOCKSIZED_HPP_
 
-#include <stdio.h>
-#include <iostream>
 #include <stdint.h>
-#include <okvis/ceres/ParameterBlock.hpp>
-#include <okvis/assert_macros.hpp>
+#include <stdio.h>
 #include <Eigen/Core>
+#include <iostream>
+#include <okvis/assert_macros.hpp>
+#include <okvis/ceres/ParameterBlock.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -55,11 +55,11 @@ namespace ceres {
 /// @tparam Dim     Dimension of parameter block
 /// @tparam MinDim  Minimal dimension of parameter block
 /// @tparam T       The type of the estimate
-template<int Dim, int MinDim, class T>
+template <int Dim, int MinDim, class T>
 class ParameterBlockSized : public okvis::ceres::ParameterBlock {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// @brief Dimension of the parameter block.
   static const int Dimension = Dim;
@@ -72,20 +72,18 @@ class ParameterBlockSized : public okvis::ceres::ParameterBlock {
 
   /// \brief Default constructor -- initialises elements in parametes_ to zero.
   ParameterBlockSized() {
-    for (int i = 0; i < Dimension; ++i)
-      parameters_[i] = 0;
+    for (int i = 0; i < Dimension; ++i) parameters_[i] = 0;
   }
 
   /// \brief Trivial destructor.
-  virtual ~ParameterBlockSized() {
-  }
+  virtual ~ParameterBlockSized() {}
 
   /// @name Setters
   /// @{
 
   /// @brief Set estimate of this parameter block.
   /// @param[in] estimate The estimate to set this to.
-  virtual void setEstimate(const parameter_t& estimate)=0;
+  virtual void setEstimate(const parameter_t& estimate) = 0;
 
   /// @brief Set exact parameters of this parameter block.
   /// @param[in] parameters The parameters to set this to.
@@ -105,41 +103,29 @@ class ParameterBlockSized : public okvis::ceres::ParameterBlock {
 
   /// @brief Get parameters -- as a pointer.
   /// \return Pointer to the parameters allocated in here.
-  virtual double* parameters() {
-    return parameters_;
-  }
+  virtual double* parameters() { return parameters_; }
 
   /// @brief Get parameters -- as a pointer.
   /// \return Pointer to the parameters allocated in here.
-  virtual const double* parameters() const {
-    return parameters_;
-  }
+  virtual const double* parameters() const { return parameters_; }
 
   /// @brief Get the parameter dimension.
   /// \return The parameter dimension.
-  virtual size_t dimension() const {
-    return Dimension;
-  }
+  virtual size_t dimension() const { return Dimension; }
 
   /// @brief Get the internal minimal parameter dimension.
   /// \return The internal minimal parameter dimension.
-  virtual size_t minimalDimension() const {
-    return MinimalDimension;
-  }
+  virtual size_t minimalDimension() const { return MinimalDimension; }
 
   /// @}
 
   /// @name File read/write - implement in derived class, if needed
   /// @{
   /// \brief Reading from file -- not implemented
-  virtual bool read(std::istream& /*not implemented: is*/) {
-    return false;
-  }
+  virtual bool read(std::istream& /*not implemented: is*/) { return false; }
 
   /// \brief Writing to file -- not implemented
-  virtual bool write(std::ostream& /*not implemented: os*/) const {
-    return false;
-  }
+  virtual bool write(std::ostream& /*not implemented: os*/) const { return false; }
   /// @}
 
  protected:

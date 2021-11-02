@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -39,8 +39,8 @@
 #ifndef INCLUDE_OKVIS_CERES_LOCALPARAMIZATIONADDITIONALINTERFACES_HPP_
 #define INCLUDE_OKVIS_CERES_LOCALPARAMIZATIONADDITIONALINTERFACES_HPP_
 
-#include "ceres/ceres.h"
 #include <okvis/assert_macros.hpp>
+#include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -51,18 +51,15 @@ namespace ceres {
 ///        than are needed in the generic marginalisation okvis::ceres::MarginalizationError.
 class LocalParamizationAdditionalInterfaces {
  public:
-
   /// \brief Trivial destructor.
-  virtual ~LocalParamizationAdditionalInterfaces() {
-  }
+  virtual ~LocalParamizationAdditionalInterfaces() {}
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta,
-                     double* delta) const = 0;
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const = 0;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -74,7 +71,7 @@ class LocalParamizationAdditionalInterfaces {
   /// @param[in] x_raw Linearisation point of the variable.
   /// @param[in] purturbation_magnitude Magnitude of the delta used for numeric Jacobians.
   /// \return True on success.
-  virtual bool verify(const double* x_raw, double purturbation_magnitude = 1.0e-6) const ;
+  virtual bool verify(const double* x_raw, double purturbation_magnitude = 1.0e-6) const;
 };
 
 }  // namespace ceres

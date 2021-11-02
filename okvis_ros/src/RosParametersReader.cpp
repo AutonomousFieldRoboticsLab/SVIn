@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -46,9 +46,7 @@
 namespace okvis {
 
 // The default constructor.
-RosParametersReader::RosParametersReader()
-    : VioParametersReader() {
-}
+RosParametersReader::RosParametersReader() : VioParametersReader() {}
 
 // The constructor. This calls readConfigFile().
 RosParametersReader::RosParametersReader(const std::string& filename) {
@@ -58,9 +56,8 @@ RosParametersReader::RosParametersReader(const std::string& filename) {
 
 // Get the camera calibration.
 bool RosParametersReader::getCameraCalibration(
-    std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations,
+    std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,
     cv::FileStorage& configurationFile) {
-
   bool success = getCalibrationViaConfig(calibrations, configurationFile["cameras"]);
 
   if (!useDriver && !success) {
@@ -72,18 +69,16 @@ bool RosParametersReader::getCameraCalibration(
     success = getCalibrationViaRosTopic(calibrations);
   }
 
-  if (!useDriver && !success)
-    LOG(INFO) << "Could not get calibration via ros topic.";
+  if (!useDriver && !success) LOG(INFO) << "Could not get calibration via ros topic.";
 
 #ifdef HAVE_LIBVISENSOR
   if (useDriver && !success) {
     // start up sensor
-    viSensor = std::shared_ptr<visensor::ViSensorDriver>(
-          new visensor::ViSensorDriver());
+    viSensor = std::shared_ptr<visensor::ViSensorDriver>(new visensor::ViSensorDriver());
     try {
       // use autodiscovery to find sensor. TODO: specify IP in config?
       std::static_pointer_cast<visensor::ViSensorDriver>(viSensor)->init();
-    } catch (Exception const &ex) {
+    } catch (Exception const& ex) {
       LOG(ERROR) << ex.what();
       exit(1);
     }
@@ -97,61 +92,48 @@ bool RosParametersReader::getCameraCalibration(
 
 // Get the camera calibration via the ROS service advertised by the visensor node.
 bool RosParametersReader::getCalibrationViaRosService(
-    std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations) const {
+    std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const {
 #ifdef HAVE_VISENSOR
   calibrations.clear();
   ros::NodeHandle nh;
-  ros::ServiceClient client = nh.serviceClient<
-      visensor_msgs::visensor_calibration_service>("/get_camera_calibration");
+  ros::ServiceClient client = nh.serviceClient<visensor_msgs::visensor_calibration_service>("/get_camera_calibration");
   visensor_msgs::visensor_calibration_service srv;
-  const double serviceTimeout = 1.0; // seconds
+  const double serviceTimeout = 1.0;  // seconds
   if (client.waitForExistence(ros::Duration(serviceTimeout))) {
     if (client.call(srv)) {
-      LOG(INFO) << "Received calibrations for "
-                << srv.response.calibration.size() << " cameras via service.";
+      LOG(INFO) << "Received calibrations for " << srv.response.calibration.size() << " cameras via service.";
       for (size_t i = 0; i < srv.response.calibration.size(); ++i) {
-        if (srv.response.calibration[i].dist_coeff.size() < 4
-            || srv.response.calibration[i].principal_point.size() < 2
-            || srv.response.calibration[i].focal_length.size() < 2) {
+        if (srv.response.calibration[i].dist_coeff.size() < 4 ||
+            srv.response.calibration[i].principal_point.size() < 2 ||
+            srv.response.calibration[i].focal_length.size() < 2) {
           LOG(WARNING) << "Invalid calibration from service.";
           // remove the already received calibrations and return.
           calibrations.clear();
           return false;
         } else {
           calibrations.push_back(okvis::VioParametersReader::CameraCalibration());
-#ifdef USE_VISENSORNODE_V1_1 // TODO: remove this as soon as the public visensor_node gets updated!
+#ifdef USE_VISENSORNODE_V1_1  // TODO: remove this as soon as the public visensor_node gets updated!
           geometry_msgs::Pose& T_IC = srv.response.calibration[i].T_IC;
-          Eigen::Vector3d t(T_IC.position.x,
-                            T_IC.position.y,
-                            T_IC.position.z);
-          Eigen::Quaterniond q(T_IC.orientation.w,
-                               -T_IC.orientation.x,
-                               -T_IC.orientation.y,
-                               -T_IC.orientation.z);
-          calibrations[i].T_SC = okvis::kinematics::Transformation(t,q);
+          Eigen::Vector3d t(T_IC.position.x, T_IC.position.y, T_IC.position.z);
+          Eigen::Quaterniond q(T_IC.orientation.w, -T_IC.orientation.x, -T_IC.orientation.y, -T_IC.orientation.z);
+          calibrations[i].T_SC = okvis::kinematics::Transformation(t, q);
           calibrations[i].imageDimension << 752, 480;
 #else
           geometry_msgs::Pose& T_CI = srv.response.calibration[i].T_CI;
-          Eigen::Vector3d t(T_CI.position.x,
-                            T_CI.position.y,
-                            T_CI.position.z);
-          Eigen::Quaterniond q(T_CI.orientation.w,
-                               -T_CI.orientation.x,
-                               -T_CI.orientation.y,
-                               -T_CI.orientation.z);
-          okvis::kinematics::Transformation T_CI_okvis(t,q);
+          Eigen::Vector3d t(T_CI.position.x, T_CI.position.y, T_CI.position.z);
+          Eigen::Quaterniond q(T_CI.orientation.w, -T_CI.orientation.x, -T_CI.orientation.y, -T_CI.orientation.z);
+          okvis::kinematics::Transformation T_CI_okvis(t, q);
           calibrations[i].T_SC = T_CI_okvis.inverse();
           calibrations[i].imageDimension << srv.response.calibration[i].image_width,
-                                            srv.response.calibration[i].image_height;
+              srv.response.calibration[i].image_height;
 #endif
           calibrations[i].distortionCoefficients << srv.response.calibration[i].dist_coeff[0],
-                                                    srv.response.calibration[i].dist_coeff[1],
-                                                    srv.response.calibration[i].dist_coeff[2],
-                                                    srv.response.calibration[i].dist_coeff[3];
+              srv.response.calibration[i].dist_coeff[1], srv.response.calibration[i].dist_coeff[2],
+              srv.response.calibration[i].dist_coeff[3];
           calibrations[i].focalLength << srv.response.calibration[i].focal_length[0],
-                                         srv.response.calibration[i].focal_length[1];
+              srv.response.calibration[i].focal_length[1];
           calibrations[i].principalPoint << srv.response.calibration[i].principal_point[0],
-                                            srv.response.calibration[i].principal_point[1];
+              srv.response.calibration[i].principal_point[1];
           calibrations[i].distortionType = srv.response.calibration[i].dist_model;
         }
       }
@@ -159,17 +141,17 @@ bool RosParametersReader::getCalibrationViaRosService(
   }
   return calibrations.empty() == false;
 #else
-  static_cast<void>(calibrations); // unused
+  static_cast<void>(calibrations);  // unused
   return false;
-#endif // HAVE_VISENSOR
+#endif  // HAVE_VISENSOR
 }
 
 // Get the camera calibration via the ROS topic /calibrationX.
-bool RosParametersReader::getCalibrationViaRosTopic (
-    std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations) const {
+bool RosParametersReader::getCalibrationViaRosTopic(
+    std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const {
 #ifdef HAVE_VISENSOR
   calibrations.clear();
-  const double topicTimeout = 0.5; // seconds
+  const double topicTimeout = 0.5;  // seconds
   size_t camIdx = 0;
   visensor_msgs::visensor_calibration message;
   bool receivedMessage;
@@ -180,56 +162,38 @@ bool RosParametersReader::getCalibrationViaRosTopic (
     receivedMessage = false;
 
     // set up subscriber
-    calibrationSub =
-        nh.subscribe<visensor_msgs::visensor_calibration>(
-          "/calibration"+std::to_string(camIdx),1,
-          [camIdx, &message, &receivedMessage]
-          (const visensor_msgs::visensor_calibration::ConstPtr& msg)
-          {
-            LOG(INFO) << "Received camera calibration for camera " << camIdx << " via topic";
-            message = *msg;
-            receivedMessage = true;
-          });
+    calibrationSub = nh.subscribe<visensor_msgs::visensor_calibration>(
+        "/calibration" + std::to_string(camIdx),
+        1,
+        [camIdx, &message, &receivedMessage](const visensor_msgs::visensor_calibration::ConstPtr& msg) {
+          LOG(INFO) << "Received camera calibration for camera " << camIdx << " via topic";
+          message = *msg;
+          receivedMessage = true;
+        });
 
     // spin until a timeout is reached
-    ros::getGlobalCallbackQueue()->callAvailable(
-          ros::WallDuration(topicTimeout));
+    ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(topicTimeout));
 
     if (receivedMessage) {
       calibrations.push_back(okvis::VioParametersReader::CameraCalibration());
 #ifdef USE_VISENSORNODE_V1_1
       geometry_msgs::Pose& T_IC = message.T_IC;
-      Eigen::Vector3d t(T_IC.position.x,
-                        T_IC.position.y,
-                        T_IC.position.z);
-      Eigen::Quaterniond q(T_IC.orientation.w,
-                           -T_IC.orientation.x,
-                           -T_IC.orientation.y,
-                           -T_IC.orientation.z);
-      calibrations[camIdx].T_SC = okvis::kinematics::Transformation(t,q);
+      Eigen::Vector3d t(T_IC.position.x, T_IC.position.y, T_IC.position.z);
+      Eigen::Quaterniond q(T_IC.orientation.w, -T_IC.orientation.x, -T_IC.orientation.y, -T_IC.orientation.z);
+      calibrations[camIdx].T_SC = okvis::kinematics::Transformation(t, q);
       calibrations[camIdx].imageDimension << 752, 480;
 #else
       geometry_msgs::Pose& T_CI = message.T_CI;
-      Eigen::Vector3d t(T_CI.position.x,
-                        T_CI.position.y,
-                        T_CI.position.z);
-      Eigen::Quaterniond q(T_CI.orientation.w,
-                           -T_CI.orientation.x,
-                           -T_CI.orientation.y,
-                           -T_CI.orientation.z);
-      okvis::kinematics::Transformation T_CI_okvis(t,q);
+      Eigen::Vector3d t(T_CI.position.x, T_CI.position.y, T_CI.position.z);
+      Eigen::Quaterniond q(T_CI.orientation.w, -T_CI.orientation.x, -T_CI.orientation.y, -T_CI.orientation.z);
+      okvis::kinematics::Transformation T_CI_okvis(t, q);
       calibrations[camIdx].T_SC = T_CI_okvis.inverse();
-      calibrations[camIdx].imageDimension << message.image_width,
-                                             message.image_height;
+      calibrations[camIdx].imageDimension << message.image_width, message.image_height;
 #endif
-      calibrations[camIdx].distortionCoefficients << message.dist_coeff[0],
-                                                     message.dist_coeff[1],
-                                                     message.dist_coeff[2],
-                                                     message.dist_coeff[3];
-      calibrations[camIdx].focalLength << message.focal_length[0],
-                                          message.focal_length[1];
-      calibrations[camIdx].principalPoint << message.principal_point[0],
-                                             message.principal_point[1];
+      calibrations[camIdx].distortionCoefficients << message.dist_coeff[0], message.dist_coeff[1],
+          message.dist_coeff[2], message.dist_coeff[3];
+      calibrations[camIdx].focalLength << message.focal_length[0], message.focal_length[1];
+      calibrations[camIdx].principalPoint << message.principal_point[0], message.principal_point[1];
       calibrations[camIdx].distortionType = message.dist_model;
 
       ++camIdx;
@@ -239,9 +203,9 @@ bool RosParametersReader::getCalibrationViaRosTopic (
 
   return calibrations.empty() == false;
 #else
-  static_cast<void>(calibrations); // unused
+  static_cast<void>(calibrations);  // unused
   return false;
-#endif // HAVE_VISENSOR
+#endif  // HAVE_VISENSOR
 }
 
 }  // namespace okvis

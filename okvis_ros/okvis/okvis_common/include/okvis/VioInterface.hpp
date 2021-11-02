@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,17 +44,17 @@
 #define INCLUDE_OKVIS_VIOINTERFACE_HPP_
 
 #include <cstdint>
-#include <memory>
 #include <functional>
+#include <memory>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #pragma GCC diagnostic pop
-#include <okvis/assert_macros.hpp>
-#include <okvis/Time.hpp>
 #include <okvis/FrameTypedefs.hpp>
+#include <okvis/Time.hpp>
+#include <okvis/assert_macros.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 
 /// \brief okvis Main namespace of this package.
@@ -65,43 +65,45 @@ namespace okvis {
  */
 class VioInterface {
  public:
-  OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
-  typedef std::function<
-  void(const okvis::Time &, const okvis::kinematics::Transformation &)> StateCallback;
+  typedef std::function<void(const okvis::Time&, const okvis::kinematics::Transformation&)> StateCallback;
 
   // Modified by Sharmin
-  typedef std::function<
-      void(const okvis::Time &, const okvis::kinematics::Transformation &,
-           const Eigen::Matrix<double, 9, 1> &,
-           const Eigen::Matrix<double, 3, 1> &, const okvis::kinematics::Transformation &)> FullStateCallback;
-  typedef std::function<
-      void(
-          const okvis::Time &,
-          const okvis::kinematics::Transformation &,
-          const Eigen::Matrix<double, 9, 1> &,
-          const Eigen::Matrix<double, 3, 1> &,
-          const std::vector<okvis::kinematics::Transformation,
-              Eigen::aligned_allocator<okvis::kinematics::Transformation> >&)> FullStateCallbackWithExtrinsics;
+  typedef std::function<void(const okvis::Time&,
+                             const okvis::kinematics::Transformation&,
+                             const Eigen::Matrix<double, 9, 1>&,
+                             const Eigen::Matrix<double, 3, 1>&,
+                             const okvis::kinematics::Transformation&)>
+      FullStateCallback;
+  typedef std::function<void(const okvis::Time&,
+                             const okvis::kinematics::Transformation&,
+                             const Eigen::Matrix<double, 9, 1>&,
+                             const Eigen::Matrix<double, 3, 1>&,
+                             const std::vector<okvis::kinematics::Transformation,
+                                               Eigen::aligned_allocator<okvis::kinematics::Transformation>>&)>
+      FullStateCallbackWithExtrinsics;
   typedef Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> EigenImage;
-  typedef std::function<
-      void(const okvis::Time &, const okvis::MapPointVector &,
-           const okvis::MapPointVector &)> LandmarksCallback;
+  typedef std::function<void(const okvis::Time&, const okvis::MapPointVector&, const okvis::MapPointVector&)>
+      LandmarksCallback;
 
   // Sharmin
-  //typedef std::function<
+  // typedef std::function<
   //      void(const okvis::Time &, const std::vector<Eigen::Vector3d> &)> StereoMatchCallback;
   // TODO Sharmin: Fix the size of the matrix
-  typedef std::function<
-        void(const okvis::Time &, const cv::Mat &, const okvis::kinematics::Transformation &, std::vector<std::list<std::vector<double>>> &)> KeyframeCallback;
+  typedef std::function<void(const okvis::Time&,
+                             const cv::Mat&,
+                             const okvis::kinematics::Transformation&,
+                             std::vector<std::list<std::vector<double>>>&)>
+      KeyframeCallback;
 
   typedef std::function<
-          void(const okvis::Time &, const Eigen::Vector3d &, const Eigen::Quaterniond &,
-        			const double &, const double &)> RelocRelativePoseCallback;
+      void(const okvis::Time&, const Eigen::Vector3d&, const Eigen::Quaterniond&, const double&, const double&)>
+      RelocRelativePoseCallback;
   // End Sharmin
 
   // Hunter
-  typedef std::function<void(const okvis::Time &, int, const cv::Mat &)> ImageCallback;
+  typedef std::function<void(const okvis::Time&, int, const cv::Mat&)> ImageCallback;
 
   VioInterface();
   virtual ~VioInterface();
@@ -153,9 +155,10 @@ class VioInterface {
    * \warning Already specifying whether this frame should be a keyframe is not implemented yet.
    * \return             Returns true normally. False, if the previous one has not been processed yet.
    */
-  virtual bool addImage(const okvis::Time & stamp, size_t cameraIndex,
-                        const cv::Mat & image,
-                        const std::vector<cv::KeyPoint> * keypoints = 0,
+  virtual bool addImage(const okvis::Time& stamp,
+                        size_t cameraIndex,
+                        const cv::Mat& image,
+                        const std::vector<cv::KeyPoint>* keypoints = 0,
                         bool* asKeyframe = 0) = 0;
 
   /**
@@ -168,9 +171,10 @@ class VioInterface {
    * \param asKeyframe  Optionally force keyframe or not.
    * \return            Returns true normally. False, if the previous one has not been processed yet.
    */
-  virtual bool addKeypoints(const okvis::Time & stamp, size_t cameraIndex,
-                            const std::vector<cv::KeyPoint> & keypoints,
-                            const std::vector<uint64_t> & landmarkIds,
+  virtual bool addKeypoints(const okvis::Time& stamp,
+                            size_t cameraIndex,
+                            const std::vector<cv::KeyPoint>& keypoints,
+                            const std::vector<uint64_t>& landmarkIds,
                             const cv::Mat& descriptors = cv::Mat(),
                             bool* asKeyframe = 0) = 0;
 
@@ -178,34 +182,33 @@ class VioInterface {
   /// \param stamp    The measurement timestamp.
   /// \param alpha    The acceleration measured at this time.
   /// \param omega    The angular velocity measured at this time.
-  virtual bool addImuMeasurement(const okvis::Time & stamp,
-                                 const Eigen::Vector3d & alpha,
-                                 const Eigen::Vector3d & omega) = 0;
+  virtual bool addImuMeasurement(const okvis::Time& stamp,
+                                 const Eigen::Vector3d& alpha,
+                                 const Eigen::Vector3d& omega) = 0;
 
   /// @Sharmin
   /**
-	* @brief Add a sonar landmark.
-	* @param landmarkId ID of the new sonar landmark.
-	* @param landmark Homogeneous coordinates of landmark in W-frame.
-	* @return True if successful.
-	*/
+   * @brief Add a sonar landmark.
+   * @param landmarkId ID of the new sonar landmark.
+   * @param landmark Homogeneous coordinates of landmark in W-frame.
+   * @return True if successful.
+   */
   /*virtual bool addSonarLandmark(uint64_t landmarkId,
           const Eigen::Vector4d & landmark) = 0;*/
 
   /// @Sharmin
   /// \brief          Add an Reloc measurement.
   /// \param stamp    The measurement timestamp.
-  virtual bool addRelocMeasurement(const okvis::Time & stamp,
-						   const std::vector<Eigen::Vector3d> & matched_ids,
-						   const Eigen::Vector3d & relo_t,
-						   const Eigen::Quaterniond & relo_q) = 0;
+  virtual bool addRelocMeasurement(const okvis::Time& stamp,
+                                   const std::vector<Eigen::Vector3d>& matched_ids,
+                                   const Eigen::Vector3d& relo_t,
+                                   const Eigen::Quaterniond& relo_q) = 0;
 
   /// @Sharmin
   /// \brief          Add an Depth measurement.
   /// \param stamp    The measurement timestamp.
   /// \param depth    Depth measurement in meter
-  virtual bool addDepthMeasurement(const okvis::Time & stamp,
-							   double depth) = 0;
+  virtual bool addDepthMeasurement(const okvis::Time& stamp, double depth) = 0;
 
   /// @Sharmin
   /// \brief          Add an Sonar measurement.
@@ -213,8 +216,7 @@ class VioInterface {
   /// \param point    The sonar point measured (in world coordinate) at this time.
   /// \param range    Distance where sonar beam hit
   /// \param heading  head position of sonar beam.
-  virtual bool addSonarMeasurement(const okvis::Time & stamp,
-								   double range, double heading) = 0;
+  virtual bool addSonarMeasurement(const okvis::Time& stamp, double range, double heading) = 0;
 
   /// \brief                      Add a position measurement.
   /// \warning Not Implemented.
@@ -223,10 +225,10 @@ class VioInterface {
   /// \param position             The position in world frame
   /// \param positionCovariance   The position measurement covariance matrix.
   */
-  virtual void addPositionMeasurement(
-      const okvis::Time & /*stamp*/, const Eigen::Vector3d & /*position*/,
-      const Eigen::Vector3d & /*positionOffset*/,
-      const Eigen::Matrix3d & /*positionCovariance*/) {
+  virtual void addPositionMeasurement(const okvis::Time& /*stamp*/,
+                                      const Eigen::Vector3d& /*position*/,
+                                      const Eigen::Vector3d& /*positionOffset*/,
+                                      const Eigen::Matrix3d& /*positionCovariance*/) {
     OKVIS_THROW(Exception, "not implemented");
   }
 
@@ -240,11 +242,12 @@ class VioInterface {
   /// \param positionOffset        Body frame antenna position offset [m]
   /// \param positionCovarianceENU The position measurement covariance matrix.
   */
-  virtual void addGpsMeasurement(
-      const okvis::Time & /*stamp*/, double /*lat_wgs84_deg*/,
-      double /*lon_wgs84_deg*/, double /*alt_wgs84_deg*/,
-      const Eigen::Vector3d & /*positionOffset*/,
-      const Eigen::Matrix3d & /*positionCovarianceENU*/) {
+  virtual void addGpsMeasurement(const okvis::Time& /*stamp*/,
+                                 double /*lat_wgs84_deg*/,
+                                 double /*lon_wgs84_deg*/,
+                                 double /*alt_wgs84_deg*/,
+                                 const Eigen::Vector3d& /*positionOffset*/,
+                                 const Eigen::Matrix3d& /*positionCovarianceENU*/) {
     OKVIS_THROW(Exception, "not implemented");
   }
 
@@ -256,9 +259,9 @@ class VioInterface {
   /// \param stdev                Measurement std deviation [uT]
   */
   /// \return                     Returns true normally. False, if the previous one has not been processed yet.
-  virtual void addMagnetometerMeasurement(
-      const okvis::Time & /*stamp*/,
-      const Eigen::Vector3d & /*fluxDensityMeas*/, double /*stdev*/) {
+  virtual void addMagnetometerMeasurement(const okvis::Time& /*stamp*/,
+                                          const Eigen::Vector3d& /*fluxDensityMeas*/,
+                                          double /*stdev*/) {
     OKVIS_THROW(Exception, "not implemented");
   }
 
@@ -269,9 +272,7 @@ class VioInterface {
   /// \param staticPressure       Measured static pressure [Pa]
   /// \param stdev                Measurement std deviation [Pa]
   */
-  virtual void addBarometerMeasurement(const okvis::Time & /*stamp*/,
-                                       double /*staticPressure*/,
-                                       double /*stdev*/) {
+  virtual void addBarometerMeasurement(const okvis::Time& /*stamp*/, double /*staticPressure*/, double /*stdev*/) {
     OKVIS_THROW(Exception, "not implemented");
   }
 
@@ -282,9 +283,9 @@ class VioInterface {
   /// \param differentialPressure Measured differential pressure [Pa]
   /// \param stdev                Measurement std deviation [Pa]
   */
-  virtual void addDifferentialPressureMeasurement(
-      const okvis::Time & /*stamp*/, double /*differentialPressure*/,
-      double /*stdev*/) {
+  virtual void addDifferentialPressureMeasurement(const okvis::Time& /*stamp*/,
+                                                  double /*differentialPressure*/,
+                                                  double /*stdev*/) {
     OKVIS_THROW(Exception, "not implemented");
   }
 
@@ -295,8 +296,7 @@ class VioInterface {
    * @param image       The image.
    * @return Returns true normally. False, if the previous one has not been processed yet.
    */
-  bool addEigenImage(const okvis::Time & stamp, size_t cameraIndex,
-                     const EigenImage & image);
+  bool addEigenImage(const okvis::Time& stamp, size_t cameraIndex, const EigenImage& image);
 
   /// \}
   /// \name Setters
@@ -308,7 +308,7 @@ class VioInterface {
   ///        where stamp is the timestamp
   ///        and T_w_vk is the transformation (and uncertainty) that
   ///        transforms points from the vehicle frame to the world frame
-  virtual void setStateCallback(const StateCallback & stateCallback);
+  virtual void setStateCallback(const StateCallback& stateCallback);
 
   /// \brief Set the fullStateCallback to be called every time a new state is estimated.
   ///        When an implementing class has an estimate, they can call:
@@ -317,8 +317,7 @@ class VioInterface {
   ///        and T_w_vk is the transformation (and uncertainty) that
   ///        transforms points from the vehicle frame to the world frame. speedAndBiases contain
   ///        speed in world frame followed by gyro and acc biases. finally, omega_S is the rotation speed.
-  virtual void setFullStateCallback(
-      const FullStateCallback & fullStateCallback);
+  virtual void setFullStateCallback(const FullStateCallback& fullStateCallback);
 
   /// \brief Set the fullStateCallbackWithExtrinsics to be called every time a new state is estimated.
   ///        When an implementing class has an estimate, they can call:
@@ -330,25 +329,24 @@ class VioInterface {
   ///        omega_S is the rotation speed
   ///        vector_of_T_SCi contains the (uncertain) transformations of extrinsics T_SCi
   virtual void setFullStateCallbackWithExtrinsics(
-      const FullStateCallbackWithExtrinsics & fullStateCallbackWithExtrinsics);
+      const FullStateCallbackWithExtrinsics& fullStateCallbackWithExtrinsics);
 
   /// \brief Set the landmarksCallback to be called every time a new state is estimated.
   ///        When an implementing class has an estimate, they can call:
   ///        landmarksCallback_( stamp, landmarksVector );
   ///        where stamp is the timestamp
   ///        landmarksVector contains all 3D-landmarks with id.
-  virtual void setLandmarksCallback(
-      const LandmarksCallback & landmarksCallback);
+  virtual void setLandmarksCallback(const LandmarksCallback& landmarksCallback);
 
   // Sharmin
-  //virtual void setStereoMatchCallback(const StereoMatchCallback & stereoMatchCallback);
+  // virtual void setStereoMatchCallback(const StereoMatchCallback & stereoMatchCallback);
   // Sharmin
-  virtual void setKeyframeCallback(const KeyframeCallback & keyframeCallback);
+  virtual void setKeyframeCallback(const KeyframeCallback& keyframeCallback);
   // Sharmin
-  virtual void setRelocRelativePoseCallback(const RelocRelativePoseCallback & relocRelativePoseCallback);
+  virtual void setRelocRelativePoseCallback(const RelocRelativePoseCallback& relocRelativePoseCallback);
 
   // Hunter
-  virtual void setDebugImgCallback(const ImageCallback & imageCallback);
+  virtual void setDebugImgCallback(const ImageCallback& imageCallback);
 
   /**
    * \brief Set the blocking variable that indicates whether the addMeasurement() functions
@@ -359,7 +357,6 @@ class VioInterface {
   /// \}
 
  protected:
-
   /// \brief Write first line of IMU CSV file to describe columns.
   bool writeImuCsvDescription();
   /// \brief Write first line of position CSV file to describe columns.
@@ -369,22 +366,24 @@ class VioInterface {
   /// \brief Write first line of tracks (data associations) CSV file to describe columns.
   bool writeTracksCsvDescription(size_t cameraId);
 
-  //StereoMatchCallback stereoMatchCallback_; // Sharmin: Stereo Match callback function.
-  KeyframeCallback keyframeCallback_;  // Sharmin: keyframe callback function for publishing keyframe pose and 2D-3D points
+  // StereoMatchCallback stereoMatchCallback_; // Sharmin: Stereo Match callback function.
+  KeyframeCallback
+      keyframeCallback_;  // Sharmin: keyframe callback function for publishing keyframe pose and 2D-3D points
   RelocRelativePoseCallback relocRelativePoseCallback_;  // Sharmin: relative pose callback
 
-  StateCallback stateCallback_; ///< State callback function.
-  FullStateCallback fullStateCallback_; ///< Full state callback function.
-  FullStateCallbackWithExtrinsics fullStateCallbackWithExtrinsics_; ///< Full state and extrinsics callback function.
-  LandmarksCallback landmarksCallback_; ///< Landmarks callback function.
-  ImageCallback debugImgCallback_;  ///< Status callback function  // Hunter
+  StateCallback stateCallback_;                                      ///< State callback function.
+  FullStateCallback fullStateCallback_;                              ///< Full state callback function.
+  FullStateCallbackWithExtrinsics fullStateCallbackWithExtrinsics_;  ///< Full state and extrinsics callback function.
+  LandmarksCallback landmarksCallback_;                              ///< Landmarks callback function.
+  ImageCallback debugImgCallback_;                                   ///< Status callback function  // Hunter
 
   std::shared_ptr<std::fstream> csvImuFile_;  ///< IMU CSV file.
   std::shared_ptr<std::fstream> csvPosFile_;  ///< Position CSV File.
   std::shared_ptr<std::fstream> csvMagFile_;  ///< Magnetometer CSV File
   typedef std::map<size_t, std::shared_ptr<std::fstream>> FilePtrMap;
-  FilePtrMap csvTracksFiles_; ///< Tracks CSV Files.
-  bool blocking_; ///< Blocking option. Whether the addMeasurement() functions should wait until proccessing is complete.
+  FilePtrMap csvTracksFiles_;  ///< Tracks CSV Files.
+  bool blocking_;  ///< Blocking option. Whether the addMeasurement() functions should wait until proccessing is
+                   ///< complete.
 };
 
 }  // namespace okvis

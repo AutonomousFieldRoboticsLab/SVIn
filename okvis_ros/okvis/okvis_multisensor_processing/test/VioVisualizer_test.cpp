@@ -8,6 +8,4 @@
 #include "VioVisualizer.hpp"
 
 /// \brief okvis Main namespace of this package.
-namespace okvis {
-
-} /* namespace okvis */
+namespace okvis {} /* namespace okvis */

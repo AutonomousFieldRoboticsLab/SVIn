@@ -15,14 +15,13 @@
 #include "MockVioFrontendInterface.hpp"
 #include "testDataGenerators.hpp"
 
-using ::testing::AtLeast;
+using ::testing::_;
 using ::testing::AnyNumber;
+using ::testing::AtLeast;
 using ::testing::Between;
 using ::testing::Return;
-using ::testing::_;
 
-TEST(OkvisVioInterfaces, testFrameSync)
-{
+TEST(OkvisVioInterfaces, testFrameSync) {
   using namespace okvis;
 
   okvis::VioParameters parameters;
@@ -32,48 +31,31 @@ TEST(OkvisVioInterfaces, testFrameSync)
 
   // configure mock object
   MockVioBackendInterface dummy;
-  EXPECT_CALL(dummy, optimize(_,_,_))
-    .Times(Between(3, 6));
-  EXPECT_CALL(dummy, get_T_WS(_,_))
-    .Times(Between(8, 13));
-  EXPECT_CALL(dummy, addStates(_,_,_))
-    .Times(Between(3,6));
-  EXPECT_CALL(dummy, applyMarginalizationStrategy(_,_,_))
-    .Times(Between(3,6));
-  EXPECT_CALL(dummy, setOptimizationTimeLimit(_,_))
-    .Times(1);
-  EXPECT_CALL(dummy, addCamera(_))
-    .Times(2);
-  EXPECT_CALL(dummy, addImu(_))
-    .Times(1);
+  EXPECT_CALL(dummy, optimize(_, _, _)).Times(Between(3, 6));
+  EXPECT_CALL(dummy, get_T_WS(_, _)).Times(Between(8, 13));
+  EXPECT_CALL(dummy, addStates(_, _, _)).Times(Between(3, 6));
+  EXPECT_CALL(dummy, applyMarginalizationStrategy(_, _, _)).Times(Between(3, 6));
+  EXPECT_CALL(dummy, setOptimizationTimeLimit(_, _)).Times(1);
+  EXPECT_CALL(dummy, addCamera(_)).Times(2);
+  EXPECT_CALL(dummy, addImu(_)).Times(1);
 
-  EXPECT_CALL(dummy, multiFrame(_))
-    .Times(AnyNumber());
-  EXPECT_CALL(dummy, getSpeedAndBias(_,_,_))
-    .Times(AnyNumber());
-  EXPECT_CALL(dummy, numFrames())
-    .Times(AnyNumber());
+  EXPECT_CALL(dummy, multiFrame(_)).Times(AnyNumber());
+  EXPECT_CALL(dummy, getSpeedAndBias(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(dummy, numFrames()).Times(AnyNumber());
 
-  ON_CALL(dummy, numFrames())
-    .WillByDefault(Return(1));
-  ON_CALL(dummy, addStates(_,_,_))
-    .WillByDefault(Return(true));
+  ON_CALL(dummy, numFrames()).WillByDefault(Return(1));
+  ON_CALL(dummy, addStates(_, _, _)).WillByDefault(Return(true));
   // to circumvent segfault
   ON_CALL(dummy, multiFrame(_))
-    .WillByDefault(Return(std::shared_ptr<okvis::MultiFrame>(new okvis::MultiFrame(parameters.nCameraSystem,
-                                                                                   okvis::Time::now()))));
+      .WillByDefault(Return(
+          std::shared_ptr<okvis::MultiFrame>(new okvis::MultiFrame(parameters.nCameraSystem, okvis::Time::now()))));
 
   MockVioFrontendInterface mock_frontend;
-  EXPECT_CALL(mock_frontend, detectAndDescribe(_,_,_,_))
-    .Times(Between(12, 17));
-  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_,_,_))
-    .Times(Between(4, 6));
-  EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
-    .Times(Between(114, 115));
-  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-      .Times(1);
-  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-      .Times(1);
+  EXPECT_CALL(mock_frontend, detectAndDescribe(_, _, _, _)).Times(Between(12, 17));
+  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_, _, _, _, _, _)).Times(Between(4, 6));
+  EXPECT_CALL(mock_frontend, propagation(_, _, _, _, _, _, _, _)).Times(Between(114, 115));
+  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_)).Times(1);
+  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_)).Times(1);
 
   // start with mock
   ThreadedKFVio vio(parameters);
@@ -91,7 +73,8 @@ TEST(OkvisVioInterfaces, testFrameSync)
   ASSERT_TRUE(image_cam.data != NULL);
 
   okvis::ImuMeasurement imu_data;
-  imu_data.measurement.accelerometers.Zero();  imu_data.measurement.gyroscopes.Zero();
+  imu_data.measurement.accelerometers.Zero();
+  imu_data.measurement.gyroscopes.Zero();
 
   // simulate 100Hz IMU and 10Hz images
   for (int j = 0; j < 5; ++j) {
@@ -125,21 +108,19 @@ TEST(OkvisVioInterfaces, testFrameSync)
   }
 }
 
-TEST(OkvisVioInterfaces, testImuFrameSync)
-{
+TEST(OkvisVioInterfaces, testImuFrameSync) {
   using namespace okvis;
 
   // configure mock object
   MockVioBackendInterface dummy;
-//  EXPECT_CALL(dummy, detectAndDescribe(_,_,_,_,_,_))
-//    .Times(AtLeast(2));
-//  EXPECT_CALL(dummy, backendProcessing())
-//    .Times(AtLeast(1));
-//  EXPECT_CALL(dummy, propagation(_,_,_,_,_,_,_,_))
-//    .Times(Between(99, 100));
-//
-//  ImuFrameSynchronizer syncer();
-//
-//  std::thread test_consumer();
-
+  //  EXPECT_CALL(dummy, detectAndDescribe(_,_,_,_,_,_))
+  //    .Times(AtLeast(2));
+  //  EXPECT_CALL(dummy, backendProcessing())
+  //    .Times(AtLeast(1));
+  //  EXPECT_CALL(dummy, propagation(_,_,_,_,_,_,_,_))
+  //    .Times(Between(99, 100));
+  //
+  //  ImuFrameSynchronizer syncer();
+  //
+  //  std::thread test_consumer();
 }

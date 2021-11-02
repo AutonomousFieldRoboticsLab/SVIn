@@ -41,8 +41,8 @@
 #define INCLUDE_OKVIS_RELOCFRAMESYNCHRONIZER_H_
 
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
 #include <okvis/Time.hpp>
 
@@ -77,11 +77,11 @@ class RelocFrameSynchronizer {
   void shutdown();
 
  private:
-  okvis::Time newestRelocDataStamp_;           ///< Newest reloc data timestamp.
-  okvis::Time relocDataNeededUntil_;           ///< A thread is waiting for Reloc data newer or equal to this timestamp.
-  std::condition_variable gotNeededRelocData_; ///< Condition variable for waiting and notyfing.
-  std::mutex mutex_;                         ///< Mutex.
-  std::atomic_bool shutdown_;                ///< True if shutdown() was called.
+  okvis::Time newestRelocDataStamp_;  ///< Newest reloc data timestamp.
+  okvis::Time relocDataNeededUntil_;  ///< A thread is waiting for Reloc data newer or equal to this timestamp.
+  std::condition_variable gotNeededRelocData_;  ///< Condition variable for waiting and notyfing.
+  std::mutex mutex_;                            ///< Mutex.
+  std::atomic_bool shutdown_;                   ///< True if shutdown() was called.
 };
 
 } /* namespace okvis */

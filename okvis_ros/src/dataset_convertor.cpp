@@ -37,23 +37,23 @@
  * @author Andrea Nicastro
  */
 
-#include <vector>
+#include <stdio.h>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
+#include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#include <ros/ros.h>
-#include <ros/console.h>
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
-#include <rosbag/chunked_file.h>
 #include <cv_bridge/cv_bridge.h>
+#include <ros/console.h>
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/chunked_file.h>
+#include <rosbag/view.h>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
@@ -62,23 +62,23 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Imu.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/image_encodings.h>
 
-#include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/foreach.hpp>
 
 using namespace boost::filesystem;
-using std::vector;
-using std::string;
-using std::map;
 using std::cout;
 using std::endl;
+using std::map;
 using std::ofstream;
 using std::shared_ptr;
+using std::string;
+using std::vector;
 
 const string RESET = "\033[0m";
 const string BLACK = "0m";
@@ -112,19 +112,11 @@ const string imuFileName = "imu0.csv";
 
 std::ofstream imu_file_;
 
-void signalHandler(int s)
-{
-  imu_file_.close();
-}
+void signalHandler(int s) { imu_file_.close(); }
 
-string colouredString(string str, string colour, string option)
-{
-  return option + colour + str + RESET;
-}
+string colouredString(string str, string colour, string option) { return option + colour + str + RESET; }
 
-bool createDirs(string folderPath, map<string, map<string, string>> sensor_info)
-{
-
+bool createDirs(string folderPath, map<string, map<string, string>> sensor_info) {
   path p(folderPath);
   bool res = true;
   if (exists(p)) {
@@ -137,7 +129,7 @@ bool createDirs(string folderPath, map<string, map<string, string>> sensor_info)
   res = res && create_directories(p);
   cout << colouredString("\t[DONE!]", GREEN, REGULAR) << endl;
 
-  for (auto &iterator : sensor_info) {
+  for (auto& iterator : sensor_info) {
     std::stringstream sensor_folder;
     sensor_folder << folderPath;
     if (iterator.second.find(DATADIR) != iterator.second.end()) {
@@ -153,27 +145,34 @@ bool createDirs(string folderPath, map<string, map<string, string>> sensor_info)
   return res;
 }
 
-void writeCameraHeader(shared_ptr<std::ofstream> file)
-{
-  *file << "#timestamp [ns]," << "filename" << endl;
+void writeCameraHeader(shared_ptr<std::ofstream> file) {
+  *file << "#timestamp [ns],"
+        << "filename" << endl;
 }
 
-void writeImuHeader(shared_ptr<std::ofstream> file)
-{
-  *file << "#timestamp [ns]," << "w_S_x [rad s^-1]," << "w_S_y [rad s^-1],"
-      << "w_S_z [rad s^-1]," << "a_S_x [m s^-2]," << "a_S_y [m s^-2],"
-      << "a_S_z [m s^-2]" << endl;
+void writeImuHeader(shared_ptr<std::ofstream> file) {
+  *file << "#timestamp [ns],"
+        << "w_S_x [rad s^-1],"
+        << "w_S_y [rad s^-1],"
+        << "w_S_z [rad s^-1],"
+        << "a_S_x [m s^-2],"
+        << "a_S_y [m s^-2],"
+        << "a_S_z [m s^-2]" << endl;
 }
 
-void writeViconHeader(shared_ptr<std::ofstream> file)
-{
-  *file << "#timestamp [ns]," << "p_S_x [m]," << "p_S_y [m]," << "p_S_z [m],"
-      << "R_S_w []" << "R_S_x []," << "R_S_y []," << "R_S_z []" << endl;
+void writeViconHeader(shared_ptr<std::ofstream> file) {
+  *file << "#timestamp [ns],"
+        << "p_S_x [m],"
+        << "p_S_y [m],"
+        << "p_S_z [m],"
+        << "R_S_w []"
+        << "R_S_x [],"
+        << "R_S_y [],"
+        << "R_S_z []" << endl;
 }
 
-void writeCSVHeaders(map<string, shared_ptr<std::ofstream>> &files,
-                     const map<string, map<string, string>> &sensor_info)
-{
+void writeCSVHeaders(map<string, shared_ptr<std::ofstream>>& files,
+                     const map<string, map<string, string>>& sensor_info) {
   for (auto iterator : sensor_info) {
     if (iterator.second[SENSOR_TYPE].compare(CAMERA) == 0)
       writeCameraHeader(files[iterator.first]);
@@ -184,33 +183,29 @@ void writeCSVHeaders(map<string, shared_ptr<std::ofstream>> &files,
   }
 }
 
-map<string, shared_ptr<std::ofstream>> openFileStreams(
-    const string folder_path, map<string, map<string, string>> &sensor_info)
-{
+map<string, shared_ptr<std::ofstream>> openFileStreams(const string folder_path,
+                                                       map<string, map<string, string>>& sensor_info) {
   map<string, shared_ptr<std::ofstream>> topic2file_map;
-  for (auto &iterator : sensor_info) {
+  for (auto& iterator : sensor_info) {
     string topic = iterator.first;
     string csv_file_path = folder_path + string("/") + iterator.second[CSVFILE];
-    std::ofstream *file = new std::ofstream(csv_file_path.c_str());
+    std::ofstream* file = new std::ofstream(csv_file_path.c_str());
     shared_ptr<std::ofstream> file_ptr(file);
-    topic2file_map.insert(
-        std::pair<string, shared_ptr<std::ofstream>>(topic, file_ptr));
+    topic2file_map.insert(std::pair<string, shared_ptr<std::ofstream>>(topic, file_ptr));
   }
   writeCSVHeaders(topic2file_map, sensor_info);
   return topic2file_map;
 }
 
-map<string, map<string, string> > sensorInfo(const ros::NodeHandle &nh)
-{
+map<string, map<string, string>> sensorInfo(const ros::NodeHandle& nh) {
   cout << colouredString("\tRetrieving sensor list...", RED, REGULAR);
 
-  vector < string > sensor_list;
+  vector<string> sensor_list;
   if (!nh.getParam(SENSOR_LIST, sensor_list)) {
     std::stringstream msg;
-    msg << "FAIL! Missing \"" << SENSOR_LIST
-        << "\" parameter. Check your yaml or launch file";
+    msg << "FAIL! Missing \"" << SENSOR_LIST << "\" parameter. Check your yaml or launch file";
     cout << colouredString(msg.str(), RED, BACKGROUND) << endl;
-    exit (EXIT_FAILURE);
+    exit(EXIT_FAILURE);
   }
   cout << colouredString("\t[DONE!]", GREEN, REGULAR) << endl;
 
@@ -219,31 +214,29 @@ map<string, map<string, string> > sensorInfo(const ros::NodeHandle &nh)
   string csv_filename;
   if (!nh.getParam(CSVFILE, csv_filename)) {
     std::stringstream msg;
-    msg << "FAIL! Missing \"" << CSVFILE
-        << "\" parameter. Check your yaml or launch file";
+    msg << "FAIL! Missing \"" << CSVFILE << "\" parameter. Check your yaml or launch file";
     cout << colouredString(msg.str(), RED, BACKGROUND) << endl;
-    exit (EXIT_FAILURE);
+    exit(EXIT_FAILURE);
   }
   cout << colouredString("\t[DONE!]", GREEN, REGULAR) << endl;
 
   cout << colouredString("\tRetrieving sensor list...", RED, REGULAR);
   map<string, map<string, string>> topic2info;
 
-  map < string, string > sensor_new_info;
+  map<string, string> sensor_new_info;
 
   for (string sensor : sensor_list) {
     sensor_new_info.clear();
 
     std::stringstream ss;
     ss << INFO << "/" << sensor;
-    map < string, string > sensor_params;
+    map<string, string> sensor_params;
 
     if (!nh.getParam(ss.str(), sensor_params)) {
       std::stringstream msg;
-      msg << "FAIL! Missing \"" << ss.str()
-          << "\" parameter. Check your yaml or launch file";
+      msg << "FAIL! Missing \"" << ss.str() << "\" parameter. Check your yaml or launch file";
       cout << colouredString(msg.str(), RED, BACKGROUND) << endl;
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
     }
 
     string topic = sensor_params[TOPIC];
@@ -263,53 +256,40 @@ map<string, map<string, string> > sensorInfo(const ros::NodeHandle &nh)
 
     sensor_new_info.insert(std::pair<string, string>(NAME, sensor));
 
-    topic2info.insert(
-        std::pair<string, map<string, string>>(topic, sensor_new_info));
-
+    topic2info.insert(std::pair<string, map<string, string>>(topic, sensor_new_info));
   }
 
   cout << colouredString("\t[DONE!]", GREEN, REGULAR) << endl;
 
   return topic2info;
-
 }
 
-void writeCSVCamera(shared_ptr<std::ofstream> file, ros::Time stamp)
-{
+void writeCSVCamera(shared_ptr<std::ofstream> file, ros::Time stamp) {
   std::stringstream ss;
   ss << stamp.toNSec() << "," << stamp.toNSec() << ".png";
 
   *file << ss.str() << endl;
 }
 
-void writeCSVImu(shared_ptr<std::ofstream> file, sensor_msgs::Imu::ConstPtr imu)
-{
+void writeCSVImu(shared_ptr<std::ofstream> file, sensor_msgs::Imu::ConstPtr imu) {
   std::ostringstream ss;
-  ss << std::setprecision(DOUBLE_PRECISION) << imu->header.stamp.toNSec() << ","
-      << imu->angular_velocity.x << "," << imu->angular_velocity.y << ","
-      << imu->angular_velocity.z << "," << imu->linear_acceleration.x << ","
-      << imu->linear_acceleration.y << "," << imu->linear_acceleration.z;
+  ss << std::setprecision(DOUBLE_PRECISION) << imu->header.stamp.toNSec() << "," << imu->angular_velocity.x << ","
+     << imu->angular_velocity.y << "," << imu->angular_velocity.z << "," << imu->linear_acceleration.x << ","
+     << imu->linear_acceleration.y << "," << imu->linear_acceleration.z;
   *file << ss.str() << endl;
 }
 
-void writeCSVVicon(shared_ptr<std::ofstream> file,
-                   geometry_msgs::TransformStamped::ConstPtr vicon)
-{
+void writeCSVVicon(shared_ptr<std::ofstream> file, geometry_msgs::TransformStamped::ConstPtr vicon) {
   std::ostringstream ss;
-  ss << std::setprecision(DOUBLE_PRECISION) << vicon->header.stamp.toNSec()
-      << "," << vicon->transform.translation.x << ","
-      << vicon->transform.translation.y << "," << vicon->transform.translation.z
-      << "," << vicon->transform.rotation.w << ","
-      << vicon->transform.rotation.x << "," << vicon->transform.rotation.y
-      << "," << vicon->transform.rotation.z;
+  ss << std::setprecision(DOUBLE_PRECISION) << vicon->header.stamp.toNSec() << "," << vicon->transform.translation.x
+     << "," << vicon->transform.translation.y << "," << vicon->transform.translation.z << ","
+     << vicon->transform.rotation.w << "," << vicon->transform.rotation.x << "," << vicon->transform.rotation.y << ","
+     << vicon->transform.rotation.z;
 
   *file << ss.str() << endl;
 }
 
-bool isTopicInMap(map<string, map<string, string> > &topic2info,
-                  string topic_name)
-{
-
+bool isTopicInMap(map<string, map<string, string>>& topic2info, string topic_name) {
   bool res = false;
   if (topic2info.find(topic_name) != topic2info.end()) {
     res = true;
@@ -323,16 +303,14 @@ bool isTopicInMap(map<string, map<string, string> > &topic2info,
       if (topic2info.find("/" + topic_name) != topic2info.end()) {
         res = true;
       }
-
     }
   }
   return res;
 }
 
-bool findTopicInMap(map<string, map<string, string> > &topic2info,
+bool findTopicInMap(map<string, map<string, string>>& topic2info,
                     string topic_name,
-                    map<string, map<string, string> >::iterator &element)
-{
+                    map<string, map<string, string>>::iterator& element) {
   element = topic2info.end();
 
   bool res = false;
@@ -351,15 +329,12 @@ bool findTopicInMap(map<string, map<string, string> > &topic2info,
         element = topic2info.find("/" + topic_name);
         res = true;
       }
-
     }
   }
   return res;
 }
 
-int main(int argc, char **argv)
-{
-
+int main(int argc, char** argv) {
   cout << colouredString("Initializing ROS node:", RED, BOLD) << endl;
 
   ros::init(argc, argv, "dataset_converter");
@@ -383,12 +358,13 @@ int main(int argc, char **argv)
   string bagname;
   string bagpath;
   if (pos == string::npos) {
-    cout
-        << colouredString(
-            "Relative path are not supported. Use an absolute path instead."
-            "For example: roslaunch okvis_ros convert_datasert.launch bag:= /absolute/path/here",
-            RED, BOLD) << endl;
-    exit (EXIT_FAILURE);
+    cout << colouredString(
+                "Relative path are not supported. Use an absolute path instead."
+                "For example: roslaunch okvis_ros convert_datasert.launch bag:= /absolute/path/here",
+                RED,
+                BOLD)
+         << endl;
+    exit(EXIT_FAILURE);
   } else {
     bagname = path.substr(pos + 1, pos_dot - pos - 1);
     bagpath = path.substr(0, pos + 1);
@@ -396,7 +372,7 @@ int main(int argc, char **argv)
 
   if (!createDirs(bagpath + bagname, topic2info_map)) {
     cout << colouredString("FAILED!", RED, BACKGROUND);
-    exit (EXIT_FAILURE);
+    exit(EXIT_FAILURE);
   } else
     cout << colouredString("DONE!", GREEN, BOLD) << endl;
 
@@ -409,14 +385,14 @@ int main(int argc, char **argv)
 
   cout << colouredString("\tQuering topics bag...", RED, REGULAR);
 
-  vector < string > topic_list;
+  vector<string> topic_list;
 
   rosbag::View view(bag);
 
-  vector<const rosbag::ConnectionInfo *> bag_info = view.getConnections();
-  std::set < string > bag_topics;
+  vector<const rosbag::ConnectionInfo*> bag_info = view.getConnections();
+  std::set<string> bag_topics;
 
-  for (const rosbag::ConnectionInfo *info : bag_info) {
+  for (const rosbag::ConnectionInfo* info : bag_info) {
     string topic_name;
     topic_name = info->topic;
 
@@ -431,8 +407,7 @@ int main(int argc, char **argv)
 
   cout << colouredString("\tOpening file streams...", RED, REGULAR);
 
-  map<string, shared_ptr<std::ofstream>> topic2file = openFileStreams(
-      bagpath + bagname, topic2info_map);
+  map<string, shared_ptr<std::ofstream>> topic2file = openFileStreams(bagpath + bagname, topic2info_map);
   cout << colouredString("\t[DONE!]", GREEN, REGULAR) << endl;
 
   cout << colouredString("\tParsing the bag...\n\t", RED, REGULAR);
@@ -442,7 +417,7 @@ int main(int argc, char **argv)
   for (auto bagIt : view) {
     string topic = bagIt.getTopic();
 
-    map<string, map<string, string> >::iterator sensor_it;
+    map<string, map<string, string>>::iterator sensor_it;
 
     findTopicInMap(topic2info_map, topic, sensor_it);
     if (sensor_it == topic2info_map.end()) {
@@ -453,37 +428,30 @@ int main(int argc, char **argv)
 
     string sens_type = sensor_it->second.find(SENSOR_TYPE)->second;
     if (sens_type.compare(CAMERA) == 0) {
-      sensor_msgs::Image::ConstPtr image =
-          bagIt.instantiate<sensor_msgs::Image>();
+      sensor_msgs::Image::ConstPtr image = bagIt.instantiate<sensor_msgs::Image>();
 
       cv_bridge::CvImagePtr cv_ptr;
       cv_ptr = cv_bridge::toCvCopy(image, sensor_msgs::image_encodings::BGR8);
       cv::Mat image_cv = cv_ptr->image;
 
       std::stringstream ss;
-      ss << bagpath << bagname << "/" << sensor_it->second.find(DATADIR)->second
-          << "/" << image->header.stamp.toNSec() << ".png";
+      ss << bagpath << bagname << "/" << sensor_it->second.find(DATADIR)->second << "/" << image->header.stamp.toNSec()
+         << ".png";
       cv::imwrite(ss.str(), image_cv);
 
-      writeCSVCamera(topic2file.find(sensor_it->first)->second,
-                     image->header.stamp);
-
+      writeCSVCamera(topic2file.find(sensor_it->first)->second, image->header.stamp);
     }
     if (sens_type.compare(IMU) == 0) {
-      sensor_msgs::Imu::ConstPtr imuReading = bagIt
-          .instantiate<sensor_msgs::Imu>();
+      sensor_msgs::Imu::ConstPtr imuReading = bagIt.instantiate<sensor_msgs::Imu>();
       writeCSVImu(topic2file.find(sensor_it->first)->second, imuReading);
     }
     if (sens_type.compare(VICON) == 0) {
-
-      geometry_msgs::TransformStamped::ConstPtr viconReading = bagIt
-          .instantiate<geometry_msgs::TransformStamped>();
+      geometry_msgs::TransformStamped::ConstPtr viconReading = bagIt.instantiate<geometry_msgs::TransformStamped>();
       writeCSVVicon(topic2file.find(sensor_it->first)->second, viconReading);
     }
 
     counter++;
     std::printf("\r Progress: %.2f %%", 100.0 * counter / view_size);
-
   }
   cout << colouredString("\n\t[DONE!]", GREEN, REGULAR) << endl;
 
@@ -496,5 +464,4 @@ int main(int argc, char **argv)
   cout << colouredString("DONE!", GREEN, BOLD) << endl;
 
   ros::shutdown();
-
 }

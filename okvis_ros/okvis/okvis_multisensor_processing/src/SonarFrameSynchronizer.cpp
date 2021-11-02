@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -28,7 +28,7 @@
  *
  *  Created on: Aug 28, 2017
  *      Author: Sharmin Rahman
- 
+
  *********************************************************************************/
 
 /**
@@ -42,32 +42,28 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-SonarFrameSynchronizer::SonarFrameSynchronizer()
-  : shutdown_(false) {}
+SonarFrameSynchronizer::SonarFrameSynchronizer() : shutdown_(false) {}
 
 SonarFrameSynchronizer::~SonarFrameSynchronizer() {
-  if(!shutdown_)
-    shutdown();
+  if (!shutdown_) shutdown();
 }
 
 // Tell the synchronizer that a new Sonar measurement has been registered.
 void SonarFrameSynchronizer::gotSonarData(const okvis::Time& stamp) {
   newestSonarDataStamp_ = stamp;
-  if(sonarDataNeededUntil_ < stamp)
-    gotNeededSonarData_.notify_all();
+  if (sonarDataNeededUntil_ < stamp) gotNeededSonarData_.notify_all();
 }
 
 // Wait until a Sonar measurement with a timestamp equal or newer to the supplied one is registered.
 bool SonarFrameSynchronizer::waitForUpToDateSonarData(const okvis::Time& frame_stamp) {
   // if the newest sonar data timestamp is smaller than frame_stamp, wait until
   // sonar_data newer than frame_stamp arrives
-  if(newestSonarDataStamp_ <= frame_stamp && !shutdown_) {
+  if (newestSonarDataStamp_ <= frame_stamp && !shutdown_) {
     sonarDataNeededUntil_ = frame_stamp;
     std::unique_lock<std::mutex> lock(mutex_);
     gotNeededSonarData_.wait(lock);
   }
-  if(shutdown_)
-    return false;
+  if (shutdown_) return false;
   return true;
 }
 

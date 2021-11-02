@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -44,18 +44,16 @@ namespace okvis {
 namespace ceres {
 
 // Default constructor (assumes not fixed).
-HomogeneousPointParameterBlock::HomogeneousPointParameterBlock()
-    : base_t::ParameterBlockSized(),
-      initialized_(false) {
+HomogeneousPointParameterBlock::HomogeneousPointParameterBlock() : base_t::ParameterBlockSized(), initialized_(false) {
   setFixed(false);
 }
 // Trivial destructor.
-HomogeneousPointParameterBlock::~HomogeneousPointParameterBlock() {
-}
+HomogeneousPointParameterBlock::~HomogeneousPointParameterBlock() {}
 
 // Constructor with estimate and time.
-HomogeneousPointParameterBlock::HomogeneousPointParameterBlock(
-    const Eigen::Vector4d& point, uint64_t id, bool initialized) {
+HomogeneousPointParameterBlock::HomogeneousPointParameterBlock(const Eigen::Vector4d& point,
+                                                               uint64_t id,
+                                                               bool initialized) {
   setEstimate(point);
   setId(id);
   setInitialized(initialized);
@@ -63,8 +61,9 @@ HomogeneousPointParameterBlock::HomogeneousPointParameterBlock(
 }
 
 // Constructor with estimate and time.
-HomogeneousPointParameterBlock::HomogeneousPointParameterBlock(
-    const Eigen::Vector3d& point, uint64_t id, bool initialized) {
+HomogeneousPointParameterBlock::HomogeneousPointParameterBlock(const Eigen::Vector3d& point,
+                                                               uint64_t id,
+                                                               bool initialized) {
   setEstimate(Eigen::Vector4d(point[0], point[1], point[2], 1.0));
   setId(id);
   setInitialized(initialized);
@@ -75,16 +74,13 @@ HomogeneousPointParameterBlock::HomogeneousPointParameterBlock(
 // Set estimate of this parameter block.
 void HomogeneousPointParameterBlock::setEstimate(const Eigen::Vector4d& point) {
   // hack: only do "Euclidean" points for now...
-  for (int i = 0; i < base_t::Dimension; ++i)
-    parameters_[i] = point[i];
+  for (int i = 0; i < base_t::Dimension; ++i) parameters_[i] = point[i];
 }
 
 // getters
 // Get estimate.
 Eigen::Vector4d HomogeneousPointParameterBlock::estimate() const {
-  return Eigen::Vector4d(
-      Eigen::Vector4d(parameters_[0], parameters_[1], parameters_[2],
-                      parameters_[3]));
+  return Eigen::Vector4d(Eigen::Vector4d(parameters_[0], parameters_[1], parameters_[2], parameters_[3]));
 }
 
 }  // namespace ceres

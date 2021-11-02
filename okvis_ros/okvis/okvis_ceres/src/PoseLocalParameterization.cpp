@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -38,8 +38,8 @@
 
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
-#include <okvis/kinematics/operators.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <okvis/kinematics/operators.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -49,23 +49,18 @@ namespace ceres {
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization::Plus(const double* x, const double* delta,
-                                     double* x_plus_delta) const {
+bool PoseLocalParameterization::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   return plus(x, delta, x_plus_delta);
 }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization::plus(const double* x, const double* delta,
-                                     double* x_plus_delta) {
-
+bool PoseLocalParameterization::plus(const double* x, const double* delta, double* x_plus_delta) {
   Eigen::Map<const Eigen::Matrix<double, 6, 1> > delta_(delta);
 
   // transform to okvis::kinematics framework
-  okvis::kinematics::Transformation T(
-      Eigen::Vector3d(x[0], x[1], x[2]),
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
 
   // call oplus operator in okvis::kinematis
   T.oplus(delta_);
@@ -81,34 +76,27 @@ bool PoseLocalParameterization::plus(const double* x, const double* delta,
   x_plus_delta[5] = q[2];
   x_plus_delta[6] = q[3];
 
-  OKVIS_ASSERT_TRUE_DBG(std::runtime_error, T.q().norm()-1.0<1e-15, "damn.");
+  OKVIS_ASSERT_TRUE_DBG(std::runtime_error, T.q().norm() - 1.0 < 1e-15, "damn.");
 
   return true;
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization::Minus(const double* x,
-                                      const double* x_plus_delta,
-                                      double* delta) const {
+bool PoseLocalParameterization::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   return minus(x, x_plus_delta, delta);
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization::ComputeLiftJacobian(const double* x,
-                                                    double* jacobian) const {
+bool PoseLocalParameterization::ComputeLiftJacobian(const double* x, double* jacobian) const {
   return liftJacobian(x, jacobian);
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization::minus(const double* x,
-                                      const double* x_plus_delta,
-                                      double* delta) {
-
+bool PoseLocalParameterization::minus(const double* x, const double* x_plus_delta, double* delta) {
   delta[0] = x_plus_delta[0] - x[0];
   delta[1] = x_plus_delta[1] - x[1];
   delta[2] = x_plus_delta[2] - x[2];
-  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3],
-                                         x_plus_delta[4], x_plus_delta[5]);
+  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3], x_plus_delta[4], x_plus_delta[5]);
   const Eigen::Quaterniond q_(x[6], x[3], x[4], x[5]);
   Eigen::Map<Eigen::Vector3d> delta_q_(&delta[3]);
   delta_q_ = 2 * (q_plus_delta_ * q_.inverse()).coeffs().template head<3>();
@@ -116,21 +104,16 @@ bool PoseLocalParameterization::minus(const double* x,
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization::plusJacobian(const double* x,
-                                             double* jacobian) {
+bool PoseLocalParameterization::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jp(jacobian);
-  okvis::kinematics::Transformation T(
-      Eigen::Vector3d(x[0], x[1], x[2]),
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
   T.oplusJacobian(Jp);
 
   return true;
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization::liftJacobian(const double* x,
-                                             double* jacobian) {
-
+bool PoseLocalParameterization::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 6, 7, Eigen::RowMajor> > J_lift(jacobian);
   const Eigen::Quaterniond q_inv(x[6], -x[3], -x[4], -x[5]);
   J_lift.setZero();
@@ -145,19 +128,14 @@ bool PoseLocalParameterization::liftJacobian(const double* x,
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization::ComputeJacobian(const double* x,
-                                                double* jacobian) const {
-
+bool PoseLocalParameterization::ComputeJacobian(const double* x, double* jacobian) const {
   return plusJacobian(x, jacobian);
 }
 
-bool PoseLocalParameterization::VerifyJacobianNumDiff(const double* x,
-                                                      double* jacobian,
-                                                      double* jacobianNumDiff) {
+bool PoseLocalParameterization::VerifyJacobianNumDiff(const double* x, double* jacobian, double* jacobianNumDiff) {
   plusJacobian(x, jacobian);
   Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jp(jacobian);
-  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jpn(
-      jacobianNumDiff);
+  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jpn(jacobianNumDiff);
   double dx = 1e-9;
   Eigen::Matrix<double, 7, 1> xp;
   Eigen::Matrix<double, 7, 1> xm;
@@ -179,9 +157,7 @@ bool PoseLocalParameterization::VerifyJacobianNumDiff(const double* x,
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization3d::Plus(const double* x, const double* delta,
-                                       double* x_plus_delta) const {
-
+bool PoseLocalParameterization3d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   Eigen::Matrix<double, 6, 1> delta_;
   delta_.setZero();
   delta_[3] = delta[0];
@@ -189,9 +165,7 @@ bool PoseLocalParameterization3d::Plus(const double* x, const double* delta,
   delta_[5] = delta[2];
 
   // transform to sm::kinematics framework
-  okvis::kinematics::Transformation T(
-      Eigen::Vector3d(x[0], x[1], x[2]),
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
 
   // call oplus operator in sm::kinematis
   T.oplus(delta_);
@@ -211,12 +185,8 @@ bool PoseLocalParameterization3d::Plus(const double* x, const double* delta,
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization3d::Minus(const double* x,
-                                        const double* x_plus_delta,
-                                        double* delta) const {
-
-  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3],
-                                         x_plus_delta[4], x_plus_delta[5]);
+bool PoseLocalParameterization3d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3], x_plus_delta[4], x_plus_delta[5]);
   const Eigen::Quaterniond q_(x[6], x[3], x[4], x[5]);
   Eigen::Vector3d delta_q_;
   delta_q_ = 2 * (q_plus_delta_ * q_.inverse()).coeffs().template head<3>();
@@ -229,20 +199,17 @@ bool PoseLocalParameterization3d::Minus(const double* x,
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization3d::ComputeLiftJacobian(const double* x,
-                                                      double* jacobian) const {
+bool PoseLocalParameterization3d::ComputeLiftJacobian(const double* x, double* jacobian) const {
   return liftJacobian(x, jacobian);
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization3d::plusJacobian(const double* x,
-                                               double* jacobian) {
+bool PoseLocalParameterization3d::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 3, Eigen::RowMajor> > Jp(jacobian);
   Jp.setZero();
 
   // rotation: dq*q=qoplus(q)*dq=qoplus(q)*1/2*[I_3;0]*dalpha
-  Eigen::Matrix4d Qoplus = okvis::kinematics::oplus(
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  Eigen::Matrix4d Qoplus = okvis::kinematics::oplus(Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
   Eigen::Matrix<double, 4, 3> Jq;
   Jq.bottomRightCorner<3, 3>().setZero();
   Jq.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * 0.5;
@@ -252,8 +219,7 @@ bool PoseLocalParameterization3d::plusJacobian(const double* x,
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization3d::liftJacobian(const double* x,
-                                               double* jacobian) {
+bool PoseLocalParameterization3d::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 3, 7, Eigen::RowMajor> > J_lift(jacobian);
   J_lift.setZero();
 
@@ -270,17 +236,14 @@ bool PoseLocalParameterization3d::liftJacobian(const double* x,
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization3d::ComputeJacobian(const double* x,
-                                                  double* jacobian) const {
+bool PoseLocalParameterization3d::ComputeJacobian(const double* x, double* jacobian) const {
   return plusJacobian(x, jacobian);
 }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization4d::Plus(const double* x, const double* delta,
-                                       double* x_plus_delta) const {
-
+bool PoseLocalParameterization4d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   Eigen::Matrix<double, 6, 1> delta_;
   delta_.setZero();
   delta_[0] = delta[0];
@@ -289,9 +252,7 @@ bool PoseLocalParameterization4d::Plus(const double* x, const double* delta,
   delta_[5] = delta[3];
 
   // transform to sm::kinematics framework
-  okvis::kinematics::Transformation T(
-      Eigen::Vector3d(x[0], x[1], x[2]),
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
 
   // call oplus operator in sm::kinematis
   T.oplus(delta_);
@@ -311,15 +272,11 @@ bool PoseLocalParameterization4d::Plus(const double* x, const double* delta,
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization4d::Minus(const double* x,
-                                        const double* x_plus_delta,
-                                        double* delta) const {
-
+bool PoseLocalParameterization4d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   delta[0] = x_plus_delta[0] - x[0];
   delta[1] = x_plus_delta[1] - x[1];
   delta[2] = x_plus_delta[2] - x[2];
-  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3],
-                                         x_plus_delta[4], x_plus_delta[5]);
+  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3], x_plus_delta[4], x_plus_delta[5]);
   const Eigen::Quaterniond q_(x[6], x[3], x[4], x[5]);
   delta[3] = 2 * (q_plus_delta_ * q_.inverse()).coeffs()[2];
 
@@ -327,28 +284,23 @@ bool PoseLocalParameterization4d::Minus(const double* x,
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization4d::ComputeLiftJacobian(const double* x,
-                                                      double* jacobian) const {
+bool PoseLocalParameterization4d::ComputeLiftJacobian(const double* x, double* jacobian) const {
   return liftJacobian(x, jacobian);
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization4d::plusJacobian(const double* x,
-                                               double* jacobian) {
+bool PoseLocalParameterization4d::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 4, Eigen::RowMajor> > Jp(jacobian);
   Eigen::Matrix<double, 7, 6, Eigen::RowMajor> Jp_full;
-  okvis::kinematics::Transformation T(
-      Eigen::Vector3d(x[0], x[1], x[2]),
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
   T.oplusJacobian(Jp_full);
-  Jp.topLeftCorner<7,3>()=Jp_full.topLeftCorner<7,3>();
-  Jp.bottomRightCorner<7,1>()=Jp_full.bottomRightCorner<7,1>();
+  Jp.topLeftCorner<7, 3>() = Jp_full.topLeftCorner<7, 3>();
+  Jp.bottomRightCorner<7, 1>() = Jp_full.bottomRightCorner<7, 1>();
   return true;
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization4d::liftJacobian(const double* x,
-                                               double* jacobian) {
+bool PoseLocalParameterization4d::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 4, 7, Eigen::RowMajor> > J_lift(jacobian);
   const Eigen::Quaterniond q_inv(x[6], -x[3], -x[4], -x[5]);
   J_lift.setZero();
@@ -363,26 +315,21 @@ bool PoseLocalParameterization4d::liftJacobian(const double* x,
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization4d::ComputeJacobian(const double* x,
-                                                  double* jacobian) const {
+bool PoseLocalParameterization4d::ComputeJacobian(const double* x, double* jacobian) const {
   return plusJacobian(x, jacobian);
 }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization2d::Plus(const double* x, const double* delta,
-                                       double* x_plus_delta) const {
-
+bool PoseLocalParameterization2d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   Eigen::Matrix<double, 6, 1> delta_;
   delta_.setZero();
   delta_[3] = delta[0];
   delta_[4] = delta[1];
 
   // transform to okvis::kinematics framework
-  okvis::kinematics::Transformation T(
-      Eigen::Vector3d(x[0], x[1], x[2]),
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
 
   // call oplus operator in okvis::kinematis
   T.oplus(delta_);
@@ -402,12 +349,8 @@ bool PoseLocalParameterization2d::Plus(const double* x, const double* delta,
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization2d::Minus(const double* x,
-                                        const double* x_plus_delta,
-                                        double* delta) const {
-
-  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3],
-                                         x_plus_delta[4], x_plus_delta[5]);
+bool PoseLocalParameterization2d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+  const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3], x_plus_delta[4], x_plus_delta[5]);
   const Eigen::Quaterniond q_(x[6], x[3], x[4], x[5]);
   Eigen::Vector3d delta_q_;
   delta_q_ = 2 * (q_plus_delta_ * q_.inverse()).coeffs().template head<3>();
@@ -419,20 +362,17 @@ bool PoseLocalParameterization2d::Minus(const double* x,
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization2d::ComputeLiftJacobian(const double* x,
-                                                      double* jacobian) const {
+bool PoseLocalParameterization2d::ComputeLiftJacobian(const double* x, double* jacobian) const {
   return liftJacobian(x, jacobian);
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization2d::plusJacobian(const double* x,
-                                               double* jacobian) {
+bool PoseLocalParameterization2d::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 2, Eigen::RowMajor> > Jp(jacobian);
   Jp.setZero();
 
   // rotation: dq*q=qoplus(q)*dq=qoplus(q)*1/2*[I_3;0]*dalpha
-  Eigen::Matrix4d Qoplus = okvis::kinematics::oplus(
-      Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
+  Eigen::Matrix4d Qoplus = okvis::kinematics::oplus(Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
   Eigen::Matrix<double, 4, 2> Jq;
   Jq.bottomRightCorner<2, 2>().setZero();
   Jq.topLeftCorner<2, 2>() = Eigen::Matrix2d::Identity() * 0.5;
@@ -442,8 +382,7 @@ bool PoseLocalParameterization2d::plusJacobian(const double* x,
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization2d::liftJacobian(const double* x,
-                                               double* jacobian) {
+bool PoseLocalParameterization2d::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J_lift(jacobian);
   J_lift.setZero();
 
@@ -459,8 +398,7 @@ bool PoseLocalParameterization2d::liftJacobian(const double* x,
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization2d::ComputeJacobian(const double* x,
-                                                  double* jacobian) const {
+bool PoseLocalParameterization2d::ComputeJacobian(const double* x, double* jacobian) const {
   return plusJacobian(x, jacobian);
 }
 

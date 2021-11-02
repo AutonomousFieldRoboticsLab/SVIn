@@ -15,7 +15,7 @@
  *
  * Written by Dorian Galvez-Lopez,
  * University of Zaragoza
- * 
+ *
  * Check my website to obtain updates: http://doriangalvez.com
  *
  * \section requirements Requirements
@@ -26,7 +26,7 @@
  * If you use this software in academic works, please cite:
  <pre>
    @@ARTICLE{GalvezTRO12,
-    author={Galvez-Lopez, Dorian and Tardos, J. D.}, 
+    author={Galvez-Lopez, Dorian and Tardos, J. D.},
     journal={IEEE Transactions on Robotics},
     title={Bags of Binary Words for Fast Place Recognition in Image Sequences},
     year={2012},
@@ -40,10 +40,10 @@
  </pre>
  *
  * \section license License
- * This file is licensed under a Creative Commons 
- * Attribution-NonCommercial-ShareAlike 3.0 license. 
- * This file can be freely used and users can use, download and edit this file 
- * provided that credit is attributed to the original author. No users are 
+ * This file is licensed under a Creative Commons
+ * Attribution-NonCommercial-ShareAlike 3.0 license.
+ * This file can be freely used and users can use, download and edit this file
+ * provided that credit is attributed to the original author. No users are
  * permitted to use this file for commercial purposes unless explicit permission
  * is given by the original author. Derivative works must be licensed using the
  * same or similar license.
@@ -56,24 +56,19 @@
 #define __D_T_DBOW2__
 
 /// Includes all the data structures to manage vocabularies and image databases
-namespace DBoW2
-{
-}
+namespace DBoW2 {}
 
-#include "TemplatedVocabulary.h"
-#include "TemplatedDatabase.h"
 #include "BowVector.h"
+#include "FBrief.h"
 #include "FeatureVector.h"
 #include "QueryResults.h"
-#include "FBrief.h"
+#include "TemplatedDatabase.h"
+#include "TemplatedVocabulary.h"
 
 /// BRIEF Vocabulary
-typedef DBoW2::TemplatedVocabulary<DBoW2::FBrief::TDescriptor, DBoW2::FBrief> 
-  BriefVocabulary;
+typedef DBoW2::TemplatedVocabulary<DBoW2::FBrief::TDescriptor, DBoW2::FBrief> BriefVocabulary;
 
 /// BRIEF Database
-typedef DBoW2::TemplatedDatabase<DBoW2::FBrief::TDescriptor, DBoW2::FBrief> 
-  BriefDatabase;
+typedef DBoW2::TemplatedDatabase<DBoW2::FBrief::TDescriptor, DBoW2::FBrief> BriefDatabase;
 
 #endif
-

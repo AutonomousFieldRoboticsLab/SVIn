@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -40,12 +40,12 @@
 #define INCLUDE_OKVIS_OPENGV_FRAMERELATIVEADAPTER_HPP_
 
 #include <stdlib.h>
-#include <vector>
-#include <opengv/types.hpp>
-#include <opengv/relative_pose/CentralRelativeAdapter.hpp>
 #include <okvis/Estimator.hpp>
-#include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/assert_macros.hpp>
+#include <okvis/cameras/NCameraSystem.hpp>
+#include <opengv/relative_pose/CentralRelativeAdapter.hpp>
+#include <opengv/types.hpp>
+#include <vector>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -59,8 +59,8 @@ namespace relative_pose {
 /// \brief Adapter for relative pose RANSAC (2D2D)
 class FrameRelativeAdapter : public RelativeAdapterBase {
  private:
-  using RelativeAdapterBase::_t12;
   using RelativeAdapterBase::_R12;
+  using RelativeAdapterBase::_t12;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -77,13 +77,14 @@ class FrameRelativeAdapter : public RelativeAdapterBase {
    * @param camIdB        The camera index for the second multiframe.
    *                      in order to access the relevant frame.
    */
-  FrameRelativeAdapter(const okvis::Estimator & estimator,
-                       const okvis::cameras::NCameraSystem & nCameraSystem,
-                       uint64_t multiFrameIdA, size_t camIdA,
-                       uint64_t multiFrameIdB, size_t camIdB);
+  FrameRelativeAdapter(const okvis::Estimator& estimator,
+                       const okvis::cameras::NCameraSystem& nCameraSystem,
+                       uint64_t multiFrameIdA,
+                       size_t camIdA,
+                       uint64_t multiFrameIdB,
+                       size_t camIdB);
 
-  virtual ~FrameRelativeAdapter() {
-  }
+  virtual ~FrameRelativeAdapter() {}
 
   /// @name Algorithm input
   /// @{
@@ -158,26 +159,20 @@ class FrameRelativeAdapter : public RelativeAdapterBase {
    * @param index The serialized index of the correspondence.
    * @return The keypoint index of the correspondence in frame 1.
    */
-  size_t getMatchKeypointIdxA(size_t index) {
-    return matches_.at(index).idxA;
-  }
+  size_t getMatchKeypointIdxA(size_t index) { return matches_.at(index).idxA; }
   /**
    * @brief Get the keypoint index in frame 2 of a correspondence.
    * @param index The serialized index of the correspondence.
    * @return The keypoint index of the correspondence in frame 2.
    */
-  size_t getMatchKeypointIdxB(size_t index) {
-    return matches_.at(index).idxB;
-  }
+  size_t getMatchKeypointIdxB(size_t index) { return matches_.at(index).idxB; }
   /**
    * \brief Retrieve the weight of a correspondence. The weight is supposed to
    *        reflect the quality of a correspondence, and typically is between
    *        0 and 1.
    * \warning This is not implemented and always returns 1.0.
    */
-  virtual double getWeight(size_t) const {
-    return 1.0;
-  }  // TODO : figure out, if this is needed
+  virtual double getWeight(size_t) const { return 1.0; }  // TODO : figure out, if this is needed
 
  private:
   /// The bearing vectors of the correspondences in frame 1.
@@ -192,10 +187,9 @@ class FrameRelativeAdapter : public RelativeAdapterBase {
   std::vector<double> sigmaAngles1_;
   /// The standard deviations of the bearing vectors of frame 2' in [rad].
   std::vector<double> sigmaAngles2_;
-
 };
 
-}
-}
+}  // namespace relative_pose
+}  // namespace opengv
 
 #endif /* INCLUDE_OKVIS_OPENGV_FRAMERELATIVEADAPTER_HPP_ */

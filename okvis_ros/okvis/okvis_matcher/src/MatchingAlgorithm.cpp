@@ -4,7 +4,7 @@
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
- * 
+ *
  *   * Redistributions of source code must retain the above copyright notice,
  *     this list of conditions and the following disclaimer.
  *   * Redistributions in binary form must reproduce the above copyright notice,
@@ -38,31 +38,24 @@
  * @author Stefan Leutenegger
  */
 
-
+#include <exception>
 #include <okvis/MatchingAlgorithm.hpp>
 #include <okvis/assert_macros.hpp>
-#include <exception>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-MatchingAlgorithm::MatchingAlgorithm() {
-}
-MatchingAlgorithm::~MatchingAlgorithm() {
-}
+MatchingAlgorithm::MatchingAlgorithm() {}
+MatchingAlgorithm::~MatchingAlgorithm() {}
 
-MatchingAlgorithm::listB_tree_structure_t::iterator MatchingAlgorithm::getListBStartIterator(
-    size_t /* indexA */) {
-  OKVIS_THROW(
-      std::runtime_error,
-      "To use the listB iterators, implement this interface in your matching algorithm subclass.");
+MatchingAlgorithm::listB_tree_structure_t::iterator MatchingAlgorithm::getListBStartIterator(size_t /* indexA */) {
+  OKVIS_THROW(std::runtime_error,
+              "To use the listB iterators, implement this interface in your matching algorithm subclass.");
   return dummy_.end();
 }
-MatchingAlgorithm::listB_tree_structure_t::iterator MatchingAlgorithm::getListBEndIterator(
-    size_t /* indexA */) {
-  OKVIS_THROW(
-      std::runtime_error,
-      "To use the listB iterators, implement this interface in your matching algorithm subclass.");
+MatchingAlgorithm::listB_tree_structure_t::iterator MatchingAlgorithm::getListBEndIterator(size_t /* indexA */) {
+  OKVIS_THROW(std::runtime_error,
+              "To use the listB iterators, implement this interface in your matching algorithm subclass.");
   return dummy_.end();
 }
 

@@ -57,8 +57,8 @@
 #ifdef _MSC_VER
 // Okvistime has some magic interface that doesn't directly include
 // its implementation, this just disables those warnings.
-#pragma warning(disable: 4244)
-#pragma warning(disable: 4661)
+#pragma warning(disable : 4244)
+#pragma warning(disable : 4661)
 #endif
 
 #ifdef _WIN32
@@ -70,8 +70,8 @@
  *********************************************************************/
 
 //#include <ros/platform.h>
-#include <iostream>
 #include <cmath>
+#include <iostream>
 //#include <ros/exception.h>
 #include "Duration.hpp"
 //#include "rostime_decl.h"
@@ -101,9 +101,9 @@ namespace okvis {
 class NoHighPerformanceTimersException : std::runtime_error {
  public:
   NoHighPerformanceTimersException()
-      : std::runtime_error("This windows platform does not "
-                           "support the high-performance timing api.") {
-  }
+      : std::runtime_error(
+            "This windows platform does not "
+            "support the high-performance timing api.") {}
 };
 
 /*********************************************************************
@@ -122,61 +122,39 @@ void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec);
  * \brief Base class for Time implementations.  Provides storage, common functions and operator overloads.
  * This should not need to be used directly.
  */
-template<class T, class D>
+template <class T, class D>
 class TimeBase {
  public:
   uint32_t sec, nsec;
 
-  TimeBase()
-      : sec(0),
-        nsec(0) {
-  }
-  TimeBase(uint32_t _sec, uint32_t _nsec)
-      : sec(_sec),
-        nsec(_nsec) {
-    normalizeSecNSec(sec, nsec);
-  }
-  explicit TimeBase(double t) {
-    fromSec(t);
-  }
-  ~TimeBase() {
-  }
-  D operator-(const T &rhs) const;
-  T operator+(const D &rhs) const;
-  T operator-(const D &rhs) const;
-  T& operator+=(const D &rhs);
-  T& operator-=(const D &rhs);
-  bool operator==(const T &rhs) const;
-  inline bool operator!=(const T &rhs) const {
-    return !(*static_cast<const T*>(this) == rhs);
-  }
-  bool operator>(const T &rhs) const;
-  bool operator<(const T &rhs) const;
-  bool operator>=(const T &rhs) const;
-  bool operator<=(const T &rhs) const;
+  TimeBase() : sec(0), nsec(0) {}
+  TimeBase(uint32_t _sec, uint32_t _nsec) : sec(_sec), nsec(_nsec) { normalizeSecNSec(sec, nsec); }
+  explicit TimeBase(double t) { fromSec(t); }
+  ~TimeBase() {}
+  D operator-(const T& rhs) const;
+  T operator+(const D& rhs) const;
+  T operator-(const D& rhs) const;
+  T& operator+=(const D& rhs);
+  T& operator-=(const D& rhs);
+  bool operator==(const T& rhs) const;
+  inline bool operator!=(const T& rhs) const { return !(*static_cast<const T*>(this) == rhs); }
+  bool operator>(const T& rhs) const;
+  bool operator<(const T& rhs) const;
+  bool operator>=(const T& rhs) const;
+  bool operator<=(const T& rhs) const;
 
-  double toSec() const {
-    return (double) sec + 1e-9 * (double) nsec;
-  }
-  ;
+  double toSec() const { return (double)sec + 1e-9 * (double)nsec; };
   T& fromSec(double t) {
-    sec = (uint32_t) floor(t);
-    nsec = (uint32_t) std::round((t - sec) * 1e9);
+    sec = (uint32_t)floor(t);
+    nsec = (uint32_t)std::round((t - sec) * 1e9);
     return *static_cast<T*>(this);
   }
 
-  uint64_t toNSec() const {
-    return (uint64_t) sec * 1000000000ull + (uint64_t) nsec;
-  }
+  uint64_t toNSec() const { return (uint64_t)sec * 1000000000ull + (uint64_t)nsec; }
   T& fromNSec(uint64_t t);
 
-  inline bool isZero() const {
-    return sec == 0 && nsec == 0;
-  }
-  inline bool is_zero() const {
-    return isZero();
-  }
-
+  inline bool isZero() const { return sec == 0 && nsec == 0; }
+  inline bool is_zero() const { return isZero(); }
 };
 
 /**
@@ -186,17 +164,11 @@ class TimeBase {
  */
 class Time : public TimeBase<Time, Duration> {
  public:
-  Time()
-      : TimeBase<Time, Duration>() {
-  }
+  Time() : TimeBase<Time, Duration>() {}
 
-  Time(uint32_t _sec, uint32_t _nsec)
-      : TimeBase<Time, Duration>(_sec, _nsec) {
-  }
+  Time(uint32_t _sec, uint32_t _nsec) : TimeBase<Time, Duration>(_sec, _nsec) {}
 
-  explicit Time(double t) {
-    fromSec(t);
-  }
+  explicit Time(double t) { fromSec(t); }
 
   /**
    * \brief Retrieve the current time.  Returns the current wall clock time.
@@ -238,17 +210,11 @@ extern const Time TIME_MIN;
  */
 class WallTime : public TimeBase<WallTime, WallDuration> {
  public:
-  WallTime()
-      : TimeBase<WallTime, WallDuration>() {
-  }
+  WallTime() : TimeBase<WallTime, WallDuration>() {}
 
-  WallTime(uint32_t _sec, uint32_t _nsec)
-      : TimeBase<WallTime, WallDuration>(_sec, _nsec) {
-  }
+  WallTime(uint32_t _sec, uint32_t _nsec) : TimeBase<WallTime, WallDuration>(_sec, _nsec) {}
 
-  explicit WallTime(double t) {
-    fromSec(t);
-  }
+  explicit WallTime(double t) { fromSec(t); }
 
   /**
    * \brief Returns the current wall clock time.
@@ -260,15 +226,12 @@ class WallTime : public TimeBase<WallTime, WallDuration> {
    */
   static bool sleepUntil(const WallTime& end);
 
-  static bool isSystemTime() {
-    return true;
-  }
+  static bool isSystemTime() { return true; }
 };
 
-std::ostream &operator <<(std::ostream &os, const Time &rhs);
-std::ostream &operator <<(std::ostream &os, const WallTime &rhs);
+std::ostream& operator<<(std::ostream& os, const Time& rhs);
+std::ostream& operator<<(std::ostream& os, const WallTime& rhs);
 
-}
+}  // namespace okvis
 
-#endif // INCLUDE_OKVIS_TIME_HPP_
-
+#endif  // INCLUDE_OKVIS_TIME_HPP_

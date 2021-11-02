@@ -169,11 +169,11 @@ struct MapPoint
   std::map<okvis::KeypointIdentifier, uint64_t> observations;   ///< Observations of this point.
 };
 
-typedef std::vector<MapPoint, Eigen::aligned_allocator<MapPoint> > MapPointVector;
-typedef std::map<uint64_t, MapPoint, std::less<uint64_t>,
-    Eigen::aligned_allocator<MapPoint> > PointMap;
-typedef std::map<uint64_t, okvis::kinematics::Transformation, std::less<uint64_t>,
-    Eigen::aligned_allocator<okvis::kinematics::Transformation> > TransformationMap;
+  typedef std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>> MapPointVector;
+  typedef std::map<uint64_t, MapPoint, std::less<uint64_t>, 
+          Eigen::aligned_allocator<std::pair<const uint64_t, MapPoint>>> PointMap;
+  typedef std::map<uint64_t, okvis::kinematics::Transformation, std::less<uint64_t>,
+                   Eigen::aligned_allocator<std::pair<const uint64_t, okvis::kinematics::Transformation>>> TransformationMap;
 
 /// \brief For convenience to pass associations - also contains the 3d points.
 struct Observation

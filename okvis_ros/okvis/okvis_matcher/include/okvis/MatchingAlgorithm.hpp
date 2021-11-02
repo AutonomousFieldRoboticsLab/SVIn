@@ -81,9 +81,6 @@ class MatchingAlgorithm {
   /// \brief What is the size of list B?
   virtual size_t sizeB() const = 0;
 
-  ///virtual size_t scm_sizeA() const = 0;  // Sharmin
-  //virtual size_t scm_sizeB() const = 0;  // Sharmin
-
   /// \brief Tree data structure for image space restricted matching
   /// mapping from image row to list of features (indices!)
   typedef std::multimap<size_t, size_t> listB_tree_structure_t;

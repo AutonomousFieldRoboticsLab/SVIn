@@ -10,7 +10,7 @@ set(OKVIS_VERSION
 
 # options for build configuration
 option (USE_SYSTEM_BRISK
-        "Use brisk via find_package rather than downloading it as part of okvis" OFF) 
+        "Use brisk via find_package rather than downloading it as part of okvis" ON) 
 option (USE_SYSTEM_CERES
         "Use ceres via find_package rather than downloading it as part of okvis" OFF) 
 option (BUILD_APPS
@@ -58,9 +58,9 @@ if(APPLE)
   # The clang compiler (on osx) is somehow much more strict
   # than the compilers on ubuntu and so this does not seem
   # possible on OSX just yet.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++11 -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++14 -fPIC")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++11 -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++14 -fPIC")
 endif()
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm*")

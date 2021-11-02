@@ -1,19 +1,14 @@
 <launch>
 
   <!-- Arguments -->
-  <arg name="bagfile" default="/home/srahman/data/SVIn2/stereo_rig2/cave1/barbados2017__2018-03-13-23-53-43_cut_w_cam_info_cut_until_690.bag"/>
   <arg name="config_path" default = "$(find pose_graph)/config/stereo_rig2/stereo_rig_v2_config.yaml" />
   
   <param name="/use_sim_time" value="true"/>
 
-  <!-- Play the bagfile -->
-  <node pkg="rosbag" type="play" name="rosbag" args="--clock -s 40 -r 0.5 $(arg bagfile)" />
-
 
   <!-- To un-compress image topics -->
-  <node name="republish1" type="republish" pkg="image_transport" output="screen" args="compressed in:=/slave1/image_raw raw out:=/slave1/image_raw" />
-  <node name="republish2" type="republish" pkg="image_transport" output="screen" args="compressed in:=/slave2/image_raw raw out:=/slave2/image_raw" />
-
+  <node name="republish1" type="republish" pkg="image_transport" output="screen" args="compressed in:=/slave1/image_raw raw out:=/cam0/image_raw" />
+  <node name="republish2" type="republish" pkg="image_transport" output="screen" args="compressed in:=/slave2/image_raw raw out:=/cam1/image_raw" />
  
 
   <!--Run pose_graph node-->
@@ -24,10 +19,10 @@
 
   <!-- Run the stereo image proc --> 
   <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" >
-    <remap from="/left/image_raw" to="/slave1/image_raw" />
-    <remap from="/right/image_raw" to="/slave2/image_raw" />
-    <remap from="/left/camera_info" to="/slave1/image_raw/camera_info" />
-    <remap from="/right/camera_info" to="/slave2/image_raw/camera_info" /> 
+    <remap from="/left/image_raw" to="/cam0/image_raw" />
+    <remap from="/right/image_raw" to="/cam1/image_raw" />
+    <remap from="/left/camera_info" to="/slave1/image_raw/cam_info" />
+    <remap from="/right/camera_info" to="/slave2/image_raw/cam_info" /> 
     <param name="approximate_sync" value="true"/>
   </node>
 
@@ -45,12 +40,8 @@
 
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="slave1" args="0.016 0.06946726 0.0 -1.5708 0.0 -1.5708 base_link slave1 50" /> 
-  <node pkg="tf" type="static_transform_publisher" name="slave2" args="0.016 -0.06946726 0.0 -1.5708 0.0 -1.5708 base_link slave2 50" />
-  <node pkg="tf" type="static_transform_publisher" name="imu" args="-0.0185 -0.016 0.0 1.5708 0.0 1.5708 base_link imu 50" />
-  <node pkg="tf" type="static_transform_publisher" name="sonar" args="0.110 0.0 0.125 0.0 1.5708 0.0 base_link sonar 50" />  
-  <node pkg="tf" type="static_transform_publisher" name="depthsensor" args="-0.30 -0.035 0.032 0.0 0.0 0.0 base_link depthsensor 50" /> 
-  
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz.rviz"/>
+
 
 </launch>
 

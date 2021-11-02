@@ -1324,7 +1324,7 @@ bool Estimator::set_T_WS(uint64_t poseId,
 }
 
 // Added by Sharmin
-bool Estimator::setImuPreIntegral(uint64_t poseId, Eigen::Vector3d & acc_doubleintegral,
+void Estimator::setImuPreIntegral(uint64_t poseId, Eigen::Vector3d & acc_doubleintegral,
  		  Eigen::Vector3d & acc_integral, double & Delta_t){
 
 	imu_integrals imu_int(acc_doubleintegral, acc_integral, Delta_t);

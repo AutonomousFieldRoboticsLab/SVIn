@@ -31,6 +31,8 @@
  *********************************************************************************/
 
 #include <gtest/gtest.h>
+
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
@@ -43,6 +45,7 @@
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 
@@ -94,7 +97,7 @@ TEST(okvisTestSuite, ReprojectionError) {
   const size_t N = 100;
   std::cout << "create N=" << N << " visible points and add respective reprojection error terms... " << std::flush;
   for (size_t i = 1; i < 100; ++i) {
-    Eigen::Vector4d point = cameraGeometry->createRandomVisibleHomogeneousPoint(double(i % 10) * 3 + 2.0);
+    Eigen::Vector4d point = cameraGeometry->createRandomVisibleHomogeneousPoint(static_cast<double>(i % 10) * 3 + 2.0);
     okvis::ceres::HomogeneousPointParameterBlock* homogeneousPointParameterBlock_ptr =
         new okvis::ceres::HomogeneousPointParameterBlock(T_WS * T_SC * point, i + 2);
     problem.AddParameterBlock(homogeneousPointParameterBlock_ptr->parameters(),

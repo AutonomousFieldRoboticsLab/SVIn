@@ -41,6 +41,7 @@
 
 #include <Eigen/Core>
 #include <okvis/cameras/CameraBase.hpp>
+#include <string>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -66,7 +67,7 @@ class DistortionBase {
   virtual bool setParameters(const Eigen::VectorXd& parameters) = 0;
 
   /// \brief Obtain the generic parameters.
-  virtual bool getParameters(Eigen::VectorXd& parameters) const = 0;
+  virtual bool getParameters(Eigen::VectorXd& parameters) const = 0;  // NOLINT
 
   /// \brief The derived class type.
   virtual std::string type() const = 0;

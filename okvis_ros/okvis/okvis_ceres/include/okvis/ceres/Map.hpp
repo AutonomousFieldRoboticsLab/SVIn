@@ -39,10 +39,10 @@
 #ifndef INCLUDE_OKVIS_CERES_MAP_HPP_
 #define INCLUDE_OKVIS_CERES_MAP_HPP_
 
-#include <memory>
-
 #include <ceres/ceres.h>
 #include <ceres/covariance.h>  // Sharmin
+
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
@@ -129,7 +129,7 @@ class Map {
    * @param[in] parameterBlockId Parameter block ID of interest.
    * @param[out] H the output Hessian block.
    */
-  void getLhs(uint64_t parameterBlockId, Eigen::MatrixXd& H);
+  void getLhs(uint64_t parameterBlockId, Eigen::MatrixXd& H);  // NOLINT
 
   /// @name add/remove
   /// @{
@@ -169,7 +169,7 @@ class Map {
   ::ceres::ResidualBlockId addResidualBlock(
       std::shared_ptr< ::ceres::CostFunction> cost_function,
       ::ceres::LossFunction* loss_function,
-      std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);
+      std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);  // NOLINT
 
   /**
    * @brief Replace the parameters connected to a residual block ID.
@@ -177,7 +177,7 @@ class Map {
    * @param[in] parameterBlockPtrs A vector containing the parameter blocks to be replaced.
    */
   void resetResidualBlock(::ceres::ResidualBlockId residualBlockId,
-                          std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);
+                          std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);  // NOLINT
 
   /**
    * @brief Add a residual block. See respective ceres docu. If more are needed, see other interface.
@@ -350,7 +350,7 @@ class Map {
   // @Sharmin
   // For Covariance computation
 
-  void computeCovariance(std::vector<std::pair<const double*, const double*> >& covariance_blocks,
+  void computeCovariance(std::vector<std::pair<const double*, const double*> >& covariance_blocks,  // NOLINT
                          const double* pose_block) {
     ::ceres::Covariance::Options cov_options;
     ::ceres::Covariance covariance(cov_options);
@@ -367,7 +367,7 @@ class Map {
       // double covar[6*6];
 
       // if (covarianceCal.GetCovarianceBlock(pose6d_block, pose6d_block, covar)){
-      //	  LOG(INFO)<< "Pose Covariance: " << covar;
+      // LOG(INFO)<< "Pose Covariance: " << covar;
       //}
     }
   }

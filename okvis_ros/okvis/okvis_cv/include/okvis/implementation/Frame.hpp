@@ -38,9 +38,12 @@
  * @author Andreas Forster
  */
 
+#include <memory>
+#include <vector>
+
 #include "opencv2/highgui/highgui.hpp"  // Sharmin
 #include "opencv2/imgproc/imgproc.hpp"  // Sharmin
-using namespace cv;                     // Sharmin
+using namespace cv;                     // NOLINT
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

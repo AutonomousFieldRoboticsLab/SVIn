@@ -40,8 +40,10 @@
 #define INCLUDE_OKVIS_CAMERAS_CAMERABASE_HPP_
 
 #include <stdint.h>
+
 #include <Eigen/Core>
 #include <memory>
+#include <string>
 #include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -114,7 +116,7 @@ class CameraBase {
   inline uint32_t imageHeight() const { return imageHeight_; }
 
   /// \brief obtain all intrinsics
-  virtual void getIntrinsics(Eigen::VectorXd& intrinsics) const = 0;
+  virtual void getIntrinsics(Eigen::VectorXd& intrinsics) const = 0;  // NOLINT
 
   /// \brief overwrite all intrinsics - use with caution !
   virtual bool setIntrinsics(const Eigen::VectorXd& intrinsics) = 0;

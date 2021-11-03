@@ -43,26 +43,26 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <map>
+#include <memory>
 #include <mutex>
-#include <thread>
-
+#include <okvis/DepthFrameSynchronizer.hpp>  // @Sharmin
+#include <okvis/FrameSynchronizer.hpp>
 #include <okvis/Frontend.hpp>
+#include <okvis/ImuFrameSynchronizer.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
-#include <okvis/assert_macros.hpp>
-#include <okvis/cameras/NCameraSystem.hpp>
-
-#include <okvis/DepthFrameSynchronizer.hpp>  // @Sharmin
 #include <okvis/RelocFrameSynchronizer.hpp>  // @Sharmin
 #include <okvis/SonarFrameSynchronizer.hpp>  // @Sharmin
-#include <okvis/kinematics/Transformation.hpp>
-
-#include <okvis/FrameSynchronizer.hpp>
-#include <okvis/ImuFrameSynchronizer.hpp>
 #include <okvis/VioVisualizer.hpp>
+#include <okvis/assert_macros.hpp>
+#include <okvis/cameras/NCameraSystem.hpp>
+#include <okvis/kinematics/Transformation.hpp>
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
 #include <okvis/timing/Timer.hpp>
+#include <thread>
+#include <vector>
 
 #ifdef USE_MOCK
 #include <../test/MockVioBackendInterface.hpp>
@@ -104,16 +104,16 @@ class ThreadedKFVio : public VioInterface {
 #ifdef USE_MOCK
 
   /// \brief constructor for gmock
-  ThreadedKFVio(okvis::VioParameters& parameters,
-                okvis::MockVioBackendInterface& estimator,
-                okvis::MockVioFrontendInterface& frontend);
+  ThreadedKFVio(okvis::VioParameters& parameters,            // NOLINT
+                okvis::MockVioBackendInterface& estimator,   // NOLINT
+                okvis::MockVioFrontendInterface& frontend);  // NOLINT
 
 #else
   /**
    * \brief Constructor.
    * \param parameters Parameters and settings.
    */
-  ThreadedKFVio(okvis::VioParameters& parameters);
+  explicit ThreadedKFVio(okvis::VioParameters& parameters);  // NOLINT
 #endif
 
   /// \brief Destructor. This calls Shutdown() for all threadsafe queues and joins all threads.
@@ -309,19 +309,19 @@ class ThreadedKFVio : public VioInterface {
    * @remark This function is threadsafe.
    * @return The IMU Measurement spanning at least the time between start and end.
    */
-  okvis::ImuMeasurementDeque getImuMeasurments(okvis::Time& start, okvis::Time& end);
+  okvis::ImuMeasurementDeque getImuMeasurments(okvis::Time& start, okvis::Time& end);  // NOLINT
 
   /**
    * @Sharmin
    * @brief Get the reloc measurement in-between/nearest to start and end.
    */
-  okvis::RelocMeasurementDeque getRelocMeasurements(okvis::Time& start, okvis::Time& end);
+  okvis::RelocMeasurementDeque getRelocMeasurements(okvis::Time& start, okvis::Time& end);  // NOLINT
 
   /**
    * @Sharmin
    * @brief Get the depth measurement in-between/nearest to start and end. Depth sensor has a slowed rate, 1 Hz.
    */
-  okvis::DepthMeasurementDeque getDepthMeasurements(okvis::Time& start, okvis::Time& end);
+  okvis::DepthMeasurementDeque getDepthMeasurements(okvis::Time& start, okvis::Time& end);  // NOLINT
 
   /**
    * @Sharmin
@@ -331,7 +331,7 @@ class ThreadedKFVio : public VioInterface {
    * @remark This function is threadsafe.
    * @return The Sonar Measurement spanning at least the time between start and end.
    */
-  okvis::SonarMeasurementDeque getSonarMeasurements(okvis::Time& start, okvis::Time& end);
+  okvis::SonarMeasurementDeque getSonarMeasurements(okvis::Time& start, okvis::Time& end);  // NOLINT
 
   /**
    * @brief Remove IMU measurements from the internal buffer.
@@ -499,8 +499,8 @@ class ThreadedKFVio : public VioInterface {
   okvis::MockVioBackendInterface& estimator_;
   okvis::MockVioFrontendInterface& frontend_;
 #else
-  okvis::Estimator estimator_;  ///< The backend estimator.
-  okvis::Frontend frontend_;    ///< The frontend.
+  okvis::Estimator estimator_;                               ///< The backend estimator.
+  okvis::Frontend frontend_;                                 ///< The frontend.
 #endif
 
   /// @}

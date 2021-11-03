@@ -41,6 +41,8 @@
 
 #include <Eigen/Core>
 #include <memory>
+#include <string>
+
 #include "okvis/cameras/DistortionBase.hpp"
 
 /// \brief okvis Main namespace of this package.
@@ -71,7 +73,7 @@ class NoDistortion : public DistortionBase {
   }
 
   /// \brief Obtain the generic parameters.
-  bool getParameters(Eigen::VectorXd& parameters) const {
+  bool getParameters(Eigen::VectorXd& parameters) const {  // NOLINT
     parameters.resize(0);
     return true;
   }

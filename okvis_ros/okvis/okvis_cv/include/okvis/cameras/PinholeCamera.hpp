@@ -42,9 +42,12 @@
 #define INCLUDE_OKVIS_CAMERAS_PINHOLECAMERA_HPP_
 
 #include <stdint.h>
+
 #include <Eigen/Core>
 #include <memory>
+#include <string>
 #include <vector>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <opencv2/core/core.hpp>  // Code that causes warning goes here
@@ -109,7 +112,7 @@ class PinholeCamera : public CameraBase {
 
   /// \brief Get the intrinsics as a concatenated vector.
   /// \return The intrinsics as a concatenated vector.
-  inline void getIntrinsics(Eigen::VectorXd& intrinsics) const;
+  inline void getIntrinsics(Eigen::VectorXd& intrinsics) const;  // NOLINT
 
   /// \brief overwrite all intrinsics - use with caution !
   /// \param[in] intrinsics The intrinsics as a concatenated vector.

@@ -32,6 +32,7 @@
 
 #include <gtest/gtest.h>
 #include <sys/time.h>
+
 #include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Time.hpp>
@@ -45,6 +46,7 @@
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 
@@ -89,7 +91,7 @@ TEST(okvisTestSuite, Map) {
   std::cout << "create N=" << N << " visible points and add respective reprojection error terms... " << std::flush;
   ::ceres::CauchyLoss loss(1);
   for (size_t i = 0; i < N; ++i) {
-    Eigen::Vector4d point = cameraGeometry->createRandomVisibleHomogeneousPoint(double(i % 10) * 3 + 2.0);
+    Eigen::Vector4d point = cameraGeometry->createRandomVisibleHomogeneousPoint(static_cast<double>(i % 10) * 3 + 2.0);
     std::shared_ptr<okvis::ceres::HomogeneousPointParameterBlock> homogeneousPointParameterBlock_ptr(
         new okvis::ceres::HomogeneousPointParameterBlock(T_WS * T_SC * point, i + 3));
     map.addParameterBlock(homogeneousPointParameterBlock_ptr, okvis::ceres::Map::HomogeneousPoint);

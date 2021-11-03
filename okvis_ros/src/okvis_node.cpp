@@ -39,6 +39,7 @@
  */
 
 #include <stdlib.h>
+
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -47,15 +48,16 @@
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <ros/ros.h>
 #pragma GCC diagnostic pop
-#include <image_transport/image_transport.h>
-#include "sensor_msgs/Imu.h"
-
 #include <glog/logging.h>
+#include <image_transport/image_transport.h>
 
 #include <okvis/Publisher.hpp>
 #include <okvis/RosParametersReader.hpp>
 #include <okvis/Subscriber.hpp>
 #include <okvis/ThreadedKFVio.hpp>
+#include <string>
+
+#include "sensor_msgs/Imu.h"
 
 // Hunter
 #include <okvis_ros/OdometryTrigger.h>
@@ -64,7 +66,7 @@
 bool is_reloc = true;
 
 namespace okvis {
-void initEstimator(ThreadedKFVio* okvis_estimator, Publisher* publisher, VioParameters& parameters) {
+void initEstimator(ThreadedKFVio* okvis_estimator, Publisher* publisher, VioParameters& parameters) {  // NOLINT
   /****** Hunter: moved all okvis_estimator initialization here to be resetable ****/
   publisher->setParameters(parameters);  // pass the specified publishing stuff
 
@@ -131,10 +133,10 @@ okvis::kinematics::Transformation odometryToTransformation(const nav_msgs::Odome
 bool reset(ThreadedKFVio* okvis_estimator,
            Publisher* publisher,
            Subscriber* subscriber,
-           VioParameters& parameters,
+           VioParameters& parameters,  // NOLINT
            const okvis::kinematics::Transformation& orig_T_Wc_W,
-           okvis_ros::OdometryTrigger::Request& request,
-           okvis_ros::OdometryTrigger::Response& response) {
+           okvis_ros::OdometryTrigger::Request& request,      // NOLINT
+           okvis_ros::OdometryTrigger::Response& response) {  // NOLINT
   okvis_estimator->~ThreadedKFVio();
   parameters.publishing.T_Wc_W = odometryToTransformation(request.pose) * orig_T_Wc_W;
   new (okvis_estimator) ThreadedKFVio(parameters);
@@ -146,10 +148,10 @@ bool reset(ThreadedKFVio* okvis_estimator,
 bool resetZero(ThreadedKFVio* okvis_estimator,
                Publisher* publisher,
                Subscriber* subscriber,
-               VioParameters& parameters,
+               VioParameters& parameters,  // NOLINT
                const okvis::kinematics::Transformation& orig_T_Wc_W,
-               std_srvs::Trigger::Request& request,
-               std_srvs::Trigger::Response& response) {
+               std_srvs::Trigger::Request& request,      // NOLINT
+               std_srvs::Trigger::Response& response) {  // NOLINT
   okvis_ros::OdometryTrigger::Request odom_request;
   okvis_ros::OdometryTrigger::Response odom_response;
   odom_request.pose.pose.pose.orientation.w = 1.0;  // Call reset with identity transformation
@@ -160,8 +162,8 @@ bool resetZero(ThreadedKFVio* okvis_estimator,
 bool smoothReset(Publisher* publisher,
                  Subscriber* subscriber,
                  const okvis::kinematics::Transformation& orig_T_Wc_W,
-                 okvis_ros::OdometryTrigger::Request& request,
-                 okvis_ros::OdometryTrigger::Response& response) {
+                 okvis_ros::OdometryTrigger::Request& request,      // NOLINT
+                 okvis_ros::OdometryTrigger::Response& response) {  // NOLINT
   okvis::kinematics::Transformation new_T_Wc_W = odometryToTransformation(request.pose) * orig_T_Wc_W;
   publisher->setT_Wc_W(new_T_Wc_W);
   subscriber->setT_Wc_W(new_T_Wc_W);

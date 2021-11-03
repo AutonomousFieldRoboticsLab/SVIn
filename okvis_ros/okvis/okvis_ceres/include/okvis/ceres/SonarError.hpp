@@ -43,9 +43,10 @@
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <string>
 #include <vector>
-#include "ceres/ceres.h"
 
+#include "ceres/ceres.h"
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.

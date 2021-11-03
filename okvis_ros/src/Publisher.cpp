@@ -39,23 +39,26 @@
  */
 
 #include <glog/logging.h>
+
 #include <okvis/Publisher.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <ros/package.h>
 #pragma GCC diagnostic pop
-#include <sensor_msgs/fill_image.h>
-#include <sensor_msgs/image_encodings.h>
-
-#include <okvis/FrameTypedefs.hpp>
-
 #include <cv_bridge/cv_bridge.h>
 #include <okvis_ros/SvinHealth.h>
 #include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/fill_image.h>
+#include <sensor_msgs/image_encodings.h>
+
+#include <algorithm>
+#include <list>
+#include <okvis/FrameTypedefs.hpp>
+#include <string>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
-
 // Default constructor.
 Publisher::Publisher() : nh_(nullptr), ctr2_(0) {}
 
@@ -266,10 +269,6 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
 
     sensor_msgs::ChannelFloat32 p_id_w_uv;
     std::vector<double> cvKeypoint_w_id = *lit;
-    // std::cout<<"CV Keypoint w ID in Publisher:"<< cvKeypoint_w_id.at(0) << " , "<< cvKeypoint_w_id.at(1)<< " , "<<
-    // cvKeypoint_w_id.at(2)<< ", "<< 		cvKeypoint_w_id.at(3) << " , "<< cvKeypoint_w_id.at(4)<< " , "<<
-    // cvKeypoint_w_id.at(5)<< " , "<< 		cvKeypoint_w_id.at(6) << " , "<< cvKeypoint_w_id.at(7)<<" , "<<
-    // cvKeypoint_w_id.at(8)<<" , "<< 		cvKeypoint_w_id.at(9) << " , "<< cvKeypoint_w_id.at(10)<< std::endl;
 
     // @Reloc
     p_id_w_uv.values.push_back(cvKeypoint_w_id.at(0));
@@ -671,7 +670,7 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
 
   for (size_t i = 0; i < pointsMatched.size(); ++i) {
     // check infinity
-    if (fabs((double)(pointsMatched[i].point[3])) < 1.0e-8) continue;
+    if (fabs(static_cast<double>(pointsMatched[i].point[3])) < 1.0e-8) continue;
 
     // check quality
     if (pointsMatched[i].quality < parameters_.publishing.landmarkQualityThreshold) continue;
@@ -682,7 +681,7 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
     pointsMatched_.back().y = point[1] / point[3];
     pointsMatched_.back().z = point[2] / point[3];
     pointsMatched_.back().g =
-        255 * (std::min(parameters_.publishing.maxLandmarkQuality, (float)pointsMatched[i].quality) /
+        255 * (std::min(parameters_.publishing.maxLandmarkQuality, static_cast<float>(pointsMatched[i].quality)) /
                parameters_.publishing.maxLandmarkQuality);
 
     // added by Sharmin
@@ -702,7 +701,7 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
 
   for (size_t i = 0; i < pointsUnmatched.size(); ++i) {
     // check infinity
-    if (fabs((double)(pointsUnmatched[i].point[3])) < 1.0e-8) continue;
+    if (fabs(static_cast<double>(pointsUnmatched[i].point[3])) < 1.0e-8) continue;
 
     // check quality
     if (pointsUnmatched[i].quality < parameters_.publishing.landmarkQualityThreshold) continue;
@@ -713,7 +712,7 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
     pointsUnmatched_.back().y = point[1] / point[3];
     pointsUnmatched_.back().z = point[2] / point[3];
     pointsUnmatched_.back().b =
-        255 * (std::min(parameters_.publishing.maxLandmarkQuality, (float)pointsUnmatched[i].quality) /
+        255 * (std::min(parameters_.publishing.maxLandmarkQuality, static_cast<float>(pointsUnmatched[i].quality)) /
                parameters_.publishing.maxLandmarkQuality);
   }
   pointsUnmatched_.header.frame_id = "world";
@@ -727,7 +726,7 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
   for (size_t i = 0; i < pointsTransferred.size(); ++i) {
     // check infinity
 
-    if (fabs((double)(pointsTransferred[i].point[3])) < 1.0e-10) continue;
+    if (fabs(static_cast<double>(pointsTransferred[i].point[3])) < 1.0e-10) continue;
 
     // check quality
     if (pointsTransferred[i].quality < parameters_.publishing.landmarkQualityThreshold) continue;
@@ -737,13 +736,13 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
     pointsTransferred_.back().x = point[0] / point[3];
     pointsTransferred_.back().y = point[1] / point[3];
     pointsTransferred_.back().z = point[2] / point[3];
-    float intensity = std::min(parameters_.publishing.maxLandmarkQuality, (float)pointsTransferred[i].quality) /
-                      parameters_.publishing.maxLandmarkQuality;
+    float intensity =
+        std::min(parameters_.publishing.maxLandmarkQuality, static_cast<float>(pointsTransferred[i].quality)) /
+        parameters_.publishing.maxLandmarkQuality;
     pointsTransferred_.back().r = 255 * intensity;
     pointsTransferred_.back().g = 255 * intensity;
     pointsTransferred_.back().b = 255 * intensity;
-
-    //_omfile << point[0] << " " << point[1] << " " << point[2] << ";" <<std::endl;
+    // _omfile << point[0] << " " << point[1] << " " << point[2] << ";" <<std::endl;
   }
   pointsTransferred_.header.frame_id = "world";
   pointsTransferred_.header.seq = ctr2_++;
@@ -796,7 +795,7 @@ void Publisher::publishTransform() {
 // Set and publish pose.
 void Publisher::publishStateAsCallback(const okvis::Time& t, const okvis::kinematics::Transformation& T_WS) {
   setTime(t);
-  setPose(T_WS);  // TODO: provide setters for this hack
+  setPose(T_WS);  // TODO(hdamron): provide setters for this hack
   publishPose();
 }
 // Set and publish full state.
@@ -808,7 +807,7 @@ void Publisher::publishFullStateAsCallback(const okvis::Time& t,
                                            const okvis::kinematics::Transformation& driftCorrected_T_WS) {
   setTime(t);
   // Modified by Sharmin
-  setOdometry(T_WS, speedAndBiases, omega_S, driftCorrected_T_WS);  // TODO: provide setters for this hack
+  setOdometry(T_WS, speedAndBiases, omega_S, driftCorrected_T_WS);  // TODO(sharmin): provide setters for this hack
   setPath(T_WS);
   publishOdometry();
   publishTransform();
@@ -822,11 +821,13 @@ void Publisher::csvSaveFullStateAsCallback(const okvis::Time& t,
                                            const Eigen::Matrix<double, 3, 1>& omega_S) {
   setTime(t);
   // Modified by Sharmin
-  setOdometry(
-      T_WS, speedAndBiases, omega_S, okvis::kinematics::Transformation());  // TODO: provide setters for this hack
-  if (!csvFile_)
+  setOdometry(T_WS,
+              speedAndBiases,
+              omega_S,
+              okvis::kinematics::Transformation());  // TODO(sharmin): provide setters for this hack
+  if (!csvFile_) {
     LOG(WARNING) << "csvFile_ not ok";
-  else {
+  } else {
     // LOG(INFO)<<"filePtr: ok; ";
     if (csvFile_->good()) {
       // LOG(INFO)<<"file: good.";
@@ -853,8 +854,10 @@ void Publisher::csvSaveFullStateWithExtrinsicsAsCallback(
         extrinsics) {
   setTime(t);
   // Modified by SHarmin
-  setOdometry(
-      T_WS, speedAndBiases, omega_S, okvis::kinematics::Transformation());  // TODO: provide setters for this hack
+  setOdometry(T_WS,
+              speedAndBiases,
+              omega_S,
+              okvis::kinematics::Transformation());  // TODO(sharmin): provide setters for this hack
   if (csvFile_) {
     if (csvFile_->good()) {
       Eigen::Vector3d p_WS_W = T_WS.r();
@@ -1002,7 +1005,6 @@ void Publisher::publishDebugImageAsCallback(const okvis::Time& t, int i, const c
   // publish debug image
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
   msg->header.stamp = ros::Time(t.sec, t.nsec);
-  // TODO msg->header.frame_id
 
   // Expand the number of publishers if needed
   for (int j = pubDebugImage_.size(); j <= i; j++) {

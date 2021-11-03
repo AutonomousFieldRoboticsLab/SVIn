@@ -44,6 +44,7 @@
 #include <okvis/ceres/ParameterBlockSized.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <string>
 
 namespace okvis {
 namespace ceres {

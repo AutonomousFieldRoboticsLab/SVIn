@@ -42,12 +42,13 @@
 #define INCLUDE_OKVIS_DENSEMATCHER_HPP_
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <mutex>
-
 #include <okvis/MatchingAlgorithm.hpp>
-
 #include <okvis/assert_macros.hpp>
+#include <vector>
+
 #include "ThreadPool.hpp"
 
 /// \brief okvis Main namespace of this package.
@@ -68,14 +69,16 @@ class DenseMatcher {
    *                                  threshold, compare the smallest distance to the second smallest
    *                                  to decide whether to set it as a match.
    */
-  DenseMatcher(unsigned char numMatcherThreads = 8, unsigned char numBest = 4, bool useDistanceRatioThreshold = false);
+  explicit DenseMatcher(unsigned char numMatcherThreads = 8,
+                        unsigned char numBest = 4,
+                        bool useDistanceRatioThreshold = false);
 
   virtual ~DenseMatcher();
 
   /// \brief Execute a matching algorithm. This is the fast, templated version. Use this.
   /// \tparam MATCHING_ALGORITHM_T The algorithm to use. E.g. a class derived from MatchingAlgorithm
   template <typename MATCHING_ALGORITHM_T>
-  void match(MATCHING_ALGORITHM_T& matchingAlgorithm, bool useSCM = false);
+  void match(MATCHING_ALGORITHM_T& matchingAlgorithm, bool useSCM = false);  // NOLINT
 
   /// \brief Execute a matching algorithm implementing image space matching
   /// (i.e. match landmarks with features in their image space vicinity)
@@ -83,10 +86,10 @@ class DenseMatcher {
   /// note: once a uniform implementation for the "old" matcher and the image space matching has been implemented
   /// these two methods (match, matchInImageSpace) may be merged into one
   template <typename MATCHING_ALGORITHM_T>
-  void matchInImageSpace(MATCHING_ALGORITHM_T& matchingAlgorithm);
+  void matchInImageSpace(MATCHING_ALGORITHM_T& matchingAlgorithm);  // NOLINT
 
   /// \brief Execute a matching algorithm. This is the slow, runtime polymorphic version. Don't use this.
-  void matchSlow(MatchingAlgorithm& matchingAlgorithm);
+  void matchSlow(MatchingAlgorithm& matchingAlgorithm);  // NOLINT
 
   typedef float distance_t;
 
@@ -95,7 +98,7 @@ class DenseMatcher {
     /// \brief Default constructor.
     Pairing() : indexA(-1), distance(std::numeric_limits<float>::max()) {}
     /// \brief Constructor with maximum distance.
-    Pairing(int ia) : indexA(ia), distance(std::numeric_limits<float>::max()) {}
+    explicit Pairing(int ia) : indexA(ia), distance(std::numeric_limits<float>::max()) {}
     /// \brief Constructor.
     Pairing(int ia, distance_t d) : indexA(ia), distance(d) {}
 
@@ -138,7 +141,7 @@ class DenseMatcher {
    */
   template <typename MATCHING_ALGORITHM_T>
   void matchBody(void (DenseMatcher::*doWorkPtr)(MatchJob&, MATCHING_ALGORITHM_T*),
-                 MATCHING_ALGORITHM_T& matchingAlgorithm,
+                 MATCHING_ALGORITHM_T& matchingAlgorithm,  // NOLINT
                  bool useSCM = false);
 
   /**
@@ -148,7 +151,7 @@ class DenseMatcher {
    * @param matchingAlgorithm The matching algorithm to use.
    */
   template <typename MATCHING_ALGORITHM_T>
-  void doWorkLinearMatching(MatchJob& my_job, MATCHING_ALGORITHM_T* matchingAlgorithm);
+  void doWorkLinearMatching(MatchJob& my_job, MATCHING_ALGORITHM_T* matchingAlgorithm);  // NOLINT
 
   /*template<typename MATCHING_ALGORITHM_T>
   void scm_doWorkLinearMatching(MatchJob & my_job,
@@ -165,7 +168,7 @@ class DenseMatcher {
    * @param matchingAlgorithm The matching algorithm to use.
    */
   template <typename MATCHING_ALGORITHM_T>
-  void doWorkImageSpaceMatching(MatchJob& my_job, MATCHING_ALGORITHM_T* matchingAlgorithm);
+  void doWorkImageSpaceMatching(MatchJob& my_job, MATCHING_ALGORITHM_T* matchingAlgorithm);  // NOLINT
 
   /**
    * @brief A recursive function that reassigns weak matches, if a stronger match is found for a particular point
@@ -176,8 +179,8 @@ class DenseMatcher {
    * @param startidx Start the assigning at some index. Used for the recursion. Set to 0.
    */
   void assignbest(int myIndexScored,
-                  pairing_list_t& vPairsWithScore,
-                  std::vector<std::vector<pairing_t> >& aiBestList,
+                  pairing_list_t& vPairsWithScore,                   // NOLINT
+                  std::vector<std::vector<pairing_t> >& aiBestList,  // NOLINT
                   std::mutex* locks,
                   int startidx);
 
@@ -192,7 +195,7 @@ class DenseMatcher {
    */
   template <typename MATCHING_ALGORITHM_T>
   inline void listBIteration(MATCHING_ALGORITHM_T* matchingAlgorithm,
-                             std::vector<pairing_t>& aiBest,
+                             std::vector<pairing_t>& aiBest,  // NOLINT
                              size_t shortindexA,
                              size_t i);
 

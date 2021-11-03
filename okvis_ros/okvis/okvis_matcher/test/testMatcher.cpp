@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <math.h>
+
 #include <okvis/DenseMatcher.hpp>
+#include <utility>
+#include <vector>
 
 class TestMatchingAlgorithm : public okvis::MatchingAlgorithm {
  public:

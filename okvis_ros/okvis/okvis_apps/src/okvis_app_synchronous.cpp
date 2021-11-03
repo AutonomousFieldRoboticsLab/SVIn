@@ -43,23 +43,25 @@
  */
 
 #include <stdlib.h>
+
+#include <Eigen/Core>
+#include <algorithm>
 #include <atomic>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
-
-#include <Eigen/Core>
+#include <string>
+#include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
 #include <opencv2/opencv.hpp>
 #pragma GCC diagnostic pop
+#include <boost/filesystem.hpp>
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/VioParametersReader.hpp>
-
-#include <boost/filesystem.hpp>
 
 class PoseViewer {
  public:
@@ -331,7 +333,6 @@ int main(int argc, char** argv) {
         if (t_imu - start + okvis::Duration(1.0) > deltaT) {
           okvis_estimator.addImuMeasurement(t_imu, acc, gyr);
         }
-
       } while (t_imu <= t);
 
       // add the image to the frontend for (blocking) processing
@@ -345,7 +346,8 @@ int main(int argc, char** argv) {
 
     // display progress
     if (counter % 20 == 0) {
-      std::cout << "\rProgress: " << int(double(counter) / double(num_camera_images) * 100) << "%  " << std::flush;
+      std::cout << "\rProgress: " << int(static_cast<double>(counter) / static_cast<double>(num_camera_images) * 100)
+                << "%  " << std::flush;
     }
   }
 

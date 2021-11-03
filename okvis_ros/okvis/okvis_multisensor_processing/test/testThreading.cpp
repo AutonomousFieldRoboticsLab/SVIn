@@ -8,9 +8,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #pragma GCC diagnostic pop
 
-#include <okvis/kinematics/Transformation.hpp>
-
 #include <okvis/ThreadedKFVio.hpp>
+#include <okvis/kinematics/Transformation.hpp>
 
 #include "MockVioBackendInterface.hpp"
 #include "MockVioFrontendInterface.hpp"
@@ -22,7 +21,7 @@ using ::testing::Between;
 using ::testing::Return;
 
 TEST(OkvisVioInterfaces, testConstructionDestruction) {
-  using namespace okvis;
+  using namespace okvis;  // NOLINT
 
   MockVioBackendInterface dummy;
   EXPECT_CALL(dummy, addCamera(_)).Times(2);
@@ -90,7 +89,7 @@ TEST(OkvisVioInterfaces, testDestructionWithImageData)
 */
 
 TEST(OkvisVioInterfaces, testDestructionWithIMUData) {
-  using namespace okvis;
+  using namespace okvis;  // NOLINT
 
   MockVioBackendInterface dummy;
   EXPECT_CALL(dummy, addCamera(_)).Times(2);

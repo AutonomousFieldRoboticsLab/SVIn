@@ -41,24 +41,22 @@
 #ifndef INCLUDE_OKVIS_VIOBACKENDINTERFACE_HPP_
 #define INCLUDE_OKVIS_VIOBACKENDINTERFACE_HPP_
 
-#include <memory>
-
 #include <ceres/ceres.h>
 
-#include <okvis/assert_macros.hpp>
-#include <okvis/kinematics/Transformation.hpp>
-
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/Variables.hpp>
+#include <okvis/assert_macros.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
+#include <okvis/kinematics/Transformation.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -180,14 +178,14 @@ class VioBackendInterface {
    * @param[out] mapPoint Landmark information, such as quality, coordinates etc.
    * @return True if successful.
    */
-  virtual bool getLandmark(uint64_t landmarkId, MapPoint& mapPoint) const = 0;
+  virtual bool getLandmark(uint64_t landmarkId, MapPoint& mapPoint) const = 0;  // NOLINT
 
   /**
    * @brief Get a copy of all the landmarks as a PointMap.
    * @param[out] landmarks The landmarks.
    * @return number of landmarks.
    */
-  virtual size_t getLandmarks(PointMap& landmarks) const = 0;  // return a copy for thread safety
+  virtual size_t getLandmarks(PointMap& landmarks) const = 0;  // NOLINT // return a copy for thread safety
 
   /**
    * @brief Get a multiframe.
@@ -202,7 +200,7 @@ class VioBackendInterface {
    * @param[out] T_WS Homogeneous transformation of this pose.
    * @return True if successful.
    */
-  virtual bool get_T_WS(uint64_t poseId, okvis::kinematics::Transformation& T_WS) const = 0;
+  virtual bool get_T_WS(uint64_t poseId, okvis::kinematics::Transformation& T_WS) const = 0;  // NOLINT
 
   /**
    * @brief Get speeds and IMU biases for a given pose ID.
@@ -211,8 +209,9 @@ class VioBackendInterface {
    * @param[out] speedAndBias Speed And bias requested.
    * @return True if successful.
    */
-  virtual bool getSpeedAndBias(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias& speedAndBias) const = 0;
-
+  virtual bool getSpeedAndBias(uint64_t poseId,
+                               uint64_t imuIdx,
+                               okvis::SpeedAndBias& speedAndBias) const = 0;  // NOLINT
   /**
    * @brief Get camera states for a given pose ID.
    * @param[in]  poseId ID of pose to get camera state for.
@@ -222,7 +221,7 @@ class VioBackendInterface {
    */
   virtual bool getCameraSensorStates(uint64_t poseId,
                                      size_t cameraIdx,
-                                     okvis::kinematics::Transformation& T_SCi) const = 0;
+                                     okvis::kinematics::Transformation& T_SCi) const = 0;  // NOLINT
 
   /// @brief Get the number of states/frames in the estimator.
   /// \return The number of frames.

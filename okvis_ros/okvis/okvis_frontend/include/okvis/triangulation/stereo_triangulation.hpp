@@ -63,8 +63,8 @@ Eigen::Vector4d triangulateFast(const Eigen::Vector3d& p1,
                                 const Eigen::Vector3d& p2,
                                 const Eigen::Vector3d& e2,
                                 double sigma,
-                                bool& isValid,
-                                bool& isParallel);
+                                bool& isValid,      // NOLINT
+                                bool& isParallel);  // NOLINT
 }  // namespace triangulation
 }  // namespace okvis
 

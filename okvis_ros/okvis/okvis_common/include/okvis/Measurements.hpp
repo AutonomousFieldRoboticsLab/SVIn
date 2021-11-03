@@ -181,7 +181,7 @@ struct CameraData {
 /// \brief Keypoint measurement.
 struct KeypointData {
   std::vector<cv::KeyPoint> keypoints;         ///< Keypoints.
-  std::vector<long unsigned int> landmarkIds;  ///< Associated landmark IDs.
+  std::vector<long unsigned int> landmarkIds;  // NOLINT  ///< Associated landmark IDs.
   cv::Mat descriptors;                         ///< Keypoint descriptors.
 };
 /// \brief Frame measurement.

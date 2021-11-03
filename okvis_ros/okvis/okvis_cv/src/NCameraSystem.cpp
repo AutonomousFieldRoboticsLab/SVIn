@@ -39,6 +39,8 @@
  */
 
 #include "okvis/cameras/NCameraSystem.hpp"
+
+#include <memory>
 #include <opencv2/highgui/highgui.hpp>
 
 /// \brief okvis Main namespace of this package.
@@ -80,7 +82,7 @@ void NCameraSystem::computeOverlaps() {
           for (size_t v = 0; v < height; ++v) {
             // backproject
             Eigen::Vector3d ray_C;
-            camera->backProject(Eigen::Vector2d(double(u), double(v)), &ray_C);
+            camera->backProject(Eigen::Vector2d(static_cast<double>(u), static_cast<double>(v)), &ray_C);
             // project into other camera
             Eigen::Vector3d ray_Cother = T_Cother_C.C() * ray_C;  // points at infinity, i.e. we only do rotation
             Eigen::Vector2d imagePointInOtherCamera;

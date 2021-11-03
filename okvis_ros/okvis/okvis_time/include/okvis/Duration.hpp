@@ -63,15 +63,16 @@
 
 #include <math.h>
 #include <stdint.h>
+
 #include <climits>
 #include <iostream>
 #include <stdexcept>
-//#include "rostime_decl.h"
+// #include "rostime_decl.h"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
-void normalizeSecNSecSigned(int64_t& sec, int64_t& nsec);
-void normalizeSecNSecSigned(int32_t& sec, int32_t& nsec);
+void normalizeSecNSecSigned(int64_t& sec, int64_t& nsec);  // NOLINT
+void normalizeSecNSecSigned(int32_t& sec, int32_t& nsec);  // NOLINT
 
 /**
  * \brief Base class for Duration implementations.  Provides storage, common functions and operator overloads.
@@ -83,7 +84,7 @@ class DurationBase {
   int32_t sec, nsec;
   DurationBase() : sec(0), nsec(0) {}
   DurationBase(int32_t _sec, int32_t _nsec);
-  explicit DurationBase(double t) { fromSec(t); };
+  explicit DurationBase(double t) { fromSec(t); }
   ~DurationBase() {}
   T operator+(const T& rhs) const;
   T operator-(const T& rhs) const;
@@ -98,8 +99,8 @@ class DurationBase {
   bool operator<(const T& rhs) const;
   bool operator>=(const T& rhs) const;
   bool operator<=(const T& rhs) const;
-  double toSec() const { return (double)sec + 1e-9 * (double)nsec; };
-  int64_t toNSec() const { return (int64_t)sec * 1000000000ll + (int64_t)nsec; };
+  double toSec() const { return static_cast<double>(sec) + 1e-9 * static_cast<double>(nsec); }
+  int64_t toNSec() const { return (int64_t)sec * 1000000000ll + (int64_t)nsec; }
   T& fromSec(double t);
   T& fromNSec(int64_t t);
   bool isZero();

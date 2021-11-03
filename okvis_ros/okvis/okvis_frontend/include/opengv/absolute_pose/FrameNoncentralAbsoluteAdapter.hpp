@@ -40,6 +40,7 @@
 #define INCLUDE_OKVIS_OPENGV_FRAMENONCENTRALABSOLUTEADAPTER_HPP_
 
 #include <stdlib.h>
+
 #include <memory>
 #include <okvis/Estimator.hpp>
 #include <okvis/FrameTypedefs.hpp>
@@ -150,7 +151,7 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
    *        0 and 1.
    * \warning This is not implemented and always returns 1.0.
    */
-  virtual double getWeight(size_t) const { return 1.0; }  // TODO : figure out if needed...
+  virtual double getWeight(size_t) const { return 1.0; }  // TODO(test) : figure out if needed...
 
   // custom:
   /**

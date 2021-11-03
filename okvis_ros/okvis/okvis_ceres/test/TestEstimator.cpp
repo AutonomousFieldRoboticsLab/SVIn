@@ -31,6 +31,8 @@
  *********************************************************************************/
 
 #include <gtest/gtest.h>
+
+#include <memory>
 #include <okvis/Estimator.hpp>
 #include <okvis/IdProvider.hpp>
 #include <okvis/MultiFrame.hpp>
@@ -45,6 +47,7 @@
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
+#include <vector>
 
 TEST(okvisTestSuite, Estimator) {
   // srand((unsigned int) time(0)); // disabled: make unit tests deterministic...
@@ -139,13 +142,13 @@ TEST(okvisTestSuite, Estimator) {
     okvis::SpeedAndBias speedAndBias_est;
     for (size_t k = 0; k < K + 1; ++k) {
       // calculate the transformation
-      okvis::kinematics::Transformation T_WS(T_WS_0.r() + speedAndBias.head<3>() * double(k) * DURATION / double(K),
-                                             T_WS_0.q());
+      okvis::kinematics::Transformation T_WS(
+          T_WS_0.r() + speedAndBias.head<3>() * static_cast<double>(k) * DURATION / static_cast<double>(K), T_WS_0.q());
 
       // assemble a multi-frame
       std::shared_ptr<okvis::MultiFrame> mf(new okvis::MultiFrame);
       mf->setId(okvis::IdProvider::instance().newId());
-      mf->setTimestamp(t0 + okvis::Duration(double(k) * DURATION / double(K)));
+      mf->setTimestamp(t0 + okvis::Duration(static_cast<double>(k) * DURATION / static_cast<double>(K)));
 
       // reference ID will be and stay the first frame added.
       id = mf->id();

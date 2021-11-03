@@ -42,6 +42,7 @@
 #include <Eigen/Core>
 #include <okvis/ceres/ParameterBlockSized.hpp>
 #include <okvis/ceres/SonarLocalParameterization.hpp>
+#include <string>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

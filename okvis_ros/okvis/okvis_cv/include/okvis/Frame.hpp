@@ -54,6 +54,8 @@
 #pragma GCC diagnostic pop
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
+#include <vector>
+
 #include "okvis/cameras/CameraBase.hpp"
 
 /// \brief okvis Main namespace of this package.
@@ -76,9 +78,9 @@ class Frame {
   /// @param[in] detector The detector to be used.
   /// @param[in] extractor The extractor to be used.
   inline Frame(const cv::Mat& image,
-               std::shared_ptr<cameras::CameraBase>& cameraGeometry,
-               std::shared_ptr<cv::FeatureDetector>& detector,
-               std::shared_ptr<cv::DescriptorExtractor>& extractor);
+               std::shared_ptr<cameras::CameraBase>& cameraGeometry,  // NOLINT
+               std::shared_ptr<cv::FeatureDetector>& detector,        // NOLINT
+               std::shared_ptr<cv::DescriptorExtractor>& extractor);  // NOLINT
 
   /// \brief A simple destructor
   inline virtual ~Frame() {}
@@ -136,19 +138,19 @@ class Frame {
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypoint The requested keypoint.
   /// \return whether or not the operation was successful.
-  inline bool getCvKeypoint(size_t keypointIdx, cv::KeyPoint& keypoint) const;
+  inline bool getCvKeypoint(size_t keypointIdx, cv::KeyPoint& keypoint) const;  // NOLINT
 
   /// \brief Get a specific keypoint
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypoint The requested keypoint.
   /// \return whether or not the operation was successful.
-  inline bool getKeypoint(size_t keypointIdx, Eigen::Vector2d& keypoint) const;
+  inline bool getKeypoint(size_t keypointIdx, Eigen::Vector2d& keypoint) const;  // NOLINT
 
   /// \brief Get the size of a specific keypoint
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypointSize The requested keypoint's size.
   /// \return whether or not the operation was successful.
-  inline bool getKeypointSize(size_t keypointIdx, double& keypointSize) const;
+  inline bool getKeypointSize(size_t keypointIdx, double& keypointSize) const;  // NOLINT
 
   /// \brief Access the descriptor -- CAUTION: high-speed version.
   /// @param[in] keypointIdx The requested keypoint's index.
@@ -185,7 +187,7 @@ class Frame {
   inline size_t numKeypoints() const;
 
   inline size_t contour_numKeypoints() const;                 // @Sharmin
-  inline std::vector<cv::KeyPoint> contourKeypoints() const;  //@Sharmin
+  inline std::vector<cv::KeyPoint> contourKeypoints() const;  // @Sharmin
   inline cv::Mat contourDescriptors() const;                  // @Sharmin
 
   std::shared_ptr<const cameras::CameraBase> cameraGeometry_;  ///< the camera geometry.

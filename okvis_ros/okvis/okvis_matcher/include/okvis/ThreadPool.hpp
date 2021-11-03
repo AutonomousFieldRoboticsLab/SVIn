@@ -38,6 +38,7 @@
 #define INCLUDE_OKVIS_THREAD_POOL_HPP_
 
 #include <glog/logging.h>
+
 #include <condition_variable>
 #include <functional>
 #include <future>
@@ -46,6 +47,7 @@
 #include <queue>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 #include <vector>
 
 /// \brief okvis Main namespace of this package.
@@ -58,7 +60,7 @@ class ThreadPool {
  public:
   /// \brief Constructor. Launches some amount of workers.
   /// \param[in] numThreads The number of threads in the pool.
-  ThreadPool(size_t numThreads);
+  explicit ThreadPool(size_t numThreads);
 
   /// \brief Destructor. This joins all threads.
   ~ThreadPool();

@@ -38,6 +38,9 @@
  * @author Andreas Forster
  */
 
+#include <memory>
+#include <vector>
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 /// \brief cameras Namespace for camera-related functionality.

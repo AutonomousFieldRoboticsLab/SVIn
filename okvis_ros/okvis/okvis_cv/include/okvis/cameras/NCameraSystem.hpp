@@ -42,12 +42,14 @@
 #define INCLUDE_OKVIS_NCAMERASYSTEM_HPP_
 
 #include <memory>
+#include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <opencv2/core/core.hpp>  // Code that causes warning goes here
 #pragma GCC diagnostic pop
 #include <okvis/assert_macros.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+
 #include "okvis/cameras/CameraBase.hpp"
 
 /// \brief okvis Main namespace of this package.

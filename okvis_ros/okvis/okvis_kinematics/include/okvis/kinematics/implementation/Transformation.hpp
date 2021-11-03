@@ -36,6 +36,8 @@
  * @author Stefan Leutenegger
  */
 
+#include <utility>
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 

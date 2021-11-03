@@ -39,9 +39,11 @@
 /// \brief okvis Main namespace of this package.
 
 #include <cmath>
+#include <memory>
+#include <vector>
 
-using namespace cv;
-using namespace std;
+using namespace cv;   // NOLINT
+using namespace std;  // NOLINT
 
 extern int nNextId;
 
@@ -268,8 +270,9 @@ bool MultiFrame::computeReprojectionError4(size_t camIndex,
     y -= kp;
     outError = y.dot(inverseCov * y);*/
     return true;
-  } else
+  } else {
     return false;
+  }
 }
 
 /*

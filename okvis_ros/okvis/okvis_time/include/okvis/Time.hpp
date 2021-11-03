@@ -69,12 +69,12 @@
  ** Headers
  *********************************************************************/
 
-//#include <ros/platform.h>
+// #include <ros/platform.h>
 #include <cmath>
 #include <iostream>
-//#include <ros/exception.h>
+// #include <ros/exception.h>
 #include "Duration.hpp"
-//#include "rostime_decl.h"
+// #include "rostime_decl.h"
 
 /*********************************************************************
  ** Cross Platform Headers
@@ -110,9 +110,9 @@ class NoHighPerformanceTimersException : std::runtime_error {
  ** Functions
  *********************************************************************/
 
-void normalizeSecNSec(uint64_t& sec, uint64_t& nsec);
-void normalizeSecNSec(uint32_t& sec, uint32_t& nsec);
-void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec);
+void normalizeSecNSec(uint64_t& sec, uint64_t& nsec);        // NOLINT
+void normalizeSecNSec(uint32_t& sec, uint32_t& nsec);        // NOLINT
+void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec);  // NOLINT
 
 /*********************************************************************
  ** Time Classes
@@ -143,7 +143,7 @@ class TimeBase {
   bool operator>=(const T& rhs) const;
   bool operator<=(const T& rhs) const;
 
-  double toSec() const { return (double)sec + 1e-9 * (double)nsec; };
+  double toSec() const { return static_cast<double>(sec) + 1e-9 * static_cast<double>(nsec); }
   T& fromSec(double t) {
     sec = (uint32_t)floor(t);
     nsec = (uint32_t)std::round((t - sec) * 1e9);

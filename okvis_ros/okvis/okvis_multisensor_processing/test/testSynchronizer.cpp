@@ -7,9 +7,9 @@
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <opencv2/highgui/highgui.hpp>
 #pragma GCC diagnostic pop
-#include <okvis/kinematics/Transformation.hpp>
-
+#include <memory>
 #include <okvis/ThreadedKFVio.hpp>
+#include <okvis/kinematics/Transformation.hpp>
 
 #include "MockVioBackendInterface.hpp"
 #include "MockVioFrontendInterface.hpp"
@@ -22,7 +22,7 @@ using ::testing::Between;
 using ::testing::Return;
 
 TEST(OkvisVioInterfaces, testFrameSync) {
-  using namespace okvis;
+  using namespace okvis;  // NOLINT
 
   okvis::VioParameters parameters;
   parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);
@@ -109,7 +109,7 @@ TEST(OkvisVioInterfaces, testFrameSync) {
 }
 
 TEST(OkvisVioInterfaces, testImuFrameSync) {
-  using namespace okvis;
+  using namespace okvis;  // NOLINT
 
   // configure mock object
   MockVioBackendInterface dummy;

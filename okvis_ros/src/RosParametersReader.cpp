@@ -40,7 +40,10 @@
 
 #include <glog/logging.h>
 
+#include <memory>
 #include <okvis/RosParametersReader.hpp>
+#include <string>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -112,7 +115,7 @@ bool RosParametersReader::getCalibrationViaRosService(
           return false;
         } else {
           calibrations.push_back(okvis::VioParametersReader::CameraCalibration());
-#ifdef USE_VISENSORNODE_V1_1  // TODO: remove this as soon as the public visensor_node gets updated!
+#ifdef USE_VISENSORNODE_V1_1  // TODO(test): remove this as soon as the public visensor_node gets updated!
           geometry_msgs::Pose& T_IC = srv.response.calibration[i].T_IC;
           Eigen::Vector3d t(T_IC.position.x, T_IC.position.y, T_IC.position.z);
           Eigen::Quaterniond q(T_IC.orientation.w, -T_IC.orientation.x, -T_IC.orientation.y, -T_IC.orientation.z);
@@ -197,8 +200,9 @@ bool RosParametersReader::getCalibrationViaRosTopic(
       calibrations[camIdx].distortionType = message.dist_model;
 
       ++camIdx;
-    } else
+    } else {
       lookForNextCameraCalibration = false;
+    }
   }
 
   return calibrations.empty() == false;

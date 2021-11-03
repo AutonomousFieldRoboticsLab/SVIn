@@ -40,18 +40,19 @@
  * @author Andreas Forster
  */
 
-#include <okvis/kinematics/Transformation.hpp>
+#include "okvis/VioVisualizer.hpp"
 
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
-
-#include "okvis/VioVisualizer.hpp"
+#include <okvis/kinematics/Transformation.hpp>
 
 // cameras and distortions
+#include <memory>
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

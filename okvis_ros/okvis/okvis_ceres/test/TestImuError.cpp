@@ -31,6 +31,7 @@
  *********************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
@@ -43,6 +44,7 @@
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 
@@ -112,7 +114,7 @@ TEST(okvisTestSuite, ImuError) {
   // T_WS.setRandom();
 
   // time increment
-  const double dt = 1.0 / double(imuParameters.rate);  // time discretization
+  const double dt = 1.0 / static_cast<double>(imuParameters.rate);  // time discretization
 
   // states
   Eigen::Quaterniond q = T_WS.q();
@@ -132,7 +134,7 @@ TEST(okvisTestSuite, ImuError) {
   okvis::Time t_1;
 
   for (size_t i = 0; i < size_t(duration * imuParameters.rate); ++i) {
-    double time = double(i) / imuParameters.rate;
+    double time = static_cast<double>(i) / imuParameters.rate;
     if (i == 10) {  // set this as starting pose
       T_WS_0 = T_WS;
       speedAndBias_0 = speedAndBias;

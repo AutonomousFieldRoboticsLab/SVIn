@@ -41,13 +41,13 @@
 #ifndef INCLUDE_OKVIS_THREADSAFE_THREADSAFEQUEUE_HPP_
 #define INCLUDE_OKVIS_THREADSAFE_THREADSAFEQUEUE_HPP_
 
+#include <glog/logging.h>
 #include <pthread.h>
 #include <sys/time.h>
+
 #include <atomic>
 #include <queue>
 #include <string>
-
-#include <glog/logging.h>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -79,7 +79,7 @@ class ThreadSafeQueue {
 
  public:
   /// \brief Notify all waiting threads. Only used in destructor and when shutting down.
-  virtual void NotifyAll() const final {
+  virtual void NotifyAll() const final {  // NOLINT
     pthread_cond_broadcast(&condition_empty_);
     pthread_cond_broadcast(&condition_full_);
   }
@@ -102,13 +102,13 @@ class ThreadSafeQueue {
   }
 
   /// \brief Tell the queue shut down. This will notify all threads to wake up.
-  virtual void Shutdown() final {
+  virtual void Shutdown() final {  // NOLINT
     shutdown_ = true;
     NotifyAll();
   }
 
   /// \brief Tell the queue to resume after a shutdown request.
-  virtual void Resume() final {
+  virtual void Resume() final {  // NOLINT
     shutdown_ = false;
     NotifyAll();
   }
@@ -125,7 +125,7 @@ class ThreadSafeQueue {
   }
 
   /// \brief Return the size of the queue.
-  virtual size_t Size() const final {
+  virtual size_t Size() const final {  // NOLINT
     pthread_mutex_lock(&mutex_);
     size_t size = queue_.size();
     pthread_mutex_unlock(&mutex_);
@@ -133,7 +133,7 @@ class ThreadSafeQueue {
   }
 
   /// \brief Return true if the queue is empty.
-  virtual bool Empty() const final {
+  virtual bool Empty() const final {  // NOLINT
     pthread_mutex_lock(&mutex_);
     bool empty = queue_.empty();
     pthread_mutex_unlock(&mutex_);

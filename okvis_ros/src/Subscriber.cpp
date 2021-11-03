@@ -39,8 +39,11 @@
  */
 
 #include <glog/logging.h>
+
 #include <functional>
+#include <memory>
 #include <okvis/Subscriber.hpp>
+#include <vector>
 
 #define THRESHOLD_DATA_DELAY_WARNING 0.1  // in seconds
 
@@ -75,11 +78,11 @@ Subscriber::Subscriber(ros::NodeHandle& nh,
                << "However the visensor library was not found. Trying to set up ROS nodehandle instead";
     setNodeHandle(nh);
 #endif
-  } else
+  } else {
     setNodeHandle(nh);
-
-  imgLeftCounter = 0;   //@Sharmin
-  imgRightCounter = 0;  //@Sharmin
+  }
+  imgLeftCounter = 0;   // @Sharmin
+  imgRightCounter = 0;  // @Sharmin
   // Added by Sharmin
   if (vioParameters_.claheParams.isClaheUsed) {
     clahe = cv::createCLAHE();
@@ -116,10 +119,10 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
     subSonarRange_ = nh_->subscribe("/imagenex831l/range", 1000, &Subscriber::sonarCallback, this);
   }
   // Sharmin
-  /*if (vioParameters_.sensorList.isDepthUsed){
-      subDepth_ = nh_->subscribe("/bar30/depth", 1000, &Subscriber::depthCallback, this);
-      //subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
-  }*/
+  // if (vioParameters_.sensorList.isDepthUsed){
+  // subDepth_ = nh_->subscribe("/bar30/depth", 1000, &Subscriber::depthCallback, this);
+  // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
+  // }
 
   // Sharmin
   if (vioParameters_.relocParameters.isRelocalization) {
@@ -131,23 +134,7 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
 // Hunter
 void Subscriber::setT_Wc_W(okvis::kinematics::Transformation T_Wc_W) { vioParameters_.publishing.T_Wc_W = T_Wc_W; }
 
-void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, /*
-  const sensor_msgs::CameraInfoConstPtr& info,*/
-                               unsigned int cameraIndex) {
-  /*if (cameraIndex == 0){
-    imgLeftCounter++;
-    if(imgLeftCounter%10 == 0){  // @Sharmin: controlling image frequency
-      return;
-    }
-  }
-
-  if (cameraIndex == 1){
-    imgRightCounter++;
-    if(imgRightCounter%10 == 0){  // @Sharmin: controlling image frequency
-      return;
-    }
-  }*/
-
+void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned int cameraIndex) {
   const cv::Mat raw(msg->height, msg->width, CV_8UC1, const_cast<uint8_t*>(&msg->data[0]), msg->step);
 
   // resizing factor( e.g., with a factor = 0.8, an image will convert from 800x600 to 640x480)
@@ -182,7 +169,7 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, /*
   if (!vioInterface_->addImage(t, cameraIndex, clahe_img))  // Modified by Sharmin
     LOG(WARNING) << "Frame delayed at time " << t;
 
-  // TODO: pass the keypoints...
+  // TODO(sharmin): pass the keypoints...
 }
 
 void Subscriber::imuCallback(const sensor_msgs::ImuConstPtr& msg) {
@@ -225,25 +212,25 @@ void Subscriber::relocCallback(const sensor_msgs::PointCloudConstPtr& relo_msg) 
       okvis::Time(relo_msg->header.stamp.sec, relo_msg->header.stamp.nsec), matched_ids, pose_W.r(), pose_W.q());
 }
 // @Sharmin
-/*
-// Aqua depth topic subscription
-void Subscriber::depthCallback(const aquacore::StateMsg::ConstPtr& msg)
-{
-        vioInterface_->addDepthMeasurement(
-                                          okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
-                                          msg->Depth);
-}
-*/
+// /*
+// // Aqua depth topic subscription
+// void Subscriber::depthCallback(const aquacore::StateMsg::ConstPtr& msg)
+// {
+//         vioInterface_->addDepthMeasurement(
+//                                           okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
+//                                           msg->Depth);
+// }
+// */
 
-/*
-// stereo rig depth topic subscription
-void Subscriber::depthCallback(const depth_node_py::Depth::ConstPtr& msg)
-{
-        vioInterface_->addDepthMeasurement(
-                                          okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
-                                          msg->depth);
-}
-*/
+// /*
+// // stereo rig depth topic subscription
+// void Subscriber::depthCallback(const depth_node_py::Depth::ConstPtr& msg)
+// {
+//         vioInterface_->addDepthMeasurement(
+//                                           okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
+//                                           msg->depth);
+// }
+// * /
 
 // @Sharmin
 void Subscriber::sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg) {
@@ -262,7 +249,7 @@ void Subscriber::sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg
   double range = (maxIndex + 1) * rangeResolution;
   double heading = (msg->head_position * M_PI) / 180;
 
-  // TODO No magic no!! within 4.5 meter
+  // No magic no!! within 4.5 meter
   if (range < 4.5 && max > 10) {
     vioInterface_->addSonarMeasurement(okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec), range, heading);
   }
@@ -312,8 +299,8 @@ void Subscriber::startSensors(const std::vector<unsigned int>& camRate, const un
 
   sensor_->startAllCorners();
   sensor_->startSensor(visensor::SensorId::IMU0, imuRate);
-  /*if (sensor_->isSensorPresent(visensor::SensorId::LED_FLASHER0))
-    sensor_->startSensor(visensor::SensorId::LED_FLASHER0);*/ // apparently experimental...
+  // /*if (sensor_->isSensorPresent(visensor::SensorId::LED_FLASHER0))
+  // sensor_->startSensor(visensor::SensorId::LED_FLASHER0);*/ // apparently experimental...
 }
 #endif
 

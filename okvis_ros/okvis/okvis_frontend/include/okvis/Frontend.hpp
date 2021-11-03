@@ -41,12 +41,14 @@
 #ifndef INCLUDE_OKVIS_FRONTEND_HPP_
 #define INCLUDE_OKVIS_FRONTEND_HPP_
 
+#include <memory>
 #include <mutex>
 #include <okvis/DenseMatcher.hpp>
 #include <okvis/Estimator.hpp>
 #include <okvis/VioFrontendInterface.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/timing/Timer.hpp>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -68,7 +70,7 @@ class Frontend : public VioFrontendInterface {
    * @brief Constructor.
    * @param numCameras Number of cameras in the sensor configuration.
    */
-  Frontend(size_t numCameras);
+  explicit Frontend(size_t numCameras);
   virtual ~Frontend() {}
 
   ///@{
@@ -101,8 +103,8 @@ class Frontend : public VioFrontendInterface {
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
-  virtual bool dataAssociationAndInitialization(okvis::Estimator& estimator,
-                                                okvis::kinematics::Transformation& T_WS_propagated,
+  virtual bool dataAssociationAndInitialization(okvis::Estimator& estimator,                         // NOLINT
+                                                okvis::kinematics::Transformation& T_WS_propagated,  // NOLINT
                                                 const okvis::VioParameters& params,
                                                 const std::shared_ptr<okvis::MapPointVector> map,
                                                 std::shared_ptr<okvis::MultiFrame> framesInOut,
@@ -124,8 +126,8 @@ class Frontend : public VioFrontendInterface {
    */
   virtual bool propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
                            const okvis::ImuParameters& imuParams,
-                           okvis::kinematics::Transformation& T_WS_propagated,
-                           okvis::SpeedAndBias& speedAndBiases,
+                           okvis::kinematics::Transformation& T_WS_propagated,  // NOLINT
+                           okvis::SpeedAndBias& speedAndBiases,                 // NOLINT
                            const okvis::Time& t_start,
                            const okvis::Time& t_end,
                            Eigen::Matrix<double, 15, 15>* covariance,
@@ -327,10 +329,10 @@ class Frontend : public VioFrontendInterface {
    * @return The number of matches in total.
    */
   template <class MATCHING_ALGORITHM>
-  int matchToKeyframes(okvis::Estimator& estimator,
+  int matchToKeyframes(okvis::Estimator& estimator,  // NOLINT
                        const okvis::VioParameters& params,
                        const uint64_t currentFrameId,
-                       bool& rotationOnly,
+                       bool& rotationOnly,  // NOLINT
                        bool usePoseUncertainty = true,
                        double* uncertainMatchFraction = 0,
                        bool removeOutliers = true);  // for wide-baseline matches (good initial guess)
@@ -347,7 +349,7 @@ class Frontend : public VioFrontendInterface {
    * @return The number of matches in total.
    */
   template <class MATCHING_ALGORITHM>
-  int matchToLastFrame(okvis::Estimator& estimator,
+  int matchToLastFrame(okvis::Estimator& estimator,  // NOLINT
                        const okvis::VioParameters& params,
                        const uint64_t currentFrameId,
                        bool usePoseUncertainty = true,
@@ -361,7 +363,7 @@ class Frontend : public VioFrontendInterface {
    * @param multiFrame  Multiframe containing the frames to match.
    */
   template <class MATCHING_ALGORITHM>
-  void matchStereo(okvis::Estimator& estimator,
+  void matchStereo(okvis::Estimator& estimator,  // NOLINT
                    const okvis::VioParameters& params,
                    std::shared_ptr<okvis::MultiFrame> multiFrame);
 
@@ -374,7 +376,7 @@ class Frontend : public VioFrontendInterface {
    * @param removeOutliers  Remove observation of outliers in estimator.
    * @return Number of inliers.
    */
-  int runRansac3d2d(okvis::Estimator& estimator,
+  int runRansac3d2d(okvis::Estimator& estimator,  // NOLINT
                     const okvis::cameras::NCameraSystem& nCameraSystem,
                     std::shared_ptr<okvis::MultiFrame> currentFrame,
                     bool removeOutliers);
@@ -391,21 +393,21 @@ class Frontend : public VioFrontendInterface {
    * @param[out] rotationOnly Was the rotation only RANSAC model enough to explain the matches.
    * @return Number of inliers.
    */
-  int runRansac2d2d(okvis::Estimator& estimator,
+  int runRansac2d2d(okvis::Estimator& estimator,  // NOLINT
                     const okvis::VioParameters& params,
                     uint64_t currentFrameId,
                     uint64_t olderFrameId,
                     bool initializePose,
                     bool removeOutliers,
-                    bool& rotationOnly);
+                    bool& rotationOnly);  // NOLINT
   // Added by Sharmin
-  int runRansac2d2dToRefineScale(okvis::Estimator& estimator,
+  int runRansac2d2dToRefineScale(okvis::Estimator& estimator,  // NOLINT
                                  const okvis::VioParameters& params,
                                  uint64_t currentFrameId,
                                  uint64_t olderFrameId,
                                  bool initializePose,
                                  bool removeOutliers,
-                                 bool& rotationOnly);
+                                 bool& rotationOnly);  // NOLINT
 
   /// (re)instantiates feature detectors and descriptor extractors. Used after settings changed or at startup.
   void initialiseBriskFeatureDetectors();

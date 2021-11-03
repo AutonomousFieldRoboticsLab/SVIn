@@ -93,7 +93,7 @@ const Time TIME_MIN(0, 1);
  * These have only internal linkage to this translation unit.
  * (i.e. not exposed to users of the time classes)
  */
-void okvis_walltime(uint32_t& sec, uint32_t& nsec)
+void okvis_walltime(uint32_t& sec, uint32_t& nsec)  // NOLINT
 #ifndef WIN32
     throw(NoHighPerformanceTimersException)
 #endif
@@ -152,7 +152,7 @@ void okvis_walltime(uint32_t& sec, uint32_t& nsec)
   delta_cpu_time.QuadPart = cur_time.QuadPart - init_cpu_time.QuadPart;
   // todo: how to handle cpu clock drift. not sure it's a big deal for us.
   // also, think about clock wraparound. seems extremely unlikey, but possible
-  double d_delta_cpu_time = delta_cpu_time.QuadPart / (double)cpu_freq.QuadPart;
+  double d_delta_cpu_time = delta_cpu_time.QuadPart / static_cast<double>(cpu_freq.QuadPart);
   uint32_t delta_sec = (uint32_t)floor(d_delta_cpu_time);
   uint32_t delta_nsec = (uint32_t)std::round((d_delta_cpu_time - delta_sec) * 1e9);
 
@@ -344,7 +344,7 @@ std::ostream& operator<<(std::ostream& os, const WallDuration& rhs) {
 
 bool WallDuration::sleep() const { return okvis_wallsleep(sec, nsec); }
 
-void normalizeSecNSec(uint64_t& sec, uint64_t& nsec) {
+void normalizeSecNSec(uint64_t& sec, uint64_t& nsec) {  // NOLINT
   uint64_t nsec_part = nsec % 1000000000UL;
   uint64_t sec_part = nsec / 1000000000UL;
 
@@ -354,7 +354,7 @@ void normalizeSecNSec(uint64_t& sec, uint64_t& nsec) {
   nsec = nsec_part;
 }
 
-void normalizeSecNSec(uint32_t& sec, uint32_t& nsec) {
+void normalizeSecNSec(uint32_t& sec, uint32_t& nsec) {  // NOLINT
   uint64_t sec64 = sec;
   uint64_t nsec64 = nsec;
 
@@ -364,7 +364,7 @@ void normalizeSecNSec(uint32_t& sec, uint32_t& nsec) {
   nsec = (uint32_t)nsec64;
 }
 
-void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec) {
+void normalizeSecNSecUnsigned(int64_t& sec, int64_t& nsec) {  // NOLINT
   int64_t nsec_part = nsec;
   int64_t sec_part = sec;
 

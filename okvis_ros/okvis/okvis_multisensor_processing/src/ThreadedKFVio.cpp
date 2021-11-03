@@ -38,16 +38,19 @@
  * @author Andreas Forster
  */
 
-#include <map>
-
 #include <glog/logging.h>
 
+#include <algorithm>
+#include <list>
+#include <map>
+#include <memory>
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>               // Sharmin
 #include <okvis/cameras/RadialTangentialDistortion.hpp>  // Sharmin
 #include <okvis/ceres/ImuError.hpp>
-
+#include <utility>
+#include <vector>
 /// @Sharmin
 #include <okvis/IdProvider.hpp>
 
@@ -97,7 +100,7 @@ static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBa
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-long unsigned int frameCnt = 0;  // Sharmin
+uint64_t frameCnt = 0;  // Sharmin
 
 static const int max_camera_input_queue_size = 10;
 static const okvis::Duration temporal_imu_data_overlap(
@@ -560,7 +563,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
             Eigen::Quaterniond old_q_WCa = cit->measurement.relo_q;
             okvis::kinematics::Transformation old_T_WCa(old_t_WCa, old_q_WCa);
 
-            // TODO Sharmin: calculate drift here
+            // TODO(Sharmin): calculate drift here
             size_t CamIndexA = 0;
             okvis::kinematics::Transformation T_WCa = T_WS * (*parameters_.nCameraSystem.T_SC(CamIndexA));
             okvis::kinematics::Transformation old_T_WS =
@@ -593,7 +596,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
               size_t keypointIdx = (size_t)matched_ids[num_matches].z();
 
               {
-                // TODO Sharmin: Double check
+                // TODO(Sharmin): Double check
                 std::lock_guard<std::mutex> l(estimator_mutex_);
                 estimator_
                     .addRelocObservation<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>>(
@@ -676,7 +679,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
       // LOG (INFO) << "StereoRig V2 translation T_SSo: " << T_SSo.r();
       // LOG (INFO) << "StereoRig V2 rot T_SSo: " << T_SSo.q().toRotationMatrix();
 
-      // TODO check it
+      // TODO(sharmin) check it
       // Add sonar landmark (in world frame) to the graph
       for (okvis::SonarMeasurementDeque::const_iterator it = sonarData.begin(); it != sonarData.end(); ++it) {
         double range = it->measurement.range;
@@ -820,7 +823,7 @@ void ThreadedKFVio::matchingLoop() {
                           imuDataEndTime < imuMeasurements_.back().timeStamp,
                           "Waiting for up to date imu data seems to have failed!");
 
-    // TODO @Sharmin: check if needed to wait until all relevant sonar messages
+    // TODO(Sharmin): check if needed to wait until all relevant sonar messages
 
     okvis::ImuMeasurementDeque imuData = getImuMeasurments(imuDataBeginTime, imuDataEndTime);
 
@@ -887,7 +890,8 @@ void ThreadedKFVio::matchingLoop() {
     // End @sharmin
 
     // make sure that optimization of last frame is over.
-    // TODO If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be necessary
+    // TODO(sharmin) If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be
+    // necessary
     {
       waitForOptimizationTimer.start();
       std::unique_lock<std::mutex> l(estimator_mutex_);
@@ -951,8 +955,9 @@ void ThreadedKFVio::imuConsumerLoop() {
           T_WS_propagated_ = lastOptimized_T_WS_;
           speedAndBiases_propagated_ = lastOptimizedSpeedAndBiases_;
           repropagationNeeded_ = false;
-        } else
+        } else {
           start = okvis::Time(0, 0);
+        }
         end = &data.timeStamp;
       }
       imuMeasurements_.push_back(data);
@@ -965,7 +970,7 @@ void ThreadedKFVio::imuConsumerLoop() {
       Eigen::Matrix<double, 15, 15> covariance;
       Eigen::Matrix<double, 15, 15> jacobian;
 
-      // TODO: check if using sonarMeasurements_ is ok or not? @Sharmin
+      // TODO(sharmin): check if using sonarMeasurements_ is ok or not? @Sharmin
       frontend_.propagation(imuMeasurements_,
                             imu_params_,
                             T_WS_propagated_,
@@ -1156,7 +1161,7 @@ okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(okvis::Time& imuData
   // get iterator to imu data before previous frame
   okvis::ImuMeasurementDeque::iterator first_imu_package = imuMeasurements_.begin();
   okvis::ImuMeasurementDeque::iterator last_imu_package = imuMeasurements_.end();
-  // TODO go backwards through queue. Is probably faster.
+  // TODO(sharmin) go backwards through queue. Is probably faster.
   for (auto iter = imuMeasurements_.begin(); iter != imuMeasurements_.end(); ++iter) {
     // move first_imu_package iterator back until iter->timeStamp is higher than requested begintime
     if (iter->timeStamp <= imuDataBeginTime) first_imu_package = iter;
@@ -1194,8 +1199,8 @@ okvis::RelocMeasurementDeque ThreadedKFVio::getRelocMeasurements(okvis::Time& be
   okvis::RelocMeasurementDeque::iterator first_reloc_package = relocMeasurements_.begin();
   okvis::RelocMeasurementDeque::iterator last_reloc_package = relocMeasurements_.end();
 
-  // TODO go backwards through queue. Is probably faster.
-  // TODO @Sharmin check it
+  // TODO(sharmin) go backwards through queue. Is probably faster.
+  // TODO(Sharmin) check it
   for (auto iter = relocMeasurements_.begin(); iter != relocMeasurements_.end(); ++iter) {
     // move reloc_package iterator back until iter->timeStamp is higher than requested begintime
     if (iter->timeStamp <= beginTime) first_reloc_package = iter;
@@ -1228,8 +1233,8 @@ okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(okvis::Time& be
   okvis::DepthMeasurementDeque::iterator first_depth_package = depthMeasurements_.begin();
   okvis::DepthMeasurementDeque::iterator last_depth_package = depthMeasurements_.end();
 
-  // TODO go backwards through queue. Is probably faster.
-  // TODO @Sharmin check it
+  // TODO(sharmin) go backwards through queue. Is probably faster.
+  // TODO(Sharmin) check it
   for (auto iter = depthMeasurements_.begin(); iter != depthMeasurements_.end(); ++iter) {
     // move depth_package iterator back until iter->timeStamp is higher than requested begintime
     if (iter->timeStamp <= beginTime) first_depth_package = iter;
@@ -1259,7 +1264,7 @@ okvis::SonarMeasurementDeque ThreadedKFVio::getSonarMeasurements(okvis::Time& so
   // get iterator to sonar data before previous frame
   okvis::SonarMeasurementDeque::iterator first_sonar_package = sonarMeasurements_.begin();
   okvis::SonarMeasurementDeque::iterator last_sonar_package = sonarMeasurements_.end();
-  // TODO go backwards through queue. Is probably faster.
+  // TODO(sharmin) go backwards through queue. Is probably faster.
   for (auto iter = sonarMeasurements_.begin(); iter != sonarMeasurements_.end(); ++iter) {
     // move first_sonar_package iterator back until iter->timeStamp is higher than requested begintime
     if (iter->timeStamp <= sonarDataBeginTime) first_sonar_package = iter;
@@ -1362,8 +1367,9 @@ void ThreadedKFVio::optimizationLoop() {
           result.speedAndBiases = lastOptimizedSpeedAndBiases_;
           result.stamp = lastOptimizedStateTimestamp_;
           result.onlyPublishLandmarks = false;
-        } else
+        } else {
           result.onlyPublishLandmarks = true;
+        }
         estimator_.getLandmarks(result.landmarksVector);
 
         repropagationNeeded_ = true;
@@ -1393,8 +1399,7 @@ void ThreadedKFVio::optimizationLoop() {
             int num_keypoint = 0;
             cv::Mat temp_image = image_l;
 
-            for (PointMap::const_iterator cit = lmMap.begin(); cit != lmMap.end(); ++cit)  // @Reloc
-            {
+            for (PointMap::const_iterator cit = lmMap.begin(); cit != lmMap.end(); ++cit) {
               std::map<okvis::KeypointIdentifier, uint64_t> observations =
                   cit->second.observations;  // result.landmarksVector.at(l).observations;
 
@@ -1419,7 +1424,7 @@ void ThreadedKFVio::optimizationLoop() {
 
                   if ((mit->first).keypointIndex >=
                       frame_pairs->numKeypoints(
-                          CamIndexA)) {  // TODO Sharmin: check--> to avoid segfault for being keypoiny out-of-range
+                          CamIndexA)) {  // TODO(Sharmin): check--> to avoid segfault for being keypoiny out-of-range
                     LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
                                << frame_pairs->numKeypoints(CamIndexA) << ")";
                     break;
@@ -1427,7 +1432,7 @@ void ThreadedKFVio::optimizationLoop() {
 
                   std::vector<double> pt_id_w_uv;
                   if (isnan(cvkeypoint.pt.x) || isnan(cvkeypoint.pt.y) ||
-                      isnan(cvkeypoint.size))  // TODO Sharmin: Better way to fix this?
+                      isnan(cvkeypoint.size))  // TODO(Sharmin): Better way to fix this?
                     break;
 
                   // @Reloc
@@ -1442,9 +1447,9 @@ void ThreadedKFVio::optimizationLoop() {
 
                   pt_id_w_uv.push_back(cvkeypoint.size);
                   pt_id_w_uv.push_back(cvkeypoint.angle);
-                  pt_id_w_uv.push_back((double)cvkeypoint.octave);
+                  pt_id_w_uv.push_back(static_cast<double>(cvkeypoint.octave));
                   pt_id_w_uv.push_back(cvkeypoint.response);
-                  pt_id_w_uv.push_back((double)cvkeypoint.class_id);
+                  pt_id_w_uv.push_back(static_cast<double>(cvkeypoint.class_id));
 
                   ptList.push_back(pt_id_w_uv);
 

@@ -50,9 +50,9 @@ Eigen::Vector2d CameraBase::createRandomImagePoint() const {
   Eigen::Vector2d outPoint = Eigen::Vector2d::Random();
   outPoint += Eigen::Vector2d::Ones();
   outPoint *= 0.5;
-  outPoint[0] *= double(imageWidth_ - 0.022);
+  outPoint[0] *= static_cast<double>(imageWidth_ - 0.022);
   outPoint[0] += 0.011;
-  outPoint[1] *= double(imageHeight_ - 0.022);
+  outPoint[1] *= static_cast<double>(imageHeight_ - 0.022);
   outPoint[1] += 0.011;
   return outPoint;
 }

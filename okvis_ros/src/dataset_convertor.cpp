@@ -38,6 +38,7 @@
  */
 
 #include <stdio.h>
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -59,10 +60,9 @@
 #include <opencv2/opencv.hpp>
 #pragma GCC diagnostic pop
 
+#include <geometry_msgs/TransformStamped.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
-
-#include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/image_encodings.h>
@@ -70,8 +70,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>
+#include <set>
+#include <string>
+#include <utility>
 
-using namespace boost::filesystem;
+using namespace boost::filesystem;  // NOLINT
 using std::cout;
 using std::endl;
 using std::map;
@@ -103,7 +106,7 @@ const string CAMERA = "camera";
 const string IMU = "imu";
 const string VICON = "vicon";
 
-///\todo: obsolete! delete
+// obsolete! delete
 const string configDirectoryName = "/config/";
 const string cam0DirectoryName = "/cam0";
 const string cam1DirectoryName = "/cam1";
@@ -134,9 +137,9 @@ bool createDirs(string folderPath, map<string, map<string, string>> sensor_info)
     sensor_folder << folderPath;
     if (iterator.second.find(DATADIR) != iterator.second.end()) {
       sensor_folder << "/" << iterator.second[DATADIR];
-
-    } else
+    } else {
       sensor_folder << "/" << iterator.second[NAME];
+    }
     path sensor_path(sensor_folder.str());
 
     res = res && create_directories(sensor_path);
@@ -171,8 +174,8 @@ void writeViconHeader(shared_ptr<std::ofstream> file) {
         << "R_S_z []" << endl;
 }
 
-void writeCSVHeaders(map<string, shared_ptr<std::ofstream>>& files,
-                     const map<string, map<string, string>>& sensor_info) {
+void writeCSVHeaders(map<string, shared_ptr<std::ofstream>>& files,          // NOLINT
+                     const map<string, map<string, string>>& sensor_info) {  // NOLINT
   for (auto iterator : sensor_info) {
     if (iterator.second[SENSOR_TYPE].compare(CAMERA) == 0)
       writeCameraHeader(files[iterator.first]);
@@ -184,7 +187,7 @@ void writeCSVHeaders(map<string, shared_ptr<std::ofstream>>& files,
 }
 
 map<string, shared_ptr<std::ofstream>> openFileStreams(const string folder_path,
-                                                       map<string, map<string, string>>& sensor_info) {
+                                                       map<string, map<string, string>>& sensor_info) {  // NOLINT
   map<string, shared_ptr<std::ofstream>> topic2file_map;
   for (auto& iterator : sensor_info) {
     string topic = iterator.first;
@@ -289,7 +292,7 @@ void writeCSVVicon(shared_ptr<std::ofstream> file, geometry_msgs::TransformStamp
   *file << ss.str() << endl;
 }
 
-bool isTopicInMap(map<string, map<string, string>>& topic2info, string topic_name) {
+bool isTopicInMap(map<string, map<string, string>>& topic2info, string topic_name) {  // NOLINT
   bool res = false;
   if (topic2info.find(topic_name) != topic2info.end()) {
     res = true;
@@ -308,9 +311,9 @@ bool isTopicInMap(map<string, map<string, string>>& topic2info, string topic_nam
   return res;
 }
 
-bool findTopicInMap(map<string, map<string, string>>& topic2info,
+bool findTopicInMap(map<string, map<string, string>>& topic2info,  // NOLINT
                     string topic_name,
-                    map<string, map<string, string>>::iterator& element) {
+                    map<string, map<string, string>>::iterator& element) {  // NOLINT
   element = topic2info.end();
 
   bool res = false;
@@ -373,9 +376,9 @@ int main(int argc, char** argv) {
   if (!createDirs(bagpath + bagname, topic2info_map)) {
     cout << colouredString("FAILED!", RED, BACKGROUND);
     exit(EXIT_FAILURE);
-  } else
+  } else {
     cout << colouredString("DONE!", GREEN, BOLD) << endl;
-
+  }
   cout << colouredString("Reading bag:", RED, BOLD) << endl;
 
   rosbag::Bag bag;

@@ -42,13 +42,12 @@
 #define INCLUDE_OKVIS_SUBSCRIBER_HPP_
 
 /// @Sharmin
-#include <mutex>
-#include <thread>
-
+#include <boost/shared_ptr.hpp>
 #include <deque>
 #include <memory>
-
-#include <boost/shared_ptr.hpp>
+#include <mutex>
+#include <thread>
+#include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <dynamic_reconfigure/server.h>
@@ -57,6 +56,7 @@
 #include <ros/ros.h>
 #pragma GCC diagnostic pop
 #include <image_transport/image_transport.h>
+
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/PointCloud2.h"
 
@@ -65,11 +65,12 @@
 #include <ros/time.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-//#include <depth_node_py/Depth.h> // for stereo rig depth
+// #include <depth_node_py/Depth.h> // for stereo rig depth
 // #include <aquacore/StateMsg.h> // Aqua depth
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include "sensor_msgs/PointCloud.h"  // for subscribing /pose_graph/match_points
 // end @Sharmin
 
@@ -94,8 +95,6 @@
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 
-#include <sensor_msgs/PointCloud.h>  // Sharmin: for addRelocMeasurement
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -116,10 +115,12 @@ class Subscriber {
    * @param vioInterfacePtr Pointer to the VioInterface.
    * @param param_reader  Parameter reader.
    */
-  Subscriber(ros::NodeHandle& nh, okvis::VioInterface* vioInterfacePtr, const okvis::VioParametersReader& param_reader);
+  Subscriber(ros::NodeHandle& nh,  // NOLINT
+             okvis::VioInterface* vioInterfacePtr,
+             const okvis::VioParametersReader& param_reader);
 
   /// @brief Set the node handle. This sets up the callbacks. This is called in the constructor.
-  void setNodeHandle(ros::NodeHandle& nh);
+  void setNodeHandle(ros::NodeHandle& nh);  // NOLINT
 
   /// @brief Set custom world transformation for reloc callback @Hunter
   void setT_Wc_W(okvis::kinematics::Transformation T_Wc_W);
@@ -129,12 +130,10 @@ class Subscriber {
   /// @{
 
   /// @brief The image callback.
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg, /*
-    const sensor_msgs::CameraInfoConstPtr& info,*/
-                     unsigned int cameraIndex);
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned int cameraIndex);
   /// @brief The depth image callback.
   /// @warning Not implemented.
-  void depthImageCallback(const sensor_msgs::ImageConstPtr& /*msg*/, unsigned int /*cameraIndex*/) {
+  void depthImageCallback(const sensor_msgs::ImageConstPtr&, unsigned int) {
     OKVIS_THROW(Exception, "Subscriber::depthImageCallback() is not implemented.");
   }
 
@@ -171,7 +170,7 @@ class Subscriber {
   /// @warning Not implemented.
   void directFrameCornerCallback(visensor::ViFrame::Ptr frame_ptr, visensor::ViCorner::Ptr corners_ptr);
   /// \brief Dynamic reconfigure callback
-  void configCallback(okvis_ros::CameraConfig& config, uint32_t level);
+  void configCallback(okvis_ros::CameraConfig& config, uint32_t level);  // NOLINT
 #endif
 
   /// @}

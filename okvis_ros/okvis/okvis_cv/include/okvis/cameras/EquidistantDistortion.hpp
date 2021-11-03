@@ -41,6 +41,8 @@
 
 #include <Eigen/Core>
 #include <memory>
+#include <string>
+
 #include "okvis/cameras/DistortionBase.hpp"
 
 /// \brief okvis Main namespace of this package.
@@ -70,10 +72,10 @@ class EquidistantDistortion : public DistortionBase {
   /// \brief set the generic parameters
   /// @param[in] parameters Parameter vector -- length must correspond numDistortionIntrinsics().
   /// @return    True if the requirements were followed.
-  inline bool setParameters(const Eigen::VectorXd& parameters);
+  inline bool setParameters(const Eigen::VectorXd& parameters);  // NOLINT
 
   /// \brief Obtain the generic parameters.
-  inline bool getParameters(Eigen::VectorXd& parameters) const {
+  inline bool getParameters(Eigen::VectorXd& parameters) const {  // NOLINT
     parameters = parameters_;
     return true;
   }

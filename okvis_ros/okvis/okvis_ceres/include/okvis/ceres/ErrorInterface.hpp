@@ -42,6 +42,7 @@
 
 #include <Eigen/Core>
 #include <okvis/assert_macros.hpp>
+#include <string>
 #include <vector>
 
 /// \brief okvis Main namespace of this package.

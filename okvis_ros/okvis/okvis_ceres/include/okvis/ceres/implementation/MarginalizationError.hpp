@@ -36,6 +36,9 @@
  * @author Stefan Leutenegger
  */
 
+#include <utility>
+#include <vector>
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
@@ -116,7 +119,6 @@ void MarginalizationError::splitVector(const std::vector<std::pair<int, int> >& 
                                        const Eigen::MatrixBase<Derived_b>& b,        // input
                                        const Eigen::MatrixBase<Derived_b_a>& b_a,    // output
                                        const Eigen::MatrixBase<Derived_b_b>& b_b) {  // output
-
   const int size = b.rows();
   // sanity check
   OKVIS_ASSERT_TRUE_DBG(Exception, b.cols() == 1, "supplied vector not x-by-1");

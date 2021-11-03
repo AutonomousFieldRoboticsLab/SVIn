@@ -47,7 +47,9 @@
 #include <okvis/Variables.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
+#include <string>
 #include <vector>
+
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
@@ -119,8 +121,8 @@ class ImuError : public ::ceres::SizedCostFunction<15 /* number of residuals */,
    */
   static int propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
                          const okvis::ImuParameters& imuParams,
-                         okvis::kinematics::Transformation& T_WS,
-                         okvis::SpeedAndBias& speedAndBiases,
+                         okvis::kinematics::Transformation& T_WS,  // NOLINT
+                         okvis::SpeedAndBias& speedAndBiases,      // NOLINT
                          const okvis::Time& t_start,
                          const okvis::Time& t_end,
                          covariance_t* covariance = 0,
@@ -129,15 +131,15 @@ class ImuError : public ::ceres::SizedCostFunction<15 /* number of residuals */,
   // Added by Sharmin to add scale
   static int propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
                          const okvis::ImuParameters& imuParams,
-                         okvis::kinematics::Transformation& T_WS,
-                         okvis::SpeedAndBias& speedAndBiases,
+                         okvis::kinematics::Transformation& T_WS,  // NOLINT
+                         okvis::SpeedAndBias& speedAndBiases,      // NOLINT
                          const okvis::Time& t_start,
                          const okvis::Time& t_end,
                          covariance_t* covariance,
                          jacobian_t* jacobian,
-                         Eigen::Vector3d& acc_doubleinteg,
-                         Eigen::Vector3d& acc_integ,
-                         double& Del_t);
+                         Eigen::Vector3d& acc_doubleinteg,  // NOLINT
+                         Eigen::Vector3d& acc_integ,        // NOLINT
+                         double& Del_t);                    // NOLINT
 
   /**
    * @brief Propagates pose, speeds and biases with given IMU measurements.

@@ -38,9 +38,13 @@
  * @author Andreas Forster
  */
 
+#include <algorithm>
+#include <map>
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <opengv/relative_pose/FrameRelativeAdapter.hpp>
+#include <utility>
 
 // cameras and distortions
 #include <okvis/cameras/EquidistantDistortion.hpp>

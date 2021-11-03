@@ -38,19 +38,19 @@
  * @author Andreas Forster
  */
 
-#include <algorithm>
-
 #include <glog/logging.h>
 
+#include <algorithm>
+#include <memory>
+#include <okvis/VioParametersReader.hpp>
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
-
 #include <opencv2/core/core.hpp>
-
-#include <okvis/VioParametersReader.hpp>
+#include <string>
+#include <vector>
 
 #ifdef HAVE_LIBVISENSOR
 #include <visensor/visensor_api.hpp>
@@ -215,7 +215,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   }
 
   if (file["publishing_options"]["maxPathLength"].isInt()) {
-    vioParameters_.publishing.maxPathLength = (int)(file["publishing_options"]["maxPathLength"]);
+    vioParameters_.publishing.maxPathLength = static_cast<int>(file["publishing_options"]["maxPathLength"]);
   }
 
   parseBoolean(file["publishing_options"]["publishImuPropagatedState"],
@@ -239,11 +239,11 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     std::string frame = (std::string)file["publishing_options"]["trackedBodyFrame"];
     // cut out first word. str currently contains everything including comments
     frame = frame.substr(0, frame.find(" "));
-    if (frame.compare("B") == 0)
+    if (frame.compare("B") == 0) {
       vioParameters_.publishing.trackedBodyFrame = FrameName::B;
-    else if (frame.compare("S") == 0)
+    } else if (frame.compare("S") == 0) {
       vioParameters_.publishing.trackedBodyFrame = FrameName::S;
-    else {
+    } else {
       LOG(WARNING) << frame << " unknown/invalid frame for trackedBodyFrame, setting to B";
       vioParameters_.publishing.trackedBodyFrame = FrameName::B;
     }
@@ -253,13 +253,13 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     std::string frame = (std::string)file["publishing_options"]["velocitiesFrame"];
     // cut out first word. str currently contains everything including comments
     frame = frame.substr(0, frame.find(" "));
-    if (frame.compare("B") == 0)
+    if (frame.compare("B") == 0) {
       vioParameters_.publishing.velocitiesFrame = FrameName::B;
-    else if (frame.compare("S") == 0)
+    } else if (frame.compare("S") == 0) {
       vioParameters_.publishing.velocitiesFrame = FrameName::S;
-    else if (frame.compare("Wc") == 0)
+    } else if (frame.compare("Wc") == 0) {
       vioParameters_.publishing.velocitiesFrame = FrameName::Wc;
-    else {
+    } else {
       LOG(WARNING) << frame << " unknown/invalid frame for velocitiesFrame, setting to Wc";
       vioParameters_.publishing.velocitiesFrame = FrameName::Wc;
     }
@@ -287,10 +287,10 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
 
   if (vioParameters_.claheParams.isClaheUsed) {
     if (file["claheClipLimit"].isReal()) {
-      vioParameters_.claheParams.claheClipLimit = (double)file["claheClipLimit"];
+      vioParameters_.claheParams.claheClipLimit = static_cast<double>(file["claheClipLimit"]);
     }
     if (file["claheTilesGridSize"].isInt()) {
-      vioParameters_.claheParams.claheTilesGridSize = (int)file["claheTilesGridSize"];
+      vioParameters_.claheParams.claheTilesGridSize = static_cast<int>(file["claheTilesGridSize"]);
     }
 
     std::cout << "Read Clahe Params " << vioParameters_.claheParams.claheClipLimit << " "
@@ -449,8 +449,9 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   imu_params["tau"] >> vioParameters_.imu.tau;
   imu_params["g"] >> vioParameters_.imu.g;
 
-  vioParameters_.imu.a0 =
-      Eigen::Vector3d((double)(imu_params["a0"][0]), (double)(imu_params["a0"][1]), (double)(imu_params["a0"][2]));
+  vioParameters_.imu.a0 = Eigen::Vector3d(static_cast<double>(imu_params["a0"][0]),
+                                          static_cast<double>(imu_params["a0"][1]),
+                                          static_cast<double>(imu_params["a0"][2]));
 
   readConfigFile_ = true;
 }
@@ -458,7 +459,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
 // Parses booleans from a cv::FileNode. OpenCV sadly has no implementation like this.
 bool VioParametersReader::parseBoolean(cv::FileNode node, bool& val) const {
   if (node.isInt()) {
-    val = (int)(node) != 0;
+    val = static_cast<int>(node) != 0;
     return true;
   }
   if (node.isString()) {
@@ -532,9 +533,9 @@ bool VioParametersReader::getCalibrationViaConfig(
       }
       ++camIdx;
     }
-  } else
+  } else {
     LOG(INFO) << "Did not find a calibration in the configuration file.";
-
+  }
   if (gotCalibration) {
     for (cv::FileNodeIterator it = cameraNode.begin(); it != cameraNode.end(); ++it) {
       CameraCalibration calib;
@@ -560,7 +561,7 @@ bool VioParametersReader::getCalibrationViaConfig(
 
       // Changing focal_length and principal_point accord to image resizeFactor
       calib.focalLength << focalLengthNode[0], focalLengthNode[1];
-      ;
+
       calib.focalLength(0) = calib.focalLength(0) * vioParameters_.miscParams.resizeFactor;
       calib.focalLength(1) = calib.focalLength(1) * vioParameters_.miscParams.resizeFactor;
 
@@ -606,7 +607,7 @@ bool VioParametersReader::getCalibrationViaVisensorAPI(
     double* R = calibrationFromAPI.R;
     double* t = calibrationFromAPI.t;
     // getCameraCalibration apparently gives T_CI back.
-    //(Confirmed by comparing it to output of service)
+    // (Confirmed by comparing it to output of service)
     Eigen::Matrix4d T_CI;
     T_CI << R[0], R[1], R[2], t[0], R[3], R[4], R[5], t[1], R[6], R[7], R[8], t[2], 0, 0, 0, 1;
     okvis::kinematics::Transformation T_CI_okvis(T_CI);

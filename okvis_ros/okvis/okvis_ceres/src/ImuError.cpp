@@ -38,8 +38,6 @@
  * @author Andreas Forster
  */
 
-#include <thread>
-
 #include <glog/logging.h>
 
 #include <okvis/Parameters.hpp>
@@ -49,6 +47,7 @@
 #include <okvis/ceres/ode/ode.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/kinematics/operators.hpp>
+#include <thread>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -122,8 +121,9 @@ int ImuError::redoPreintegration(const okvis::kinematics::Transformation& /*T_WS
     okvis::Time nexttime;
     if ((it + 1) == imuMeasurements_.end()) {
       nexttime = t1_;
-    } else
+    } else {
       nexttime = (it + 1)->timeStamp;
+    }
     double dt = (nexttime - time).toSec();
 
     if (end < nexttime) {
@@ -316,8 +316,9 @@ int ImuError::propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
     okvis::Time nexttime;
     if ((it + 1) == imuMeasurements.end()) {
       nexttime = t_end;
-    } else
+    } else {
       nexttime = (it + 1)->timeStamp;
+    }
     double dt = (nexttime - time).toSec();
 
     if (end < nexttime) {
@@ -485,7 +486,7 @@ int ImuError::propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
                           jacobian_t* jacobian,
                           Eigen::Vector3d& acc_doubleinteg,
                           Eigen::Vector3d& acc_integ,
-                          double& Del_t) {
+                          double& Del_t) {  // NOLINT
   // now the propagation
   okvis::Time time = t_start;
   okvis::Time end = t_end;
@@ -531,8 +532,9 @@ int ImuError::propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
     okvis::Time nexttime;
     if ((it + 1) == imuMeasurements.end()) {
       nexttime = t_end;
-    } else
+    } else {
       nexttime = (it + 1)->timeStamp;
+    }
     double dt = (nexttime - time).toSec();
 
     if (end < nexttime) {

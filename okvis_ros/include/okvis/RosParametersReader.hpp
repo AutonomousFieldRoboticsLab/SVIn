@@ -41,12 +41,11 @@
 #ifndef INCLUDE_OKVIS_ROSPARAMETERSREADER_HPP_
 #define INCLUDE_OKVIS_ROSPARAMETERSREADER_HPP_
 
-#include <string>
-
 #include <okvis/Parameters.hpp>
 #include <okvis/VioParametersReader.hpp>
 #include <okvis/assert_macros.hpp>
-
+#include <string>
+#include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <ros/ros.h>
@@ -54,7 +53,7 @@
 #include <ros/callback_queue.h>
 
 #ifdef HAVE_VISENSOR
-#ifdef USE_VISENSORNODE_V1_1  // TODO: remove this as soon as the public visensor_node gets updated!
+#ifdef USE_VISENSORNODE_V1_1  // TODO(test): remove this as soon as the public visensor_node gets updated!
 #include <visensor_node/visensor_calibration.h>
 #include <visensor_node/visensor_calibration_service.h>
 namespace visensor_msgs = visensor_node;
@@ -84,7 +83,7 @@ class RosParametersReader : public VioParametersReader {
    * @brief The constructor. This calls readConfigFile().
    * @param filename Configuration filename.
    */
-  RosParametersReader(const std::string& filename);
+  explicit RosParametersReader(const std::string& filename);
 
  private:
   /**
@@ -101,8 +100,8 @@ class RosParametersReader : public VioParametersReader {
    * @return True if reading of the calibration was successful.
    */
   virtual bool getCameraCalibration(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,
-      cv::FileStorage& configurationFile);
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,  // NOLINT
+      cv::FileStorage& configurationFile);                                                        // NOLINT
 
   /**
    * @brief Get the camera calibration via the ROS service advertised by the visensor node.
@@ -110,7 +109,7 @@ class RosParametersReader : public VioParametersReader {
    * @return True if successful.
    */
   bool getCalibrationViaRosService(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;  // NOLINT
 
   /**
    * @brief Get the camera calibration via the ROS topic /calibrationX.
@@ -119,7 +118,7 @@ class RosParametersReader : public VioParametersReader {
    * @return True if successful.
    */
   bool getCalibrationViaRosTopic(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;  // NOLINT
 };
 
 }  // namespace okvis

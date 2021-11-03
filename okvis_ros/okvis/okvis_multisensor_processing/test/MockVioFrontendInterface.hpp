@@ -34,6 +34,9 @@
 #define MOCK_FRONTEND_HPP_
 
 #define GTEST_USE_OWN_TR1_TUPLE 0
+#include <memory>
+#include <vector>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -48,8 +51,8 @@ class MockVioFrontendInterface {
                     const okvis::kinematics::Transformation& T_WC,
                     const std::vector<cv::KeyPoint>* keypoints));
   MOCK_METHOD6(dataAssociationAndInitialization,
-               bool(okvis::VioBackendInterface& estimator,
-                    okvis::kinematics::Transformation& T_WS_propagated,
+               bool(okvis::VioBackendInterface& estimator,               // NOLINT
+                    okvis::kinematics::Transformation& T_WS_propagated,  // NOLINT
                     const okvis::VioParameters& params,
                     const std::shared_ptr<okvis::MapPointVector> map,
                     std::shared_ptr<okvis::MultiFrame> framesInOut,
@@ -57,8 +60,8 @@ class MockVioFrontendInterface {
   MOCK_CONST_METHOD8(propagation,
                      bool(const okvis::ImuMeasurementDeque& imuMeasurements,
                           const okvis::ImuParameters& imuParams,
-                          okvis::kinematics::Transformation& T_WS_propagated,
-                          okvis::SpeedAndBias& speedAndBiases,
+                          okvis::kinematics::Transformation& T_WS_propagated,  // NOLINT
+                          okvis::SpeedAndBias& speedAndBiases,                 // NOLINT
                           const okvis::Time& t_start,
                           const okvis::Time& t_end,
                           Eigen::Matrix<double, 15, 15>* covariance,

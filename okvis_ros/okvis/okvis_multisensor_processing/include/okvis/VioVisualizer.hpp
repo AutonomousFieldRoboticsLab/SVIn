@@ -43,12 +43,12 @@
 #ifndef INCLUDE_OKVIS_VIOVISUALIZER_HPP_
 #define INCLUDE_OKVIS_VIOVISUALIZER_HPP_
 
-#include <okvis/assert_macros.hpp>
-#include <opencv2/highgui.hpp>
-
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
+#include <okvis/assert_macros.hpp>
+#include <opencv2/highgui.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -73,19 +73,19 @@ class VioVisualizer {
    * @brief Constructor.
    * @param parameters Parameters and settings.
    */
-  VioVisualizer(okvis::VioParameters& parameters);
+  explicit VioVisualizer(okvis::VioParameters& parameters);  // NOLINT
   virtual ~VioVisualizer();
 
   /**
    * @brief Initialise parameters. Called in constructor.
    * @param parameters Parameters and settings.
    */
-  void init(okvis::VioParameters& parameters);
+  void init(okvis::VioParameters& parameters);  // NOLINT
   /**
    * @brief Show the current frames with the current keyframe and all its matches.
    * @param data Visualization data containing all the info.
    */
-  void showDebugImages(VisualizationData::Ptr& data);
+  void showDebugImages(VisualizationData::Ptr& data);  // NOLINT
 
   /**
    * @brief Circles all keypoints in the current frame, links the matching ones to
@@ -94,7 +94,7 @@ class VioVisualizer {
    * @param image_number Index of the frame to display.
    * @return OpenCV matrix with the resulting image.
    */
-  cv::Mat drawMatches(VisualizationData::Ptr& data, size_t image_number);
+  cv::Mat drawMatches(VisualizationData::Ptr& data, size_t image_number);  // NOLINT
 
  private:
   /**
@@ -103,7 +103,7 @@ class VioVisualizer {
    * @param cameraIndex Index of the frame to display.
    * @return OpenCV matrix with the resulting image.
    */
-  cv::Mat drawKeypoints(VisualizationData::Ptr& data, size_t cameraIndex);
+  cv::Mat drawKeypoints(VisualizationData::Ptr& data, size_t cameraIndex);  // NOLINT
 
   /// Parameters and settings.
   okvis::VioParameters parameters_;

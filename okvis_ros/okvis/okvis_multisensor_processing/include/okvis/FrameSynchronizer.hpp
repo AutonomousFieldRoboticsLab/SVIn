@@ -49,7 +49,8 @@
 #include <okvis/Parameters.hpp>
 #include <okvis/VioInterface.hpp>
 #include <okvis/assert_macros.hpp>
-
+#include <utility>
+#include <vector>
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -65,7 +66,7 @@ class FrameSynchronizer {
    * @brief Constructor. Calls init().
    * @param parameters Parameters and settings.
    */
-  FrameSynchronizer(okvis::VioParameters& parameters);
+  explicit FrameSynchronizer(okvis::VioParameters& parameters);  // NOLINT
 
   /// @brief Trivial destructor.
   virtual ~FrameSynchronizer();
@@ -74,14 +75,14 @@ class FrameSynchronizer {
    * @brief Initialise the synchronizer with new parameters. Is called in the constructor.
    * @param parameters New parameters and settings.
    */
-  void init(okvis::VioParameters& parameters);
+  void init(okvis::VioParameters& parameters);  // NOLINT
 
   /**
    * @brief Adds a new frame to the internal buffer and returns the Multiframe containing the frame.
    * @param frame New frame.
    * @return Multiframe with the added frame in it.
    */
-  std::shared_ptr<okvis::MultiFrame> addNewFrame(std::shared_ptr<okvis::CameraMeasurement>& frame);
+  std::shared_ptr<okvis::MultiFrame> addNewFrame(std::shared_ptr<okvis::CameraMeasurement>& frame);  // NOLINT
 
   /**
    * @brief Inform the synchronizer that a frame in the multiframe has completed keypoint detection and description.
@@ -115,7 +116,7 @@ class FrameSynchronizer {
    *                       whether the multiframe was found.
    * @return True if a multiframe with a timestamp within tolerances has been found.
    */
-  bool findFrameByTime(const okvis::Time& timestamp, int& position) const;
+  bool findFrameByTime(const okvis::Time& timestamp, int& position) const;  // NOLINT
 
   /// returns true if a frame with multiframe id mfId is found and sets position to its frame buffer position
   /**
@@ -125,7 +126,7 @@ class FrameSynchronizer {
    *                      whether the multiframe was found.
    * @return True if a multiframe with the given timestamp was found in the buffer.
    */
-  bool findFrameById(uint64_t mfId, int& position) const;
+  bool findFrameById(uint64_t mfId, int& position) const;  // NOLINT
 
   /// Copy of the parameters and settings.
   okvis::VioParameters parameters_;

@@ -42,11 +42,11 @@
 #include <opengv/absolute_pose/FrameNoncentralAbsoluteAdapter.hpp>
 
 // cameras and distortions
+#include <memory>
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
-
 // Constructor.
 opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAdapter(
     const okvis::Estimator& estimator,

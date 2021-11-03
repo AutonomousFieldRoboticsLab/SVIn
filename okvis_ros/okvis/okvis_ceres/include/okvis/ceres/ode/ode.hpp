@@ -76,9 +76,9 @@ __inline__ void evaluateContinuousTimeOde(const Eigen::Vector3d& gyr,
                                           const Eigen::Vector3d& p_WS_W,
                                           const Eigen::Quaterniond& q_WS,
                                           const okvis::SpeedAndBias& sb,
-                                          Eigen::Vector3d& p_WS_W_dot,
-                                          Eigen::Vector4d& q_WS_dot,
-                                          okvis::SpeedAndBias& sb_dot,
+                                          Eigen::Vector3d& p_WS_W_dot,  // NOLINT
+                                          Eigen::Vector4d& q_WS_dot,    // NOLINT
+                                          okvis::SpeedAndBias& sb_dot,  // NOLINT
                                           Eigen::Matrix<double, 15, 15>* F_c_ptr = 0) {
   // "true" rates and accelerations
   const Eigen::Vector3d omega_S = gyr - sb.segment<3>(3);
@@ -171,9 +171,9 @@ __inline__ void integrateOneStep_RungeKutta(const Eigen::Vector3d& gyr_0,
                                             double sigma_gw_c,
                                             double sigma_aw_c,
                                             double dt,
-                                            Eigen::Vector3d& p_WS_W,
-                                            Eigen::Quaterniond& q_WS,
-                                            okvis::SpeedAndBias& sb,
+                                            Eigen::Vector3d& p_WS_W,   // NOLINT
+                                            Eigen::Quaterniond& q_WS,  // NOLINT
+                                            okvis::SpeedAndBias& sb,   // NOLINT
                                             Eigen::Matrix<double, 15, 15>* P_ptr = 0,
                                             Eigen::Matrix<double, 15, 15>* F_tot_ptr = 0) {
   Eigen::Vector3d k1_p_WS_W_dot;

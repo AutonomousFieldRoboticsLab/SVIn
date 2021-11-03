@@ -36,6 +36,7 @@
  * @author Stefan Leutenegger
  */
 
+#include <memory>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/kinematics/operators.hpp>
 

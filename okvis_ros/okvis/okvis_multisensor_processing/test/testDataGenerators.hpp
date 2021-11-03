@@ -1,10 +1,10 @@
 #ifndef TEST_DATA_GENERATOR_HPP
 #define TEST_DATA_GENERATOR_HPP
 
+#include <memory>
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 class TestDataGenerator {

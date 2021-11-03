@@ -41,21 +41,24 @@
 #ifndef INCLUDE_OKVIS_PUBLISHER_HPP_
 #define INCLUDE_OKVIS_PUBLISHER_HPP_
 
-#include <fstream>
-#include <memory>
-
-#include <pcl/point_types.h>
-
 #include <cv_bridge/cv_bridge.h>  // Sharmin
 #include <geometry_msgs/PoseStamped.h>
+#include <pcl/point_types.h>
 #include <sensor_msgs/PointCloud.h>  // SHarmin
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/Marker.h>
+
+#include <fstream>
+#include <list>
+#include <memory>
+#include <string>
+#include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+
 #include <opencv2/core/core.hpp>
 // #include <pcl/filters/statistical_outlier_removal.h> // Sharmin: Statisitcal outlier removal
 #pragma GCC diagnostic pop
@@ -76,6 +79,7 @@ namespace okvis {
  */
 class Publisher {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
  public:
   /// \brief Default constructor.
   Publisher();
@@ -85,7 +89,7 @@ class Publisher {
    * @brief Constructor. Calls setNodeHandle().
    * @param nh The ROS node handle for publishing.
    */
-  Publisher(ros::NodeHandle& nh);
+  Publisher(ros::NodeHandle& nh);  // NOLINT
 
   /// \name Setters
   /// \{
@@ -94,27 +98,27 @@ class Publisher {
    * @brief Set the node handle and advertise topics.
    * @param nh The ROS node handle.
    */
-  void setNodeHandle(ros::NodeHandle& nh);
+  void setNodeHandle(ros::NodeHandle& nh);  // NOLINT
 
   /// \brief Set an odometry output CSV file.
   /// \param csvFile The file
   bool setCsvFile(std::fstream& csvFile);
   /// \brief Set an odometry output CSV file.
   /// \param csvFileName The filename of a new file
-  bool setCsvFile(std::string& csvFileName);
+  bool setCsvFile(std::string& csvFileName);  // NOLINT
   /// \brief Set an odometry output CSV file.
   /// \param csvFileName The filename of a new file
   bool setCsvFile(std::string csvFileName);
 
   /// \brief              Set a CVS file where the landmarks will be saved to.
   /// \param csvFile      The file
-  bool setLandmarksCsvFile(std::fstream& csvFile);
+  bool setLandmarksCsvFile(std::fstream& csvFile);  // NOLINT
   /// \brief              Set a CVS file where the landmarks will be saved to.
   /// \param csvFileName  The filename of a new file
-  bool setLandmarksCsvFile(std::string& csvFileName);
+  bool setLandmarksCsvFile(std::string& csvFileName);  // NOLINT
   /// \brief              Set a CVS file where the landmarks will be saved to.
   /// \param csvFileName  The filename of a new file
-  bool setLandmarksCsvFile(std::string csvFileName);
+  bool setLandmarksCsvFile(std::string csvFileName);  // NOLINT
 
   /**
    * @brief Set the pose message that is published next.
@@ -210,7 +214,7 @@ class Publisher {
   void publishKeyframeAsCallback(const okvis::Time& t,
                                  const cv::Mat& imageL,
                                  const okvis::kinematics::Transformation& T_WCa,
-                                 std::vector<std::list<std::vector<double> > >& keyframePoints);
+                                 std::vector<std::list<std::vector<double> > >& keyframePoints);  // NOLINT
   void publishRelocRelativePoseAsCallback(const okvis::Time& t,
                                           const Eigen::Vector3d& relative_t,
                                           const Eigen::Quaterniond& relative_q,

@@ -40,6 +40,7 @@
 #define INCLUDE_OKVIS_OPENGV_FRAMERELATIVEADAPTER_HPP_
 
 #include <stdlib.h>
+
 #include <okvis/Estimator.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
@@ -172,7 +173,7 @@ class FrameRelativeAdapter : public RelativeAdapterBase {
    *        0 and 1.
    * \warning This is not implemented and always returns 1.0.
    */
-  virtual double getWeight(size_t) const { return 1.0; }  // TODO : figure out, if this is needed
+  virtual double getWeight(size_t) const { return 1.0; }  // TODO(test) : figure out, if this is needed
 
  private:
   /// The bearing vectors of the correspondences in frame 1.

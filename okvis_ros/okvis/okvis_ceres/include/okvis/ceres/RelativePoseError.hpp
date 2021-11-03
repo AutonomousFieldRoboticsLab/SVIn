@@ -42,7 +42,9 @@
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <string>
 #include <vector>
+
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
@@ -76,7 +78,7 @@ class RelativePoseError : public ::ceres::SizedCostFunction<6 /* number of resid
 
   /// \brief Construct with measurement and information matrix
   /// @param[in] information The information (weight) matrix.
-  RelativePoseError(const Eigen::Matrix<double, 6, 6>& information);
+  explicit RelativePoseError(const Eigen::Matrix<double, 6, 6>& information);
 
   /// \brief Construct with measurement and variance.
   /// @param[in] translationVariance The (relative) translation variance.

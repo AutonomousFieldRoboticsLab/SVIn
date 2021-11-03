@@ -41,22 +41,18 @@
 #ifndef INCLUDE_OKVIS_VIOFRONTENDINTERFACE_HPP_
 #define INCLUDE_OKVIS_VIOFRONTENDINTERFACE_HPP_
 
-#include <memory>
-#include <vector>
-
 #include <Eigen/Core>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/features2d/features2d.hpp>
-
-#include <okvis/kinematics/Transformation.hpp>
-
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/VioBackendInterface.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <vector>
 
 class Estimator;
 
@@ -98,8 +94,8 @@ class VioFrontendInterface {
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
-  virtual bool dataAssociationAndInitialization(okvis::Estimator& estimator,
-                                                okvis::kinematics::Transformation& T_WS_propagated,
+  virtual bool dataAssociationAndInitialization(okvis::Estimator& estimator,                         // NOLINT
+                                                okvis::kinematics::Transformation& T_WS_propagated,  // NOLINT
                                                 const okvis::VioParameters& params,
                                                 const std::shared_ptr<okvis::MapPointVector> map,
                                                 std::shared_ptr<okvis::MultiFrame> framesInOut,
@@ -120,8 +116,8 @@ class VioFrontendInterface {
    */
   virtual bool propagation(const okvis::ImuMeasurementDeque& imuMeasurements,
                            const okvis::ImuParameters& imuParams,
-                           okvis::kinematics::Transformation& T_WS_propagated,
-                           okvis::SpeedAndBias& speedAndBiases,
+                           okvis::kinematics::Transformation& T_WS_propagated,  // NOLINT
+                           okvis::SpeedAndBias& speedAndBiases,                 // NOLINT
                            const okvis::Time& t_start,
                            const okvis::Time& t_end,
                            Eigen::Matrix<double, 15, 15>* covariance,

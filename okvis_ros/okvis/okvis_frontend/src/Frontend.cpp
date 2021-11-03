@@ -40,24 +40,23 @@
  * @Last Modified: 09/19/2018
  */
 
-#include <okvis/Frontend.hpp>
-
 #include <brisk/brisk.h>
-
-#include <opencv2/imgproc/imgproc.hpp>
-
 #include <glog/logging.h>
 
+#include <okvis/Frontend.hpp>
 #include <okvis/IdProvider.hpp>
 #include <okvis/VioKeyframeWindowMatchingAlgorithm.hpp>
 #include <okvis/ceres/ImuError.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 // cameras and distortions
+#include <algorithm>
+#include <memory>
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
-
+#include <vector>
 // Kneip RANSAC
 #include <opengv/sac/Ransac.hpp>
 #include <opengv/sac_problems/absolute_pose/FrameAbsolutePoseSacProblem.hpp>
@@ -109,16 +108,16 @@ bool Frontend::detectAndDescribe(size_t cameraIndex,
   Eigen::Vector3d extractionDirection = T_WC.inverse().C() * g_in_W;
   frameOut->describe(cameraIndex, extractionDirection);
 
-  // set detector/extractor to nullpointer? TODO
+  // set detector/extractor to nullpointer? TODO(later) or not?
   return true;
 }
 
 // Matching as well as initialization of landmarks and state.
 bool Frontend::dataAssociationAndInitialization(
     okvis::Estimator& estimator,
-    okvis::kinematics::Transformation& /*T_WS_propagated*/,  // TODO sleutenegger: why is this not used here?
+    okvis::kinematics::Transformation& /*T_WS_propagated*/,  // TODO(sleutenegger): why is this not used here?
     const okvis::VioParameters& params,
-    const std::shared_ptr<okvis::MapPointVector> /*map*/,  // TODO sleutenegger: why is this not used here?
+    const std::shared_ptr<okvis::MapPointVector> /*map*/,  // TODO(sleutenegger): why is this not used here?
     std::shared_ptr<okvis::MultiFrame> framesInOut,
     bool* asKeyframe) {
   // match new keypoints to existing landmarks/keypoints
@@ -210,9 +209,9 @@ bool Frontend::dataAssociationAndInitialization(
         break;
     }
     matchToLastFrameTimer.stop();
-  } else
+  } else {
     *asKeyframe = true;  // first frame needs to be keyframe
-
+  }
   // do stereo match to get new landmarks
   TimerSwitchable matchStereoTimer("2.4.3 matchStereo");
   switch (distortionType) {
@@ -318,7 +317,7 @@ bool Frontend::doWeNeedANewKeyframe(const okvis::Estimator& estimator,
         }
       }
     }
-    double matchingRatio = double(frameBMatches.size()) / double(pointsInFrameBMatchesArea);
+    double matchingRatio = static_cast<double>(frameBMatches.size()) / static_cast<double>(pointsInFrameBMatchesArea);
 
     // calculate overlap score
     overlap = std::max(overlapArea, overlap);
@@ -408,7 +407,7 @@ int Frontend::matchToKeyframes(okvis::Estimator& estimator,
 
   // calculate fraction of safe matches
   if (uncertainMatchFraction) {
-    *uncertainMatchFraction = double(numUncertainMatches) / double(retCtr);
+    *uncertainMatchFraction = static_cast<double>(numUncertainMatches) / static_cast<double>(retCtr);
   }
 
   return retCtr;
@@ -478,7 +477,7 @@ void Frontend::matchStereo(okvis::Estimator& estimator,
   for (size_t im0 = 0; im0 < camNumber; im0++) {
     for (size_t im1 = im0 + 1; im1 < camNumber; im1++) {
       // first, check the possibility for overlap
-      // TODO: implement this in the Multiframe.
+      // TODO(test): implement this in the Multiframe.
 
       // check overlap
       if (!multiFrame->hasOverlap(im0, im1)) {
@@ -489,7 +488,7 @@ void Frontend::matchStereo(okvis::Estimator& estimator,
           estimator,
           MATCHING_ALGORITHM::Match2D2D,
           briskMatchingThreshold_,
-          false);  // TODO: make sure this is changed when switching back to uncertainty based matching
+          false);  // TODO(test): make sure this is changed when switching back to uncertainty based matching
       matchingAlgorithm.setFrames(mfId, mfId, im0, im1);  // newest frame
 
       // match 2D-2D
@@ -585,11 +584,11 @@ void Frontend::matchStereo(okvis::Estimator& estimator,
 
   /***********   End Scale Refinement: Added by Sharmin ****************/
 
-  // TODO: for more than 2 cameras check that there were no duplications!
+  // TODO(test): for more than 2 cameras check that there were no duplications!
 
-  // TODO: ensure 1-1 matching.
+  // TODO(test): ensure 1-1 matching.
 
-  // TODO: no RANSAC ?
+  // TODO(test): no RANSAC ?
 
   for (size_t im = 0; im < camNumber; im++) {
     const size_t ksize = multiFrame->numKeypoints(im);
@@ -721,7 +720,7 @@ int Frontend::runRansac2d2dToRefineScale(okvis::Estimator& estimator,
 
   // get quality
   int rotation_only_inliers = rotation_only_ransac.inliers_.size();
-  float rotation_only_ratio = float(rotation_only_inliers) / float(numCorrespondences);
+  float rotation_only_ratio = static_cast<float>(rotation_only_inliers) / static_cast<float>(numCorrespondences);
 
   // now the rel_pose one:
   typedef opengv::sac_problems::relative_pose::FrameRelativePoseSacProblem FrameRelativePoseSacProblem;
@@ -729,7 +728,7 @@ int Frontend::runRansac2d2dToRefineScale(okvis::Estimator& estimator,
   std::shared_ptr<FrameRelativePoseSacProblem> rel_pose_problem_ptr(
       new FrameRelativePoseSacProblem(adapter, FrameRelativePoseSacProblem::STEWENIUS));
   rel_pose_ransac.sac_model_ = rel_pose_problem_ptr;
-  rel_pose_ransac.threshold_ = 9;  //(1.0 - cos(0.5/600));
+  rel_pose_ransac.threshold_ = 9;  // (1.0 - cos(0.5/600));
   rel_pose_ransac.max_iterations_ = 50;
 
   // run the ransac
@@ -737,7 +736,7 @@ int Frontend::runRansac2d2dToRefineScale(okvis::Estimator& estimator,
 
   // assess success
   int rel_pose_inliers = rel_pose_ransac.inliers_.size();
-  float rel_pose_ratio = float(rel_pose_inliers) / float(numCorrespondences);
+  float rel_pose_ratio = static_cast<float>(rel_pose_inliers) / static_cast<float>(numCorrespondences);
 
   // decide on success and fill inliers
   std::vector<bool> inliers(numCorrespondences, false);
@@ -792,7 +791,7 @@ int Frontend::runRansac2d2dToRefineScale(okvis::Estimator& estimator,
       okvis::kinematics::Transformation T_C1C2 = T_SCA.inverse() * T_WSA.inverse() * T_WS0 * T_SC0;
       T_C1C2_mat.topRightCorner<3, 1>() =
           T_C1C2_mat.topRightCorner<3, 1>() *
-          std::max(0.0, double(T_C1C2_mat.topRightCorner<3, 1>().transpose() * T_C1C2.r()));
+          std::max(0.0, static_cast<double>(T_C1C2_mat.topRightCorner<3, 1>().transpose() * T_C1C2.r()));
     }
     okvis::kinematics::Transformation T_WS_ransac2d2d =
         T_WSA * T_SCA * okvis::kinematics::Transformation(T_C1C2_mat) * T_SC0.inverse();
@@ -813,15 +812,15 @@ int Frontend::runRansac2d2dToRefineScale(okvis::Estimator& estimator,
     imu_interal_dt.push_back(del_t);
 
     // set.
-    // TODO Sharmin
+    // TODO(Sharmin)
     // estimator.set_T_WS(
     //    id0, T_WS_ransac2d2d);
   }
   //}
 
-  if (rel_pose_success)
+  if (rel_pose_success) {
     return totalInlierNumber;
-  else {
+  } else {
     // rotationOnly = true;  // hack...
     return -1;
   }
@@ -871,7 +870,7 @@ int Frontend::runRansac2d2d(okvis::Estimator& estimator,
 
     // get quality
     int rotation_only_inliers = rotation_only_ransac.inliers_.size();
-    float rotation_only_ratio = float(rotation_only_inliers) / float(numCorrespondences);
+    float rotation_only_ratio = static_cast<float>(rotation_only_inliers) / static_cast<float>(numCorrespondences);
 
     // now the rel_pose one:
     typedef opengv::sac_problems::relative_pose::FrameRelativePoseSacProblem FrameRelativePoseSacProblem;
@@ -879,7 +878,7 @@ int Frontend::runRansac2d2d(okvis::Estimator& estimator,
     std::shared_ptr<FrameRelativePoseSacProblem> rel_pose_problem_ptr(
         new FrameRelativePoseSacProblem(adapter, FrameRelativePoseSacProblem::STEWENIUS));
     rel_pose_ransac.sac_model_ = rel_pose_problem_ptr;
-    rel_pose_ransac.threshold_ = 9;  //(1.0 - cos(0.5/600));
+    rel_pose_ransac.threshold_ = 9;  // (1.0 - cos(0.5/600));
     rel_pose_ransac.max_iterations_ = 50;
 
     // run the ransac
@@ -887,7 +886,7 @@ int Frontend::runRansac2d2d(okvis::Estimator& estimator,
 
     // assess success
     int rel_pose_inliers = rel_pose_ransac.inliers_.size();
-    float rel_pose_ratio = float(rel_pose_inliers) / float(numCorrespondences);
+    float rel_pose_ratio = static_cast<float>(rel_pose_inliers) / static_cast<float>(numCorrespondences);
 
     // decide on success and fill inliers
     std::vector<bool> inliers(numCorrespondences, false);
@@ -959,7 +958,7 @@ int Frontend::runRansac2d2d(okvis::Estimator& estimator,
         okvis::kinematics::Transformation T_C1C2 = T_SCA.inverse() * T_WSA.inverse() * T_WS0 * T_SC0;
         T_C1C2_mat.topRightCorner<3, 1>() =
             T_C1C2_mat.topRightCorner<3, 1>() *
-            std::max(0.0, double(T_C1C2_mat.topRightCorner<3, 1>().transpose() * T_C1C2.r()));
+            std::max(0.0, static_cast<double>(T_C1C2_mat.topRightCorner<3, 1>().transpose() * T_C1C2.r()));
       } else {
         // rotation only assigned...
         T_C1C2_mat.topLeftCorner<3, 3>() = rotation_only_ransac.model_coefficients_;
@@ -970,9 +969,9 @@ int Frontend::runRansac2d2d(okvis::Estimator& estimator,
     }
   }
 
-  if (rel_pose_success || rotation_only_success)
+  if (rel_pose_success || rotation_only_success) {
     return totalInlierNumber;
-  else {
+  } else {
     rotationOnly = true;  // hack...
     return -1;
   }

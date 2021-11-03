@@ -32,12 +32,17 @@
  *********************************************************************************/
 
 #include "okvis/FrameSynchronizer.hpp"
+
 #include <glog/logging.h>
+
 #include <memory>
+
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "testDataGenerators.hpp"
 
-using namespace okvis;
+using namespace okvis;  // NOLINT
 
 static const size_t num_cameras = 2;
 static const size_t num_test_frames = 10;

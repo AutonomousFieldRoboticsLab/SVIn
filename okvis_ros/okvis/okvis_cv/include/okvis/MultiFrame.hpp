@@ -42,12 +42,14 @@
 #define INCLUDE_OKVIS_MULTIFRAME_HPP_
 
 #include <brisk/internal/hamming.h>  // Sharmin: for Brisk descriptor distance
+
 #include <memory>
 #include <okvis/Frame.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <opencv2/highgui/highgui.hpp>  // Sharmin
 #include <opencv2/imgproc/imgproc.hpp>  // Sharmin
+#include <vector>
 
 #include "../../../okvis_frontend/include/okvis/triangulation/stereo_triangulation.hpp"
 
@@ -154,7 +156,7 @@ class MultiFrame {
   inline bool computeReprojectionError4(size_t camIndex,
                                         Eigen::Vector2d kp,
                                         const Eigen::Vector4d& homogeneousPoint,
-                                        double& outError) const;
+                                        double& outError) const;  // NOLINT
 
   /// \brief Describe keypoints. This uses virtual function calls.
   ///        That's a negligibly small overhead for many detections.
@@ -176,21 +178,21 @@ class MultiFrame {
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypoint The requested keypoint.
   /// \return whether or not the operation was successful.
-  inline bool getCvKeypoint(size_t cameraIdx, size_t keypointIdx, cv::KeyPoint& keypoint) const;
+  inline bool getCvKeypoint(size_t cameraIdx, size_t keypointIdx, cv::KeyPoint& keypoint) const;  // NOLINT
 
   /// \brief Get a specific keypoint
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypoint The requested keypoint.
   /// \return whether or not the operation was successful.
-  inline bool getKeypoint(size_t cameraIdx, size_t keypointIdx, Eigen::Vector2d& keypoint) const;
+  inline bool getKeypoint(size_t cameraIdx, size_t keypointIdx, Eigen::Vector2d& keypoint) const;  // NOLINT
 
   /// \brief Get the size of a specific keypoint
   /// @param[in] cameraIdx The camera index.
   /// @param[in] keypointIdx The requested keypoint's index.
   /// @param[out] keypointSize The requested keypoint's size.
   /// \return whether or not the operation was successful.
-  inline bool getKeypointSize(size_t cameraIdx, size_t keypointIdx, double& keypointSize) const;
+  inline bool getKeypointSize(size_t cameraIdx, size_t keypointIdx, double& keypointSize) const;  // NOLINT
 
   /// \brief Access the descriptor -- CAUTION: high-speed version.
   /// @param[in] cameraIdx The camera index.
@@ -260,6 +262,7 @@ class MultiFrame {
 
   std::vector<Frame, Eigen::aligned_allocator<Frame>>
       frames_;  ///< the individual frames // TODO Sharmin moved it from protected to public
+
  protected:
   okvis::Time timestamp_;                ///< the frame timestamp
   uint64_t id_;                          ///< the frame id

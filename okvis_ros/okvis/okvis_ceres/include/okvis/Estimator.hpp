@@ -41,13 +41,13 @@
 #ifndef INCLUDE_OKVIS_ESTIMATOR_HPP_
 #define INCLUDE_OKVIS_ESTIMATOR_HPP_
 
+#include <ceres/ceres.h>
+
 #include <array>
+#include <functional>
+#include <map>
 #include <memory>
 #include <mutex>
-
-#include <ceres/ceres.h>
-#include <okvis/kinematics/Transformation.hpp>
-
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
@@ -62,6 +62,9 @@
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/SonarParameterBlock.hpp>  // @Sharmin
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
+#include <okvis/kinematics/Transformation.hpp>
+#include <utility>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -89,7 +92,7 @@ class Estimator : public VioBackendInterface {
    * @brief Constructor if a ceres map is already available.
    * @param mapPtr Shared pointer to ceres map.
    */
-  Estimator(std::shared_ptr<okvis::ceres::Map> mapPtr);
+  Estimator(std::shared_ptr<okvis::ceres::Map> mapPtr);  // NOLINT
   virtual ~Estimator();
 
   /// @name Sensor configuration related
@@ -195,7 +198,9 @@ class Estimator : public VioBackendInterface {
    * @param removedLandmarks Get the landmarks that were removed by this operation.
    * @return True if successful.
    */
-  bool applyMarginalizationStrategy(size_t numKeyframes, size_t numImuFrames, okvis::MapPointVector& removedLandmarks);
+  bool applyMarginalizationStrategy(size_t numKeyframes,
+                                    size_t numImuFrames,
+                                    okvis::MapPointVector& removedLandmarks);  // NOLINT
 
   /**
    * @brief Initialise pose from IMU measurements. For convenience as static.
@@ -204,7 +209,7 @@ class Estimator : public VioBackendInterface {
    * @return True if successful.
    */
   static bool initPoseFromImu(const okvis::ImuMeasurementDeque& imuMeasurements,
-                              okvis::kinematics::Transformation& T_WS);
+                              okvis::kinematics::Transformation& T_WS);  // NOLINT
 
   /**
    * @brief Start ceres optimization.
@@ -251,14 +256,14 @@ class Estimator : public VioBackendInterface {
    * @param[out] mapPoint Landmark information, such as quality, coordinates etc.
    * @return True if successful.
    */
-  bool getLandmark(uint64_t landmarkId, okvis::MapPoint& mapPoint) const;
+  bool getLandmark(uint64_t landmarkId, okvis::MapPoint& mapPoint) const;  // NOLINT
 
   /**
    * @brief Get a copy of all the landmarks as a PointMap.
    * @param[out] landmarks The landmarks.
    * @return number of landmarks.
    */
-  size_t getLandmarks(okvis::PointMap& landmarks) const;
+  size_t getLandmarks(okvis::PointMap& landmarks) const;  // NOLINT
 
   /**
    * @brief Get a copy of all the landmark in a MapPointVector. This is for legacy support.
@@ -267,7 +272,7 @@ class Estimator : public VioBackendInterface {
    * @see getLandmarks().
    * @return number of landmarks.
    */
-  size_t getLandmarks(okvis::MapPointVector& landmarks) const;
+  size_t getLandmarks(okvis::MapPointVector& landmarks) const;  // NOLINT
 
   /**
    * @brief Get a multiframe.
@@ -287,13 +292,13 @@ class Estimator : public VioBackendInterface {
    * @param[out] T_WS Homogeneous transformation of this pose.
    * @return True if successful.
    */
-  bool get_T_WS(uint64_t poseId, okvis::kinematics::Transformation& T_WS) const;
+  bool get_T_WS(uint64_t poseId, okvis::kinematics::Transformation& T_WS) const;  // NOLINT
 
   // Added by Sharmin to refine scale
   bool getImuPreIntegral(uint64_t poseId,
-                         Eigen::Vector3d& acc_doubleintegral,
-                         Eigen::Vector3d& acc_integral,
-                         double& Delta_t) const;
+                         Eigen::Vector3d& acc_doubleintegral,  // NOLINT
+                         Eigen::Vector3d& acc_integral,        // NOLINT
+                         double& Delta_t) const;               // NOLINT
 
   // the following access the optimization graph, so are not very fast.
   // Feel free to implement caching for them...
@@ -305,7 +310,7 @@ class Estimator : public VioBackendInterface {
    * @param[out] speedAndBias Speed And bias requested.
    * @return True if successful.
    */
-  bool getSpeedAndBias(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias& speedAndBias) const;
+  bool getSpeedAndBias(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias& speedAndBias) const;  // NOLINT
 
   /**
    * @brief Get camera states for a given pose ID.
@@ -315,7 +320,9 @@ class Estimator : public VioBackendInterface {
    * @param[out] T_SCi Homogeneous transformation from sensor (IMU) frame to camera frame.
    * @return True if successful.
    */
-  bool getCameraSensorStates(uint64_t poseId, size_t cameraIdx, okvis::kinematics::Transformation& T_SCi) const;
+  bool getCameraSensorStates(uint64_t poseId,
+                             size_t cameraIdx,
+                             okvis::kinematics::Transformation& T_SCi) const;  // NOLINT
 
   /// @brief Get the number of states/frames in the estimator.
   /// \return The number of frames.
@@ -379,9 +386,9 @@ class Estimator : public VioBackendInterface {
 
   // Added by Sharmin to refine scale
   void setImuPreIntegral(uint64_t poseId,
-                         Eigen::Vector3d& acc_doubleintegral,
-                         Eigen::Vector3d& acc_integral,
-                         double& Delta_t);
+                         Eigen::Vector3d& acc_doubleintegral,  // NOLINT
+                         Eigen::Vector3d& acc_integral,        // NOLINT
+                         double& Delta_t);                     // NOLINT
 
   // Added by Sharmin for scale
   struct imu_integrals {
@@ -457,7 +464,7 @@ class Estimator : public VioBackendInterface {
     /// @param[in] id The Id.
     /// @param[in] isRequired Whether or not we require the state.
     /// @param[in] exists Whether or not this exists in the ceres problem.
-    StateInfo(uint64_t id = 0, bool isRequired = true, bool exists = false)
+    explicit StateInfo(uint64_t id = 0, bool isRequired = true, bool exists = false)
         : id(id), isRequired(isRequired), exists(exists) {}
     uint64_t id;      ///< The ID.
     bool isRequired;  ///< Whether or not we require the state.
@@ -531,29 +538,33 @@ class Estimator : public VioBackendInterface {
   // getters
   bool getGlobalStateParameterBlockPtr(uint64_t poseId,
                                        int stateType,
-                                       std::shared_ptr<ceres::ParameterBlock>& stateParameterBlockPtr) const;
+                                       std::shared_ptr<ceres::ParameterBlock>& stateParameterBlockPtr) const;  // NOLINT
   template <class PARAMETER_BLOCK_T>
-  bool getGlobalStateParameterBlockAs(uint64_t poseId, int stateType, PARAMETER_BLOCK_T& stateParameterBlock) const;
+  bool getGlobalStateParameterBlockAs(uint64_t poseId,
+                                      int stateType,
+                                      PARAMETER_BLOCK_T& stateParameterBlock) const;  // NOLINT
   template <class PARAMETER_BLOCK_T>
-  bool getGlobalStateEstimateAs(uint64_t poseId, int stateType, typename PARAMETER_BLOCK_T::estimate_t& state) const;
+  bool getGlobalStateEstimateAs(uint64_t poseId,
+                                int stateType,
+                                typename PARAMETER_BLOCK_T::estimate_t& state) const;  // NOLINT
 
   bool getSensorStateParameterBlockPtr(uint64_t poseId,
                                        int sensorIdx,
                                        int sensorType,
                                        int stateType,
-                                       std::shared_ptr<ceres::ParameterBlock>& stateParameterBlockPtr) const;
+                                       std::shared_ptr<ceres::ParameterBlock>& stateParameterBlockPtr) const;  // NOLINT
   template <class PARAMETER_BLOCK_T>
   bool getSensorStateParameterBlockAs(uint64_t poseId,
                                       int sensorIdx,
                                       int sensorType,
                                       int stateType,
-                                      PARAMETER_BLOCK_T& stateParameterBlock) const;
+                                      PARAMETER_BLOCK_T& stateParameterBlock) const;  // NOLINT
   template <class PARAMETER_BLOCK_T>
   bool getSensorStateEstimateAs(uint64_t poseId,
                                 int sensorIdx,
                                 int sensorType,
                                 int stateType,
-                                typename PARAMETER_BLOCK_T::estimate_t& state) const;
+                                typename PARAMETER_BLOCK_T::estimate_t& state) const;  // NOLINT
 
   // setters
   template <class PARAMETER_BLOCK_T>

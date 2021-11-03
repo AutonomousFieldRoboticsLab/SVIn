@@ -45,6 +45,7 @@
 #include <opengv/sac_problems/relative_pose/CentralRelativePoseSacProblem.hpp>
 #include <opengv/triangulation/methods.hpp>
 #include <opengv/types.hpp>
+#include <vector>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -84,7 +85,7 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
    * \param[in] algorithm The algorithm we want to use.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRelativePoseSacProblem(adapter_t& adapter, algorithm_t algorithm)
+  FrameRelativePoseSacProblem(adapter_t& adapter, algorithm_t algorithm)  // NOLINT
       : base_t(adapter, algorithm),
         adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
     OKVIS_ASSERT_TRUE(Exception,
@@ -100,7 +101,7 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
    *                    correspondences.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRelativePoseSacProblem(adapter_t& adapter, algorithm_t algorithm, const std::vector<int>& indices)
+  FrameRelativePoseSacProblem(adapter_t& adapter, algorithm_t algorithm, const std::vector<int>& indices)  // NOLINT
       : base_t(adapter, algorithm, indices),
         adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
     OKVIS_ASSERT_TRUE(Exception,
@@ -119,7 +120,7 @@ class FrameRelativePoseSacProblem : public CentralRelativePoseSacProblem {
    */
   virtual void getSelectedDistancesToModel(const model_t& model,
                                            const std::vector<int>& indices,
-                                           std::vector<double>& scores) const {
+                                           std::vector<double>& scores) const {  // NOLINT
     translation_t translation = model.col(3);
     rotation_t rotation = model.block<3, 3>(0, 0);
     adapterDerived_.sett12(translation);

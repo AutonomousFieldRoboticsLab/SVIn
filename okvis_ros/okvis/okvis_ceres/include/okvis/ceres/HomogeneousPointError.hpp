@@ -40,9 +40,11 @@
 #define INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTERROR_HPP_
 
 #include <ceres/ceres.h>
+
 #include <Eigen/Core>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
+#include <string>
 #include <vector>
 
 /// \brief okvis Main namespace of this package.

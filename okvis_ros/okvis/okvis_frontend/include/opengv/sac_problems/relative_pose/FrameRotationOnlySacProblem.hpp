@@ -44,6 +44,7 @@
 #include <opengv/relative_pose/methods.hpp>
 #include <opengv/sac_problems/relative_pose/RotationOnlySacProblem.hpp>
 #include <opengv/types.hpp>
+#include <vector>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -80,7 +81,7 @@ class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
    * \param[in] adapter Visitor holding bearing vector correspondences etc.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRotationOnlySacProblem(adapter_t& adapter)
+  explicit FrameRotationOnlySacProblem(adapter_t& adapter)  // NOLINT
       : base_t(adapter), adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
     OKVIS_ASSERT_TRUE(Exception,
                       dynamic_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter),
@@ -94,7 +95,7 @@ class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
    *                    correspondences.
    * @warning Only okvis::relative_pose::FrameRelativeAdapter supported.
    */
-  FrameRotationOnlySacProblem(adapter_t& adapter, const std::vector<int>& indices)
+  FrameRotationOnlySacProblem(adapter_t& adapter, const std::vector<int>& indices)  // NOLINT
       : base_t(adapter, indices),
         adapterDerived_(*static_cast<opengv::relative_pose::FrameRelativeAdapter*>(&_adapter)) {
     OKVIS_ASSERT_TRUE(Exception,
@@ -114,7 +115,7 @@ class FrameRotationOnlySacProblem : public RotationOnlySacProblem {
    */
   virtual void getSelectedDistancesToModel(const model_t& model,
                                            const std::vector<int>& indices,
-                                           std::vector<double>& scores) const {
+                                           std::vector<double>& scores) const {  // NOLINT
     for (size_t i = 0; i < indices.size(); i++) {
       bearingVector_t f1 = adapterDerived_.getBearingVector1(indices[i]);
       bearingVector_t f2 = adapterDerived_.getBearingVector2(indices[i]);

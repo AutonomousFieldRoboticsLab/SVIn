@@ -41,9 +41,8 @@
 #ifndef INCLUDE_OKVIS_TRIANGULATION_PROBABILISTICSTEREOTRIANGULATOR_HPP_
 #define INCLUDE_OKVIS_TRIANGULATION_PROBABILISTICSTEREOTRIANGULATOR_HPP_
 
-#include <memory>
-
 #include <Eigen/Core>
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/assert_macros.hpp>
@@ -69,7 +68,7 @@ class ProbabilisticStereoTriangulator {
    * \param pixelSigma: A (conservative) estimate of the pixel one-sigma uncertainty
    *                    in the keypoint location.
    */
-  ProbabilisticStereoTriangulator(double pixelSigma = 0.5);
+  explicit ProbabilisticStereoTriangulator(double pixelSigma = 0.5);
 
   /**
    *  \brief Constructor to set frames and relative transformation.
@@ -121,8 +120,8 @@ class ProbabilisticStereoTriangulator {
    */
   bool stereoTriangulate(size_t keypointIdxA,
                          size_t keypointIdxB,
-                         Eigen::Vector4d& outHomogeneousPoint_A,
-                         bool& outCanBeInitializedInaccuarate,
+                         Eigen::Vector4d& outHomogeneousPoint_A,  // NOLINT
+                         bool& outCanBeInitializedInaccuarate,    // NOLINT
                          double sigmaRay = -1.0) const;
 
   /**
@@ -137,9 +136,9 @@ class ProbabilisticStereoTriangulator {
    */
   bool stereoTriangulate(size_t keypointIdxA,
                          size_t keypointIdxB,
-                         Eigen::Vector4d& outHomogeneousPoint_A,
-                         Eigen::Matrix3d& outPointUOplus_A,
-                         bool& outCanBeInitialized,
+                         Eigen::Vector4d& outHomogeneousPoint_A,  // NOLINT
+                         Eigen::Matrix3d& outPointUOplus_A,       // NOLINT
+                         bool& outCanBeInitialized,               // NOLINT
                          double sigmaRay = -1.0) const;
 
   /**
@@ -153,8 +152,8 @@ class ProbabilisticStereoTriangulator {
   void getUncertainty(size_t keypointIdxA,
                       size_t keypointIdxB,
                       const Eigen::Vector4d& homogeneousPoint_A,
-                      Eigen::Matrix3d& outPointUOplus_A,
-                      bool& outCanBeInitialized) const;
+                      Eigen::Matrix3d& outPointUOplus_A,  // NOLINT
+                      bool& outCanBeInitialized) const;   // NOLINT
 
  protected:
   double sigmaRay_;  ///< ray uncertainty
@@ -196,7 +195,7 @@ class ProbabilisticStereoTriangulator {
                                  size_t camId,
                                  size_t keypointId,
                                  const Eigen::Vector4d& homogeneousPoint,
-                                 double& outError) const;
+                                 double& outError) const;  // NOLINT
 };
 
 }  // namespace triangulation

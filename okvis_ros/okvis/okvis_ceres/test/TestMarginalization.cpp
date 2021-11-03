@@ -31,6 +31,7 @@
  *********************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/MultiFrame.hpp>
@@ -51,6 +52,8 @@
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <vector>
+
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 

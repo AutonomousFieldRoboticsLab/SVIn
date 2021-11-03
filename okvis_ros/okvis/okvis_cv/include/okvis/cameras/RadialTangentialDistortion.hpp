@@ -41,6 +41,8 @@
 
 #include <Eigen/Core>
 #include <memory>
+#include <string>
+
 #include "okvis/cameras/DistortionBase.hpp"
 
 /// \brief okvis Main namespace of this package.
@@ -72,7 +74,7 @@ class RadialTangentialDistortion : public DistortionBase {
   inline bool setParameters(const Eigen::VectorXd& parameters);
 
   /// \brief Obtain the generic parameters.
-  inline bool getParameters(Eigen::VectorXd& parameters) const {
+  inline bool getParameters(Eigen::VectorXd& parameters) const {  // NOLINT
     parameters = parameters_;
     return true;
   }

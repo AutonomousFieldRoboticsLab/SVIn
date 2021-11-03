@@ -32,8 +32,12 @@
  *********************************************************************************/
 
 #include <stdio.h>
+
+#include <algorithm>
+#include <map>
 #include <okvis/assert_macros.hpp>
 #include <okvis/timing/Timer.hpp>
+#include <string>
 
 namespace okvis {
 namespace timing {
@@ -123,11 +127,11 @@ void Timer::stop() {
 #ifdef OKVIS_USE_HIGH_PERF_TIMER
   LARGE_INTEGER end;
   QueryPerformanceCounter(&end);
-  dt = (double)(end.QuadPart - m_time.QuadPart) * Timing::instance().m_clockPeriod;
+  dt = static_cast<double>(end.QuadPart - m_time.QuadPart) * Timing::instance().m_clockPeriod;
 #else
   boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
   boost::posix_time::time_duration t = now - m_time;
-  dt = ((double)t.total_nanoseconds() * 1e-9);
+  dt = (static_cast<double>(t.total_nanoseconds()) * 1e-9);
 #endif
   Timing::instance().addTime(m_handle, dt);
   m_timing = false;
@@ -202,15 +206,15 @@ void Timing::reset(std::string const& tag) { return reset(getHandle(tag)); }
 
 std::string Timing::secondsToTimeString(double seconds) {
   double secs = fmod(seconds, 60);
-  int minutes = (long)(seconds / 60);
-  int hours = (long)(seconds / 3600);
+  int minutes = (long)(seconds / 60);  // NOLINT
+  int hours = (long)(seconds / 3600);  // NOLINT
   minutes = minutes - (hours * 60);
 
   char buffer[256];
 #ifdef WIN32
   sprintf_s(buffer, 256, "%02d:%02d:%09.6f", hours, minutes, secs);
 #else
-  sprintf(buffer, "%02d:%02d:%09.6f", hours, minutes, secs);
+  sprintf(buffer, "%02d:%02d:%09.6f", hours, minutes, secs);  // NOLINT
 #endif
   return buffer;
 }

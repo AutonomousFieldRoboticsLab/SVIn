@@ -41,7 +41,10 @@
 
 #include <stdint.h>
 #include <stdio.h>
+
 #include <iostream>
+#include <string>
+
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.

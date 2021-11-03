@@ -43,18 +43,20 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <typeinfo>
+
 #include "okvis/source_file_pos.hpp"
 
 //! Macro for defining an exception with a given parent
 //  (std::runtime_error should be top parent)
 // adapted from ros/drivers/laser/hokuyo_driver/hokuyo.h
-#define OKVIS_DEFINE_EXCEPTION(exceptionName, exceptionParent)              \
-  class exceptionName : public exceptionParent {                            \
-   public:                                                                  \
-    exceptionName(const char* message) : exceptionParent(message) {}        \
-    exceptionName(std::string const& message) : exceptionParent(message) {} \
-    virtual ~exceptionName() throw() {}                                     \
+#define OKVIS_DEFINE_EXCEPTION(exceptionName, exceptionParent)                       \
+  class exceptionName : public exceptionParent {                                     \
+   public:                                                                           \
+    explicit exceptionName(const char* message) : exceptionParent(message) {}        \
+    explicit exceptionName(std::string const& message) : exceptionParent(message) {} \
+    virtual ~exceptionName() throw() {}                                              \
   };
 
 /// \brief okvis Main namespace of this package.

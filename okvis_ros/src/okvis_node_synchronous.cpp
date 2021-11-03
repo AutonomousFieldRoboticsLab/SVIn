@@ -42,16 +42,18 @@
  * @author Andreas Forster
  */
 
+#include <cv_bridge/cv_bridge.h>          // Sharmin
+#include <imagenex831l/ProcessedRange.h>  // Sharmin
 #include <stdlib.h>
+
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
-
-#include <cv_bridge/cv_bridge.h>          // Sharmin
-#include <imagenex831l/ProcessedRange.h>  // Sharmin
-#include <opencv2/highgui/highgui.hpp>    // Sharmin
-//#include <depth_node_py/Depth.h>  // Sharmin
+#include <opencv2/highgui/highgui.hpp>  // Sharmin
+// #include <depth_node_py/Depth.h>  // Sharmin
+#include <string>
+#include <vector>
 
 #include "sensor_msgs/Imu.h"
 #pragma GCC diagnostic push
@@ -348,7 +350,8 @@ int main(int argc, char** argv) {
 
     // display progress
     if (counter % 20 == 0) {
-      std::cout << "\rProgress: " << int(double(counter) / double(view_cams_ptr.back()->size()) * 100) << "%  ";
+      std::cout << "\rProgress: "
+                << int(static_cast<double>(counter) / static_cast<double>(view_cams_ptr.back()->size()) * 100) << "%  ";
     }
   }
 

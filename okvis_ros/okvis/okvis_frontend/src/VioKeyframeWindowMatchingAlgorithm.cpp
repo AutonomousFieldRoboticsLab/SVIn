@@ -45,24 +45,24 @@
 #include <okvis/ceres/ReprojectionError.hpp>
 
 // cameras and distortions
+#include <algorithm>
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
-
 #include <opencv2/features2d/features2d.hpp>  // for cv::KeyPoint
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
 // Constructor.
 // Sharmin: useSCM = false
 template <class CAMERA_GEOMETRY_T>
-VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::VioKeyframeWindowMatchingAlgorithm(okvis::Estimator& estimator,
-                                                                                          int matchingType,
-                                                                                          float distanceThreshold,
-                                                                                          bool usePoseUncertainty,
-                                                                                          bool useSCM) {
+VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::VioKeyframeWindowMatchingAlgorithm(
+    okvis::Estimator& estimator,  // NOLINT
+    int matchingType,
+    float distanceThreshold,
+    bool usePoseUncertainty,
+    bool useSCM) {
   matchingType_ = matchingType;
   distanceThreshold_ = distanceThreshold;
   estimator_ = &estimator;
@@ -96,7 +96,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(uint64_t m
   fB_ = frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->focalLengthU();
 
   // calculate the relative transformations and uncertainties
-  // TODO donno, if and what we need here - I'll see
+  // TODO(donno) if and what we need here - I'll see
   estimator_->getCameraSensorStates(mfIdA_, camIdA, T_SaCa_);
   estimator_->getCameraSensorStates(mfIdB_, camIdB, T_SbCb_);
   estimator_->get_T_WS(mfIdA_, T_WSa_);
@@ -384,7 +384,7 @@ bool VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::verifyMatch(size_t i
 // A function that tells you how many times setMatching() will be called.
 template <class CAMERA_GEOMETRY_T>
 void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::reserveMatches(size_t /*numMatches*/) {
-  //_triangulatedPoints.clear();
+  // _triangulatedPoints.clear();
 }
 
 // Get the number of matches.
@@ -486,7 +486,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(size_t 
     okvis::MapPoint landmark;
     if (insertA && landmark.observations.find(okvis::KeypointIdentifier(mfIdA_, camIdA_, indexA)) ==
                        landmark.observations.end()) {  // ensure no double observations...
-                                                       // TODO hp_Sa NOT USED!
+                                                       // TODO(test) hp_Sa NOT USED!
       Eigen::Vector4d hp_Sa(T_SaCa_ * hP_Ca);
       hp_Sa.normalize();
       frameA_->setLandmarkId(camIdA_, indexA, lmId);

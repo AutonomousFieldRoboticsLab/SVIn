@@ -41,16 +41,17 @@
 #ifndef INCLUDE_OKVIS_VIOKEYFRAMEWINDOWMATCHINGALGORITHM_HPP_
 #define INCLUDE_OKVIS_VIOKEYFRAMEWINDOWMATCHINGALGORITHM_HPP_
 
-#include <memory>
-
 #include <brisk/internal/hamming.h>
+
+#include <limits>
+#include <memory>
 #include <okvis/DenseMatcher.hpp>
 #include <okvis/Estimator.hpp>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/MatchingAlgorithm.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/triangulation/ProbabilisticStereoTriangulator.hpp>
-
+#include <vector>
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -78,7 +79,7 @@ class VioKeyframeWindowMatchingAlgorithm : public okvis::MatchingAlgorithm {
    * @param distanceThreshold   Descriptor distance threshold.
    * @param usePoseUncertainty  Use the pose uncertainty for matching.
    */
-  VioKeyframeWindowMatchingAlgorithm(okvis::Estimator& estimator,
+  VioKeyframeWindowMatchingAlgorithm(okvis::Estimator& estimator,  // NOLINT
                                      int matchingType,
                                      float distanceThreshold,
                                      bool usePoseUncertainty = true,

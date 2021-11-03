@@ -41,10 +41,12 @@
 #ifndef INCLUDE_OKVIS_FRAMETYPEDEFS_HPP_
 #define INCLUDE_OKVIS_FRAMETYPEDEFS_HPP_
 
-#include <map>
-
 #include <Eigen/Core>
+#include <functional>
+#include <map>
 #include <okvis/kinematics/Transformation.hpp>
+#include <utility>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -62,7 +64,8 @@ struct KeypointIdentifier {
    * @param ci Camera index.
    * @param ki Keypoint index.
    */
-  KeypointIdentifier(uint64_t fi = 0, size_t ci = 0, size_t ki = 0) : frameId(fi), cameraIndex(ci), keypointIndex(ki) {}
+  explicit KeypointIdentifier(uint64_t fi = 0, size_t ci = 0, size_t ki = 0)
+      : frameId(fi), cameraIndex(ci), keypointIndex(ki) {}
 
   uint64_t frameId;      ///< Multiframe ID.
   size_t cameraIndex;    ///< Camera index.

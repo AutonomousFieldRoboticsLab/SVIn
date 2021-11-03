@@ -43,6 +43,7 @@
 #include <okvis/Time.hpp>
 #include <okvis/ceres/ParameterBlockSized.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <string>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

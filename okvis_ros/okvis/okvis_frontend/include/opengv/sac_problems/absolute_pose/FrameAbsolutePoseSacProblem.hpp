@@ -47,7 +47,7 @@
 #pragma GCC diagnostic pop
 #include <okvis/assert_macros.hpp>
 #include <opengv/absolute_pose/FrameNoncentralAbsoluteAdapter.hpp>
-
+#include <vector>
 /**
  * \brief Namespace for classes extending the OpenGV library.
  */
@@ -86,7 +86,7 @@ class FrameAbsolutePoseSacProblem : public AbsolutePoseSacProblem {
    * @param[in] algorithm The algorithm we want to use.
    * @warning Only okvis::absolute_pose::FrameNoncentralAbsoluteAdapter supported.
    */
-  FrameAbsolutePoseSacProblem(adapter_t& adapter, algorithm_t algorithm)
+  FrameAbsolutePoseSacProblem(adapter_t& adapter, algorithm_t algorithm)  // NOLINT
       : base_t(adapter, algorithm),
         adapterDerived_(*static_cast<opengv::absolute_pose::FrameNoncentralAbsoluteAdapter*>(&_adapter)) {
     OKVIS_ASSERT_TRUE(Exception,
@@ -102,7 +102,7 @@ class FrameAbsolutePoseSacProblem : public AbsolutePoseSacProblem {
    *                    correspondences.
    * @warning Only okvis::absolute_pose::FrameNoncentralAbsoluteAdapter supported.
    */
-  FrameAbsolutePoseSacProblem(adapter_t& adapter, algorithm_t algorithm, const std::vector<int>& indices)
+  FrameAbsolutePoseSacProblem(adapter_t& adapter, algorithm_t algorithm, const std::vector<int>& indices)  // NOLINT
       : base_t(adapter, algorithm, indices),
         adapterDerived_(*static_cast<opengv::absolute_pose::FrameNoncentralAbsoluteAdapter*>(&_adapter)) {
     OKVIS_ASSERT_TRUE(Exception,
@@ -122,7 +122,7 @@ class FrameAbsolutePoseSacProblem : public AbsolutePoseSacProblem {
    */
   virtual void getSelectedDistancesToModel(const model_t& model,
                                            const std::vector<int>& indices,
-                                           std::vector<double>& scores) const {
+                                           std::vector<double>& scores) const {  // NOLINT
     // compute the reprojection error of all points
 
     // compute inverse transformation

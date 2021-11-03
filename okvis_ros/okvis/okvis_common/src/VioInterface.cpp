@@ -47,6 +47,7 @@
 #include <okvis/VioInterface.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <string>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -89,7 +90,7 @@ void VioInterface::setLandmarksCallback(const LandmarksCallback& landmarksCallba
 
 // Sharmin
 // void VioInterface::setStereoMatchCallback(const StereoMatchCallback & stereoMatchCallback) {
-//	stereoMatchCallback_ = stereoMatchCallback;
+// stereoMatchCallback_ = stereoMatchCallback;
 //}
 
 // Sharmin

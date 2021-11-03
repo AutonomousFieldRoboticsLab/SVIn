@@ -38,7 +38,9 @@
  * @author Stefan Leutenegger
  */
 
+#include <limits>
 #include <map>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -87,7 +89,7 @@ void DenseMatcher::matchBody(void (DenseMatcher::*doWorkPtr)(MatchJob&, MATCHING
 
   //  for (int i = 0; i < _numMatcherThreads; ++i)
   //  {
-  //	  (this->*doWorkPtr)(jobs[i], &matchingAlgorithm);
+  //  (this->*doWorkPtr)(jobs[i], &matchingAlgorithm);
   //  }
 
   matchingAlgorithm.reserveMatches(vpairs.size());
@@ -389,7 +391,6 @@ void DenseMatcher::doWorkImageSpaceMatching(MatchJob& my_job, MATCHING_ALGORITHM
                  my_job.mutexes,
                  0);  // this call assigns the match and reassigns losing matches recursively
     }
-
   } catch (const std::exception& e) {
     // \todo Install an error handler in the matching algorithm?
     std::cout << "\033[31mException in matching thread:\033[0m " << e.what();

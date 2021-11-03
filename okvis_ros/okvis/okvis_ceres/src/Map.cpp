@@ -39,10 +39,15 @@
  */
 
 #include <ceres/ordered_groups.h>
+
+#include <algorithm>
+#include <memory>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <okvis/ceres/SonarParameterBlock.hpp>
+#include <utility>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -50,10 +55,7 @@ namespace okvis {
 namespace ceres {
 
 // Constructor.
-Map::Map()
-    : residualCounter_(0)  //,
-                           // covarianceCal_(options_covar)
-{
+Map::Map() : residualCounter_(0) {
   ::ceres::Problem::Options problemOptions;
   problemOptions.local_parameterization_ownership = ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
   problemOptions.loss_function_ownership = ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
@@ -63,7 +65,7 @@ Map::Map()
   // options.linear_solver_ordering = new ::ceres::ParameterBlockOrdering;
 
   // @Sharmin
-  //::ceres::Covariance::Options options_covar;
+  // ::ceres::Covariance::Options options_covar;
   // options_covar.sparse_linear_algebra_library_type = ::ceres::SparseLinearAlgebraLibraryType::EIGEN_SPARSE;
   // options_covar.algorithm_type = ::ceres::AlgorithmType::DENSE_SVD;
 
@@ -530,7 +532,7 @@ bool Map::resetParameterization(uint64_t parameterBlockId, int parameterization)
   }
 
   // remove
-  //	int group = options.linear_solver_ordering->GroupId(parBlockPtr->parameters());
+  // int group = options.linear_solver_ordering->GroupId(parBlockPtr->parameters());
   removeParameterBlock(parameterBlockId);
   // add with new parameterization
   addParameterBlock(parBlockPtr, parameterization /*,group*/);

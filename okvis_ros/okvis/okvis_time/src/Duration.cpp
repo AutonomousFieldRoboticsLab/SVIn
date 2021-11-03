@@ -52,7 +52,7 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-void normalizeSecNSecSigned(int64_t& sec, int64_t& nsec) {
+void normalizeSecNSecSigned(int64_t& sec, int64_t& nsec) {  // NOLINT
   int64_t nsec_part = nsec;
   int64_t sec_part = sec;
 
@@ -71,7 +71,7 @@ void normalizeSecNSecSigned(int64_t& sec, int64_t& nsec) {
   nsec = nsec_part;
 }
 
-void normalizeSecNSecSigned(int32_t& sec, int32_t& nsec) {
+void normalizeSecNSecSigned(int32_t& sec, int32_t& nsec) {  // NOLINT
   int64_t sec64 = sec;
   int64_t nsec64 = nsec;
 

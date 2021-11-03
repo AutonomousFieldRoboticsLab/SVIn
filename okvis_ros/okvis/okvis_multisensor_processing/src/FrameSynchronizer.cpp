@@ -42,9 +42,10 @@
 
 #include <glog/logging.h>
 
+#include <memory>
 #include <okvis/FrameSynchronizer.hpp>
 #include <okvis/IdProvider.hpp>
-
+#include <utility>
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -134,10 +135,12 @@ bool FrameSynchronizer::detectionCompletedForAllCameras(uint64_t multiFrameId) {
       lastCompletedFrameId_ = frameBuffer_[position].first->id();
       lastCompletedFrameTimestamp_ = frameBuffer_[position].first->timestamp();
       return true;
-    } else
+    } else {
       return false;
-  } else
+    }
+  } else {
     return false;
+  }
 }
 
 // Find a multiframe in the buffer that has a timestamp within the tolerances of the given one. The tolerance

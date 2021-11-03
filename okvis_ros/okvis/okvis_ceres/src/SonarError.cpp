@@ -38,7 +38,7 @@
 
 #include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/SonarError.hpp>
-//#include <okvis/ceres/SonarLocalParameterization.hpp>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -99,7 +99,7 @@ void SonarError::setInformation(const information_t& information) {
   covariance_ = 1 / information;
   // perform the Cholesky decomposition on order to obtain the correct error weighting
   // Eigen::LLT<information_t> lltOfInformation(information_);
-  // TODO @Sharmin: Check if it's correct
+  // TODO(@sharmin): Check if it's correct
   _squareRootInformation = sqrt(information);
 }
 

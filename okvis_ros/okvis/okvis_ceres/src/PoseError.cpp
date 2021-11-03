@@ -38,6 +38,7 @@
 
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <string>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

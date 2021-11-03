@@ -56,7 +56,7 @@ void DepthError::setInformation(const information_t& information) {
   covariance_ = 1 / information;
   // perform the Cholesky decomposition on order to obtain the correct error weighting
   // Eigen::LLT<information_t> lltOfInformation(information_);
-  // TODO @Sharmin: Check if it's correct
+  // TODO(Sharmin): Check if it's correct
   _squareRootInformation = sqrt(information);
 }
 

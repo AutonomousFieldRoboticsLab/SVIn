@@ -45,7 +45,11 @@
 
 #include <cstdint>
 #include <functional>
+#include <list>
+#include <map>
 #include <memory>
+#include <string>
+#include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -90,7 +94,7 @@ class VioInterface {
   // Sharmin
   // typedef std::function<
   //      void(const okvis::Time &, const std::vector<Eigen::Vector3d> &)> StereoMatchCallback;
-  // TODO Sharmin: Fix the size of the matrix
+  // TODO(Sharmin): Fix the size of the matrix
   typedef std::function<void(const okvis::Time&,
                              const cv::Mat&,
                              const okvis::kinematics::Transformation&,

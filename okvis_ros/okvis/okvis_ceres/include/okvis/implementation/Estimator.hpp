@@ -36,6 +36,10 @@
  * @author Stefan Leutenegger
  */
 
+#include <map>
+#include <memory>
+#include <utility>
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -95,8 +99,9 @@ template <class GEOMETRY_TYPE>
   if (!isLandmarkAdded(landmarkId)) {
     std::cout << "Reloc matched landmark not added to Map. retruning Null" << std::endl;
     return NULL;
-  } else
+  } else {
     std::cout << "Reloc point found in the existing map" << std::endl;
+  }
 
   // avoid double observations
   okvis::KeypointIdentifier kid(poseId, camIdx, keypointIdx);
@@ -132,17 +137,17 @@ template <class GEOMETRY_TYPE>
   ::ceres::ResidualBlockId retVal = mapPtr_->addResidualBlock(
       reprojectionError,
       cauchyLossFunctionPtr_ ? cauchyLossFunctionPtr_.get() : NULL,
-      mapPtr_->parameterBlockPtr(poseId),      // TODO: check if poseParameterBlock
-      mapPtr_->parameterBlockPtr(landmarkId),  // TODO: check if homogeneousPointParameterBlock
+      mapPtr_->parameterBlockPtr(poseId),      // TODO(sharmin): check if poseParameterBlock
+      mapPtr_->parameterBlockPtr(landmarkId),  // TODO(sharmin): check if homogeneousPointParameterBlock
       mapPtr_->parameterBlockPtr(statesMap_.at(poseId)
                                      .sensors.at(SensorStates::Camera)
                                      .at(camIdx)
                                      .at(CameraSensorStates::T_SCi)
-                                     .id));  // TODO: check if extrinsicParameterBlock
+                                     .id));  // TODO(sharmin): check if extrinsicParameterBlock
   std::cout << "Error term added to ceres for Reloc" << std::endl;
 
   // remember
-  // TODO Sharmin: Is this observation needed to add?
+  // TODO(Sharmin): Is this observation needed to add?
   // landmarksMap_.at(landmarkId).observations.insert(
   //    std::pair<okvis::KeypointIdentifier, uint64_t>(
   //       kid, reinterpret_cast<uint64_t>(retVal)));

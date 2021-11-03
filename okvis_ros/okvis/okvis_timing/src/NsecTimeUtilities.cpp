@@ -31,6 +31,7 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************************/
 
+#include <limits>
 #include <okvis/timing/NsecTimeUtilities.hpp>
 
 namespace okvis {
@@ -55,7 +56,7 @@ NsecTime nsecNow() {
 }
 
 /// \brief Convert the time (in integer nanoseconds) to decimal seconds.
-double nsecToSec(const NsecTime& time) { return (double)time * 1e-9; }
+double nsecToSec(const NsecTime& time) { return static_cast<double>(time) * 1e-9; }
 
 /// \brief Convert the time (in seconds) to integer nanoseconds
 NsecTime secToNsec(const double& time) { return boost::int64_t(time * 1e9); }

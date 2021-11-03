@@ -51,10 +51,10 @@
 #include <boost/accumulators/statistics.hpp>
 #include <boost/accumulators/statistics/rolling_mean.hpp>
 #include <mutex>
+#include <okvis/assert_macros.hpp>
+#include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <okvis/assert_macros.hpp>
 
 #ifdef _WIN32
 #define OKVIS_USE_HIGH_PERF_TIMER
@@ -86,8 +86,8 @@ struct TimerMapValue {
 class DummyTimer {
  public:
   DummyTimer(size_t /* handle */, bool /* constructStopped */) {}
-  DummyTimer(size_t /* handle */) {}
-  DummyTimer(std::string const& /* tag */) {}
+  explicit DummyTimer(size_t /* handle */) {}
+  explicit DummyTimer(std::string const& /* tag */) {}
   DummyTimer(std::string const& /* tag */, bool /* constructStopped */) {}
   ~DummyTimer() {}
 
@@ -99,8 +99,8 @@ class DummyTimer {
 
 class Timer {
  public:
-  Timer(size_t handle, bool constructStopped = false);
-  Timer(std::string const& tag, bool constructStopped = false);
+  explicit Timer(size_t handle, bool constructStopped = false);
+  explicit Timer(std::string const& tag, bool constructStopped = false);
   ~Timer();
 
   void start();
@@ -165,7 +165,6 @@ class Timing {
   double m_clockPeriod;
 #endif
   size_t m_maxTagLength;
-
 };  // end class timer
 
 #ifdef NDEBUG

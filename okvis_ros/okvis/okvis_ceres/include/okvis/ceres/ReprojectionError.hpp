@@ -40,11 +40,13 @@
 #define INCLUDE_OKVIS_CERES_REPROJECTIONERROR_HPP_
 
 #include <ceres/ceres.h>
+
 #include <memory>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/ReprojectionErrorBase.hpp>
+#include <string>
 #include <vector>
 
 namespace okvis {

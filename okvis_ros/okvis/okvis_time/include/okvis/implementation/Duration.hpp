@@ -51,7 +51,7 @@
 #define INCLUDE_OKVIS_IMPLEMENTATION_DURATION_HPP_
 
 #include <okvis/Duration.hpp>
-//#include <ros/rate.h>
+// #include <ros/rate.h>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -75,7 +75,7 @@ T& DurationBase<T>::fromSec(double d) {
   else
     sec = (int32_t)floor(d) + 1;
 #endif
-  nsec = (int32_t)((d - (double)sec) * 1000000000);
+  nsec = (int32_t)((d - static_cast<double>(sec)) * 1000000000);
   return *static_cast<T*>(this);
 }
 

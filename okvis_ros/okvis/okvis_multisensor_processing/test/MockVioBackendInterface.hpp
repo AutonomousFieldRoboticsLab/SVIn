@@ -33,11 +33,11 @@
 #ifndef MockVioBackendInterface_HPP_
 #define MockVioBackendInterface_HPP_
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-
+#include <memory>
 #include <okvis/VioBackendInterface.hpp>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -58,19 +58,20 @@ class MockVioBackendInterface : public VioBackendInterface {
                ::ceres::ResidualBlockId(uint64_t landmarkId, uint64_t poseId, size_t camIdx, size_t keypointIdx));
   MOCK_METHOD4(removeObservation, bool(uint64_t landmarkId, uint64_t poseId, size_t camIdx, size_t keypointIdx));
   MOCK_METHOD3(applyMarginalizationStrategy,
-               bool(size_t numKeyframes, size_t numImuFrames, okvis::MapPointVector& removedLandmarks));
+               bool(size_t numKeyframes, size_t numImuFrames, okvis::MapPointVector& removedLandmarks));  // NOLINT
   MOCK_METHOD3(optimize, void(size_t, size_t, bool));
   MOCK_METHOD2(setOptimizationTimeLimit, bool(double timeLimit, int minIterations));
   MOCK_CONST_METHOD1(isLandmarkAdded, bool(uint64_t landmarkId));
   MOCK_CONST_METHOD1(isLandmarkInitialized, bool(uint64_t landmarkId));
-  MOCK_CONST_METHOD2(getLandmark, bool(uint64_t landmarkId, MapPoint& mapPoint));
-  MOCK_CONST_METHOD1(getLandmarks, size_t(PointMap& landmarks));
-  MOCK_CONST_METHOD1(getLandmarks, size_t(okvis::MapPointVector& landmarks));
+  MOCK_CONST_METHOD2(getLandmark, bool(uint64_t landmarkId, MapPoint& mapPoint));  // NOLINT
+  MOCK_CONST_METHOD1(getLandmarks, size_t(PointMap& landmarks));                   // NOLINT
+  MOCK_CONST_METHOD1(getLandmarks, size_t(okvis::MapPointVector& landmarks));      // NOLINT
   MOCK_CONST_METHOD1(multiFrame, okvis::MultiFramePtr(uint64_t frameId));
-  MOCK_CONST_METHOD2(get_T_WS, bool(uint64_t poseId, okvis::kinematics::Transformation& T_WS));
-  MOCK_CONST_METHOD3(getSpeedAndBias, bool(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias& speedAndBias));
+  MOCK_CONST_METHOD2(get_T_WS, bool(uint64_t poseId, okvis::kinematics::Transformation& T_WS));  // NOLINT
+  MOCK_CONST_METHOD3(getSpeedAndBias,
+                     bool(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias& speedAndBias));  // NOLINT
   MOCK_CONST_METHOD3(getCameraSensorStates,
-                     bool(uint64_t poseId, size_t cameraIdx, okvis::kinematics::Transformation& T_SCi));
+                     bool(uint64_t poseId, size_t cameraIdx, okvis::kinematics::Transformation& T_SCi));  // NOLINT
   MOCK_CONST_METHOD0(numFrames, size_t());
   MOCK_CONST_METHOD0(numLandmarks, size_t());
   MOCK_CONST_METHOD0(currentKeyframeId, uint64_t());

@@ -41,7 +41,9 @@
 #ifndef INCLUDE_OKVIS_VIOPARAMETERSREADER_HPP_
 #define INCLUDE_OKVIS_VIOPARAMETERSREADER_HPP_
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -69,7 +71,7 @@ class VioParametersReader {
    * @brief The constructor. This calls readConfigFile().
    * @param filename Configuration filename.
    */
-  VioParametersReader(const std::string& filename);
+  explicit VioParametersReader(const std::string& filename);
 
   /// @brief Trivial destructor.
   virtual ~VioParametersReader() {}
@@ -87,7 +89,7 @@ class VioParametersReader {
    * @return True if parameters have been read from a configuration file. If it
    *         returns false then the variable \e parameters has not been changed.
    */
-  bool getParameters(okvis::VioParameters& parameters) const {
+  bool getParameters(okvis::VioParameters& parameters) const {  // NOLINT
     if (readConfigFile_) parameters = vioParameters_;
     return readConfigFile_;
   }
@@ -121,7 +123,7 @@ class VioParametersReader {
    * @return True if parsing was successful. If it returns false then the variable \e val has not
    *         been changed.
    */
-  bool parseBoolean(cv::FileNode node, bool& val) const;
+  bool parseBoolean(cv::FileNode node, bool& val) const;  // NOLINT
 
   /**
    * @brief Get the camera calibration. This looks for the calibration in the
@@ -133,8 +135,8 @@ class VioParametersReader {
    * @return True if reading of the calibration was successful.
    */
   virtual bool getCameraCalibration(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,
-      cv::FileStorage& configurationFile);
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,  // NOLINT
+      cv::FileStorage& configurationFile);                                                        // NOLINT
 
   /**
    * @brief Get the camera calibration via the configuration file.
@@ -143,8 +145,8 @@ class VioParametersReader {
    * @return True if reading and parsing of calibration was successful.
    */
   bool getCalibrationViaConfig(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,
-      cv::FileNode cameraNode) const;
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,  // NOLINT
+      cv::FileNode cameraNode) const;                                                             // NOLINT
 
   /**
    * @brief Get the camera calibrations via the visensor API.
@@ -152,7 +154,7 @@ class VioParametersReader {
    * @return True if successful.
    */
   bool getCalibrationViaVisensorAPI(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;
+      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;  // NOLINT
 };
 
 }  // namespace okvis

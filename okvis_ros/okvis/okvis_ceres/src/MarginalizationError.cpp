@@ -36,36 +36,40 @@
  * @author Stefan Leutenegger
  */
 
+#include <algorithm>
 #include <functional>
-
+#include <limits>
+#include <map>
+#include <memory>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
-
-//#define USE_NEW_LINEARIZATION_POINT
+#include <utility>
+#include <vector>
+// #define USE_NEW_LINEARIZATION_POINT
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
 namespace ceres {
 
-inline void conservativeResize(Eigen::MatrixXd& matrixXd, int rows, int cols) {
+inline void conservativeResize(Eigen::MatrixXd& matrixXd, int rows, int cols) {  // NOLINT
   Eigen::MatrixXd tmp(rows, cols);
-  const int common_rows = std::min(rows, (int)matrixXd.rows());
-  const int common_cols = std::min(cols, (int)matrixXd.cols());
+  const int common_rows = std::min(rows, static_cast<int>(matrixXd.rows()));
+  const int common_cols = std::min(cols, static_cast<int>(matrixXd.cols()));
   tmp.topLeftCorner(common_rows, common_cols) = matrixXd.topLeftCorner(common_rows, common_cols);
   matrixXd.swap(tmp);
 }
 
-inline void conservativeResize(Eigen::VectorXd& vectorXd, int size) {
+inline void conservativeResize(Eigen::VectorXd& vectorXd, int size) {  // NOLINT
   if (vectorXd.rows() == 1) {
     Eigen::VectorXd tmp(size);  // Eigen::VectorXd tmp = Eigen::VectorXd::Zero(size,Eigen::RowMajor);
-    const int common_size = std::min((int)vectorXd.cols(), size);
+    const int common_size = std::min(static_cast<int>(vectorXd.cols()), size);
     tmp.head(common_size) = vectorXd.head(common_size);
     vectorXd.swap(tmp);
   } else {
     Eigen::VectorXd tmp(size);  // Eigen::VectorXd tmp = Eigen::VectorXd::Zero(size);
-    const int common_size = std::min((int)vectorXd.rows(), size);
+    const int common_size = std::min(static_cast<int>(vectorXd.rows()), size);
     tmp.head(common_size) = vectorXd.head(common_size);
     vectorXd.swap(tmp);
   }
@@ -149,7 +153,7 @@ bool MarginalizationError::addResidualBlock(::ceres::ResidualBlockId residualBlo
       // resize equation system
       const size_t origSize = H_.cols();
       size_t additionalSize = 0;
-      if (!parameterBlockSpec.second->fixed())  ////////DEBUG
+      if (!parameterBlockSpec.second->fixed())  // DEBUG
         additionalSize = parameterBlockSpec.second->minimalDimension();
       size_t denseSize = 0;
 
@@ -587,7 +591,7 @@ bool MarginalizationError::marginalizeOut(const std::vector<uint64_t>& parameter
     std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd>> delta_b(numBlocks);
     Eigen::MatrixXd M1(W.rows(), W.cols());
     size_t idx = 0;
-    for (size_t i = 0; int(i) < V.cols(); i += sdim) {
+    for (size_t i = 0; static_cast<int>(i) < V.cols(); i += sdim) {
       Eigen::Matrix<double, sdim, sdim> V_inv_sqrt;
       Eigen::Matrix<double, sdim, sdim> V1 = V.block(i, i, sdim, sdim);
       MarginalizationError::pseudoInverseSymmSqrt(V1, V_inv_sqrt);

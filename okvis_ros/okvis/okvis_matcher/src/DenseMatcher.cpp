@@ -39,6 +39,7 @@
  */
 
 #include <okvis/DenseMatcher.hpp>
+#include <vector>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -52,11 +53,7 @@ DenseMatcher::DenseMatcher(unsigned char numMatcherThreads, unsigned char numBes
 DenseMatcher::~DenseMatcher() { matcherThreadPool_->stop(); }
 
 // Execute a matching algorithm. This is the slow, runtime polymorphic version. Don't use this.
-void DenseMatcher::matchSlow(MatchingAlgorithm& matchingAlgorithm)
-
-{
-  match(matchingAlgorithm);
-}
+void DenseMatcher::matchSlow(MatchingAlgorithm& matchingAlgorithm) { match(matchingAlgorithm); }
 
 // A recursive function that reassigns weak matches, if a stronger match is found for a particular point
 void DenseMatcher::assignbest(int indexToAssignFromListA,

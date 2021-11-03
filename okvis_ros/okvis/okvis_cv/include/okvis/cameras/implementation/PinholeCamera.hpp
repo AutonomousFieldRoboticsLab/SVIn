@@ -38,6 +38,8 @@
  * @author Andreas Forster
  */
 
+#include <vector>
+
 // \brief okvis Main namespace of this package.
 namespace okvis {
 // \brief cameras Namespace for camera-related functionality.
@@ -86,7 +88,7 @@ bool PinholeCamera<DISTORTION_T>::setIntrinsics(const Eigen::VectorXd& intrinsic
 }
 
 template <class DISTORTION_T>
-void PinholeCamera<DISTORTION_T>::getIntrinsics(Eigen::VectorXd& intrinsics) const {
+void PinholeCamera<DISTORTION_T>::getIntrinsics(Eigen::VectorXd& intrinsics) const {  // NOLINT
   intrinsics = intrinsics_;
   Eigen::VectorXd distortionIntrinsics;
   if (distortion_t::NumDistortionIntrinsics > 0) {

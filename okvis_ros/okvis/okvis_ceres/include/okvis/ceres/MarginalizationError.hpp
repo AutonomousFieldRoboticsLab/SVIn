@@ -41,6 +41,8 @@
 
 #include <Eigen/Core>
 #include <deque>
+#include <limits>
+#include <map>
 #include <memory>
 #include <okvis/Measurements.hpp>
 #include <okvis/Variables.hpp>
@@ -52,7 +54,10 @@
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <string>
+#include <utility>
 #include <vector>
+
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.
@@ -77,17 +82,17 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
 
   /// \brief Constructor from okvis::ceres::Map.
   /// @param[in] map The underlying okvis::ceres::Map.
-  MarginalizationError(Map& map);
+  explicit MarginalizationError(Map& map);  // NOLINT
 
   /// \brief Constructor from okvis::ceres::Map and directly add some residuals
   /// @param[in] map The underlying okvis::ceres::Map.
   /// @param[in] residualBlockIds Residual block IDs to be added directly (\see okvis::ceres::addResidualBlocks)
-  MarginalizationError(Map& map, std::vector< ::ceres::ResidualBlockId>& residualBlockIds);
+  MarginalizationError(Map& map, std::vector< ::ceres::ResidualBlockId>& residualBlockIds);  // NOLINT
 
   // initialization
   /// \brief Set the underlying okvis::ceres::Map.
   /// @param[in] map The underlying okvis::ceres::Map.
-  void setMap(Map& map);
+  void setMap(Map& map);  // NOLINT
 
   /// \brief Add some residuals to this marginalisation error. This means, they will get linearised.
   /// \warning Note that once added here, they will be removed from the okvis::ceres::Map and stay linerised
@@ -123,7 +128,8 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
 
   /// \brief Call this in order to (re-)add this error term after whenever it had been modified.
   /// @param[in] parameterBlockPtrs Parameter block pointers in question.
-  void getParameterBlockPtrs(std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);
+  void getParameterBlockPtrs(
+      std::vector<std::shared_ptr<okvis::ceres::ParameterBlock> >& parameterBlockPtrs);  // NOLINT
 
   // error term and Jacobian implementation (inherited pure virtuals from ::ceres::CostFunction)
   /**
@@ -241,11 +247,11 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
   void check();
 
   /// \brief Computes the linearized deviation from the references (linearization points)
-  bool computeDeltaChi(Eigen::VectorXd& DeltaChi) const;  // use the stored estimates
+  bool computeDeltaChi(Eigen::VectorXd& DeltaChi) const;  // NOLINT  // use the stored estimates
 
   /// \brief Computes the linearized deviation from the references (linearization points)
   bool computeDeltaChi(double const* const* parameters,
-                       Eigen::VectorXd& DeltaChi) const;  // use the provided estimates
+                       Eigen::VectorXd& DeltaChi) const;  // NOLINT // use the provided estimates
 
   /// \brief Split for Schur complement op.
   template <typename Derived_A, typename Derived_U, typename Derived_W, typename Derived_V>

@@ -1,8 +1,16 @@
 #pragma once
 
+#include <brisk/brisk.h>
+#include <brisk/internal/hamming.h>
+
 #include <eigen3/Eigen/Dense>
+#include <map>
+#include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include <string>
 #include <vector>
 
 #include "ThirdParty/DBoW/DBoW2.h"
@@ -11,20 +19,16 @@
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
 
-#include <brisk/brisk.h>
-#include <brisk/internal/hamming.h>
-#include <opencv2/core.hpp>
-#include <opencv2/features2d.hpp>
-#include <opencv2/highgui.hpp>
-
-using namespace Eigen;
-using namespace std;
-using namespace DVision;
+using namespace Eigen;    // NOLINT
+using namespace std;      // NOLINT
+using namespace DVision;  // NOLINT
 
 class BriefExtractor {
  public:
-  virtual void operator()(const cv::Mat& im, vector<cv::KeyPoint>& keys, vector<BRIEF::bitset>& descriptors) const;
-  BriefExtractor(const std::string& pattern_file);
+  virtual void operator()(const cv::Mat& im,
+                          vector<cv::KeyPoint>& keys,                 // NOLINT
+                          vector<BRIEF::bitset>& descriptors) const;  // NOLINT
+  explicit BriefExtractor(const std::string& pattern_file);
 
   DVision::BRIEF m_brief;
 };
@@ -32,14 +36,14 @@ class BriefExtractor {
 class KFMatcher {
  public:
   KFMatcher(double _time_stamp,
-            vector<Eigen::Vector3d>& _point_ids,
+            vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
-            Vector3d& _svin_T_w_i,
-            Matrix3d& _svin_R_w_i,
-            cv::Mat& _image,
-            vector<cv::Point3f>& _point_3d,
-            vector<cv::KeyPoint>& _point_2d_uv,
-            map<KFMatcher*, int>& KFcounter,
+            Vector3d& _svin_T_w_i,               // NOLINT
+            Matrix3d& _svin_R_w_i,               // NOLINT
+            cv::Mat& _image,                     // NOLINT
+            vector<cv::Point3f>& _point_3d,      // NOLINT
+            vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
+            map<KFMatcher*, int>& KFcounter,     // NOLINT
             int _sequence,
             BriefVocabulary* vocBrief);
 
@@ -52,24 +56,24 @@ class KFMatcher {
                     const std::vector<BRIEF::bitset>& descriptors_old,
                     const std::vector<cv::KeyPoint>& keypoints_old,
                     const std::vector<cv::KeyPoint>& keypoints_old_norm,
-                    cv::Point2f& best_match,
-                    cv::Point2f& best_match_norm);
-  void searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
-                        std::vector<cv::Point2f>& matched_2d_old_norm,
-                        std::vector<uchar>& status,
+                    cv::Point2f& best_match,                            // NOLINT
+                    cv::Point2f& best_match_norm);                      // NOLINT
+  void searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,       // NOLINT
+                        std::vector<cv::Point2f>& matched_2d_old_norm,  // NOLINT
+                        std::vector<uchar>& status,                     // NOLINT
                         const std::vector<BRIEF::bitset>& descriptors_old,
                         const std::vector<cv::KeyPoint>& keypoints_old,
                         const std::vector<cv::KeyPoint>& keypoints_old_norm);
   void PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
                  const std::vector<cv::Point3f>& matched_3d,
-                 std::vector<uchar>& status,
-                 Eigen::Vector3d& PnP_T_old,
-                 Eigen::Matrix3d& PnP_R_old);
-  void getSVInPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i);
-  void getPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i);
+                 std::vector<uchar>& status,                           // NOLINT
+                 Eigen::Vector3d& PnP_T_old,                           // NOLINT
+                 Eigen::Matrix3d& PnP_R_old);                          // NOLINT
+  void getSVInPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i);  // NOLINT
+  void getPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i);      // NOLINT
   void updatePose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i);
-  void updateSVInPose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i);
-  void updateLoop(Eigen::Matrix<double, 8, 1>& _loop_info);
+  void updateSVInPose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i);  // NOLINT
+  void updateLoop(Eigen::Matrix<double, 8, 1>& _loop_info);                           // NOLINT
 
   Eigen::Vector3d getLoopRelativeT();
   double getLoopRelativeYaw();
@@ -77,21 +81,20 @@ class KFMatcher {
 
   void computeBoW();
 
-  void project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const;
+  void project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const;  // NOLINT
 
   void updateConnections();
-  int searchByBoW(KFMatcher* old_kf, vector<cv::Point3f>& vpMatches12, vector<bool>& vbMatched2);
+  int searchByBoW(KFMatcher* old_kf, vector<cv::Point3f>& vpMatches12, vector<bool>& vbMatched2);  // NOLINT
 
   // For BRISK Descriptor
-  void searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,
-                               std::vector<uchar>& status,
+  void searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,  // NOLINT
+                               std::vector<uchar>& status,                // NOLINT
                                const cv::Mat& descriptors_old,
                                const std::vector<cv::KeyPoint>& keypoints_old);
   bool matchBrisk(const cv::Mat& window_descriptor,
                   const cv::Mat& descriptors_old,
                   const std::vector<cv::KeyPoint>& keypoints_old,
-                  cv::Point2f& best_match);
-
+                  cv::Point2f& best_match);  // NOLINT
   void computeBRISKPoint();
   double brisk_distance(const cv::Mat& a, const cv::Mat& b);
   std::vector<cv::KeyPoint> brisk_keypoints;

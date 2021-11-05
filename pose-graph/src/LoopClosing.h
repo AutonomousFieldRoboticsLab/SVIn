@@ -8,12 +8,16 @@
 #include <nav_msgs/Path.h>
 #include <ros/ros.h>
 #include <stdio.h>
+
 #include <eigen3/Eigen/Dense>
+#include <list>
+#include <map>
 #include <mutex>
 #include <opencv2/opencv.hpp>
 #include <queue>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "KFMatcher.h"
 #include "ThirdParty/DBoW/DBoW2.h"
@@ -28,17 +32,17 @@
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
 
-using namespace DVision;
-using namespace DBoW2;
+using namespace DVision;  // NOLINT
+using namespace DBoW2;    // NOLINT
 
 class LoopClosing {
  public:
   LoopClosing();
   ~LoopClosing();
-  void setPublishers(ros::NodeHandle& n);
+  void setPublishers(ros::NodeHandle& n);  // NOLINT
   void addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop);
 
-  void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info);
+  void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info);  // NOLINT
   KFMatcher* getKFPtr(int index);
 
   void setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database);
@@ -93,7 +97,7 @@ T NormalizeAngle(const T& angle_degrees) {
     return angle_degrees + T(360.0);
   else
     return angle_degrees;
-};
+}
 
 class AngleLocalParameterization {
  public:
@@ -124,7 +128,7 @@ void YawPitchRollToRotationMatrix(const T yaw, const T pitch, const T roll, T R[
   R[6] = -sin(p);
   R[7] = cos(p) * sin(r);
   R[8] = cos(p) * cos(r);
-};
+}
 
 template <typename T>
 void RotationMatrixTranspose(const T R[9], T inv_R[9]) {
@@ -137,14 +141,14 @@ void RotationMatrixTranspose(const T R[9], T inv_R[9]) {
   inv_R[6] = R[2];
   inv_R[7] = R[5];
   inv_R[8] = R[8];
-};
+}
 
 template <typename T>
 void RotationMatrixRotatePoint(const T R[9], const T t[3], T r_t[3]) {
   r_t[0] = R[0] * t[0] + R[1] * t[1] + R[2] * t[2];
   r_t[1] = R[3] * t[0] + R[4] * t[1] + R[5] * t[2];
   r_t[2] = R[6] * t[0] + R[7] * t[1] + R[8] * t[2];
-};
+}
 
 struct FourDOFError {
   FourDOFError(double t_x, double t_y, double t_z, double relative_yaw, double pitch_i, double roll_i)

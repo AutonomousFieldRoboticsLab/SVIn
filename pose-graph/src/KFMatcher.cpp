@@ -1,5 +1,11 @@
 #include "KFMatcher.h"
 
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 const int KFMatcher::TH_HIGH = 100;
 const int KFMatcher::TH_LOW = 50;
 const size_t KFMatcher::briskDetectionOctaves_ = 0;                ///< The set number of brisk octaves.
@@ -11,9 +17,9 @@ const bool KFMatcher::briskDescriptionScaleInvariance_ = false;    ///< The set 
 const double KFMatcher::briskMatchingThreshold_ = 80.0;            ///< The set BRISK matching threshold.
 
 template <typename Derived>
-static void reduceVector(vector<Derived>& v, vector<uchar> status) {
+static void reduceVector(vector<Derived>& v, vector<uchar> status) {  // NOLINT
   int j = 0;
-  for (int i = 0; i < int(v.size()); i++)
+  for (int i = 0; i < static_cast<int>(v.size()); i++)
     if (status[i]) v[j++] = v[i];
   v.resize(j);
 }
@@ -63,8 +69,9 @@ double KFMatcher::brisk_distance(const cv::Mat& a, const cv::Mat& b) {
   const unsigned char* pa = a.ptr<unsigned char>();
   const unsigned char* pb = b.ptr<unsigned char>();
   // number_of_128_bit_words or number_of_col, L = 48
-  return (double)brisk::Hamming::PopcntofXORed(pa, pb, 3 /*48 / 16*/);
+  return static_cast<double>(brisk::Hamming::PopcntofXORed(pa, pb, 3 /*48 / 16*/));
 }
+
 void KFMatcher::computeBRISKPoint() {
   // for searchByDescriptor to create new BRISK keypoints and descriptors
   std::shared_ptr<cv::FeatureDetector> detector(
@@ -78,9 +85,9 @@ void KFMatcher::computeBRISKPoint() {
 
   detector->detect(image, brisk_keypoints);
 
-  if (!window_keypoints.empty())
+  if (!window_keypoints.empty()) {
     extractor->compute(image, window_keypoints, window_brisk_descriptors);
-  else {
+  } else {
     std::cout << "window keypoints are empty. This is a problem!!" << std::endl;
   }
   extractor->compute(image, brisk_keypoints, brisk_descriptors);
@@ -104,7 +111,7 @@ void KFMatcher::updateConnections() {
   }
 
   // std::cout<<"Weights for observed keyframes in Kf: "<< this->index << std::endl;
-  int th_weight = 20;  // TODO Sharmin: Move it to the Config file
+  int th_weight = 20;  // TODO(Sharmin): Move it to the Config file
   for (map<KFMatcher*, int>::iterator mit = KFcounter_.begin(); mit != KFcounter_.end(); mit++) {
     if (mit->second > th_weight) {
       mConnectedKeyFrameWeights.insert(std::make_pair(mit->first, mit->second));
@@ -122,7 +129,7 @@ void KFMatcher::computeWindowBRIEFPoint() {
 
   extractor(image, window_keypoints, window_brief_descriptors);
 
-  for (int i = 0; i < (int)window_keypoints.size(); i++) {
+  for (int i = 0; i < static_cast<int>(window_keypoints.size()); i++) {
     Eigen::Vector3d tmp_p;
 
     project_normal(Eigen::Vector2d(window_keypoints[i].pt.x, window_keypoints[i].pt.y), tmp_p);
@@ -147,12 +154,12 @@ void KFMatcher::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) con
 void KFMatcher::computeBRIEFPoint() {
   BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
   const int fast_th = 20;  // corner detector response threshold
-  if (1)
+  if (1) {
     cv::FAST(image, keypoints, fast_th, true);
-  else {
+  } else {
     vector<cv::Point2f> tmp_pts;
     cv::goodFeaturesToTrack(image, tmp_pts, 500, 0.01, 10);
-    for (int i = 0; i < (int)tmp_pts.size(); i++) {
+    for (int i = 0; i < static_cast<int>(tmp_pts.size()); i++) {
       cv::KeyPoint key;
       key.pt = tmp_pts[i];
       keypoints.push_back(key);
@@ -160,7 +167,7 @@ void KFMatcher::computeBRIEFPoint() {
   }
   extractor(image, keypoints, brief_descriptors);
 
-  for (int i = 0; i < (int)keypoints.size(); i++) {
+  for (int i = 0; i < static_cast<int>(keypoints.size()); i++) {
     Eigen::Vector3d tmp_p;
 
     project_normal(Eigen::Vector2d(keypoints[i].pt.x, keypoints[i].pt.y), tmp_p);
@@ -195,8 +202,9 @@ bool KFMatcher::matchBrisk(const cv::Mat& window_descriptor,
   if (bestIndex != -1 && bestDist < briskMatchingThreshold_) {
     best_match = keypoints_old[bestIndex].pt;
     return true;
-  } else
+  } else {
     return false;
+  }
 }
 
 void KFMatcher::searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,
@@ -222,7 +230,7 @@ bool KFMatcher::searchInAera(const BRIEF::bitset window_descriptor,
   cv::Point2f best_pt;
   int bestDist = 128;
   int bestIndex = -1;
-  for (int i = 0; i < (int)descriptors_old.size(); i++) {
+  for (int i = 0; i < static_cast<int>(descriptors_old.size()); i++) {
     int dis = HammingDis(window_descriptor, descriptors_old[i]);
     if (dis < bestDist) {
       bestDist = dis;
@@ -234,16 +242,18 @@ bool KFMatcher::searchInAera(const BRIEF::bitset window_descriptor,
     best_match = keypoints_old[bestIndex].pt;
     best_match_norm = keypoints_old_norm[bestIndex].pt;
     return true;
-  } else
+  } else {
     return false;
+  }
 }
+
 void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
                                  std::vector<cv::Point2f>& matched_2d_old_norm,
                                  std::vector<uchar>& status,
                                  const std::vector<BRIEF::bitset>& descriptors_old,
                                  const std::vector<cv::KeyPoint>& keypoints_old,
                                  const std::vector<cv::KeyPoint>& keypoints_old_norm) {
-  for (int i = 0; i < (int)window_brief_descriptors.size(); i++) {
+  for (int i = 0; i < static_cast<int>(window_brief_descriptors.size()); i++) {
     cv::Point2f pt(0.f, 0.f);
     cv::Point2f pt_norm(0.f, 0.f);
     if (searchInAera(window_brief_descriptors[i], descriptors_old, keypoints_old, keypoints_old_norm, pt, pt_norm))
@@ -282,9 +292,9 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
   // This is a bug in opencv. The bug is fixed in opencv master branch.
   try {
-    if (CV_MAJOR_VERSION < 3)
+    if (CV_MAJOR_VERSION < 3) {
       solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 100, inliers);
-    else {
+    } else {
       if (CV_MINOR_VERSION < 2)
         solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, sqrt(10.0 / 230), 0.99, inliers);
       else
@@ -295,7 +305,7 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
     inliers.setTo(cv::Scalar(0));
   }
 
-  for (int i = 0; i < (int)matched_2d_old_norm.size(); i++) status.push_back(0);
+  for (int i = 0; i < static_cast<int>(matched_2d_old_norm.size()); i++) status.push_back(0);
 
   for (int i = 0; i < inliers.rows; i++) {
     int n = inliers.at<int>(i);
@@ -462,7 +472,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   Quaterniond relative_q;
   double relative_yaw;
 
-  if ((int)matched_2d_cur.size() > MIN_LOOP_NUM) {
+  if (static_cast<int>(matched_2d_cur.size()) > MIN_LOOP_NUM) {
     status.clear();
     PnPRANSAC(matched_2d_old_norm, matched_3d, status, PnP_T_old, PnP_R_old);
     reduceVector(matched_2d_cur, status);
@@ -474,7 +484,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   // std::cout<< "Size after RANSAC "<< matched_2d_cur.size() << std::endl;
 
-  if ((int)matched_2d_cur.size() > MIN_LOOP_NUM) {
+  if (static_cast<int>(matched_2d_cur.size()) > MIN_LOOP_NUM) {
     relative_t = PnP_R_old.transpose() * (origin_svin_T - PnP_T_old);
     relative_q = PnP_R_old.transpose() * origin_svin_R;
     relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());
@@ -491,7 +501,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         msg_match_points.header.stamp = ros::Time(time_stamp);
 
         // Note that this PointCloud msg is not for visualization
-        for (int i = 0; i < (int)matched_ids.size(); i++) {
+        for (int i = 0; i < static_cast<int>(matched_ids.size()); i++) {
           // landmarkId, mfId/poseId, keypointIdx for Every Matched 3d points in Current frame
           geometry_msgs::Point32 p;
           p.x = matched_ids[i].x();

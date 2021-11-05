@@ -9,7 +9,7 @@ const Eigen::Vector3d CameraPoseVisualization::lt1 = Eigen::Vector3d(-0.7, -0.2,
 const Eigen::Vector3d CameraPoseVisualization::lt2 = Eigen::Vector3d(-1.0, -0.2, 1.0);
 const Eigen::Vector3d CameraPoseVisualization::oc = Eigen::Vector3d(0.0, 0.0, 0.0);
 
-void Eigen2Point(const Eigen::Vector3d& v, geometry_msgs::Point& p) {
+void Eigen2Point(const Eigen::Vector3d& v, geometry_msgs::Point& p) {  // NOLINT
   p.x = v.x();
   p.y = v.y();
   p.z = v.z();

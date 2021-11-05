@@ -5,7 +5,9 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/image_encodings.h>
+
 #include <eigen3/Eigen/Dense>
+#include <string>
 
 extern Eigen::Vector3d tic;
 extern Eigen::Matrix3d qic;

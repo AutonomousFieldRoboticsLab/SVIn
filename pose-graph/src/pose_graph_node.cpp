@@ -1,6 +1,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <okvis_ros/SvinHealth.h>  // for svin_health publisher
 #include <ros/package.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
@@ -8,25 +9,28 @@
 #include <sensor_msgs/image_encodings.h>
 #include <std_msgs/Bool.h>
 #include <visualization_msgs/Marker.h>
+
 #include <chrono>
 #include <ctime>
 #include <eigen3/Eigen/Dense>
 #include <iostream>
+#include <map>
 #include <mutex>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/opencv.hpp>
 #include <queue>
+#include <string>
 #include <thread>
+#include <utility>
 #include <vector>
+
+#include "KFMatcher.h"
 #include "LoopClosing.h"
 #include "parameters.h"
 #include "utility/CameraPoseVisualization.h"
 #include "utility/tic_toc.h"
 
-#include <okvis_ros/SvinHealth.h>  // for svin_health publisher
-#include "KFMatcher.h"
-
-using namespace std;
+using namespace std;  // NOLINT
 
 map<int, KFMatcher*> kfMapper_;  // Mapping between kf_index and KFMatcher*; to make KFcounter
 
@@ -63,9 +67,9 @@ ros::Publisher pubMatchedPoints;
 ros::Publisher pubCamPoseVisual;
 ros::Publisher pubKfOdom;
 
-std::string BRIEF_PATTERN_FILE;
+std::string BRIEF_PATTERN_FILE;  // NOLINT
 
-std::string SVIN_W_LOOP_PATH;
+std::string SVIN_W_LOOP_PATH;  // NOLINT
 
 CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 Eigen::Vector3d last_t(-100, -100, -100);
@@ -212,9 +216,9 @@ void processMeasurements() {
         img.data = image_msg->data;
         img.encoding = "mono8";
         ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
-      } else
+      } else {
         ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
-
+      }
       cv::Mat image = ptr->image;
       // build keyframe
       Vector3d T =
@@ -250,7 +254,7 @@ void processMeasurements() {
           cv::KeyPoint p_2d_uv;
           double p_id;
           kf_index = point_msg->channels[i]
-                         .values[3];  // TODO Sharmin: this is redundant. This is same for the entire for loop.
+                         .values[3];  // TODO(Sharmin): this is redundant. This is same for the entire for loop.
           p_2d_uv.pt.x = point_msg->channels[i].values[4];
           p_2d_uv.pt.y = point_msg->channels[i].values[5];
           p_2d_uv.size = point_msg->channels[i].values[6];
@@ -262,9 +266,9 @@ void processMeasurements() {
           point_2d_uv.push_back(p_2d_uv);
 
           // std::cout<<"CV Keypoint of size 8:"<< p_2d_uv.pt.x << " , "<< p_2d_uv.pt.y<< " size: "<< p_2d_uv.size<< "
-          // angle: "<< 		p_2d_uv.angle << " octave: "<< p_2d_uv.octave<< " response: "<< p_2d_uv.response<< "
-          // class_id:
-          //"<< 		p_2d_uv.class_id << std::endl;
+          // angle: "<< p_2d_uv.angle << " octave: "<< p_2d_uv.octave<< " response: "<<
+          // p_2d_uv.response<< " class_id:
+          //"<< p_2d_uv.class_id << std::endl;
 
           for (size_t sz = 11; sz < point_msg->channels[i].values.size(); sz++) {
             int observed_kf_index = point_msg->channels[i].values[sz];  // kf_index where this point_3d has been
@@ -322,7 +326,7 @@ static std::string getTimeStr() {
   return s;
 }
 
-void readParameters(ros::NodeHandle& nh) {
+void readParameters(ros::NodeHandle& nh) {  // NOLINT
   std::string config_file;
   nh.getParam("config_file", config_file);
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
@@ -338,7 +342,6 @@ void readParameters(ros::NodeHandle& nh) {
 
   // Read config file parameters
   double resize_factor = static_cast<double>(fsSettings["resizeFactor"]);
-  ;
 
   cv::FileNode fnode = fsSettings["projection_matrix"];
   p_fx = static_cast<double>(fnode["fx"]);

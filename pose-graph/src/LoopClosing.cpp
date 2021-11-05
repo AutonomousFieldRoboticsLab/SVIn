@@ -1,5 +1,9 @@
 #include "LoopClosing.h"
 
+#include <list>
+#include <map>
+#include <set>
+
 LoopClosing::LoopClosing() {
   posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
   posegraph_visualization->setScale(0.1);
@@ -57,8 +61,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   set<KFMatcher*> loopCandidates;
   int loop_index = -1;
 
-  if (flag_detect_loop)  // at least 20 KF has been passed
-  {
+  if (flag_detect_loop) {  // at least 20 KF has been passed
     TicToc tmp_t;
     loop_index = detectLoop(cur_kf, cur_kf->index);
   } else {
@@ -248,8 +251,9 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
       }
     }
     return best_index;
-  } else
+  } else {
     return -1;
+  }
 }
 
 void LoopClosing::addKeyFrameIntoVoc(KFMatcher* keyframe) {
@@ -286,9 +290,9 @@ void LoopClosing::optimize4DoFPoseGraph() {
       int max_length = cur_index + 1;
 
       double t_array[max_length][3];
-      Quaterniond q_array[max_length];
-      double euler_array[max_length][3];
-      double sequence_array[max_length];
+      Quaterniond q_array[max_length];    // NOLINT
+      double euler_array[max_length][3];  // NOLINT
+      double sequence_array[max_length];  // NOLINT
 
       ceres::LocalParameterization* angle_local_parameterization = AngleLocalParameterization::Create();
 

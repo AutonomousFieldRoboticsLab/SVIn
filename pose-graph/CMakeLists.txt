@@ -29,7 +29,7 @@ find_package(Ceres REQUIRED)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
 
-include_directories( include ${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ${BRISK_INCLUDE_DIRS})
+include_directories( include ThirdParty ${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ${BRISK_INCLUDE_DIRS})
 
 catkin_package(CATKIN_DEPENDS okvis_ros)
 
@@ -38,15 +38,15 @@ add_executable(pose_graph
     src/LoopClosing.cpp
     src/KFMatcher.cpp
     src/utility/CameraPoseVisualization.cpp
-    src/ThirdParty/DBoW/BowVector.cpp
-    src/ThirdParty/DBoW/FBrief.cpp
-    src/ThirdParty/DBoW/FeatureVector.cpp
-    src/ThirdParty/DBoW/QueryResults.cpp
-    src/ThirdParty/DBoW/ScoringObject.cpp
-    src/ThirdParty/DUtils/Random.cpp
-    src/ThirdParty/DUtils/Timestamp.cpp
-    src/ThirdParty/DVision/BRIEF.cpp
-    src/ThirdParty/VocabularyBinary.cpp
+    ThirdParty/DBoW/BowVector.cpp
+    ThirdParty/DBoW/FBrief.cpp
+    ThirdParty/DBoW/FeatureVector.cpp
+    ThirdParty/DBoW/QueryResults.cpp
+    ThirdParty/DBoW/ScoringObject.cpp
+    ThirdParty/DUtils/Random.cpp
+    ThirdParty/DUtils/Timestamp.cpp
+    ThirdParty/DVision/BRIEF.cpp
+    ThirdParty/VocabularyBinary.cpp
     )
 add_dependencies(${PROJECT_NAME} Dependencies brisk)
 target_link_libraries(pose_graph ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES}) 

@@ -13,9 +13,9 @@
 #include <string>
 #include <vector>
 
-#include "ThirdParty/DBoW/DBoW2.h"
-#include "ThirdParty/DVision/DVision.h"
-#include "parameters.h"
+#include "DBoW/DBoW2.h"
+#include "DVision/DVision.h"
+#include "pose_graph/parameters.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
 

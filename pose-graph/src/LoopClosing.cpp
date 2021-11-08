@@ -1,4 +1,4 @@
-#include "LoopClosing.h"
+#include "pose_graph/LoopClosing.h"
 
 #include <list>
 #include <map>

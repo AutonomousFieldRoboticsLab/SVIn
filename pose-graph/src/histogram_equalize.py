@@ -3,12 +3,12 @@
 from __future__ import print_function
 
 import rospy
-import cv2
 from sensor_msgs.msg import Image
-import numpy as np
-from cv_bridge import CvBridge, CvBridgeError
+from cv_bridge import CvBridge
 
 import message_filters
+
+import cv2
 
 
 class histogram_equalize:

@@ -19,11 +19,11 @@
 #include <thread>
 #include <vector>
 
-#include "KFMatcher.h"
-#include "ThirdParty/DBoW/DBoW2.h"
-#include "ThirdParty/DBoW/TemplatedDatabase.h"
-#include "ThirdParty/DBoW/TemplatedVocabulary.h"
-#include "ThirdParty/DVision/DVision.h"
+#include "DBoW/DBoW2.h"
+#include "DBoW/TemplatedDatabase.h"
+#include "DBoW/TemplatedVocabulary.h"
+#include "DVision/DVision.h"
+#include "pose_graph/KFMatcher.h"
 #include "utility/CameraPoseVisualization.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"

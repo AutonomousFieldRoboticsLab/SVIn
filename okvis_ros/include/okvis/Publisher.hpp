@@ -175,6 +175,13 @@ class Publisher {
   /// \brief Publish the T_WS transform.
   void publishTransform();
 
+  /// \brief Publish the static TF between sensors and body frame
+  void publishStaticTf();
+  /// \brief Publish the static tf between camera i  and body frame
+  void publishStaticTfCamera(size_t camera_index);
+  /// \brief Publish the static tf between sonar and body frame
+  void publishStaticTfSonar();
+
   /**
    * @brief Set and publish pose.
    * @remark This can be registered with the VioInterface.

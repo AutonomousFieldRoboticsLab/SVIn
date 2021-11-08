@@ -1422,9 +1422,9 @@ void ThreadedKFVio::optimizationLoop() {
                   cv::KeyPoint cvkeypoint;  // Associated 2D point in left image to publish
                   frame_pairs->getCvKeypoint(CamIndexA, (mit->first).keypointIndex, cvkeypoint);
 
-                  if ((mit->first).keypointIndex >=
-                      frame_pairs->numKeypoints(
-                          CamIndexA)) {  // TODO(Sharmin): check--> to avoid segfault for being keypoiny out-of-range
+                  if ((mit->first).keypointIndex >= frame_pairs->numKeypoints(CamIndexA)) {
+                    // TODO(Sharmin): check--> to avoid segfault for being keypoint out-of-range
+
                     LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
                                << frame_pairs->numKeypoints(CamIndexA) << ")";
                     break;
@@ -1439,6 +1439,7 @@ void ThreadedKFVio::optimizationLoop() {
                   pt_id_w_uv.push_back(cit->first);                  // landmarkId
                   pt_id_w_uv.push_back(frame_pairs->id());           // poseId or MultiFrameId
                   pt_id_w_uv.push_back((mit->first).keypointIndex);  // keypointIdx
+                  pt_id_w_uv.push_back(cit->second.quality);         // u
 
                   // cv::keypoint. Size 8
                   pt_id_w_uv.push_back(kf_index_);

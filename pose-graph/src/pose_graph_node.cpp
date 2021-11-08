@@ -24,9 +24,9 @@
 #include <utility>
 #include <vector>
 
-#include "KFMatcher.h"
-#include "LoopClosing.h"
-#include "parameters.h"
+#include "pose_graph/KFMatcher.h"
+#include "pose_graph/LoopClosing.h"
+#include "pose_graph/parameters.h"
 #include "utility/CameraPoseVisualization.h"
 #include "utility/tic_toc.h"
 
@@ -247,6 +247,7 @@ void processMeasurements() {
                                pose_msg->pose.pose.orientation.y,
                                pose_msg->pose.pose.orientation.z)
                        .toRotationMatrix();
+
       if ((T - last_t).norm() > SKIP_DIS) {
         vector<cv::Point3f> point_3d;
         vector<cv::KeyPoint> point_2d_uv;
@@ -257,6 +258,9 @@ void processMeasurements() {
         int kf_index = -1;
         cv::Mat temp_image = image;
         for (unsigned int i = 0; i < point_msg->points.size(); i++) {
+          double quality = point_msg->channels[i].values[3];
+          if (quality < 1e-6) continue;
+
           cv::Point3f p_3d;
           p_3d.x = point_msg->points[i].x;
           p_3d.y = point_msg->points[i].y;
@@ -272,15 +276,14 @@ void processMeasurements() {
 
           cv::KeyPoint p_2d_uv;
           double p_id;
-          kf_index = point_msg->channels[i]
-                         .values[3];  // TODO(Sharmin): this is redundant. This is same for the entire for loop.
-          p_2d_uv.pt.x = point_msg->channels[i].values[4];
-          p_2d_uv.pt.y = point_msg->channels[i].values[5];
-          p_2d_uv.size = point_msg->channels[i].values[6];
-          p_2d_uv.angle = point_msg->channels[i].values[7];
-          p_2d_uv.octave = point_msg->channels[i].values[8];
-          p_2d_uv.response = point_msg->channels[i].values[9];
-          p_2d_uv.class_id = point_msg->channels[i].values[10];
+          kf_index = point_msg->channels[i].values[4];
+          p_2d_uv.pt.x = point_msg->channels[i].values[5];
+          p_2d_uv.pt.y = point_msg->channels[i].values[6];
+          p_2d_uv.size = point_msg->channels[i].values[7];
+          p_2d_uv.angle = point_msg->channels[i].values[8];
+          p_2d_uv.octave = point_msg->channels[i].values[9];
+          p_2d_uv.response = point_msg->channels[i].values[10];
+          p_2d_uv.class_id = point_msg->channels[i].values[11];
 
           point_2d_uv.push_back(p_2d_uv);
 
@@ -289,7 +292,7 @@ void processMeasurements() {
           // p_2d_uv.response<< " class_id:
           //"<< p_2d_uv.class_id << std::endl;
 
-          for (size_t sz = 11; sz < point_msg->channels[i].values.size(); sz++) {
+          for (size_t sz = 12; sz < point_msg->channels[i].values.size(); sz++) {
             int observed_kf_index = point_msg->channels[i].values[sz];  // kf_index where this point_3d has been
                                                                         // observed
             if (observed_kf_index == kf_index) {
@@ -346,7 +349,6 @@ static std::string getTimeStr() {
 }
 
 void readParameters(ros::NodeHandle& nh) {  // NOLINT
-
   // Optional connection to svin_health
   nh.getParam("use_health", use_health);
 

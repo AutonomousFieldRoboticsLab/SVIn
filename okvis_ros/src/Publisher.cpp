@@ -284,6 +284,7 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
     p_id_w_uv.values.push_back(cvKeypoint_w_id.at(8));
     p_id_w_uv.values.push_back(cvKeypoint_w_id.at(9));
     p_id_w_uv.values.push_back(cvKeypoint_w_id.at(10));
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(11));
 
     // SVIN health
     int x_coord = cvKeypoint_w_id.at(4);

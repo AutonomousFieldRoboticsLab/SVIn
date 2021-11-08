@@ -126,6 +126,8 @@ class Subscriber {
   void setT_Wc_W(okvis::kinematics::Transformation T_Wc_W);
 
  protected:
+  const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
+
   /// @name ROS callbacks
   /// @{
 

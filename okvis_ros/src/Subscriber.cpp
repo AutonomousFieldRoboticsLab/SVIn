@@ -135,7 +135,7 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
 void Subscriber::setT_Wc_W(okvis::kinematics::Transformation T_Wc_W) { vioParameters_.publishing.T_Wc_W = T_Wc_W; }
 
 void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned int cameraIndex) {
-  const cv::Mat raw(msg->height, msg->width, CV_8UC1, const_cast<uint8_t*>(&msg->data[0]), msg->step);
+  const cv::Mat raw = readRosImage(msg);
 
   // resizing factor( e.g., with a factor = 0.8, an image will convert from 800x600 to 640x480)
   cv::Mat raw_resized;
@@ -252,6 +252,36 @@ void Subscriber::sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg
   // No magic no!! within 4.5 meter
   if (range < 4.5 && max > 10) {
     vioInterface_->addSonarMeasurement(okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec), range, heading);
+  }
+}
+
+const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const {
+  CHECK(img_msg);
+  cv_bridge::CvImageConstPtr cv_ptr;
+  try {
+    // TODO(Toni): here we should consider using toCvShare...
+    cv_ptr = cv_bridge::toCvCopy(img_msg);
+  } catch (cv_bridge::Exception& exception) {
+    ROS_FATAL("cv_bridge exception: %s", exception.what());
+    ros::shutdown();
+  }
+
+  CHECK(cv_ptr);
+  const cv::Mat img_const = cv_ptr->image;  // Don't modify shared image in ROS.
+  cv::Mat converted_img(img_const.size(), CV_8U);
+  if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
+    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
+    cv::cvtColor(img_const, converted_img, cv::COLOR_BGR2GRAY);
+    return converted_img;
+  } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
+    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
+    cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2GRAY);
+    return converted_img;
+  } else {
+    CHECK_EQ(cv_ptr->encoding, sensor_msgs::image_encodings::MONO8)
+        << "Expected image with MONO8, BGR8, or RGB8 encoding."
+           "Add in here more conversions if you wish.";
+    return img_const;
   }
 }
 

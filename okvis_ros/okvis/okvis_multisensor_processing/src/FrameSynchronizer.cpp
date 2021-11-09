@@ -98,7 +98,7 @@ std::shared_ptr<okvis::MultiFrame> FrameSynchronizer::addNewFrame(std::shared_pt
     multiFrame->setImage(frame->sensorId, frame->measurement.image);
     bufferPosition_ = (bufferPosition_ + 1) % max_frame_sync_buffer_size;
     if (frameBuffer_[bufferPosition_].first != nullptr && frameBuffer_[bufferPosition_].second != numCameras_) {
-      // LOG(ERROR) << "Dropping frame with id " << frameBuffer_[bufferPosition_].first->id();
+      LOG(ERROR) << "Dropping frame with id " << frameBuffer_[bufferPosition_].first->id();
     }
     frameBuffer_[bufferPosition_].first = multiFrame;
     frameBuffer_[bufferPosition_].second = 0;

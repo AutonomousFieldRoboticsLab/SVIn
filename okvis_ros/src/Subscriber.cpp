@@ -166,8 +166,8 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned i
   okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nsec);
   t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
 
-  if (!vioInterface_->addImage(t, cameraIndex, clahe_img))  // Modified by Sharmin
-    LOG(WARNING) << "Frame delayed at time " << t;
+  vioInterface_->addImage(t, cameraIndex, clahe_img);  // Modified by Sharmin
+                                                       // LOG(WARNING) << "Frame delayed at time " << t;
 
   // TODO(sharmin): pass the keypoints...
 }

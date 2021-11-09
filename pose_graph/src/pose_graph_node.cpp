@@ -26,11 +26,13 @@
 
 #include "pose_graph/KFMatcher.h"
 #include "pose_graph/LoopClosing.h"
-#include "pose_graph/parameters.h"
+#include "pose_graph/Parameters.h"
 #include "utility/CameraPoseVisualization.h"
 #include "utility/tic_toc.h"
 
 using namespace std;  // NOLINT
+
+Parameters params;
 
 map<int, KFMatcher*> kfMapper_;  // Mapping between kf_index and KFMatcher*; to make KFcounter
 
@@ -55,27 +57,12 @@ int skip_cnt = 0;
 bool start_flag = 0;
 double SKIP_DIS = 0;
 
-int MIN_LOOP_NUM;
-int FAST_RELOCALIZATION;
-
-double p_fx, p_fy, p_cx, p_cy;  // projection_matrix
-
-Eigen::Vector3d tic;
-Eigen::Matrix3d qic;
-
-ros::Publisher pubMatchedPoints;
 ros::Publisher pubCamPoseVisual;
 ros::Publisher pubKfOdom;
-
-std::string BRIEF_PATTERN_FILE;  // NOLINT
-
-std::string SVIN_W_LOOP_PATH;  // NOLINT
 
 CameraPoseVisualization cameraposevisual(1, 0, 0, 1);
 Eigen::Vector3d last_t(-100, -100, -100);
 double last_image_time = -1;
-
-bool use_health = false;  // Hunter
 
 // Primitive Estimator
 void peCallback(const nav_msgs::Odometry::ConstPtr& msg) {
@@ -124,8 +111,8 @@ void svinCallback(const nav_msgs::Odometry::ConstPtr& msg) {
 
   Vector3d svin_t_cam;
   Quaterniond svin_q_cam;
-  svin_t_cam = trans + quat * tic;
-  svin_q_cam = quat * qic;
+  svin_t_cam = trans + quat * params.tic_;
+  svin_q_cam = quat * params.qic_;
 
   cameraposevisual.reset();
   cameraposevisual.add_pose(svin_t_cam, svin_q_cam);
@@ -178,7 +165,7 @@ void processMeasurements() {
     {
       std::lock_guard<std::mutex> l(measurementMutex_);
       if (!imageBuffer_.empty() && !pclBuffer_.empty() && !kfPoseBuffer_.empty() &&
-          (!use_health || !svinHealthBuffer_.empty())) {  // TODO(bjoshi): this condition does not look good.
+          (!params.use_health_ || !svinHealthBuffer_.empty())) {  // TODO(bjoshi): this condition does not look good.
         if (imageBuffer_.front()->header.stamp.toSec() > kfPoseBuffer_.front()->header.stamp.toSec()) {
           kfPoseBuffer_.pop();
           printf("Throw away pose at beginning\n");
@@ -186,13 +173,13 @@ void processMeasurements() {
           pclBuffer_.pop();
           printf("Throw away pointcloud at beginning\n");
 
-        } else if (use_health &&
+        } else if (params.use_health_ &&
                    imageBuffer_.front()->header.stamp.toSec() > svinHealthBuffer_.front()->header.stamp.toSec()) {
           svinHealthBuffer_.pop();
           printf("Throw away health at beginning\n");
         } else if (imageBuffer_.back()->header.stamp.toSec() >= kfPoseBuffer_.front()->header.stamp.toSec() &&
                    pclBuffer_.back()->header.stamp.toSec() >= kfPoseBuffer_.front()->header.stamp.toSec() &&
-                   (!use_health ||
+                   (!params.use_health_ ||
                     svinHealthBuffer_.back()->header.stamp.toSec() >= kfPoseBuffer_.front()->header.stamp.toSec())) {
           pose_msg = kfPoseBuffer_.front();
           kfPoseBuffer_.pop();
@@ -205,7 +192,7 @@ void processMeasurements() {
           point_msg = pclBuffer_.front();
           pclBuffer_.pop();
 
-          if (use_health) {
+          if (params.use_health_) {
             while (svinHealthBuffer_.front()->header.stamp.toSec() < pose_msg->header.stamp.toSec()) {
               svinHealthBuffer_.pop();
             }
@@ -321,7 +308,8 @@ void processMeasurements() {
                                             point_2d_uv,
                                             KFcounter,
                                             sequence,
-                                            voc);
+                                            voc,
+                                            params);
 
         kfMapper_.insert(std::make_pair(kf_index, keyframe));
 
@@ -340,79 +328,24 @@ void processMeasurements() {
   }
 }
 
-static std::string getTimeStr() {
-  std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
-  char s[100];
-  std::strftime(s, sizeof(s), "%Y_%m_%d_%H_%M_%S", std::localtime(&now));
-  return s;
-}
-
-void readParameters(ros::NodeHandle& nh) {  // NOLINT
-  // Optional connection to svin_health
-  nh.getParam("use_health", use_health);
-
-  std::string config_file;
-  nh.getParam("config_file", config_file);
-  cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
-  if (!fsSettings.isOpened()) {
-    std::cerr << "ERROR: Wrong path to settings" << std::endl;
-  }
-
-  double camera_visual_size = fsSettings["visualize_camera_size"];
-  cameraposevisual.setScale(camera_visual_size);
-  cameraposevisual.setLineWidth(camera_visual_size / 10.0);
-
-  std::string IMAGE_TOPIC;
-
-  // Read config file parameters
-  double resize_factor = static_cast<double>(fsSettings["resizeFactor"]);
-
-  cv::FileNode fnode = fsSettings["projection_matrix"];
-  p_fx = static_cast<double>(fnode["fx"]);
-  p_fy = static_cast<double>(fnode["fy"]);
-  p_cx = static_cast<double>(fnode["cx"]);
-  p_cy = static_cast<double>(fnode["cy"]);
-
-  if (resize_factor != 1.0) {
-    p_fx = p_fx * resize_factor;
-    p_fy = p_fy * resize_factor;
-    p_cx = p_cx * resize_factor;
-    p_cy = p_cy * resize_factor;
-  }
-  cout << "projection_matrix: " << p_fx << " " << p_fy << " " << p_cx << " " << p_cy << endl;
-
-  std::string pkg_path = ros::package::getPath("pose_graph");
-
-  string vocabulary_file = pkg_path + "/Vocabulary/brief_k10L6.bin";
-  cout << "vocabulary_file" << vocabulary_file << endl;
-
-  // Loading vocabulary
-  voc = new BriefVocabulary(vocabulary_file);
-  db.setVocabulary(*voc, false, 0);
-  posegraph.setBriefVocAndDB(voc, db);
-
-  BRIEF_PATTERN_FILE = pkg_path + "/Vocabulary/brief_pattern.yml";
-
-  MIN_LOOP_NUM = fsSettings["min_loop_num"];
-  cout << "Num of matched keypoints for Loop Detection: " << MIN_LOOP_NUM << endl;
-
-  FAST_RELOCALIZATION = fsSettings["fast_relocalization"];
-
-  SVIN_W_LOOP_PATH = pkg_path + "/svin_results/svin_" + getTimeStr() + ".txt";
-
-  cout << "SVIN Result path: " << SVIN_W_LOOP_PATH << endl;
-  std::ofstream fout(SVIN_W_LOOP_PATH, std::ios::out);
-  fout.close();
-  fsSettings.release();
-}
 int main(int argc, char** argv) {
   ros::init(argc, argv, "pose_graph");
   ros::NodeHandle nh("~");
-  posegraph.setPublishers(nh);
 
   // read parameters
-  readParameters(nh);
+  params.loadParameters(nh);
+
+  posegraph.setPublishers(nh);
+  posegraph.set_svin_results_file(params.svin_w_loop_path_);
+  posegraph.set_fast_relocalization(params.fast_relocalization_);
+
+  cameraposevisual.setScale(params.camera_visual_size_);
+  cameraposevisual.setLineWidth(params.camera_visual_size_ / 10.0);
+
+  // Loading vocabulary
+  voc = new BriefVocabulary(params.vocabulary_file_);
+  db.setVocabulary(*voc, false, 0);
+  posegraph.setBriefVocAndDB(voc, db);
 
   // Subscribers
   ros::Subscriber subSVIN = nh.subscribe("/okvis_node/relocalization_odometry", 500, svinCallback);
@@ -421,13 +354,11 @@ int main(int argc, char** argv) {
   ros::Subscriber subPCL = nh.subscribe("/okvis_node/keyframe_points", 500, pclCallback);
 
   ros::Subscriber subSVINHealth;
-  if (use_health) subSVINHealth = nh.subscribe("/okvis_node/svin_health", 500, healthCallback);
+  if (params.use_health_) subSVINHealth = nh.subscribe("/okvis_node/svin_health", 500, healthCallback);
 
   // Publishers
   pubCamPoseVisual = nh.advertise<visualization_msgs::MarkerArray>("camera_pose_visual", 1000);
   pubKfOdom = nh.advertise<visualization_msgs::Marker>("key_odometrys", 1000);
-  pubMatchedPoints =
-      nh.advertise<sensor_msgs::PointCloud>("match_points", 100);  // to publish matched points after relocalization
 
   std::thread processLC;
 

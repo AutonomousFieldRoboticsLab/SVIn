@@ -1425,8 +1425,8 @@ void ThreadedKFVio::optimizationLoop() {
                   if ((mit->first).keypointIndex >= frame_pairs->numKeypoints(CamIndexA)) {
                     // TODO(Sharmin): check--> to avoid segfault for being keypoint out-of-range
 
-                    LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
-                               << frame_pairs->numKeypoints(CamIndexA) << ")";
+                    // LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
+                    //            << frame_pairs->numKeypoints(CamIndexA) << ")";
                     break;
                   }
 

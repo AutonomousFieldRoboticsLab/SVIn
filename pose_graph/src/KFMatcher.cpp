@@ -1,10 +1,14 @@
 #include "pose_graph/KFMatcher.h"
 
+#include <sensor_msgs/PointCloud.h>
+
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "pose_graph/Parameters.h"
 
 const int KFMatcher::TH_HIGH = 100;
 const int KFMatcher::TH_LOW = 50;
@@ -34,7 +38,9 @@ KFMatcher::KFMatcher(double _time_stamp,
                      vector<cv::KeyPoint>& _point_2d_uv,
                      map<KFMatcher*, int>& KFcounter,
                      int _sequence,
-                     BriefVocabulary* vocBrief) {
+                     BriefVocabulary* vocBrief,
+                     const Parameters& params)
+    : params_(params) {
   time_stamp = _time_stamp;
 
   // @Reloc
@@ -63,6 +69,9 @@ KFMatcher::KFMatcher(double _time_stamp,
   updateConnections();     // for Covisibility graph
 
   computeBRIEFPoint();
+
+  // pubMatchedPoints =
+  //     nh.advertise<sensor_msgs::PointCloud>("match_points", 100);  // to publish matched points after relocalization
 }
 
 double KFMatcher::brisk_distance(const cv::Mat& a, const cv::Mat& b) {
@@ -123,7 +132,7 @@ void KFMatcher::updateConnections() {
 
 // Note Keypoints found by okvis_estimator
 void KFMatcher::computeWindowBRIEFPoint() {
-  BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
+  BriefExtractor extractor(params_.brief_pattern_file_.c_str());
 
   window_keypoints = point_2d_uv;
 
@@ -141,18 +150,18 @@ void KFMatcher::computeWindowBRIEFPoint() {
 }
 
 void KFMatcher::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const {
-  const float invfx = 1.0f / p_fx;
-  const float invfy = 1.0f / p_fy;
+  const float invfx = 1.0f / params_.p_fx;
+  const float invfy = 1.0f / params_.p_fy;
 
   const float u = kp[0];
   const float v = kp[1];
-  point3d[0] = (u - p_cx) * invfx;
-  point3d[1] = (v - p_cy) * invfy;
+  point3d[0] = (u - params_.p_cx) * invfx;
+  point3d[1] = (v - params_.p_cy) * invfy;
   point3d[2] = 1.0;
 }
 
 void KFMatcher::computeBRIEFPoint() {
-  BriefExtractor extractor(BRIEF_PATTERN_FILE.c_str());
+  BriefExtractor extractor(params_.brief_pattern_file_.c_str());
   const int fast_th = 20;  // corner detector response threshold
   if (1) {
     cv::FAST(image, keypoints, fast_th, true);
@@ -472,7 +481,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   Quaterniond relative_q;
   double relative_yaw;
 
-  if (static_cast<int>(matched_2d_cur.size()) > MIN_LOOP_NUM) {
+  if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
     status.clear();
     PnPRANSAC(matched_2d_old_norm, matched_3d, status, PnP_T_old, PnP_R_old);
     reduceVector(matched_2d_cur, status);
@@ -484,7 +493,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   // std::cout<< "Size after RANSAC "<< matched_2d_cur.size() << std::endl;
 
-  if (static_cast<int>(matched_2d_cur.size()) > MIN_LOOP_NUM) {
+  if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
     relative_t = PnP_R_old.transpose() * (origin_svin_T - PnP_T_old);
     relative_q = PnP_R_old.transpose() * origin_svin_R;
     relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());
@@ -496,7 +505,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
           relative_q.z(), relative_yaw;
 
       std::cout << index << " has Loop with: " << loop_index << std::endl;
-      if (FAST_RELOCALIZATION) {
+      if (params_.fast_relocalization_) {
         sensor_msgs::PointCloud msg_match_points;
         msg_match_points.header.stamp = ros::Time(time_stamp);
 
@@ -523,7 +532,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         t_q_index.values.push_back(Q.z());
 
         msg_match_points.channels.push_back(t_q_index);
-        pubMatchedPoints.publish(msg_match_points);
+        // pubMatchedPoints.publish(msg_match_points);
       }
       return true;
     }

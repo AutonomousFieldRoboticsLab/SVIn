@@ -38,6 +38,8 @@ add_executable(pose_graph
     src/LoopClosing.cpp
     src/KFMatcher.cpp
     src/utility/CameraPoseVisualization.cpp
+    src/Parameters.cpp
+    src/Subscriber.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp
     ThirdParty/DBoW/FeatureVector.cpp

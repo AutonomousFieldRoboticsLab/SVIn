@@ -15,7 +15,7 @@
 
 #include "DBoW/DBoW2.h"
 #include "DVision/DVision.h"
-#include "pose_graph/parameters.h"
+#include "pose_graph/Parameters.h"
 #include "utility/tic_toc.h"
 #include "utility/utility.h"
 
@@ -45,7 +45,8 @@ class KFMatcher {
             vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
             map<KFMatcher*, int>& KFcounter,     // NOLINT
             int _sequence,
-            BriefVocabulary* vocBrief);
+            BriefVocabulary* vocBrief,
+            const Parameters& params);
 
   bool findConnection(KFMatcher* old_kf);
   void computeWindowBRIEFPoint();
@@ -147,4 +148,7 @@ class KFMatcher {
   static const bool briskDescriptionRotationInvariance_;  ///< The set rotation invariance setting.
   static const bool briskDescriptionScaleInvariance_;     ///< The set scale invariance setting.
   static const double briskMatchingThreshold_;            ///< The set BRISK matching threshold.
+
+  Parameters params_;
+  // ros::Publisher pubMatchedPoints;
 };

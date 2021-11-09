@@ -87,6 +87,13 @@ class LoopClosing {
   ros::Publisher pubBasePath;
   ros::Publisher pubPoseGraph;
   ros::Publisher pubPath[10];
+
+  std::string svin_output_file_;
+  bool is_fast_localization_;
+
+ public:
+  void set_svin_results_file(const std::string& svin_output_file);
+  void set_fast_relocalization(const bool localization_flag);
 };
 
 template <typename T>

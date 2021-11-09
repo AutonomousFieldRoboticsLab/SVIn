@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "pose_graph/parameters.h"
+#include "pose_graph/Parameters.h"
 
 class CameraPoseVisualization {
  public:

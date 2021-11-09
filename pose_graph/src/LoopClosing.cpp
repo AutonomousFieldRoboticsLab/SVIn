@@ -23,6 +23,11 @@ LoopClosing::LoopClosing() {
 
 LoopClosing::~LoopClosing() { t_optimization.join(); }
 
+void LoopClosing::set_svin_results_file(const std::string& svin_output_file) { svin_output_file_ = svin_output_file; };
+void LoopClosing::set_fast_relocalization(const bool fast_relocalization) {
+  is_fast_localization_ = fast_relocalization;
+};
+
 void LoopClosing::setPublishers(ros::NodeHandle& nh) {
   pubPoseGraphPath = nh.advertise<nav_msgs::Path>("pose_graph_path", 1000);
   pubBasePath = nh.advertise<nav_msgs::Path>("base_path", 1000);
@@ -139,7 +144,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
     path[sequence_cnt].header = pose_stamped.header;
 
     if (SAVE_LOOP_PATH) {
-      ofstream loop_path_file(SVIN_W_LOOP_PATH, ios::app);
+      ofstream loop_path_file(svin_output_file_, ios::app);
       loop_path_file.setf(ios::fixed, ios::floatfield);
       loop_path_file.precision(9);
       loop_path_file << cur_kf->time_stamp << " ";
@@ -429,7 +434,7 @@ void LoopClosing::updatePath() {
   posegraph_visualization->reset();
 
   if (SAVE_LOOP_PATH) {
-    ofstream loop_path_file_tmp(SVIN_W_LOOP_PATH, ios::out);
+    ofstream loop_path_file_tmp(svin_output_file_, ios::out);
     loop_path_file_tmp.close();
   }
 
@@ -459,7 +464,7 @@ void LoopClosing::updatePath() {
     }
 
     if (SAVE_LOOP_PATH) {
-      ofstream loop_path_file(SVIN_W_LOOP_PATH, ios::app);
+      ofstream loop_path_file(svin_output_file_, ios::app);
       loop_path_file.setf(ios::fixed, ios::floatfield);
 
       loop_path_file.precision(9);
@@ -520,7 +525,7 @@ void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _lo
   KFMatcher* kf = getKFPtr(index);
   kf->updateLoop(_loop_info);
   if (abs(_loop_info(7)) < 30.0 && Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
-    if (FAST_RELOCALIZATION) {
+    if (is_fast_localization_) {
       KFMatcher* old_kf = getKFPtr(kf->loop_index);
       Vector3d w_P_old, w_P_cur, svin_P_cur;
       Matrix3d w_R_old, w_R_cur, svin_R_cur;

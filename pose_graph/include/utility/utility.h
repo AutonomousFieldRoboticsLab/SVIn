@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <eigen3/Eigen/Dense>
@@ -120,5 +121,13 @@ class Utility {
       return angle_degrees - two_pi * std::floor((angle_degrees + T(180)) / two_pi);
     else
       return angle_degrees + two_pi * std::floor((-angle_degrees + T(180)) / two_pi);
+  }
+
+  static std::string getTimeStr() {
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    char s[100];
+    std::strftime(s, sizeof(s), "%Y_%m_%d_%H_%M_%S", std::localtime(&now));
+    return s;
   }
 };

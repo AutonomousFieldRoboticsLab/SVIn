@@ -3,7 +3,8 @@
 #include <brisk/brisk.h>
 #include <brisk/internal/hamming.h>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <map>
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -35,6 +36,7 @@ class BriefExtractor {
 
 class KFMatcher {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   KFMatcher(double _time_stamp,
             vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
@@ -151,4 +153,9 @@ class KFMatcher {
 
   Parameters params_;
   // ros::Publisher pubMatchedPoints;
+
+  typedef std::function<void(const sensor_msgs::PointCloud& pointcloud)> PointCloudCallback;
+
+  void setRelocalizationPCLCallback(const PointCloudCallback& pointcloud_callback);
+  PointCloudCallback relocalization_pcl_callback_;
 };

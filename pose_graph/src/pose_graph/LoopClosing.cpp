@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <string>
 
 LoopClosing::LoopClosing() {
   posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
@@ -23,10 +24,10 @@ LoopClosing::LoopClosing() {
 
 LoopClosing::~LoopClosing() { t_optimization.join(); }
 
-void LoopClosing::set_svin_results_file(const std::string& svin_output_file) { svin_output_file_ = svin_output_file; };
+void LoopClosing::set_svin_results_file(const std::string& svin_output_file) { svin_output_file_ = svin_output_file; }
 void LoopClosing::set_fast_relocalization(const bool fast_relocalization) {
   is_fast_localization_ = fast_relocalization;
-};
+}
 
 void LoopClosing::setPublishers(ros::NodeHandle& nh) {
   pubPoseGraphPath = nh.advertise<nav_msgs::Path>("pose_graph_path", 1000);

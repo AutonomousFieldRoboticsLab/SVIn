@@ -33,13 +33,15 @@ include_directories( include ThirdParty ${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_D
 
 catkin_package(CATKIN_DEPENDS okvis_ros)
 
-add_executable(pose_graph
-    src/pose_graph_node.cpp
-    src/LoopClosing.cpp
-    src/KFMatcher.cpp
+add_library(${PROJECT_NAME} 
+
+    src/pose_graph/KFMatcher.cpp
+    src/pose_graph/LoopClosing.cpp
+    src/pose_graph/Parameters.cpp
+    src/pose_graph/PoseGraphOptimization.cpp
+    src/pose_graph/Publisher.cpp
+    src/pose_graph/Subscriber.cpp
     src/utility/CameraPoseVisualization.cpp
-    src/Parameters.cpp
-    src/Subscriber.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp
     ThirdParty/DBoW/FeatureVector.cpp
@@ -49,7 +51,12 @@ add_executable(pose_graph
     ThirdParty/DUtils/Timestamp.cpp
     ThirdParty/DVision/BRIEF.cpp
     ThirdParty/VocabularyBinary.cpp
-    )
+)
+
 add_dependencies(${PROJECT_NAME} Dependencies brisk)
-target_link_libraries(pose_graph ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES}) 
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES}) 
+
+add_executable(${PROJECT_NAME}_node src/pose_graph_node.cpp)
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+
 #message("catkin_lib  ${catkin_LIBRARIES}")

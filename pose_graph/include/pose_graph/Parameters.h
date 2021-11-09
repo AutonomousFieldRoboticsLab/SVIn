@@ -8,11 +8,11 @@
 
 #include <eigen3/Eigen/Dense>
 #include <string>
+#include <vector>
 
 class Parameters {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Parameters();
   ~Parameters() = default;
 

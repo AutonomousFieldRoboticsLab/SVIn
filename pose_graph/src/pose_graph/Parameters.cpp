@@ -3,6 +3,7 @@
 #include <ros/package.h>
 
 #include <fstream>
+#include <string>
 
 #include "utility/utility.h"
 

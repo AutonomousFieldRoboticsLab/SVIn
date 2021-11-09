@@ -333,119 +333,6 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   PnP_T_old = T_w_c_old;
 }
 
-/*
-int KFMatcher::searchByBoW(KFMatcher* old_kf, vector<cv::Point3f> &vpMatches12, vector<bool> &vbMatched2){
-        const vector<cv::KeyPoint> &vKeys2 = old_kf->point_2d_uv;
-        const DBoW2::FeatureVector &vFeatVec2 = old_kf->featVec;
-        const vector<cv::Point3f> &vMapPoints2 = old_kf->point_3d;
-        const vector<BRIEF::bitset> &vDescriptor2 = old_kf->window_brief_descriptors;
-
-        vpMatches12 = vector<cv::Point3f>(point_3d.size(), cv::Point3f(-1000.0, -1000.0, -1000.0));  // FIXME SHarmin:
-Better way to initialize vbMatched2 = vector<bool>(vMapPoints2.size(),false);
-
-        int nmatches = 0;
-
-        DBoW2::FeatureVector::const_iterator f1it = featVec.begin();
-        DBoW2::FeatureVector::const_iterator f2it = vFeatVec2.begin();
-        DBoW2::FeatureVector::const_iterator f1end = featVec.end();
-        DBoW2::FeatureVector::const_iterator f2end = vFeatVec2.end();
-
-        cv::Mat gray_img, loop_match_img;
-        cv::Mat old_img = old_kf->image;
-        cv::hconcat(image, old_img, gray_img);
-        cvtColor(gray_img, loop_match_img, CV_GRAY2RGB);
-        for(int i = 0; i< (int)point_2d_uv.size(); i++)
-        {
-                cv::Point2f cur_pt = point_2d_uv[i];
-                cv::circle(loop_match_img, cur_pt, 5, cv::Scalar(0, 255, 0));
-        }
-        for(int i = 0; i< (int)old_kf->window_keypoints.size(); i++)
-        {
-                cv::Point2f old_pt = old_kf->window_keypoints[i].pt;
-                old_pt.x += COL;
-                cv::circle(loop_match_img, old_pt, 5, cv::Scalar(0, 255, 0));
-        }
-
-        while(f1it != f1end && f2it != f2end)
-        {
-                if(f1it->first == f2it->first)
-                {
-                        for(size_t i1=0, iend1=f1it->second.size(); i1<iend1; i1++)
-                        {
-                                const size_t idx1 = f1it->second[i1];
-
-                                cv::Point3f pMP1 = point_3d[idx1]; // TODO Sharmin: doulbe check if produces correct
-result const BRIEF::bitset &d1 = window_brief_descriptors[idx1];
-
-                                int bestDist1=256;
-                                int bestIdx2 =-1 ;
-                                int bestDist2=256;
-
-                                for(size_t i2=0, iend2=f2it->second.size(); i2<iend2; i2++)
-                                {
-                                        const size_t idx2 = f2it->second[i2];
-
-                                        cv::Point3f pMP2 = vMapPoints2[idx2];
-
-                                        if(vbMatched2[idx2])
-                                                continue;
-
-                                        const BRIEF::bitset &d2 = vDescriptor2[idx2];
-
-                                        int dist = HammingDis(d1,d2);
-
-                                        if(dist<bestDist1)
-                                        {
-                                                bestDist2=bestDist1;
-                                                bestDist1=dist;
-                                                bestIdx2=idx2;
-                                        }
-                                        else if(dist<bestDist2)
-                                        {
-                                                bestDist2=dist;
-                                        }
-                                }
-
-                                if(bestDist1<TH_LOW)
-                                {
-                                        //if(static_cast<float>(bestDist1)<0.75*static_cast<float>(bestDist2))  // TODO
-Sharmin: Decide the ratio: 0.75
-                                        {
-                                                vpMatches12[idx1]=vMapPoints2[bestIdx2];
-                                                vbMatched2[bestIdx2]=true;
-                                                nmatches++;
-
-                                                // Debug
-                                                cv::Point2f old_pt = old_kf->window_keypoints[bestIdx2].pt;
-                                                old_pt.x +=  COL;
-                                                cv::line(loop_match_img, point_2d_uv[idx1], old_pt, cv::Scalar(0, 255,
-0), 1, 8, 0);
-                                        }
-                                }
-                        }
-
-                        f1it++;
-                        f2it++;
-                }
-                else if(f1it->first < f2it->first)
-                {
-                        f1it = featVec.lower_bound(f2it->first);
-                }
-                else
-                {
-                        f2it = vFeatVec2.lower_bound(f1it->first);
-                }
-        }
-
-        ostringstream path;
-        path << "/media/afrl/Elements/Sharmin/svin_loop/loop_image/"
-                        << index << "-"
-                        << old_kf->index << ".jpg";
-        cv::imwrite( path.str().c_str(), loop_match_img);
-
-        return nmatches;
-}*/
-
 bool KFMatcher::findConnection(KFMatcher* old_kf) {
   TicToc tmp_t;
 
@@ -532,6 +419,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         t_q_index.values.push_back(Q.z());
 
         msg_match_points.channels.push_back(t_q_index);
+        relocalization_pcl_callback_(msg_match_points);
         // pubMatchedPoints.publish(msg_match_points);
       }
       return true;
@@ -601,4 +489,8 @@ BriefExtractor::BriefExtractor(const std::string& pattern_file) {
   fs["y2"] >> y2;
 
   m_brief.importPairs(x1, y1, x2, y2);
+}
+
+void KFMatcher::setRelocalizationPCLCallback(const PointCloudCallback& pcl_callback) {
+  relocalization_pcl_callback_ = pcl_callback;
 }

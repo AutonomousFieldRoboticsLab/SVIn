@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <eigen3/Eigen/Dense>
+#include <string>
 
 class Utility {
  public:

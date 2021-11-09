@@ -37,6 +37,7 @@ using namespace DBoW2;    // NOLINT
 
 class LoopClosing {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   LoopClosing();
   ~LoopClosing();
   void setPublishers(ros::NodeHandle& n);  // NOLINT

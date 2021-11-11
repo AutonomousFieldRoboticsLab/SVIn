@@ -46,6 +46,25 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   }
   std::cout << "projection_matrix: " << p_fx << " " << p_fy << " " << p_cx << " " << p_cy << std::endl;
 
+  // stereo:
+  //   0 image_width : 960 image_height : 540
+  // distortion_parameters : k1
+  //       : -0.1150974141409347 k2 : 0.10292772047643643 p1 : 0.001419836324816038 p2
+  //       : -0.0018379214527896284
+
+  cv::FileNode dnode = fsSettings["distortion_coefficients"];
+  distortion_coeffs_ = cv::Mat::zeros(4, 1, CV_64F);
+  if (dnode.isSeq()) {
+    distortion_coeffs_.at<double>(0, 0) = static_cast<double>(dnode[0]);
+    distortion_coeffs_.at<double>(1, 0) = static_cast<double>(dnode[1]);
+    distortion_coeffs_.at<double>(2, 0) = static_cast<double>(dnode[2]);
+    distortion_coeffs_.at<double>(3, 0) = static_cast<double>(dnode[3]);
+  }
+  ROS_INFO_STREAM("distortion_coefficients: " << distortion_coeffs_ << std::endl);
+
+  image_width_ = static_cast<int>(fsSettings["image_width"]);
+  image_height_ = static_cast<int>(fsSettings["image_height"]);
+
   std::string pkg_path = ros::package::getPath("pose_graph");
 
   vocabulary_file_ = pkg_path + "/Vocabulary/brief_k10L6.bin";
@@ -64,4 +83,15 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   std::ofstream fout(svin_w_loop_path_, std::ios::out);
   fout.close();
   fsSettings.release();
+
+  // Populate undistort maps, since they can be used multiple times
+  cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
+  K.at<double>(0, 0) = p_fx;
+  K.at<double>(1, 1) = p_fy;
+  K.at<double>(0, 2) = p_cx;
+  K.at<double>(1, 2) = p_cy;
+
+  cv::Size image_size(image_width_, image_height_);
+  cv::initUndistortRectifyMap(
+      K, distortion_coeffs_, cv::Mat(), K, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
 }

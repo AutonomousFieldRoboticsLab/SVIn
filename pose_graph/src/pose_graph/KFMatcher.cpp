@@ -124,8 +124,8 @@ void KFMatcher::updateConnections() {
   for (map<KFMatcher*, int>::iterator mit = KFcounter_.begin(); mit != KFcounter_.end(); mit++) {
     if (mit->second > th_weight) {
       mConnectedKeyFrameWeights.insert(std::make_pair(mit->first, mit->second));
-      std::cout << "Observed Kf: " << mit->first->index << " with weight(common MapPoint): " << mit->second
-                << std::endl;
+      // std::cout << "Observed Kf: " << mit->first->index << " with weight(common MapPoint): " << mit->second
+      //           << std::endl;
     }
   }
 }
@@ -360,7 +360,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   reduceVector(matched_2d_old_norm, status);
   reduceVector(matched_ids, status);
 
-  std::cout << "Size Before RANSAC: " << matched_2d_cur.size() << std::endl;
+  // std::cout << "Size Before RANSAC: " << matched_2d_cur.size() << std::endl;
 
   Eigen::Vector3d PnP_T_old;
   Eigen::Matrix3d PnP_R_old;

@@ -15,9 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
     cv_bridge
     roslib
     okvis_ros  # For SvinHealth msg
+    pcl_ros
+    pcl_conversions
     )
 
 find_package(OpenCV)
+find_package(PCL  REQUIRED)
 
 # brisk
 find_package( brisk 2 REQUIRED )
@@ -29,12 +32,18 @@ find_package(Ceres REQUIRED)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
 
-include_directories( include ThirdParty ${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS}  ${EIGEN3_INCLUDE_DIR} ${BRISK_INCLUDE_DIRS})
+include_directories(include 
+                    ThirdParty
+                    ${catkin_INCLUDE_DIRS}
+                    ${CERES_INCLUDE_DIRS}
+                    ${EIGEN3_INCLUDE_DIR}
+                    ${BRISK_INCLUDE_DIRS}
+                    ${PCL_INCLUDE_DIRS})
 
-catkin_package(CATKIN_DEPENDS okvis_ros)
+catkin_package(CATKIN_DEPENDS okvis_ros pcl_ros pcl_conversions)
 
 add_library(${PROJECT_NAME} 
-
+    src/pose_graph/GlobalMapping.cpp
     src/pose_graph/KFMatcher.cpp
     src/pose_graph/LoopClosing.cpp
     src/pose_graph/Parameters.cpp
@@ -54,9 +63,7 @@ add_library(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME} Dependencies brisk)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES}) 
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES} ${PCL_LIBRARIES}) 
 
 add_executable(${PROJECT_NAME}_node src/pose_graph_node.cpp)
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
-
-#message("catkin_lib  ${catkin_LIBRARIES}")

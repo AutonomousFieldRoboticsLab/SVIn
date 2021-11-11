@@ -3,6 +3,7 @@
 #include <ros/console.h>
 
 #include <memory>
+#include <utility>
 
 Subscriber::Subscriber(ros::NodeHandle& nh, const Parameters& params) : params_(params) {
   // TODO(bjoshi): pass as params from roslaunch file
@@ -31,11 +32,13 @@ void Subscriber::init(ros::NodeHandle& nh, const Parameters& params) {
 void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   nh_ = &nh;
   if (it_) it_.reset();
-  it_ = std::make_unique<image_transport::ImageTransport>(*nh_);
+  it_ = std::unique_ptr<image_transport::ImageTransport>(new image_transport::ImageTransport(std::move(*nh_)));
 
   sub_kf_image_ =
       it_->subscribe(kf_image_topic_, 500, std::bind(&Subscriber::keyframeImageCallback, this, std::placeholders::_1));
 
+  sub_orig_image_ =
+      it_->subscribe("/cam0/image_raw", 500, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
   sub_kf_points_ = nh_->subscribe(kf_points_topic_, 500, &Subscriber::keyframePointsCallback, this);
 
   sub_kf_pose_ = nh_->subscribe(kf_pose_topic_, 500, &Subscriber::keyframePoseCallback, this);
@@ -68,6 +71,11 @@ void Subscriber::keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg) {
 void Subscriber::svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg) {
   std::lock_guard<std::mutex> l(measurement_mutex_);
   svin_health_buffer_.push(msg);
+}
+
+void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+  std::lock_guard<std::mutex> lock(measurement_mutex_);
+  orig_image_buffer_.push(msg);
 }
 
 const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const {
@@ -143,5 +151,35 @@ void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
         }
       }
     }
+  }
+}
+
+const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
+  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < ros_stamp) {
+    orig_image_buffer_.pop();
+  }
+
+  sensor_msgs::ImageConstPtr img_msg = orig_image_buffer_.front();
+  orig_image_buffer_.pop();
+
+  uint64_t diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
+  assert(diff < 10000000);
+  cv_bridge::CvImageConstPtr cv_ptr;
+  try {
+    // TODO(Toni): here we should consider using toCvShare...
+    cv_ptr = cv_bridge::toCvCopy(img_msg);
+  } catch (cv_bridge::Exception& exception) {
+    ROS_FATAL("cv_bridge exception: %s", exception.what());
+    ros::shutdown();
+  }
+
+  const cv::Mat img_const = cv_ptr->image;  // Don't modify shared image in ROS.
+  cv::Mat converted_img;
+  if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
+    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
+    cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2BGR);
+    return converted_img;
+  } else {
+    return img_const;
   }
 }

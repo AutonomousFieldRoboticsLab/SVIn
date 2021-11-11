@@ -77,7 +77,8 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   if (loop_index != -1) {
     KFMatcher* old_kf = getKFPtr(loop_index);
     if (cur_kf->findConnection(old_kf)) {
-      std::cout << "FOUND Loop COnnection!!!!" << std::endl;
+      std::cout << "FOUND Loop Connection!!!!" << std::endl;
+
       if (earliest_loop_index > loop_index || earliest_loop_index == -1) earliest_loop_index = loop_index;
 
       Vector3d w_P_old, w_P_cur, svin_P_cur;
@@ -219,7 +220,7 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
       voc->transform(mit->first->brief_descriptors, mit->first->bowVec);
 
     float score = voc->score(keyframe->bowVec, mit->first->bowVec);
-    std::cout << "Score in neigh frames: " << score << " with Id: " << mit->first->index << std::endl;
+    // std::cout << "Score in neigh frames: " << score << " with Id: " << mit->first->index << std::endl;
     if (score < min_score) min_score = score;
   }
 
@@ -417,6 +418,8 @@ void LoopClosing::optimize4DoFPoseGraph() {
         }
       }
       updatePath();
+
+      loop_closure_optimization_callback_(ros::Time::now().toNSec());
     }
 
     std::chrono::milliseconds dura(2000);
@@ -554,4 +557,12 @@ void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _lo
       }
     }
   }
+}
+
+// void LoopClosing::registerLoopClosureCallback(const EventCallback& loop_found_callback) {
+//   loop_found_callback_ = loop_found_callback;
+// }
+
+void LoopClosing::registerLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
+  loop_closure_optimization_callback_ = optimization_finish_callback;
 }

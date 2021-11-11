@@ -61,6 +61,11 @@ class LoopClosing {
   Vector3d w_t_svin;
   Matrix3d w_r_svin;
 
+  typedef std::function<void(const uint64_t& time)> EventCallback;
+
+  EventCallback loop_closure_optimization_callback_;
+  void registerLoopClosureOptimizationCallback(const EventCallback& finish_optimization_callback);
+
  private:
   int detectLoop(KFMatcher* keyframe, int frame_index);
   void addKeyFrameIntoVoc(KFMatcher* keyframe);

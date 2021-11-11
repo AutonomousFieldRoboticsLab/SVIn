@@ -1,0 +1,25 @@
+%YAML:1.0
+
+#camera calibration 
+model_type: PINHOLE
+camera_name: slave1
+# Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
+projection_matrix:
+    fx: 440.65324069487116
+    fy: 439.4834334719291
+    cx: 488.1804598032361
+    cy: 266.6755685262641
+
+#image resize factor. Note that, this factor MUST be same as OKVIS config file
+resizeFactor: 1.0
+
+#optimization parameters
+max_solver_time: 0.04  # max solver itration time (ms), to guarantee real time
+max_num_iterations: 8   # max solver itrations, to guarantee real time
+keyframe_parallax: 10.0 # keyframe selection threshold (pixel)
+
+#loop closure parameters
+loop_closure: 1   #if you want to use loop closure to minimize the drift, set loop_closure true and give your brief pattern file path and vocabulary file path accordingly;
+                     #also give the camera calibration file same as feature_tracker node
+fast_relocalization: 1
+min_loop_num: 50

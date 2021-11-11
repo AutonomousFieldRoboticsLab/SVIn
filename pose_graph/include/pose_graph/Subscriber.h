@@ -25,6 +25,8 @@ class Subscriber {
                            nav_msgs::OdometryConstPtr& kf_odom,          // NOLINT
                            sensor_msgs::PointCloudConstPtr& kf_points,   // NOLINT
                            okvis_ros::SvinHealthConstPtr& svin_health);  // NOLINT
+
+  const cv::Mat getCorrespondingImage(const uint64_t& ros_stamp);
   const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
 
  private:
@@ -41,6 +43,7 @@ class Subscriber {
   ros::Subscriber sub_kf_points_;                 // Subscriber to the keyframe points.
   ros::Subscriber sub_svin_relocalization_odom_;  // Subscriber to the relocalization odometry.
   ros::Subscriber sub_svin_health_;               // Subscriber to the health of the SVIn.
+  image_transport::Subscriber sub_orig_image_;    // Subscriber to the original image.
 
   // Callback functions.
   void keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg);
@@ -48,12 +51,14 @@ class Subscriber {
   void keyframePointsCallback(const sensor_msgs::PointCloudConstPtr& msg);
   void svinRelocalizationOdomCallback(const nav_msgs::OdometryConstPtr& msg);
   void svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg);
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 
   // Buffer queue for the measurements.
   std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;
   std::queue<nav_msgs::OdometryConstPtr> kf_pose_buffer_;
   std::queue<sensor_msgs::PointCloudConstPtr> kf_pcl_buffer_;
   std::queue<okvis_ros::SvinHealthConstPtr> svin_health_buffer_;  // svin health buffer
+  std::queue<sensor_msgs::ImageConstPtr> orig_image_buffer_;
 
   // Topic names.
   std::string kf_image_topic_;         // The topic name of the keyframe image.

@@ -54,9 +54,11 @@
 
 #include <algorithm>
 #include <list>
+#include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <string>
 #include <vector>
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 // Default constructor.

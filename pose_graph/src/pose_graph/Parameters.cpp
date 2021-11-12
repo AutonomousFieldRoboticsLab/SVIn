@@ -30,7 +30,7 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   std::string image_topic;
 
   // Read config file parameters
-  double resize_factor = static_cast<double>(fsSettings["resizeFactor"]);
+  resize_factor_ = static_cast<double>(fsSettings["resizeFactor"]);
 
   cv::FileNode fnode = fsSettings["projection_matrix"];
   p_fx = static_cast<double>(fnode["fx"]);
@@ -38,33 +38,13 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   p_cx = static_cast<double>(fnode["cx"]);
   p_cy = static_cast<double>(fnode["cy"]);
 
-  if (resize_factor != 1.0) {
-    p_fx = p_fx * resize_factor;
-    p_fy = p_fy * resize_factor;
-    p_cx = p_cx * resize_factor;
-    p_cy = p_cy * resize_factor;
+  if (resize_factor_ != 1.0) {
+    p_fx = p_fx * resize_factor_;
+    p_fy = p_fy * resize_factor_;
+    p_cx = p_cx * resize_factor_;
+    p_cy = p_cy * resize_factor_;
   }
   std::cout << "projection_matrix: " << p_fx << " " << p_fy << " " << p_cx << " " << p_cy << std::endl;
-
-  // stereo:
-  //   0 image_width : 960 image_height : 540
-  // distortion_parameters : k1
-  //       : -0.1150974141409347 k2 : 0.10292772047643643 p1 : 0.001419836324816038 p2
-  //       : -0.0018379214527896284
-
-  cv::FileNode dnode = fsSettings["distortion_coefficients"];
-  distortion_coeffs_ = cv::Mat::zeros(4, 1, CV_64F);
-  if (dnode.isSeq()) {
-    distortion_coeffs_.at<double>(0, 0) = static_cast<double>(dnode[0]);
-    distortion_coeffs_.at<double>(1, 0) = static_cast<double>(dnode[1]);
-    distortion_coeffs_.at<double>(2, 0) = static_cast<double>(dnode[2]);
-    distortion_coeffs_.at<double>(3, 0) = static_cast<double>(dnode[3]);
-  }
-  ROS_INFO_STREAM("distortion_coefficients: " << distortion_coeffs_ << std::endl);
-
-  image_width_ = static_cast<int>(fsSettings["image_width"]);
-  image_height_ = static_cast<int>(fsSettings["image_height"]);
-
   std::string pkg_path = ros::package::getPath("pose_graph");
 
   vocabulary_file_ = pkg_path + "/Vocabulary/brief_k10L6.bin";
@@ -82,16 +62,66 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   std::cout << "SVIN Result path: " << svin_w_loop_path_ << std::endl;
   std::ofstream fout(svin_w_loop_path_, std::ios::out);
   fout.close();
-  fsSettings.release();
 
-  // Populate undistort maps, since they can be used multiple times
+  bool is_stereo = static_cast<int>(fsSettings["is_stereo"]);
+  cv::FileNode cam0_node = fsSettings["cam0"];
+
+  image_height_ = static_cast<int>(cam0_node["height"]);
+  image_width_ = static_cast<int>(cam0_node["width"]);
+
+  cv::Mat P = cv::Mat::eye(3, 3, CV_64F);
+  P.at<double>(0, 0) = p_fx / resize_factor_;
+  P.at<double>(1, 1) = p_fy / resize_factor_;
+  P.at<double>(0, 2) = p_cx / resize_factor_;
+  P.at<double>(1, 2) = p_cy / resize_factor_;
+
+  cv::FileNode dnode = cam0_node["D"];
+  distortion_coeffs_ = cv::Mat::zeros(4, 1, CV_64F);
+  if (dnode.isSeq()) {
+    distortion_coeffs_.at<double>(0, 0) = static_cast<double>(dnode[0]);
+    distortion_coeffs_.at<double>(1, 0) = static_cast<double>(dnode[1]);
+    distortion_coeffs_.at<double>(2, 0) = static_cast<double>(dnode[2]);
+    distortion_coeffs_.at<double>(3, 0) = static_cast<double>(dnode[3]);
+  }
+
+  cv::FileNode rnode = cam0_node["R"];
+  cv::FileNode knode = cam0_node["K"];
+
   cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
-  K.at<double>(0, 0) = p_fx;
-  K.at<double>(1, 1) = p_fy;
-  K.at<double>(0, 2) = p_cx;
-  K.at<double>(1, 2) = p_cy;
+  cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
 
+  if (is_stereo) {
+    if (knode.isSeq()) {
+      K.at<double>(0, 0) = static_cast<double>(knode[0]);
+      K.at<double>(1, 1) = static_cast<double>(knode[4]);
+      K.at<double>(0, 2) = static_cast<double>(knode[2]);
+      K.at<double>(1, 2) = static_cast<double>(knode[5]);
+    }
+
+    if (rnode.isSeq()) {
+      R.at<double>(0, 0) = static_cast<double>(rnode[0]);
+      R.at<double>(1, 0) = static_cast<double>(rnode[1]);
+      R.at<double>(2, 0) = static_cast<double>(rnode[2]);
+      R.at<double>(0, 1) = static_cast<double>(rnode[3]);
+      R.at<double>(1, 1) = static_cast<double>(rnode[4]);
+      R.at<double>(2, 1) = static_cast<double>(rnode[5]);
+      R.at<double>(0, 2) = static_cast<double>(rnode[6]);
+      R.at<double>(1, 2) = static_cast<double>(rnode[7]);
+      R.at<double>(2, 2) = static_cast<double>(rnode[8]);
+    }
+  }
   cv::Size image_size(image_width_, image_height_);
-  cv::initUndistortRectifyMap(
-      K, distortion_coeffs_, cv::Mat(), K, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
+
+  ROS_INFO_STREAM("distortion_coefficients: " << distortion_coeffs_);
+  ROS_INFO_STREAM("projection_matrix: " << P);
+  ROS_INFO_STREAM("camera_matrix: " << K);
+  ROS_INFO_STREAM("rectification_matrix: " << R);
+  if (is_stereo) {
+    cv::initUndistortRectifyMap(
+        K, distortion_coeffs_, R, P, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
+  } else {
+    cv::initUndistortRectifyMap(
+        P, distortion_coeffs_, cv::Mat(), P, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
+  }
+  fsSettings.release();
 }

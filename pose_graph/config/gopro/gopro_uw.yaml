@@ -27,7 +27,8 @@ min_loop_num: 20
 
 # Added by Bharat
 # Parameters for color mapping as we need to subscribe to original color image
-stereo: 0
-image_width: 960
-image_height: 540
-distortion_coefficients: [-0.1150974141409347, 0.10292772047643643, 0.001419836324816038, -0.0018379214527896284]
+is_stereo: 0
+cam0:
+    width: 960
+    height: 540
+    D: [-0.1150974141409347, 0.10292772047643643, 0.001419836324816038, -0.0018379214527896284]

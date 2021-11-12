@@ -66,7 +66,7 @@ void PoseGraphOptimization::setup() {
   publisher.setParameters(*params_);
   publisher.setPublishers();
 
-  timer_ = nh_private_.createTimer(ros::Duration(2), &PoseGraphOptimization::updatePublishGlobalMap, this);
+  timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
 }
 
 void PoseGraphOptimization::run() {
@@ -118,7 +118,16 @@ void PoseGraphOptimization::run() {
                   params_->cam0_undistort_map_y_,
                   cv::INTER_LINEAR);
 
-        // cv::imshow("image", orig_image);
+        if (params_->resize_factor_ != 1.0) {
+          uint16_t new_width = static_cast<uint16_t>(params_->image_width_ * params_->resize_factor_);
+          uint16_t new_height = static_cast<uint16_t>(params_->image_height_ * params_->resize_factor_);
+          cv::resize(undistort_image, undistort_image, cv::Size(new_width, new_height));
+        }
+
+        // ROS_WARN_STREAM("Got New Keyframe");
+
+        // TODO(bjoshi): publish debug image
+        // cv::imshow("image", undistort_image);
         // cv::waitKey(1);
 
         // Need this because we want to update global map only if there is new loop

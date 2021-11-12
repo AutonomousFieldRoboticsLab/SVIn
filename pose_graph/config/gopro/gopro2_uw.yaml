@@ -31,7 +31,8 @@ fast_relocalization: 1
 min_loop_num: 20
 
 
-stereo: 0
-image_width: 960
-image_height: 540
-distortion_coefficients: [-0.10973803,  0.09313709,  0.00143941,  0.0004831]
+is_stereo: 0
+cam0:
+    width: 960
+    height: 540
+    D: [-0.10973803,  0.09313709,  0.00143941,  0.0004831]

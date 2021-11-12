@@ -43,6 +43,7 @@ class Parameters {
   uint16_t image_width_;
   uint16_t image_height_;
   cv::Mat cam0_undistort_map_x_, cam0_undistort_map_y_;
+  double resize_factor_;
 
  public:
   void loadParameters(const ros::NodeHandle& nh);

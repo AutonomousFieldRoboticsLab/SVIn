@@ -76,6 +76,7 @@ void Subscriber::svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg) {
 void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   std::lock_guard<std::mutex> lock(measurement_mutex_);
   orig_image_buffer_.push(msg);
+  // ROS_WARN_STREAM("GOT COLOR IMAGE");
 }
 
 const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const {
@@ -155,7 +156,7 @@ void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
 }
 
 const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
-  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < ros_stamp) {
+  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 1000000)) {
     orig_image_buffer_.pop();
   }
 
@@ -163,7 +164,7 @@ const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
   orig_image_buffer_.pop();
 
   uint64_t diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
-  assert(diff < 10000000);
+  assert(diff < 100000000);
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
     // TODO(Toni): here we should consider using toCvShare...

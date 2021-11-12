@@ -92,7 +92,7 @@ publishing_options:
     landmarkQualityThreshold: 1.0e-2   # landmark with lower quality will not be published
     maximumLandmarkQuality: 0.05       # landmark with higher quality will be published with the maximum colour intensity
     maxPathLength: 20                  # maximum length of the published path
-    publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
+    publishImuPropagatedState: true    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:
         [1.0000, 0.0000, 0.0000, 0.0000,

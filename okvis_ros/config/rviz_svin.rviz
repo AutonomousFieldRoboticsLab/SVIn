@@ -3,8 +3,7 @@ Panels:
     Help Height: 85
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /PointCloud21
+      Expanded: ~
       Splitter Ratio: 0.7843869924545288
     Tree Height: 720
   - Class: rviz/Selection
@@ -206,6 +205,34 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: sonar_rviz_plugin/Sonar
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 5
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: Sonar
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /imagenex831l/range
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -234,7 +261,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.0358240604400635
+      Distance: 2.8724217414855957
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -249,10 +276,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.1097962856292725
       Target Frame: fcu
       Value: Orbit (rviz)
-      Yaw: 1.3854246139526367
+      Yaw: 2.130424976348877
     Saved: ~
 Window Geometry:
   Displays:

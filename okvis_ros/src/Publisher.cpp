@@ -50,13 +50,13 @@
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/fill_image.h>
 #include <sensor_msgs/image_encodings.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 #include <algorithm>
 #include <list>
 #include <okvis/FrameTypedefs.hpp>
 #include <string>
 #include <vector>
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 // Default constructor.
@@ -112,6 +112,8 @@ void Publisher::setNodeHandle(ros::NodeHandle& nh) {
     LOG(INFO) << "no mesh found for visualisation, set ros param mesh_file, if desired";
     meshMsg_.mesh_resource = "";
   }
+
+  static_tf_published_ = false;
 }
 
 // ********** Added by Sharmin ****************//
@@ -760,7 +762,9 @@ void Publisher::publishPose() {
   if ((_t - lastOdometryTime2_).toSec() < 1.0 / parameters_.publishing.publishRate) return;  // control the publish rate
   pubTf_.sendTransform(poseMsg_);
   if (!meshMsg_.mesh_resource.empty()) pubMesh_.publish(meshMsg_);  // publish stamped mesh
-  lastOdometryTime2_ = _t;                                          // remember
+
+  publishSensorStaticTf();
+  lastOdometryTime2_ = _t;  // remember
 }
 
 // Publish the last set odometry.
@@ -1016,6 +1020,99 @@ void Publisher::publishDebugImageAsCallback(const okvis::Time& t, int i, const c
 
   // pubDebugImage_[i].publish(msg);
   pubDebugImage_[i].publish(msg);
+}
+
+void Publisher::publishSensorStaticTf() {
+  size_t num_cameras = parameters_.nCameraSystem.numCameras();
+
+  if (!static_tf_published_) {
+    for (size_t i = 0; i < num_cameras; ++i) {
+      publishStaticTfCamera(i);
+    }
+
+    if (parameters_.sensorList.isSonarUsed) publishStaticTfSonar();
+
+    static_tf_published_ = true;
+  }
+}
+void Publisher::publishStaticTfCamera(size_t camera_index) {
+  geometry_msgs::Transform pose;
+  okvis::cameras::NCameraSystem nCameraSystem = parameters_.nCameraSystem;
+
+  std::string parent_frame_id;
+  if (parameters_.publishing.trackedBodyFrame == FrameName::S) {
+    parent_frame_id = "sensor";
+  } else if (parameters_.publishing.trackedBodyFrame == FrameName::B) {
+    parent_frame_id = "body";
+  }
+
+  std::shared_ptr<const okvis::kinematics::Transformation> T = nCameraSystem.T_SC(camera_index);
+
+  okvis::kinematics::Transformation t_body_imu = parameters_.imu.T_BS;
+  okvis::kinematics::Transformation result = t_body_imu * (*T);
+  std::string child_frame_id = "cam" + std::to_string(camera_index);
+
+  // fill orientation
+  Eigen::Quaterniond q = result.q();
+  pose.rotation.x = q.x();
+  pose.rotation.y = q.y();
+  pose.rotation.z = q.z();
+  pose.rotation.w = q.w();
+
+  // fill position
+  Eigen::Vector3d r = result.r();
+  pose.translation.x = r[0];
+  pose.translation.y = r[1];
+  pose.translation.z = r[2];
+
+  publishStaticTf(pose, parent_frame_id, child_frame_id);
+}
+
+void Publisher::publishStaticTfSonar() {
+  geometry_msgs::Transform pose;  ///< Pose message.
+
+  std::string parent_frame_id;
+  if (parameters_.publishing.trackedBodyFrame == FrameName::S) {
+    parent_frame_id = "sensor";
+  } else if (parameters_.publishing.trackedBodyFrame == FrameName::B) {
+    parent_frame_id = "body";
+  }
+
+  okvis::kinematics::Transformation T_SSo = parameters_.sonar.T_SSo;
+  okvis::kinematics::Transformation t_body_imu = parameters_.imu.T_BS;
+  okvis::kinematics::Transformation result = t_body_imu * T_SSo;
+  std::string child_frame_id = "sonar";
+
+  // fill orientation
+  Eigen::Quaterniond q = result.q();
+  pose.rotation.x = q.x();
+  pose.rotation.y = q.y();
+  pose.rotation.z = q.z();
+  pose.rotation.w = q.w();
+
+  // fill position
+  Eigen::Vector3d r = result.r();
+  pose.translation.x = r[0];
+  pose.translation.y = r[1];
+  pose.translation.z = r[2];
+
+  publishStaticTf(pose, parent_frame_id, child_frame_id);
+}
+
+void Publisher::publishStaticTf(const geometry_msgs::Transform& pose,
+                                const std::string& parent_frame_id,
+                                const std::string& child_frame_id) {
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
+  geometry_msgs::TransformStamped static_transform_stamped;
+  static_transform_stamped.header.stamp = _t;
+  if ((ros::Time::now() - _t).toSec() > 10.0) static_transform_stamped.header.stamp = ros::Time::now();
+
+  // TODO(Toni): Warning: using ros::Time::now(), will that bring issues?
+  static_transform_stamped.header.stamp = ros::Time::now();
+  static_transform_stamped.header.frame_id = parent_frame_id;
+  static_transform_stamped.child_frame_id = child_frame_id;
+  static_transform_stamped.transform = pose;
+  static_broadcaster.sendTransform(static_transform_stamped);
 }
 
 }  // namespace okvis

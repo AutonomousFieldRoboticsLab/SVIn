@@ -62,6 +62,7 @@
 #include <opencv2/core/core.hpp>
 // #include <pcl/filters/statistical_outlier_removal.h> // Sharmin: Statisitcal outlier removal
 #pragma GCC diagnostic pop
+#include <geometry_msgs/Transform.h>
 #include <image_transport/image_transport.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -175,12 +176,26 @@ class Publisher {
   /// \brief Publish the T_WS transform.
   void publishTransform();
 
-  /// \brief Publish the static TF between sensors and body frame
-  void publishStaticTf();
   /// \brief Publish the static tf between camera i  and body frame
   void publishStaticTfCamera(size_t camera_index);
   /// \brief Publish the static tf between sonar and body frame
   void publishStaticTfSonar();
+
+  /**
+   * @brief publish static transform between parent and child frame
+   * @param pose staticPose between parent and child frame
+   * @param parent_frame_id parent frame id
+   * @param child_frame_id child frame id
+   * @remark enough to publish once at the beginning
+   */
+  void publishStaticTf(const geometry_msgs::Transform& static_transform,
+                       const std::string& parent_frame_id,
+                       const std::string& child_frame_id);
+
+  /**
+   * @brief publish the static tf between different sensors
+   */
+  void publishSensorStaticTf();
 
   /**
    * @brief Set and publish pose.
@@ -361,6 +376,8 @@ class Publisher {
 
   // Hunter
   std::vector<ros::Publisher> pubDebugImage_;
+
+  bool static_tf_published_;  ///< Whether the static transform has been published.
 };
 
 }  // namespace okvis

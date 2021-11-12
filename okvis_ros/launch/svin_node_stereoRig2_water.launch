@@ -40,7 +40,7 @@
 
   </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_stereorig.rviz"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_svin.rviz"/>
 
 
 </launch>

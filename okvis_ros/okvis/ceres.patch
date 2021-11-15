@@ -1,4 +1,0 @@
-268c268
-<     Chunk() : size(0) {}
----
->     Chunk() : size(0), start(0) {}

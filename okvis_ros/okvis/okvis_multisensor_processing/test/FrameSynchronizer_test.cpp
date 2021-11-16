@@ -36,7 +36,6 @@
 #include <glog/logging.h>
 
 #include <memory>
-
 #include <vector>
 
 #include "gtest/gtest.h"

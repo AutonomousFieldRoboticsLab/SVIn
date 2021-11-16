@@ -40,6 +40,7 @@
 #define INCLUDE_OKVIS_KINEMATICS_OPERATORS_HPP_
 
 #include <stdint.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <vector>

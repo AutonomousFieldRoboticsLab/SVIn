@@ -31,6 +31,7 @@
  *********************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include "glog/logging.h"
 
 /// Run all the tests that were declared with TEST()

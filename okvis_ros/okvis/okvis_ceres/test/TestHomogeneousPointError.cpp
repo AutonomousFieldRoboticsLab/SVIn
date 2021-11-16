@@ -33,6 +33,7 @@
 #include <ceres/ceres.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+
 #include <memory>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Time.hpp>

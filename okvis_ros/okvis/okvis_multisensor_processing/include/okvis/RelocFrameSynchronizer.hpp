@@ -43,7 +43,6 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-
 #include <okvis/Time.hpp>
 
 /// \brief okvis Main namespace of this package.

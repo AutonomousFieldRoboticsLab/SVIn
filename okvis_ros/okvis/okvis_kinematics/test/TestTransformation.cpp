@@ -32,6 +32,7 @@
 
 #include <iostream>
 #include <okvis/kinematics/Transformation.hpp>
+
 #include "gtest/gtest.h"
 
 TEST(Transformation, operations) {

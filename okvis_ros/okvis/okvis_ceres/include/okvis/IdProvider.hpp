@@ -41,6 +41,7 @@
 #define INCLUDE_OKVIS_IDPROVIDER_HPP_
 
 #include <stdint.h>
+
 #include <atomic>
 #include <iostream>
 

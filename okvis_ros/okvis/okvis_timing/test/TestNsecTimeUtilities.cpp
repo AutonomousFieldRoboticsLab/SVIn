@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <okvis/timing/NsecTimeUtilities.hpp>
 
 TEST(NsetTimeTestSuite, testChronoConversion) {

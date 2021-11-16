@@ -31,9 +31,11 @@
  *********************************************************************************/
 
 #include <gtest/gtest.h>
+
 #include <iostream>
 #include <memory>
 #include <vector>
+
 #include "okvis/cameras/EquidistantDistortion.hpp"
 #include "okvis/cameras/NoDistortion.hpp"
 #include "okvis/cameras/PinholeCamera.hpp"

@@ -41,6 +41,7 @@
 
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.

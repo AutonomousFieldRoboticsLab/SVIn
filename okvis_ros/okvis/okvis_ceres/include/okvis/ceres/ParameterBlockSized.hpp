@@ -41,6 +41,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+
 #include <Eigen/Core>
 #include <iostream>
 #include <okvis/assert_macros.hpp>

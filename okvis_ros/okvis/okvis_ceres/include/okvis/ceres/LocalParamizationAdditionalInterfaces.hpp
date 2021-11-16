@@ -40,6 +40,7 @@
 #define INCLUDE_OKVIS_CERES_LOCALPARAMIZATIONADDITIONALINTERFACES_HPP_
 
 #include <okvis/assert_macros.hpp>
+
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.

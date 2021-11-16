@@ -40,9 +40,11 @@
 #define INCLUDE_OKVIS_TRANSFORMATION_HPP_
 
 #include <stdint.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <vector>
+
 #include "okvis/kinematics/operators.hpp"
 
 /// \brief okvis Main namespace of this package.

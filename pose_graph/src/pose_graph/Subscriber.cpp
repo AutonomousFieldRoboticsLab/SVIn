@@ -11,7 +11,8 @@ Subscriber::Subscriber(ros::NodeHandle& nh, const Parameters& params) : params_(
   kf_pose_topic_ = "/okvis_node/keyframe_pose";
   kf_points_topic_ = "/okvis_node/keyframe_points";
   svin_reloc_odom_topic_ = "/okvis_node/relocalization_odometry";
-  svin_health_topic_ = "/svin_health";
+  svin_health_topic_ = "/okvis_node/svin_health";
+  primitive_estimator_topic_ = "/aqua_primitive_estimator/odometry";
   last_image_time_ = -1;
 
   setNodeHandle(nh);
@@ -45,10 +46,12 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   // sub_svin_relocalization_odom_ =
   //     nh_->subscribe(svin_reloc_odom_topic_, 500, &Subscriber::svinRelocalizationOdomCallback, this);
 
-  if (params_.use_health_)
+  if (params_.use_health_) {
     sub_svin_health_ = nh_->subscribe(svin_health_topic_, 500, &Subscriber::svinHealthCallback, this);
+    sub_primitive_estimator_ =
+        nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
+  }
 }
-
 void Subscriber::keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg) {
   std::lock_guard<std::mutex> lock(measurement_mutex_);
   kf_image_buffer_.push(msg);
@@ -68,6 +71,12 @@ void Subscriber::keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg) {
 // void Subscriber::svinRelocalizationOdomCallback(const nav_msgs::OdometryConstPtr& msg) {
 //   svin_relocalization_odom_ = msg;
 // }
+
+void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg) {
+  std::lock_guard<std::mutex> l(measurement_mutex_);
+  prim_estimator_odom_buffer_.push(msg);
+}
+
 void Subscriber::svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg) {
   std::lock_guard<std::mutex> l(measurement_mutex_);
   svin_health_buffer_.push(msg);

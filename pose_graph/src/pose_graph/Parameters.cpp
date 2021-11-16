@@ -3,6 +3,7 @@
 #include <ros/package.h>
 
 #include <fstream>
+#include <opencv2/calib3d.hpp>
 #include <string>
 
 #include "utility/utility.h"
@@ -18,6 +19,7 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   // Optional connection to svin_health
   nh.getParam("use_health", use_health_);
 
+  ROS_ERROR_STREAM("use_health: " << use_health_);
   std::string config_file;
   nh.getParam("config_file", config_file);
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);

@@ -3,6 +3,7 @@
 #include <pcl/io/ply_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <ros/console.h>
 #include <ros/package.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Trigger.h>
@@ -100,6 +101,12 @@ void PoseGraphOptimization::run() {
 
       assert(point_msg);
       assert(image_msg);
+      if (params_->use_health_) assert(health_msg);
+
+      bool vio_working = static_cast<bool>(health_msg->isTrackingOk);
+      if (!vio_working) {
+        continue;
+      }
 
       if ((T - last_translation_).norm() > SKIP_DIS) {
         vector<cv::Point3f> point_3d;

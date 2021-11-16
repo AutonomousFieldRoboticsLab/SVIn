@@ -16,7 +16,7 @@ class Subscriber {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Subscriber(ros::NodeHandle& nh, const Parameters& params);  // NOLINT
-  Subscriber(){};
+  Subscriber() {}
 
   ~Subscriber() = default;
 

@@ -10,8 +10,8 @@ cameras:
        image_dimension: [800, 600],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [941.7068635010354, 941.7068635010354],
-       principal_point: [272.7850456237793, 310.3795585632324]}  # alpha = 1.0
+       focal_length: [1242.0480207554092, 1242.0480207554092],
+       principal_point: [276.810977935791, 310.05108642578125]} 
 
     - {T_SC:
        [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
@@ -21,8 +21,8 @@ cameras:
        image_dimension: [800, 600],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [941.7068635010354, 941.7068635010354],
-       principal_point: [272.7850456237793, 310.3795585632324]}  # alpha = 1.0
+       focal_length: [1242.0480207554092, 1242.0480207554092],
+       principal_point: [276.810977935791, 310.05108642578125]}  
 
 camera_params:
     camera_rate: 30
@@ -102,7 +102,10 @@ publishing_options:
 isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
-isCLAHE: false
+isCLAHE: true
+claheClipLimit: 5.0
+claheTilesGridSize: 8
+
 resizeFactor: 1.0  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
 isResetable: true  # Adds callbacks to allow hard and soft resets of SVIn2

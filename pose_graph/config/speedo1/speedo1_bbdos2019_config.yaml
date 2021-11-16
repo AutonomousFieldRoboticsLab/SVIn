@@ -5,10 +5,10 @@ model_type: PINHOLE
 camera_name: cam_fl
 # Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
 projection_matrix:
-    fx: 941.7068635010354
-    fy: 941.7068635010354
-    cx: 272.7850456237793
-    cy: 310.3795585632324
+    fx: 1242.0480207554092
+    fy: 1242.0480207554092
+    cx: 276.810977935791
+    cy: 310.05108642578125
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 1.0

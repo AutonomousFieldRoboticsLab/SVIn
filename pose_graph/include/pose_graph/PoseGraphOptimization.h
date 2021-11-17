@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 #include "pose_graph/GlobalMapping.h"
 #include "pose_graph/KFMatcher.h"
@@ -57,4 +58,11 @@ class PoseGraphOptimization {
 
   ros::Timer timer_;  // for periodic publishing
   ros::ServiceServer save_pointcloud_service_;
+
+  uint64_t last_keyframe_time_;
+  uint64_t consecutive_tracking_failures_;
+
+  std::vector<geometry_msgs::PoseStamped> primitive_estimator_poses_;
+
+  void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
 };

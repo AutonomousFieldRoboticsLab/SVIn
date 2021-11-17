@@ -40,6 +40,9 @@ PoseGraphOptimization::PoseGraphOptimization()
 
   save_pointcloud_service_ =
       nh_private_.advertiseService("save_pointcloud", &PoseGraphOptimization::savePointCloud, this);
+
+  consecutive_tracking_failures_ = 0;
+  last_keyframe_time_ = 0;
 }
 
 void PoseGraphOptimization::setup() {
@@ -105,7 +108,20 @@ void PoseGraphOptimization::run() {
 
       bool vio_working = static_cast<bool>(health_msg->isTrackingOk);
       if (!vio_working) {
-        continue;
+        ROS_WARN_STREAM("VIO Tracking failure.");
+        consecutive_tracking_failures_ += 1;
+      } else {
+        consecutive_tracking_failures_ = 0;
+      }
+
+      last_keyframe_time_ = pose_msg->header.stamp.toSec();
+
+      nav_msgs::OdometryConstPtr primitive_estimator_odom =
+          subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
+      if (primitive_estimator_odom) {
+        updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
+        publisher.publishPrimitiveEstimatorPath(primitive_estimator_poses_);
+        
       }
 
       if ((T - last_translation_).norm() > SKIP_DIS) {
@@ -130,8 +146,6 @@ void PoseGraphOptimization::run() {
           uint16_t new_height = static_cast<uint16_t>(params_->image_height_ * params_->resize_factor_);
           cv::resize(undistort_image, undistort_image, cv::Size(new_width, new_height));
         }
-
-        // ROS_WARN_STREAM("Got New Keyframe");
 
         // TODO(bjoshi): publish debug image
         // cv::imshow("image", undistort_image);
@@ -384,4 +398,12 @@ bool PoseGraphOptimization::savePointCloud(std_srvs::TriggerRequest& request, st
   response.success = true;
   response.message = "Saving Point Cloud ";
   return true;
+}
+
+void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
+  geometry_msgs::PoseStamped pose_stamped;
+  pose_stamped.header = pose_msg->header;
+  pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
+  pose_stamped.pose = pose_msg->pose.pose;
+  primitive_estimator_poses_.push_back(pose_stamped);
 }

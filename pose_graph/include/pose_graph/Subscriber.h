@@ -27,6 +27,8 @@ class Subscriber {
                            sensor_msgs::PointCloudConstPtr& kf_points,   // NOLINT
                            okvis_ros::SvinHealthConstPtr& svin_health);  // NOLINT
 
+  nav_msgs::OdometryConstPtr getPrimitiveEstimatorPose(const uint64_t& ros_stamp);
+
   const cv::Mat getCorrespondingImage(const uint64_t& ros_stamp);
   const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
 

@@ -165,15 +165,33 @@ void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
 }
 
 const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
-  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 1000000)) {
+  sensor_msgs::ImageConstPtr img_msg;
+
+  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < ros_stamp) {
+    img_msg = orig_image_buffer_.front();
     orig_image_buffer_.pop();
   }
 
-  sensor_msgs::ImageConstPtr img_msg = orig_image_buffer_.front();
-  orig_image_buffer_.pop();
+  uint64_t diff = 0;
+  if (img_msg) {
+    diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
+  }
+  if (!orig_image_buffer_.empty()) {
+    uint64_t upper_diff =
+        abs(static_cast<int64_t>(orig_image_buffer_.front()->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
+    if (img_msg == nullptr || diff > upper_diff) {
+      img_msg = orig_image_buffer_.front();
+      orig_image_buffer_.pop();
+      diff = upper_diff;
+    }
+  }
 
-  uint64_t diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
-  assert(diff < 100000000);
+  if (diff > 100000000) {
+    ROS_WARN_STREAM("Time difference between keyframe and original image is too large: " << diff << " ns");
+    ROS_WARN_STREAM("Image time: " << img_msg->header.stamp.toNSec() << " ns");
+    ROS_WARN_STREAM("Keyframe time: " << ros_stamp << " ns");
+  }
+
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
     // TODO(Toni): here we should consider using toCvShare...

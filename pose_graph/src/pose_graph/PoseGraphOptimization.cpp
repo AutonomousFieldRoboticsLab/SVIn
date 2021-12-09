@@ -104,10 +104,13 @@ void PoseGraphOptimization::run() {
 
       assert(point_msg);
       assert(image_msg);
-      if (params_->use_health_) assert(health_msg);
+      bool vio_healthy = true;
 
-      bool vio_working = static_cast<bool>(health_msg->isTrackingOk);
-      if (!vio_working) {
+      if (params_->use_health_) {
+        assert(health_msg);
+        vio_healthy = static_cast<bool>(health_msg->isTrackingOk);
+      }
+      if (!vio_healthy) {
         ROS_WARN_STREAM("VIO Tracking failure.");
         consecutive_tracking_failures_ += 1;
       } else {
@@ -121,7 +124,6 @@ void PoseGraphOptimization::run() {
       if (primitive_estimator_odom) {
         updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
         publisher.publishPrimitiveEstimatorPath(primitive_estimator_poses_);
-        
       }
 
       if ((T - last_translation_).norm() > SKIP_DIS) {

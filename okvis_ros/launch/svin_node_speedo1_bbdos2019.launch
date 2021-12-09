@@ -43,7 +43,7 @@
 
   <include file="$(find aqua_uberestimator)/launch/primitive_estimator.launch"/>
 
- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_svin.rviz"/>
+ <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_uber.rviz"/>
 
 
 </launch>

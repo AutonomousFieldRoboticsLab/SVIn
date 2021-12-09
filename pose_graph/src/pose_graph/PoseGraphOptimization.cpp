@@ -71,6 +71,7 @@ void PoseGraphOptimization::setup() {
   publisher.setPublishers();
 
   timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
+  initial_t_w_prim_.setZero();
 }
 
 void PoseGraphOptimization::run() {
@@ -122,6 +123,10 @@ void PoseGraphOptimization::run() {
       nav_msgs::OdometryConstPtr primitive_estimator_odom =
           subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
       if (primitive_estimator_odom) {
+        if (initial_t_w_prim_.isZero()) {
+          initial_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
+          ROS_WARN_STREAM("Initial primitive estimator: " << initial_t_w_prim_);
+        }
         updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
         publisher.publishPrimitiveEstimatorPath(primitive_estimator_poses_);
       }
@@ -302,6 +307,9 @@ void PoseGraphOptimization::run() {
         // sparse_pointcloud_msg.header.stamp = pose_msg->header.stamp;
         // pubSparseMap.publish(sparse_pointcloud_msg);
       }
+    } else {  // SVIN Frontend does not pass keyframe because of not tracking
+
+      // while()
     }
 
     std::chrono::milliseconds dura(5);
@@ -406,6 +414,7 @@ void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::Odo
   geometry_msgs::PoseStamped pose_stamped;
   pose_stamped.header = pose_msg->header;
   pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
-  pose_stamped.pose = pose_msg->pose.pose;
+  pose_stamped.pose =
+      Utility::matrixToRosPose(initial_t_w_prim_.inverse() * Utility::rosPoseToMatrix(pose_msg->pose.pose));
   primitive_estimator_poses_.push_back(pose_stamped);
 }

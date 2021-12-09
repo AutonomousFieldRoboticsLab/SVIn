@@ -65,4 +65,5 @@ class PoseGraphOptimization {
   std::vector<geometry_msgs::PoseStamped> primitive_estimator_poses_;
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
+  Eigen::Matrix4d initial_t_w_prim_, init_t_w_svin;
 };

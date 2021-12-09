@@ -1,5 +1,7 @@
 #pragma once
 
+#include <geometry_msgs/Pose.h>
+
 #include <cassert>
 #include <chrono>
 #include <cmath>
@@ -130,5 +132,30 @@ class Utility {
     char s[100];
     std::strftime(s, sizeof(s), "%Y_%m_%d_%H_%M_%S", std::localtime(&now));
     return s;
+  }
+
+  static Eigen::Matrix4d rosPoseToMatrix(const geometry_msgs::Pose& pose) {
+    Eigen::Matrix4d m;
+    m.setIdentity();
+    m.block<3, 3>(0, 0) =
+        Eigen::Quaterniond(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z)
+            .toRotationMatrix();
+    m.block<3, 1>(0, 3) = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
+    return m;
+  }
+
+  static geometry_msgs::Pose matrixToRosPose(const Eigen::Matrix4d& trasform) {
+    geometry_msgs::Pose pose;
+    pose.position.x = trasform(0, 3);
+    pose.position.y = trasform(1, 3);
+    pose.position.z = trasform(2, 3);
+
+    Eigen::Quaterniond q(trasform.block<3, 3>(0, 0));
+    pose.orientation.w = q.w();
+    pose.orientation.x = q.x();
+    pose.orientation.y = q.y();
+    pose.orientation.z = q.z();
+
+    return pose;
   }
 };

@@ -20,7 +20,7 @@ void Publisher::publishGlobalMap(const sensor_msgs::PointCloud2& cloud) { pub_gl
 
 void Publisher::publishPrimitiveEstimatorPath(const std::vector<geometry_msgs::PoseStamped>& prim_estimator_poses) {
   nav_msgs::Path path;
-  path.header.frame_id = prim_estimator_poses.back().header.frame_id;
+  path.header.frame_id = "test";
   path.header.stamp = prim_estimator_poses.back().header.stamp;
   path.header.seq = prim_estimator_poses.size() + 1;
   path.poses = prim_estimator_poses;

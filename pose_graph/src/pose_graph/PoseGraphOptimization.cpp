@@ -308,7 +308,6 @@ void PoseGraphOptimization::run() {
         // pubSparseMap.publish(sparse_pointcloud_msg);
       }
     } else {  // SVIN Frontend does not pass keyframe because of not tracking
-
       // while()
     }
 

@@ -2,6 +2,8 @@
 
 #include <nav_msgs/Path.h>
 
+#include <vector>
+
 Publisher::Publisher() : nh_private_("~") {}
 
 void Publisher::setParameters(const Parameters& params) { params_ = params; }

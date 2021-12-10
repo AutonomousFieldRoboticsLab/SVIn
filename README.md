@@ -65,12 +65,15 @@ You will need to install the following dependencies,
 Running it on our publicly available datasets: https://afrl.cse.sc.edu/afrl/resources/datasets/. If you follow "Datasets for Visual-Inertial-Based State Estimation Algorithms" link you will be directed to a google drive directory,  under the 'Bus' and 'Cave' you will find ROS bagfile with Sonar topic named as '/imagenex831l/range' and  '/imagenex831l/range_raw'. 
 
 Run the launch file for Cave:
+
         source ~/svin_ws/devel/setup.bash
         roslaunch okvis_ros svin_node_stereoRig2_water.launch
 
 Or, run the launch file for Bus:
+
         source ~/svin_ws/devel/setup.bash
         roslaunch okvis_ros svin_node_stereo_rig_water.launch
 
 In different terminals, run the bag file
+
         rosbag play bagfile_name --clock -r 0.8

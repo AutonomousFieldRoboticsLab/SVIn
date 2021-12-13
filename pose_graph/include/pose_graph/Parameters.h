@@ -44,6 +44,7 @@ class Parameters {
   uint16_t image_height_;
   cv::Mat cam0_undistort_map_x_, cam0_undistort_map_y_;
   double resize_factor_;
+  Eigen::Matrix4d T_imu_cam0_;
 
  public:
   void loadParameters(const ros::NodeHandle& nh);

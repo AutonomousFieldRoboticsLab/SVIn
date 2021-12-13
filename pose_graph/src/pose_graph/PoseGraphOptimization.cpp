@@ -8,6 +8,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Trigger.h>
 
+#include <Eigen/SVD>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -71,7 +72,9 @@ void PoseGraphOptimization::setup() {
   publisher.setPublishers();
 
   timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
-  initial_t_w_prim_.setZero();
+  init_t_w_prim_.setZero();
+  init_t_w_svin_.setZero();
+  svin_pose_stabilized_ = false;
 }
 
 void PoseGraphOptimization::run() {
@@ -122,12 +125,38 @@ void PoseGraphOptimization::run() {
 
       nav_msgs::OdometryConstPtr primitive_estimator_odom =
           subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
+
       if (primitive_estimator_odom) {
-        if (initial_t_w_prim_.isZero()) {
-          initial_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
-          ROS_WARN_STREAM("Initial primitive estimator: " << initial_t_w_prim_);
+        // Eigen::Vector3d average_ypr;
+        // if (!svin_pose_stabilized_) {
+        //   if (svin_init_ypr_queue_.size() < 5) {
+        //     svin_init_ypr_queue_.push(Utility::R2ypr(Utility::rosPoseToMatrix(pose_msg->pose.pose).block<3, 3>(0,
+        //     0)));
+        //   } else {
+        //     while (!svin_init_ypr_queue_.empty()) {
+        //       Eigen::Vector3d svin_odom_init = svin_init_ypr_queue_.front();
+        //       average_ypr += svin_odom_init;
+        //       svin_init_ypr_queue_.pop();
+        //       ROS_INFO_STREAM("SVIN odom :" << svin_odom_init);
+        //     }
+        //     average_ypr /= 5;
+        //     ROS_INFO_STREAM("SVIN odom average :" << average_ypr.transpose());
+        //     svin_pose_stabilized_ = true;
+        //   }
+        // }
+
+        if (!svin_pose_stabilized_) {
+          init_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
+          init_t_w_svin_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse();
+          svin_pose_stabilized_ = true;
+          ROS_INFO_STREAM("Initial primitive estimator: " << init_t_w_prim_);
+          ROS_INFO_STREAM("Initial svin: " << init_t_w_svin_);
         }
         updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
+        nav_msgs::Odometry test_odom;
+        test_odom.pose.pose = primitive_estimator_poses_.back().pose;
+        test_odom.header = primitive_estimator_poses_.back().header;
+        publisher.publishOdometry(test_odom);
         publisher.publishPrimitiveEstimatorPath(primitive_estimator_poses_);
       }
 
@@ -210,7 +239,8 @@ void PoseGraphOptimization::run() {
 
           point_2d_uv.push_back(p_2d_uv);
 
-          // std::cout << "CV Keypoint of size 8:" << p_2d_uv.pt.x << " , " << p_2d_uv.pt.y << " size: " << p_2d_uv.size
+          // std::cout << "CV Keypoint of size 8:" << p_2d_uv.pt.x << " , " << p_2d_uv.pt.y << " size: " <<
+          // p_2d_uv.size
           //           << "angle : " << p_2d_uv.angle << " octave : " << p_2d_uv.octave
           //           << " response : " << p_2d_uv.response << " class_id: " << p_2d_uv.class_id << std::endl;
 
@@ -413,7 +443,7 @@ void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::Odo
   geometry_msgs::PoseStamped pose_stamped;
   pose_stamped.header = pose_msg->header;
   pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
-  pose_stamped.pose =
-      Utility::matrixToRosPose(initial_t_w_prim_.inverse() * Utility::rosPoseToMatrix(pose_msg->pose.pose));
+  pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
+                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_);
   primitive_estimator_poses_.push_back(pose_stamped);
 }

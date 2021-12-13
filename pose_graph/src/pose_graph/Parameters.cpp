@@ -125,5 +125,25 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
     cv::initUndistortRectifyMap(
         P, distortion_coeffs_, cv::Mat(), P, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
   }
+
+  cv::FileNode t_s_c_node = fsSettings["T_S_C"];
+  T_imu_cam0_ = Eigen::Matrix4d::Identity();
+  if (t_s_c_node.isSeq()) {
+    T_imu_cam0_(0, 0) = static_cast<double>(t_s_c_node[0]);
+    T_imu_cam0_(0, 1) = static_cast<double>(t_s_c_node[1]);
+    T_imu_cam0_(0, 2) = static_cast<double>(t_s_c_node[2]);
+    T_imu_cam0_(0, 3) = static_cast<double>(t_s_c_node[3]);
+    T_imu_cam0_(1, 0) = static_cast<double>(t_s_c_node[4]);
+    T_imu_cam0_(1, 1) = static_cast<double>(t_s_c_node[5]);
+    T_imu_cam0_(1, 2) = static_cast<double>(t_s_c_node[6]);
+    T_imu_cam0_(1, 3) = static_cast<double>(t_s_c_node[7]);
+    T_imu_cam0_(2, 0) = static_cast<double>(t_s_c_node[8]);
+    T_imu_cam0_(2, 1) = static_cast<double>(t_s_c_node[9]);
+    T_imu_cam0_(2, 2) = static_cast<double>(t_s_c_node[10]);
+    T_imu_cam0_(2, 3) = static_cast<double>(t_s_c_node[11]);
+  }
+
+  ROS_INFO_STREAM("T_imu_cam0: " << T_imu_cam0_);
+
   fsSettings.release();
 }

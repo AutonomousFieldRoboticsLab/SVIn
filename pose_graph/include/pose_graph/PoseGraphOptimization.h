@@ -59,14 +59,17 @@ class PoseGraphOptimization {
   ros::Timer timer_;  // for periodic publishing
   ros::ServiceServer save_pointcloud_service_;
 
-  uint64_t last_keyframe_time_;
-  uint64_t consecutive_tracking_failures_;
+  double last_keyframe_time_;
+  uint64_t consecutive_tracking_failures_, consecutive_tracking_successes_;
+  Eigen::Matrix4d last_t_w_svin_, last_t_w_prim_;
+  Eigen::Matrix4d init_t_w_prim_, init_t_w_svin_;
+  Eigen::Matrix4d switch_svin_pose_, switch_prim_pose_, switch_uber_pose_;
+  // bool svin_pose_stabilized_;
 
   std::vector<geometry_msgs::PoseStamped> primitive_estimator_poses_;
+  std::vector<geometry_msgs::PoseStamped> uber_estimator_poses_;
+
+  TrackingStatus tracking_status_;
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
-  Eigen::Matrix4d init_t_w_prim_, init_t_w_svin_;
-  bool svin_pose_stabilized_;
-
-  std::queue<Eigen::Vector3d> svin_init_ypr_queue_;
 };

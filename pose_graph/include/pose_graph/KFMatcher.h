@@ -48,8 +48,8 @@ class KFMatcher {
             map<KFMatcher*, int>& KFcounter,     // NOLINT
             int _sequence,
             BriefVocabulary* vocBrief,
-            const Parameters& params);
-
+            const Parameters& params,
+            const bool vio_keyframe = true);
   bool findConnection(KFMatcher* old_kf);
   void computeWindowBRIEFPoint();
   void computeBRIEFPoint();
@@ -158,4 +158,7 @@ class KFMatcher {
 
   void setRelocalizationPCLCallback(const PointCloudCallback& pointcloud_callback);
   PointCloudCallback relocalization_pcl_callback_;
+
+  // Bharat - easy check to see if this keyframe comes from primitive estimator
+  bool is_vio_keyframe_;
 };

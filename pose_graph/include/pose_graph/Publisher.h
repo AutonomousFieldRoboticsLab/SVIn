@@ -21,8 +21,9 @@ class Publisher {
 
   void kfMatchedPointCloudCallback(const sensor_msgs::PointCloud& pointcloud);
   void publishGlobalMap(const sensor_msgs::PointCloud2& pointcloud);
-  void publishPrimitiveEstimatorPath(const std::vector<geometry_msgs::PoseStamped>& prim_estimator_poses);
-  void publishOdometry(const nav_msgs::Odometry& odometry);
+  void publishPath(const std::vector<geometry_msgs::PoseStamped>& prim_estimator_poses,
+                   const ros::Publisher& pub) const;
+  void publishOdometry(const nav_msgs::Odometry& odometry, const ros::Publisher& pub) const;
 
  private:
   ros::NodeHandle nh_private_;
@@ -30,6 +31,11 @@ class Publisher {
 
   ros::Publisher pub_matched_points_;
   ros::Publisher pub_gloal_map_;
+
+  // TODO(bjoshi): Make this private later and create getters
+ public:
   ros::Publisher pub_primitive_estimator_path_;
-  ros::Publisher pub_odometry_;
+  ros::Publisher pub_uber_path_;
+  ros::Publisher pub_uber_odometry_;
+  ros::Publisher pub_prim_odometry_;
 };

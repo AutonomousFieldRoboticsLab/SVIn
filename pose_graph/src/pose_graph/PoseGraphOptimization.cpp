@@ -44,6 +44,7 @@ PoseGraphOptimization::PoseGraphOptimization()
 
   consecutive_tracking_failures_ = 0;
   last_keyframe_time_ = 0;
+  tracking_status_ = TrackingStatus::NOT_INITIALIZED;
 }
 
 void PoseGraphOptimization::setup() {
@@ -72,9 +73,12 @@ void PoseGraphOptimization::setup() {
   publisher.setPublishers();
 
   timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
-  init_t_w_prim_.setZero();
-  init_t_w_svin_.setZero();
-  svin_pose_stabilized_ = false;
+  init_t_w_prim_.setIdentity();
+  init_t_w_svin_.setIdentity();
+
+  switch_prim_pose_.setIdentity();
+  switch_svin_pose_.setIdentity();
+  switch_uber_pose_.setIdentity();
 }
 
 void PoseGraphOptimization::run() {
@@ -109,55 +113,87 @@ void PoseGraphOptimization::run() {
       assert(point_msg);
       assert(image_msg);
       bool vio_healthy = true;
-
+      uint16_t point_matches = 0;
       if (params_->use_health_) {
         assert(health_msg);
         vio_healthy = static_cast<bool>(health_msg->isTrackingOk);
+        point_matches = static_cast<uint16_t>(health_msg->numTrackedKps);
+        ROS_WARN_STREAM("point_matches: " << point_matches);
       }
-      if (!vio_healthy) {
-        ROS_WARN_STREAM("VIO Tracking failure.");
+      if (point_matches < params_->tracked_kypoints_threshold_) {
+        // ROS_WARN_STREAM("VIO Tracking failure.");
         consecutive_tracking_failures_ += 1;
+        consecutive_tracking_successes_ = 0;
       } else {
+        consecutive_tracking_successes_ += 1;
         consecutive_tracking_failures_ = 0;
       }
-
-      last_keyframe_time_ = pose_msg->header.stamp.toSec();
 
       nav_msgs::OdometryConstPtr primitive_estimator_odom =
           subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
 
       if (primitive_estimator_odom) {
-        // Eigen::Vector3d average_ypr;
-        // if (!svin_pose_stabilized_) {
-        //   if (svin_init_ypr_queue_.size() < 5) {
-        //     svin_init_ypr_queue_.push(Utility::R2ypr(Utility::rosPoseToMatrix(pose_msg->pose.pose).block<3, 3>(0,
-        //     0)));
-        //   } else {
-        //     while (!svin_init_ypr_queue_.empty()) {
-        //       Eigen::Vector3d svin_odom_init = svin_init_ypr_queue_.front();
-        //       average_ypr += svin_odom_init;
-        //       svin_init_ypr_queue_.pop();
-        //       ROS_INFO_STREAM("SVIN odom :" << svin_odom_init);
-        //     }
-        //     average_ypr /= 5;
-        //     ROS_INFO_STREAM("SVIN odom average :" << average_ypr.transpose());
-        //     svin_pose_stabilized_ = true;
-        //   }
-        // }
-
-        if (!svin_pose_stabilized_) {
+        if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) {
           init_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
-          init_t_w_svin_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse();
-          svin_pose_stabilized_ = true;
-          ROS_INFO_STREAM("Initial primitive estimator: " << init_t_w_prim_);
-          ROS_INFO_STREAM("Initial svin: " << init_t_w_svin_);
+          init_t_w_svin_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse() *
+                           params_->T_body_imu_.inverse();
+          switch_prim_pose_ = init_t_w_prim_;
+          switch_svin_pose_ = init_t_w_svin_;
+          switch_uber_pose_ = init_t_w_svin_;
+          tracking_status_ = TrackingStatus::TRACKING_VIO;
         }
         updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
-        nav_msgs::Odometry test_odom;
-        test_odom.pose.pose = primitive_estimator_poses_.back().pose;
-        test_odom.header = primitive_estimator_poses_.back().header;
-        publisher.publishOdometry(test_odom);
-        publisher.publishPrimitiveEstimatorPath(primitive_estimator_poses_);
+        nav_msgs::Odometry primtive_odometry;
+        primtive_odometry.pose.pose = primitive_estimator_poses_.back().pose;
+        primtive_odometry.header = primitive_estimator_poses_.back().header;
+        publisher.publishOdometry(primtive_odometry, publisher.pub_prim_odometry_);
+      }
+
+      geometry_msgs::PoseStamped uber_pose;
+      nav_msgs::Odometry uber_odom;
+
+      uber_pose.header.seq = uber_estimator_poses_.size() + 1;
+      uber_pose.header.frame_id = "world";
+      uber_pose.header.stamp = pose_msg->header.stamp;
+
+      bool new_pose = false;
+      if (tracking_status_ == TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR) {
+        if (consecutive_tracking_successes_ < params_->consecutive_good_keyframes_threshold_) {
+          if (primitive_estimator_odom) {
+            uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_prim_pose_.inverse() *
+                                                      Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose) *
+                                                      params_->T_body_imu_ * params_->T_imu_cam0_);
+            new_pose = true;
+          } else {
+            ROS_ERROR_STREAM("Consecutive Tracking successes: " << consecutive_tracking_successes_);
+          }
+        } else {
+          switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
+                              params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
+          switch_svin_pose_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse() *
+                              params_->T_body_imu_.inverse();
+          switch_prim_pose_ = last_t_w_prim_;
+          uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_svin_pose_.inverse() *
+                                                    Utility::rosPoseToMatrix(pose_msg->pose.pose));
+          tracking_status_ = TrackingStatus::TRACKING_VIO;
+          new_pose = true;
+          ROS_ERROR_STREAM("!!!!!!!! Switching to VIO !!!!!!!!!!");
+        }
+      } else {
+        uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_svin_pose_.inverse() *
+                                                  Utility::rosPoseToMatrix(pose_msg->pose.pose));
+        new_pose = true;
+      }
+
+      if (new_pose) {
+        uber_estimator_poses_.push_back(uber_pose);
+
+        uber_pose.header.stamp = uber_estimator_poses_.back().header.stamp;
+        uber_odom.pose.pose = uber_pose.pose;
+        uber_odom.header = uber_pose.header;
+
+        publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
+        publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
       }
 
       if ((T - last_translation_).norm() > SKIP_DIS) {
@@ -331,14 +367,61 @@ void PoseGraphOptimization::run() {
 
         frame_index_++;
         last_translation_ = T;
+        last_keyframe_time_ = pose_msg->header.stamp.toSec();
+        last_t_w_svin_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse() *
+                         params_->T_body_imu_.inverse();
+        if (primitive_estimator_odom) last_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
 
         // pcl::toROSMsg(*sparse_pointcloud_, sparse_pointcloud_msg);
         // sparse_pointcloud_msg.header.frame_id = "world";
         // sparse_pointcloud_msg.header.stamp = pose_msg->header.stamp;
         // pubSparseMap.publish(sparse_pointcloud_msg);
       }
-    } else {  // SVIN Frontend does not pass keyframe because of not tracking
-      // while()
+    } else {
+      // SVIN Frontend does not pass keyframe because of not tracking
+      // Check if it is just not waiting for keyframe
+      nav_msgs::OdometryConstPtr primitive_estimator_odom = subscriber_->getPrimitiveEstimatorPose(last_keyframe_time_);
+
+      if (primitive_estimator_odom && tracking_status_ != TrackingStatus::NOT_INITIALIZED &&
+          abs(primitive_estimator_odom->header.stamp.toSec() - last_keyframe_time_) >
+              params_->wait_for_keyframe_time_) {
+        if (tracking_status_ == TrackingStatus::TRACKING_VIO) {
+          switch_svin_pose_ = last_t_w_svin_;
+          switch_prim_pose_ = last_t_w_prim_;
+          switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
+                              params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
+          // cout << std::setprecision(12) << primitive_estimator_odom->header.stamp.toSec() << " " <<
+          // last_keyframe_time_
+          //      << endl;
+          // cout << switch_svin_pose_ << endl;
+          // cout << switch_prim_pose_ << endl;
+          // cout << switch_uber_pose_ << endl;
+          tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
+          ROS_ERROR_STREAM("!!!!!!!! Switching to Primitive Estimator !!!!!!!!!!");
+        }
+        geometry_msgs::PoseStamped uber_pose;
+        uber_pose.header.seq = uber_estimator_poses_.size() + 1;
+        uber_pose.header.frame_id = "world";
+        uber_pose.header.stamp = primitive_estimator_odom->header.stamp;
+        uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_prim_pose_.inverse() *
+                                                  Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose) *
+                                                  params_->T_body_imu_ * params_->T_imu_cam0_);
+        uber_estimator_poses_.push_back(uber_pose);
+        nav_msgs::Odometry uber_odom;
+        uber_odom.pose.pose = uber_pose.pose;
+        uber_odom.header = uber_pose.header;
+
+        updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
+        nav_msgs::Odometry primtive_odometry;
+        primtive_odometry.pose.pose = primitive_estimator_poses_.back().pose;
+        primtive_odometry.header = primitive_estimator_poses_.back().header;
+        publisher.publishOdometry(primtive_odometry, publisher.pub_prim_odometry_);
+
+        publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
+        publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
+        last_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
+        consecutive_tracking_successes_ = 0;
+      }
     }
 
     std::chrono::milliseconds dura(5);
@@ -444,6 +527,7 @@ void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::Odo
   pose_stamped.header = pose_msg->header;
   pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
   pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
-                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_);
+                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_body_imu_ *
+                                               params_->T_imu_cam0_);
   primitive_estimator_poses_.push_back(pose_stamped);
 }

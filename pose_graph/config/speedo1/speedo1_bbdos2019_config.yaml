@@ -5,10 +5,10 @@ model_type: PINHOLE
 camera_name: cam_fl
 # Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
 projection_matrix:
-    fx: 1242.0480207554092
-    fy: 1242.0480207554092
-    cx: 276.810977935791
-    cy: 310.05108642578125
+    fx: 1240.640395152514
+    fy: 1240.640395152514
+    cx: 272.7850456237793
+    cy: 310.3795585632324
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 1.0
@@ -24,8 +24,11 @@ loop_closure: 1   #if you want to use loop closure to minimize the drift, set lo
 fast_relocalization: 1
 min_loop_num: 25
 
-
+#For uber estimator
 use_health: 1
+keypoints_threshold: 10
+consecutive_good_keyframes: 5
+switching_time: 1.5
 
 # For undistorting original color image
 # R is rectification matrix
@@ -43,7 +46,11 @@ cam0:
         -0.043498415526920325, -0.012294125485009934, 0.9989778487660305]
 
 
-T_S_C: [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
+T_SC: [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
         0.99825455, -0.02099889, 0.05519876, -0.04791664,
         -0.009273, 0.86732768, 0.49765118, -0.02872042,
         0.0, 0.0, 0.0, 1.0]
+T_BS: [1.0, 0.0, 0.0, 0.0,
+      0.0, -1.0, 0.0, 0.0,
+      0.0, 0.0, -1.0, 0.0,
+      0.0, 0.0, 0.0, 1.0]

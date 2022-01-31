@@ -39,7 +39,8 @@ KFMatcher::KFMatcher(double _time_stamp,
                      map<KFMatcher*, int>& KFcounter,
                      int _sequence,
                      BriefVocabulary* vocBrief,
-                     const Parameters& params)
+                     const Parameters& params,
+                     const bool is_vio_keyframe)
     : params_(params) {
   time_stamp = _time_stamp;
 
@@ -62,7 +63,7 @@ KFMatcher::KFMatcher(double _time_stamp,
   has_fast_point = false;
   loop_info << 0, 0, 0, 0, 0, 0, 0, 0;
   sequence = _sequence;
-  computeWindowBRIEFPoint();
+  if (is_vio_keyframe) computeWindowBRIEFPoint();
   voc = vocBrief;
   computeBoW();
   KFcounter_ = KFcounter;  // for Covisibility graph

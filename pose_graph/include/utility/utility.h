@@ -158,4 +158,12 @@ class Utility {
 
     return pose;
   }
+
+  static void printPoseAsEulerAngles(const Eigen::Matrix4d& pose) {
+    Eigen::Vector3d trans = pose.block<3, 1>(0, 3);
+    Eigen::Matrix3d rotm = pose.block<3, 3>(0, 0);
+    std::cout << "trans: " << trans.transpose() << "\teul: " << R2ypr(rotm).transpose() << std::endl;
+  }
 };
+
+enum TrackingStatus { NOT_INITIALIZED = 0, TRACKING_VIO = 1, TRACKING_PRIMITIVE_ESTIMATOR = 2 };

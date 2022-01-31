@@ -13,13 +13,16 @@ Parameters::Parameters() {
   use_health_ = false;
   tic_ = Eigen::Vector3d::Zero();
   qic_ = Eigen::Matrix3d::Identity();
+  tracked_kypoints_threshold_ = 8;
+  wait_for_keyframe_time_ = 0.5;
+  consecutive_good_keyframes_threshold_ = 5;
 }
 
 void Parameters::loadParameters(const ros::NodeHandle& nh) {
   // Optional connection to svin_health
   nh.getParam("use_health", use_health_);
 
-  ROS_ERROR_STREAM("use_health: " << use_health_);
+  ROS_INFO_STREAM("use_health: " << use_health_);
   std::string config_file;
   nh.getParam("config_file", config_file);
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
@@ -126,7 +129,7 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
         P, distortion_coeffs_, cv::Mat(), P, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
   }
 
-  cv::FileNode t_s_c_node = fsSettings["T_S_C"];
+  cv::FileNode t_s_c_node = fsSettings["T_SC"];
   T_imu_cam0_ = Eigen::Matrix4d::Identity();
   if (t_s_c_node.isSeq()) {
     T_imu_cam0_(0, 0) = static_cast<double>(t_s_c_node[0]);
@@ -144,6 +147,45 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   }
 
   ROS_INFO_STREAM("T_imu_cam0: " << T_imu_cam0_);
+
+  cv::FileNode t_bs_node = fsSettings["T_BS"];
+  T_body_imu_ = Eigen::Matrix4d::Identity();
+  if (t_bs_node.isSeq()) {
+    T_body_imu_(0, 0) = static_cast<double>(t_bs_node[0]);
+    T_body_imu_(0, 1) = static_cast<double>(t_bs_node[1]);
+    T_body_imu_(0, 2) = static_cast<double>(t_bs_node[2]);
+    T_body_imu_(0, 3) = static_cast<double>(t_bs_node[3]);
+    T_body_imu_(1, 0) = static_cast<double>(t_bs_node[4]);
+    T_body_imu_(1, 1) = static_cast<double>(t_bs_node[5]);
+    T_body_imu_(1, 2) = static_cast<double>(t_bs_node[6]);
+    T_body_imu_(1, 3) = static_cast<double>(t_bs_node[7]);
+    T_body_imu_(2, 0) = static_cast<double>(t_bs_node[8]);
+    T_body_imu_(2, 1) = static_cast<double>(t_bs_node[9]);
+    T_body_imu_(2, 2) = static_cast<double>(t_bs_node[10]);
+    T_body_imu_(2, 3) = static_cast<double>(t_bs_node[11]);
+  }
+
+  ROS_INFO_STREAM("T_BS: " << T_body_imu_);
+
+  if (use_health_) {
+    cv::FileNode kps_node = fsSettings["keypoints_threshold"];
+    if (kps_node.isInt()) {
+      tracked_kypoints_threshold_ = static_cast<int>(kps_node);
+      ROS_INFO_STREAM("tracked_kypoints_threshold: " << tracked_kypoints_threshold_);
+    }
+
+    cv::FileNode kf_wait_time_node = fsSettings["switching_time"];
+    if (kf_wait_time_node.isReal()) {
+      wait_for_keyframe_time_ = static_cast<double>(kf_wait_time_node);
+      ROS_INFO_STREAM("wait_for_keyframe_time: " << wait_for_keyframe_time_);
+    }
+
+    cv::FileNode kf_success_node = fsSettings["consecutive_good_keyframes"];
+    if (kf_success_node.isInt()) {
+      consecutive_good_keyframes_threshold_ = static_cast<int>(kf_success_node);
+      ROS_INFO_STREAM("consecutive_good_keyframes_threshold: " << consecutive_good_keyframes_threshold_);
+    }
+  }
 
   fsSettings.release();
 }

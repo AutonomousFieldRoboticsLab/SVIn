@@ -6,7 +6,7 @@
 #include <opencv2/calib3d.hpp>
 #include <string>
 
-#include "utility/utility.h"
+#include "utils/Utils.h"
 
 Parameters::Parameters() {
   // default values

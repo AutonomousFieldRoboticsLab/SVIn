@@ -50,7 +50,9 @@ add_library(${PROJECT_NAME}
     src/pose_graph/PoseGraphOptimization.cpp
     src/pose_graph/Publisher.cpp
     src/pose_graph/Subscriber.cpp
-    src/utility/CameraPoseVisualization.cpp
+    src/utils/CameraPoseVisualization.cpp
+    src/utils/UtilsOpenCV.cpp
+    src/utils/Utils.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp
     ThirdParty/DBoW/FeatureVector.cpp

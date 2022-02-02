@@ -7,6 +7,7 @@
 
 #include <Eigen/Core>
 #include <memory>
+#include <vector>
 
 #include "pose_graph/Parameters.h"
 

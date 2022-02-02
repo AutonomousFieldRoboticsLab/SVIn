@@ -63,7 +63,9 @@ KFMatcher::KFMatcher(double _time_stamp,
   has_fast_point = false;
   loop_info << 0, 0, 0, 0, 0, 0, 0, 0;
   sequence = _sequence;
-  if (is_vio_keyframe) computeWindowBRIEFPoint();
+  is_vio_keyframe_ = is_vio_keyframe;
+
+  if (is_vio_keyframe_) computeWindowBRIEFPoint();
   voc = vocBrief;
   computeBoW();
   KFcounter_ = KFcounter;  // for Covisibility graph
@@ -73,6 +75,36 @@ KFMatcher::KFMatcher(double _time_stamp,
 
   // pubMatchedPoints =
   //     nh.advertise<sensor_msgs::PointCloud>("match_points", 100);  // to publish matched points after relocalization
+}
+
+KFMatcher::KFMatcher(double _time_stamp,
+                     int _index,
+                     Vector3d& _svin_T_w_i,
+                     Matrix3d& _svin_R_w_i,
+                     map<KFMatcher*, int>& KFcounter,
+                     int _sequence,
+                     const Parameters& params,
+                     const bool is_vio_keyframe)
+    : params_(params) {
+  time_stamp = _time_stamp;
+
+  index = _index;
+  svin_T_w_i = _svin_T_w_i;
+  svin_R_w_i = _svin_R_w_i;
+  T_w_i = svin_T_w_i;
+  R_w_i = svin_R_w_i;
+  origin_svin_T = svin_T_w_i;
+  origin_svin_R = svin_R_w_i;
+
+  has_loop = false;
+  loop_index = -1;
+  has_fast_point = false;
+  loop_info << 0, 0, 0, 0, 0, 0, 0, 0;
+  sequence = _sequence;
+  KFcounter_ = KFcounter;  // for Covisibility graph
+
+  is_vio_keyframe_ = is_vio_keyframe;
+  updateConnections();  // for Covisibility graph
 }
 
 double KFMatcher::brisk_distance(const cv::Mat& a, const cv::Mat& b) {
@@ -114,7 +146,7 @@ void KFMatcher::computeBoW() {
 }
 
 void KFMatcher::updateConnections() {
-  if (KFcounter_.empty()) {
+  if (KFcounter_.empty() && is_vio_keyframe_) {
     std::cout << "KFcounter is empty for KF: " << index << " This SHOULDN't be happening except 1st frame."
               << std::endl;
     return;

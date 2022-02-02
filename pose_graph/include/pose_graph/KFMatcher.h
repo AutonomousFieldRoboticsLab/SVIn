@@ -17,8 +17,8 @@
 #include "DBoW/DBoW2.h"
 #include "DVision/DVision.h"
 #include "pose_graph/Parameters.h"
-#include "utility/tic_toc.h"
-#include "utility/utility.h"
+#include "utils/Utils.h"
+#include "utils/tic_toc.h"
 
 using namespace Eigen;    // NOLINT
 using namespace std;      // NOLINT
@@ -50,6 +50,16 @@ class KFMatcher {
             BriefVocabulary* vocBrief,
             const Parameters& params,
             const bool vio_keyframe = true);
+
+  KFMatcher(double _time_stamp,
+            int _index,
+            Vector3d& _svin_T_w_i,            // NOLINT
+            Matrix3d& _svin_R_w_i,            // NOLINT
+            map<KFMatcher*, int>& KFcounter,  // NOLINT
+            int _sequence,
+            const Parameters& params,
+            const bool is_vio_keyframe = false);
+
   bool findConnection(KFMatcher* old_kf);
   void computeWindowBRIEFPoint();
   void computeBRIEFPoint();

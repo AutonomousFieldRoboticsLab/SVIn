@@ -24,9 +24,9 @@
 #include "DBoW/TemplatedVocabulary.h"
 #include "DVision/DVision.h"
 #include "pose_graph/KFMatcher.h"
-#include "utility/CameraPoseVisualization.h"
-#include "utility/tic_toc.h"
-#include "utility/utility.h"
+#include "utils/CameraPoseVisualization.h"
+#include "utils/Utils.h"
+#include "utils/tic_toc.h"
 
 #define SHOW_S_EDGE false
 #define SHOW_L_EDGE true

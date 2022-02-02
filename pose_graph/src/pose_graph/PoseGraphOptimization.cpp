@@ -79,6 +79,8 @@ void PoseGraphOptimization::setup() {
   switch_prim_pose_.setIdentity();
   switch_svin_pose_.setIdentity();
   switch_uber_pose_.setIdentity();
+
+  primitive_estimator_keyframes_ = 0;
 }
 
 void PoseGraphOptimization::run() {
@@ -90,6 +92,7 @@ void PoseGraphOptimization::run() {
 
     subscriber_->getSyncMeasurements(image_msg, pose_msg, point_msg, health_msg);
 
+    static int last_keyframe_index = -1;
     if (pose_msg) {
       if (skip_cnt < SKIP_CNT) {
         skip_cnt++;
@@ -118,7 +121,7 @@ void PoseGraphOptimization::run() {
         assert(health_msg);
         vio_healthy = static_cast<bool>(health_msg->isTrackingOk);
         point_matches = static_cast<uint16_t>(health_msg->numTrackedKps);
-        ROS_WARN_STREAM("point_matches: " << point_matches);
+        // ROS_WARN_STREAM("point_matches: " << point_matches);
       }
       if (point_matches < params_->tracked_kypoints_threshold_) {
         // ROS_WARN_STREAM("VIO Tracking failure.");
@@ -165,7 +168,7 @@ void PoseGraphOptimization::run() {
                                                       params_->T_body_imu_ * params_->T_imu_cam0_);
             new_pose = true;
           } else {
-            ROS_ERROR_STREAM("Consecutive Tracking successes: " << consecutive_tracking_successes_);
+            // ROS_ERROR_STREAM("Consecutive Tracking successes: " << consecutive_tracking_successes_);
           }
         } else {
           switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
@@ -196,7 +199,7 @@ void PoseGraphOptimization::run() {
         publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
       }
 
-      if ((T - last_translation_).norm() > SKIP_DIS) {
+      if ((T - last_translation_).norm() > SKIP_DIS && new_pose) {
         vector<cv::Point3f> point_3d;
         vector<cv::KeyPoint> point_2d_uv;
         vector<Eigen::Vector3d> point_ids;  // @Reloc: landmarkId, mfId, keypointIdx related to each point
@@ -204,6 +207,7 @@ void PoseGraphOptimization::run() {
         map<KFMatcher*, int> KFcounter;
 
         int kf_index = -1;
+        int combined_kf_index = -1;
         cv::Mat kf_image = subscriber_->readRosImage(image_msg);
         cv::Mat orig_color_image = subscriber_->getCorrespondingImage(pose_msg->header.stamp.toNSec());
         cv::Mat undistort_image;
@@ -265,6 +269,7 @@ void PoseGraphOptimization::run() {
           cv::KeyPoint p_2d_uv;
           double p_id;
           kf_index = point_msg->channels[i].values[4];
+          combined_kf_index = kf_index + primitive_estimator_keyframes_;
           p_2d_uv.pt.x = point_msg->channels[i].values[5];
           p_2d_uv.pt.y = point_msg->channels[i].values[6];
           p_2d_uv.size = point_msg->channels[i].values[7];
@@ -291,9 +296,10 @@ void PoseGraphOptimization::run() {
           landmark_ids.push_back(static_cast<uint64_t>(p_ids(0)));
 
           for (size_t sz = 12; sz < point_msg->channels[i].values.size(); sz++) {
-            int observed_kf_index = point_msg->channels[i].values[sz];  // kf_index where this point_3d has been
-                                                                        // observed
-            if (observed_kf_index == kf_index) {
+            int observed_kf_index =
+                point_msg->channels[i].values[sz] + primitive_estimator_keyframes_;  // kf_index where this point_3d has
+                                                                                     // been observed
+            if (observed_kf_index == combined_kf_index) {
               continue;
             }
 
@@ -309,9 +315,12 @@ void PoseGraphOptimization::run() {
           }
         }
 
+        Matrix4d updated_transform = Utility::rosPoseToMatrix(uber_pose.pose);
+        T = updated_transform.block<3, 1>(0, 3);
+        R = updated_transform.block<3, 3>(0, 0);
         KFMatcher* keyframe = new KFMatcher(pose_msg->header.stamp.toSec(),
                                             point_ids,
-                                            kf_index,
+                                            combined_kf_index,
                                             T,
                                             R,
                                             kf_image,
@@ -324,7 +333,7 @@ void PoseGraphOptimization::run() {
 
         keyframe->setRelocalizationPCLCallback(
             std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
-        kfMapper_.insert(std::make_pair(kf_index, keyframe));
+        kfMapper_.insert(std::make_pair(combined_kf_index, keyframe));
 
         {
           std::lock_guard<std::mutex> l(processMutex_);
@@ -338,12 +347,12 @@ void PoseGraphOptimization::run() {
         for (size_t i = 0; i < landmark_ids.size(); i++) {
           Eigen::Vector3d pos_cam_frame = local_positions.at(i);
 
-          if (kfMapper_.find(kf_index) == kfMapper_.end()) {
+          if (kfMapper_.find(combined_kf_index) == kfMapper_.end()) {
             cout << "Keyframe not found" << endl;
             continue;
           }
 
-          KFMatcher* kf = kfMapper_.find(kf_index)->second;
+          KFMatcher* kf = kfMapper_.find(combined_kf_index)->second;
           Eigen::Matrix3d R_w_kf;
           Eigen::Vector3d T_w_kf;
           kf->getPose(T_w_kf, R_w_kf);
@@ -353,7 +362,7 @@ void PoseGraphOptimization::run() {
           double quality = qualities.at(i);
           uint64_t landmark_id = landmark_ids.at(i);
 
-          global_map_->addLandmark(global_pos, landmark_id, quality, kf_index, pos_cam_frame, color);
+          global_map_->addLandmark(global_pos, landmark_id, quality, combined_kf_index, pos_cam_frame, color);
 
           // pcl::PointXYZRGB pcl_point;
           // pcl_point.x = global_pos(0);
@@ -368,6 +377,7 @@ void PoseGraphOptimization::run() {
         frame_index_++;
         last_translation_ = T;
         last_keyframe_time_ = pose_msg->header.stamp.toSec();
+        if (kf_index > 0) last_keyframe_index = kf_index;
         last_t_w_svin_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse() *
                          params_->T_body_imu_.inverse();
         if (primitive_estimator_odom) last_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
@@ -419,6 +429,24 @@ void PoseGraphOptimization::run() {
 
         publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
         publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
+
+        primitive_estimator_keyframes_++;
+        Matrix4d updated_transform = Utility::rosPoseToMatrix(uber_pose.pose);
+        Eigen::Vector3d T = updated_transform.block<3, 1>(0, 3);
+        Eigen::Matrix3d R = updated_transform.block<3, 3>(0, 0);
+        int kf_index = last_keyframe_index + primitive_estimator_keyframes_;
+        map<KFMatcher*, int> kf_counter;
+        KFMatcher* keyframe =
+            new KFMatcher(uber_pose.header.stamp.toSec(), kf_index, T, R, kf_counter, sequence_, *params_, false);
+        keyframe->setRelocalizationPCLCallback(
+            std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
+        kfMapper_.insert(std::make_pair(kf_index, keyframe));
+
+        {
+          std::lock_guard<std::mutex> l(processMutex_);
+          // start_flag = 1;
+          loop_closing_->addKFToPoseGraph(keyframe, false);
+        }
         last_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
         consecutive_tracking_successes_ = 0;
       }

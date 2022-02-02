@@ -70,7 +70,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   if (flag_detect_loop) {  // at least 20 KF has been passed
     TicToc tmp_t;
     loop_index = detectLoop(cur_kf, cur_kf->index);
-  } else {
+  } else if (cur_kf->is_vio_keyframe_) {
     addKeyFrameIntoVoc(cur_kf);
   }
 

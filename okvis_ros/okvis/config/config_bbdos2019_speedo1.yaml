@@ -35,12 +35,12 @@ camera_params:
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 12.0e-3 # gyro noise density [rad/s/sqrt(Hz)]
-    sigma_a_c: 8.0e-2 # accelerometer noise density [m/s^2/sqrt(Hz)]
+    sigma_g_c: 12.0e-4 # gyro noise density [rad/s/sqrt(Hz)]
+    sigma_a_c: 8.0e-3 # accelerometer noise density [m/s^2/sqrt(Hz)]
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 4.0e-5 # gyro drift noise density [rad/s^s/sqrt(Hz)]
-    sigma_aw_c: 4.0e-4 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
+    sigma_gw_c: 4.0e-6 # gyro drift noise density [rad/s^s/sqrt(Hz)]
+    sigma_aw_c: 4.0e-5 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
@@ -63,13 +63,13 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
     maxIterations: 100  # never do more than these, even if not converged
-    timeLimit: -1   # [s] negative values will set the an unlimited time limit
+    timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
     threshold: 10.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 300  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.

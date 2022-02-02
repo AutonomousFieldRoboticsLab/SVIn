@@ -26,9 +26,9 @@ min_loop_num: 25
 
 #For uber estimator
 use_health: 1
-keypoints_threshold: 10
-consecutive_good_keyframes: 5
-switching_time: 1.5
+keypoints_threshold: 20
+consecutive_good_keyframes: 8
+switching_time: 1.75
 
 # For undistorting original color image
 # R is rectification matrix

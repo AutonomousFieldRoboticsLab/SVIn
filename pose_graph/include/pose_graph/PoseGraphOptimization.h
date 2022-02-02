@@ -15,7 +15,7 @@
 #include "pose_graph/Parameters.h"
 #include "pose_graph/Publisher.h"
 #include "pose_graph/Subscriber.h"
-#include "utility/CameraPoseVisualization.h"
+#include "utils/CameraPoseVisualization.h"
 
 class PoseGraphOptimization {
  public:
@@ -70,6 +70,6 @@ class PoseGraphOptimization {
   std::vector<geometry_msgs::PoseStamped> uber_estimator_poses_;
 
   TrackingStatus tracking_status_;
-
+  int primitive_estimator_keyframes_;
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
 };

@@ -784,7 +784,7 @@ void Publisher::publishOdometry() {
                       odometryMsg_.pose.pose.orientation.z,
                       odometryMsg_.pose.pose.orientation.w);
   transform.setRotation(quat);
-  br.sendTransform(tf::StampedTransform(transform, odometryMsg_.header.stamp, "world", "body"));
+  br.sendTransform(tf::StampedTransform(transform, odometryMsg_.header.stamp, "world", "base_link"));
 
   /*** End Added by Sharmin ****/
 

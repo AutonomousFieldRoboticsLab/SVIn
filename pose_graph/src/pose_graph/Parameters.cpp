@@ -16,13 +16,14 @@ Parameters::Parameters() {
   tracked_kypoints_threshold_ = 8;
   wait_for_keyframe_time_ = 0.5;
   consecutive_good_keyframes_threshold_ = 5;
+  debug_image_ = false;
 }
 
 void Parameters::loadParameters(const ros::NodeHandle& nh) {
   // Optional connection to svin_health
-  nh.getParam("use_health", use_health_);
+  // nh.getParam("use_health", use_health_);
 
-  ROS_INFO_STREAM("use_health: " << use_health_);
+  // ROS_INFO_STREAM("use_health: " << use_health_);
   std::string config_file;
   nh.getParam("config_file", config_file);
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
@@ -167,6 +168,12 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
 
   ROS_INFO_STREAM("T_BS: " << T_body_imu_);
 
+  cv::FileNode use_health_node = fsSettings["use_health"];
+  if (use_health_node.isInt()) {
+    use_health_ = static_cast<int>(use_health_node);
+    ROS_INFO_STREAM("use_health: " << use_health_);
+  }
+
   if (use_health_) {
     cv::FileNode kps_node = fsSettings["keypoints_threshold"];
     if (kps_node.isInt()) {
@@ -185,6 +192,12 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
       consecutive_good_keyframes_threshold_ = static_cast<int>(kf_success_node);
       ROS_INFO_STREAM("consecutive_good_keyframes_threshold: " << consecutive_good_keyframes_threshold_);
     }
+  }
+
+  cv::FileNode debug_image_node = fsSettings["debug_image"];
+  if (debug_image_node.isInt()) {
+    debug_image_ = static_cast<int>(debug_image_node);
+    ROS_INFO_STREAM("debug_image: " << debug_image_);
   }
 
   fsSettings.release();

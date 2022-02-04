@@ -1,5 +1,6 @@
 #include "pose_graph/KFMatcher.h"
 
+#include <ros/package.h>
 #include <sensor_msgs/PointCloud.h>
 
 #include <map>
@@ -9,6 +10,7 @@
 #include <vector>
 
 #include "pose_graph/Parameters.h"
+#include "utils/UtilsOpenCV.h"
 
 const int KFMatcher::TH_HIGH = 100;
 const int KFMatcher::TH_LOW = 50;
@@ -75,6 +77,8 @@ KFMatcher::KFMatcher(double _time_stamp,
 
   // pubMatchedPoints =
   //     nh.advertise<sensor_msgs::PointCloud>("match_points", 100);  // to publish matched points after relocalization
+
+  if (!params.debug_image_) image.release();
 }
 
 KFMatcher::KFMatcher(double _time_stamp,
@@ -367,6 +371,10 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
 }
 
 bool KFMatcher::findConnection(KFMatcher* old_kf) {
+  if (!old_kf->is_vio_keyframe_) return false;
+
+  std::string pkg_path = ros::package::getPath("pose_graph");
+
   TicToc tmp_t;
 
   vector<cv::KeyPoint> matched_2d_cur;
@@ -380,18 +388,37 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   matched_2d_cur = point_2d_uv;
   matched_ids = point_ids_;
 
+  // std::string
+  if (params_.debug_image_) {
+    cv::Mat old_img = UtilsOpenCV::DrawCircles(old_kf->image, old_kf->keypoints);
+    cv::Mat cur_image = UtilsOpenCV::DrawCircles(image, point_2d_uv);
+    std::string loop_candidate_directory = pkg_path + "/output_logs/loop_candidates/";
+    std::string filename = loop_candidate_directory + "loop_candidate_" + std::to_string(index) + "_" +
+                           std::to_string(old_kf->index) + ".png";
+    UtilsOpenCV::showImagesSideBySide(cur_image, old_img, "loop closing candidates", false, true, filename);
+  }
+
   searchByBRIEFDes(matched_2d_old,
                    matched_2d_old_norm,
                    status,
                    old_kf->brief_descriptors,
                    old_kf->keypoints,
                    old_kf->keypoints_norm);
-  // searchByBRISKDescriptor(matched_2d_old, status, old_kf->brisk_descriptors, old_kf->brisk_keypoints);
   reduceVector(matched_2d_old, status);
   reduceVector(matched_3d, status);
   reduceVector(matched_2d_cur, status);
   reduceVector(matched_2d_old_norm, status);
   reduceVector(matched_ids, status);
+  status.clear();
+
+  if (params_.debug_image_) {
+    cv::Mat corners_match_image =
+        UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
+    std::string dscriptor_match_dir = pkg_path + "/output_logs/descriptor_matched/";
+    std::string filename = dscriptor_match_dir + "descriptor_match_" + std::to_string(index) + "_" +
+                           std::to_string(old_kf->index) + ".png";
+    cv::imwrite(filename, corners_match_image);
+  }
 
   // std::cout << "Size Before RANSAC: " << matched_2d_cur.size() << std::endl;
 
@@ -402,18 +429,70 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   double relative_yaw;
 
   if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
-    status.clear();
     PnPRANSAC(matched_2d_old_norm, matched_3d, status, PnP_T_old, PnP_R_old);
     reduceVector(matched_2d_cur, status);
     reduceVector(matched_2d_old, status);
     reduceVector(matched_2d_old_norm, status);
     reduceVector(matched_3d, status);
     reduceVector(matched_ids, status);
+    status.clear();
+
+    if (params_.debug_image_) {
+      cv::Mat pnp_verified_image =
+          UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
+      cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
+      putText(notation,
+              "current frame: " + to_string(index),
+              cv::Point2f(20, 30),
+              cv::FONT_HERSHEY_SIMPLEX,
+              1,
+              cv::Scalar(255),
+              3);
+
+      putText(notation,
+              "previous frame: " + to_string(old_kf->index),
+              cv::Point2f(20 + pnp_verified_image.cols / 2, 30),
+              cv::FONT_HERSHEY_SIMPLEX,
+              1,
+              cv::Scalar(255),
+              3);
+      cv::vconcat(notation, pnp_verified_image, pnp_verified_image);
+      std::string pnp_verified_dir = pkg_path + "/output_logs/pnp_verified/";
+      std::string filename =
+          pnp_verified_dir + "pnp_verified_" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
+      cv::imwrite(filename, pnp_verified_image);
+    }
   }
 
   // std::cout<< "Size after RANSAC "<< matched_2d_cur.size() << std::endl;
 
   if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
+    if (params_.debug_image_) {
+      cv::Mat pnp_verified_image =
+          UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
+      cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
+      putText(notation,
+              "current frame: " + to_string(index),
+              cv::Point2f(20, 30),
+              cv::FONT_HERSHEY_SIMPLEX,
+              1,
+              cv::Scalar(255),
+              3);
+
+      putText(notation,
+              "previous frame: " + to_string(old_kf->index) + " matches: " + to_string(matched_2d_cur.size()),
+              cv::Point2f(20 + pnp_verified_image.cols / 2, 30),
+              cv::FONT_HERSHEY_SIMPLEX,
+              1,
+              cv::Scalar(255),
+              3);
+      cv::vconcat(notation, pnp_verified_image, pnp_verified_image);
+      std::string pnp_verified_dir = pkg_path + "/output_logs/loop_closure/";
+      std::string filename =
+          pnp_verified_dir + "loop_closure" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
+      cv::imwrite(filename, pnp_verified_image);
+    }
+
     relative_t = PnP_R_old.transpose() * (origin_svin_T - PnP_T_old);
     relative_q = PnP_R_old.transpose() * origin_svin_R;
     relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());

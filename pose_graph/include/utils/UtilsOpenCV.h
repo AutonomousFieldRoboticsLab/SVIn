@@ -11,19 +11,6 @@ using DMatchVec = std::vector<cv::DMatch>;
 class UtilsOpenCV {
  public:
   /* ------------------------------------------------------------------------ */
-  static cv::Mat DrawCircles(const cv::Mat img,
-                             const KeypointsCV& imagePoints,
-                             const std::vector<double>& circleSizes = std::vector<double>(),
-                             const std::vector<double>& circle_sizes = std::vector<double>());
-
-  /* ------------------------------------------------------------------------ */
-  static void DrawCornersMatchesOneByOne(const cv::Mat img1,
-                                         const std::vector<cv::Point2f>& corners1,
-                                         const cv::Mat img2,
-                                         const std::vector<cv::Point2f>& corners2,
-                                         const DMatchVec& matches);
-
-  /* ------------------------------------------------------------------------ */
   // add circles in the image at desired position/size/color
   static void DrawCirclesInPlace(cv::Mat& img,  // NOLINT
                                  const KeypointsCV& image_points,
@@ -73,9 +60,35 @@ class UtilsOpenCV {
                                     const bool& randomColor = false);
 
   /* ------------------------------------------------------------------------ */
+  static cv::Mat DrawCircles(const cv::Mat img,
+                             const KeypointsCV& imagePoints,
+                             const std::vector<cv::Scalar>& circle_colors = std::vector<cv::Scalar>(),
+                             const std::vector<double>& circle_sizes = std::vector<double>());
+
+  /* -------------------------------------------------------------------------- */
+  static cv::Mat DrawCircles(const cv::Mat img,
+                             const std::vector<cv::KeyPoint>& image_points,
+                             const std::vector<cv::Scalar>& circle_colors = std::vector<cv::Scalar>(),
+                             const std::vector<double>& circle_sizes = std::vector<double>());
+
+  /* ------------------------------------------------------------------------ */
+  static void DrawCornersMatchesOneByOne(const cv::Mat img1,
+                                         const std::vector<cv::Point2f>& corners1,
+                                         const cv::Mat img2,
+                                         const std::vector<cv::Point2f>& corners2,
+                                         const DMatchVec& matches);
+
+  /* ------------------------------------------------------------------------ */
   static void showImagesSideBySide(const cv::Mat& img_left,
                                    const cv::Mat& img_right,
                                    const std::string& title,
                                    const bool& show_images,
-                                   const bool& save_images);
+                                   const bool& save_images,
+                                   const std::string& folder = "");
+
+  static cv::Mat DrawCornersMatches(const cv::Mat& img1,
+                                    const std::vector<cv::KeyPoint>& corners_1,
+                                    const cv::Mat& img2,
+                                    const KeypointsCV& corners_2,
+                                    const bool& random_color);
 };

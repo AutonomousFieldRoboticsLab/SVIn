@@ -72,4 +72,6 @@ class PoseGraphOptimization {
   TrackingStatus tracking_status_;
   int primitive_estimator_keyframes_;
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
+
+  void setupOutputLogDirectories();
 };

@@ -3,10 +3,11 @@ project(pose_graph)
 include(ExternalProject)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++14")
+set(CMAKE_CXX_STANDARD 17)
 
 # wanted to use march=native which causes segfault. We need to debug later.
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -msse4.1")
+# TODO: works in Ubuntu 20.04. Test in ubuntu 18.04
+set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
 
 find_package(catkin REQUIRED COMPONENTS
     roscpp

@@ -27,8 +27,11 @@ min_loop_num: 25
 #For uber estimator
 use_health: 1
 keypoints_threshold: 20
-consecutive_good_keyframes: 8
+consecutive_good_keyframes: 10
 switching_time: 1.75
+
+# if enabled will save debug images in pose_graph/output_logs/
+debug_image: 1
 
 # For undistorting original color image
 # R is rectification matrix
@@ -45,7 +48,7 @@ cam0:
         0.02417977658530305, 0.9996184201648292, 0.013354866957629642,
         -0.043498415526920325, -0.012294125485009934, 0.9989778487660305]
 
-
+# To transform pose between uber and okvis coordinate systems
 T_SC: [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
         0.99825455, -0.02099889, 0.05519876, -0.04791664,
         -0.009273, 0.86732768, 0.49765118, -0.02872042,

@@ -5,8 +5,7 @@ include(ExternalProject)
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_STANDARD 17)
 
-# wanted to use march=native which causes segfault. We need to debug later.
-# TODO: works in Ubuntu 20.04. Test in ubuntu 18.04
+# changed to -march=native. Working in Ubuntu 18.04 and 20.04
 set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
 
 find_package(catkin REQUIRED COMPONENTS
@@ -22,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV)
 find_package(PCL  REQUIRED)
+find_package(Boost COMPONENTS filesystem system REQUIRED)
 
 # brisk
 find_package( brisk 2 REQUIRED )
@@ -39,7 +39,8 @@ include_directories(include
                     ${CERES_INCLUDE_DIRS}
                     ${EIGEN3_INCLUDE_DIR}
                     ${BRISK_INCLUDE_DIRS}
-                    ${PCL_INCLUDE_DIRS})
+                    ${PCL_INCLUDE_DIRS}
+                    ${Boost_INCLUDE_DIRS})
 
 catkin_package(CATKIN_DEPENDS okvis_ros pcl_ros pcl_conversions)
 
@@ -66,7 +67,7 @@ add_library(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME} Dependencies brisk)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES} ${PCL_LIBRARIES}) 
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES} ${PCL_LIBRARIES} ${Boost_LIBRARIES}) 
 
 add_executable(${PROJECT_NAME}_node src/pose_graph_node.cpp)
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})

@@ -10,13 +10,12 @@
 
 #include <Eigen/SVD>
 #include <algorithm>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-
 PoseGraphOptimization::PoseGraphOptimization()
     : nh_private_("~"),
       params_(nullptr),
@@ -46,6 +45,17 @@ PoseGraphOptimization::PoseGraphOptimization()
   consecutive_tracking_failures_ = 0;
   last_keyframe_time_ = 0;
   tracking_status_ = TrackingStatus::NOT_INITIALIZED;
+
+  init_t_w_prim_.setIdentity();
+  init_t_w_svin_.setIdentity();
+
+  switch_prim_pose_.setIdentity();
+  switch_svin_pose_.setIdentity();
+  switch_uber_pose_.setIdentity();
+
+  primitive_estimator_keyframes_ = 0;
+  vio_traj_length_ = 0.0;
+  prim_traj_length_ = 0.0;
 }
 
 void PoseGraphOptimization::setup() {
@@ -74,14 +84,6 @@ void PoseGraphOptimization::setup() {
   publisher.setPublishers();
 
   timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
-  init_t_w_prim_.setIdentity();
-  init_t_w_svin_.setIdentity();
-
-  switch_prim_pose_.setIdentity();
-  switch_svin_pose_.setIdentity();
-  switch_uber_pose_.setIdentity();
-
-  primitive_estimator_keyframes_ = 0;
 
   if (params_->debug_image_) {
     setupOutputLogDirectories();
@@ -255,12 +257,15 @@ void PoseGraphOptimization::run() {
           p_3d.x = point_msg->points[i].x;
           p_3d.y = point_msg->points[i].y;
           p_3d.z = point_msg->points[i].z;
-          point_3d.push_back(p_3d);
 
           Eigen::Vector3d point_3d_eigen;
           point_3d_eigen << p_3d.x, p_3d.y, p_3d.z;
 
           Eigen::Vector3d point_cam_frame = R.transpose() * (point_3d_eigen - T);
+          Eigen::Vector3d point_w_f_uber = uber_orientation * point_cam_frame + uber_position;
+          p_3d = cv::Point3f(point_w_f_uber(0), point_w_f_uber(1), point_w_f_uber(2));
+          point_3d.push_back(p_3d);
+
           // pcl::PointXYZRGB pcl_point;
           // pcl_point.x = point_cam_frame.x();
           // pcl_point.y = point_cam_frame.y();
@@ -356,6 +361,9 @@ void PoseGraphOptimization::run() {
         // pcl::PointCloud<pcl::PointXYZRGB>::Ptr sparse_pointcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
 
         for (size_t i = 0; i < landmark_ids.size(); i++) {
+          double quality = qualities.at(i);
+          if (quality < 1e-6) continue;
+
           Eigen::Vector3d pos_cam_frame = local_positions.at(i);
 
           if (kfMapper_.find(combined_kf_index) == kfMapper_.end()) {
@@ -370,8 +378,6 @@ void PoseGraphOptimization::run() {
 
           Eigen::Vector3d global_pos = R_w_kf * pos_cam_frame + T_w_kf;
           Eigen::Vector3d color = colors.at(i);
-          double quality = qualities.at(i);
-          if (quality < 1e-6) continue;
           uint64_t landmark_id = landmark_ids.at(i);
 
           global_map_->addLandmark(global_pos, landmark_id, quality, combined_kf_index, pos_cam_frame, color);
@@ -576,38 +582,35 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
   std::string pacakge_path = ros::package::getPath("pose_graph");
 
   std::string loop_candidate_directory = pacakge_path + "/output_logs/loop_candidates/";
-  if (!std::filesystem::is_directory(loop_candidate_directory) || !std::filesystem::exists(loop_candidate_directory)) {
-    std::filesystem::create_directory(loop_candidate_directory);
+  if (!boost::filesystem::is_directory(loop_candidate_directory) ||
+      !boost::filesystem::exists(loop_candidate_directory)) {
+    boost::filesystem::create_directory(loop_candidate_directory);
   }
-
-  for (const auto& entry : std::filesystem::directory_iterator(loop_candidate_directory)) {
-    std::filesystem::remove_all(entry.path());
+  for (const auto& entry : boost::filesystem::directory_iterator(loop_candidate_directory)) {
+    boost::filesystem::remove_all(entry.path());
   }
 
   std::string descriptor_match_dir = pacakge_path + "/output_logs/descriptor_matched/";
-  if (!std::filesystem::is_directory(descriptor_match_dir) || !std::filesystem::exists(descriptor_match_dir)) {
-    std::filesystem::create_directory(descriptor_match_dir);
+  if (!boost::filesystem::is_directory(descriptor_match_dir) || !boost::filesystem::exists(descriptor_match_dir)) {
+    boost::filesystem::create_directory(descriptor_match_dir);
   }
-
-  for (const auto& entry : std::filesystem::directory_iterator(descriptor_match_dir)) {
-    std::filesystem::remove_all(entry.path());
+  for (const auto& entry : boost::filesystem::directory_iterator(descriptor_match_dir)) {
+    boost::filesystem::remove_all(entry.path());
   }
 
   std::string pnp_verified_dir = pacakge_path + "/output_logs/pnp_verified/";
-  if (!std::filesystem::is_directory(pnp_verified_dir) || !std::filesystem::exists(pnp_verified_dir)) {
-    std::filesystem::create_directory(pnp_verified_dir);
+  if (!boost::filesystem::is_directory(pnp_verified_dir) || !boost::filesystem::exists(pnp_verified_dir)) {
+    boost::filesystem::create_directory(pnp_verified_dir);
   }
-
-  for (const auto& entry : std::filesystem::directory_iterator(pnp_verified_dir)) {
-    std::filesystem::remove_all(entry.path());
+  for (const auto& entry : boost::filesystem::directory_iterator(pnp_verified_dir)) {
+    boost::filesystem::remove_all(entry.path());
   }
 
   std::string loop_closure_dir = pacakge_path + "/output_logs/loop_closure/";
-  if (!std::filesystem::is_directory(loop_closure_dir) || !std::filesystem::exists(loop_closure_dir)) {
-    std::filesystem::create_directory(loop_closure_dir);
+  if (!boost::filesystem::is_directory(loop_closure_dir) || !boost::filesystem::exists(loop_closure_dir)) {
+    boost::filesystem::create_directory(loop_closure_dir);
   }
-
-  for (const auto& entry : std::filesystem::directory_iterator(loop_closure_dir)) {
-    std::filesystem::remove_all(entry.path());
+  for (const auto& entry : boost::filesystem::directory_iterator(loop_closure_dir)) {
+    boost::filesystem::remove_all(entry.path());
   }
 }

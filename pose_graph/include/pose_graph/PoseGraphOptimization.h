@@ -64,14 +64,15 @@ class PoseGraphOptimization {
   Eigen::Matrix4d last_t_w_svin_, last_t_w_prim_;
   Eigen::Matrix4d init_t_w_prim_, init_t_w_svin_;
   Eigen::Matrix4d switch_svin_pose_, switch_prim_pose_, switch_uber_pose_;
-  // bool svin_pose_stabilized_;
 
   std::vector<geometry_msgs::PoseStamped> primitive_estimator_poses_;
   std::vector<geometry_msgs::PoseStamped> uber_estimator_poses_;
 
   TrackingStatus tracking_status_;
   int primitive_estimator_keyframes_;
-  void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
+  double vio_traj_length_;
+  double prim_traj_length_;
 
+  void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
   void setupOutputLogDirectories();
 };

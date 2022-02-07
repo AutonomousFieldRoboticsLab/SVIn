@@ -32,9 +32,6 @@
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
 
-using namespace DVision;  // NOLINT
-using namespace DBoW2;    // NOLINT
-
 class LoopClosing {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -54,12 +51,12 @@ class LoopClosing {
 
   void publish();
   // Relocalization
-  Vector3d t_drift;
+  Eigen::Vector3d t_drift;
   double yaw_drift;
-  Matrix3d r_drift;
+  Eigen::Matrix3d r_drift;
 
-  Vector3d w_t_svin;
-  Matrix3d w_r_svin;
+  Eigen::Vector3d w_t_svin;
+  Eigen::Matrix3d w_r_svin;
 
   typedef std::function<void(const uint64_t& time)> EventCallback;
 

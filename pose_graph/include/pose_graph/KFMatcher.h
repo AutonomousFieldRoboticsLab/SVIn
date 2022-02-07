@@ -20,15 +20,11 @@
 #include "utils/Utils.h"
 #include "utils/tic_toc.h"
 
-using namespace Eigen;    // NOLINT
-using namespace std;      // NOLINT
-using namespace DVision;  // NOLINT
-
 class BriefExtractor {
  public:
   virtual void operator()(const cv::Mat& im,
-                          vector<cv::KeyPoint>& keys,                 // NOLINT
-                          vector<BRIEF::bitset>& descriptors) const;  // NOLINT
+                          vector<cv::KeyPoint>& keys,                          // NOLINT
+                          vector<DVision::BRIEF::bitset>& descriptors) const;  // NOLINT
   explicit BriefExtractor(const std::string& pattern_file);
 
   DVision::BRIEF m_brief;
@@ -40,8 +36,8 @@ class KFMatcher {
   KFMatcher(double _time_stamp,
             vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
-            Vector3d& _svin_T_w_i,               // NOLINT
-            Matrix3d& _svin_R_w_i,               // NOLINT
+            Eigen::Vector3d& _svin_T_w_i,        // NOLINT
+            Eigen::Matrix3d& _svin_R_w_i,        // NOLINT
             cv::Mat& _image,                     // NOLINT
             vector<cv::Point3f>& _point_3d,      // NOLINT
             vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
@@ -53,8 +49,8 @@ class KFMatcher {
 
   KFMatcher(double _time_stamp,
             int _index,
-            Vector3d& _svin_T_w_i,            // NOLINT
-            Matrix3d& _svin_R_w_i,            // NOLINT
+            Eigen::Vector3d& _svin_T_w_i,     // NOLINT
+            Eigen::Matrix3d& _svin_R_w_i,     // NOLINT
             map<KFMatcher*, int>& KFcounter,  // NOLINT
             int _sequence,
             const Parameters& params,
@@ -64,9 +60,9 @@ class KFMatcher {
   void computeWindowBRIEFPoint();
   void computeBRIEFPoint();
 
-  int HammingDis(const BRIEF::bitset& a, const BRIEF::bitset& b);
-  bool searchInAera(const BRIEF::bitset window_descriptor,
-                    const std::vector<BRIEF::bitset>& descriptors_old,
+  int HammingDis(const DVision::BRIEF::bitset& a, const DVision::BRIEF::bitset& b);
+  bool searchInAera(const DVision::BRIEF::bitset window_descriptor,
+                    const std::vector<DVision::BRIEF::bitset>& descriptors_old,
                     const std::vector<cv::KeyPoint>& keypoints_old,
                     const std::vector<cv::KeyPoint>& keypoints_old_norm,
                     cv::Point2f& best_match,                            // NOLINT
@@ -74,7 +70,7 @@ class KFMatcher {
   void searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,       // NOLINT
                         std::vector<cv::Point2f>& matched_2d_old_norm,  // NOLINT
                         std::vector<uchar>& status,                     // NOLINT
-                        const std::vector<BRIEF::bitset>& descriptors_old,
+                        const std::vector<DVision::BRIEF::bitset>& descriptors_old,
                         const std::vector<cv::KeyPoint>& keypoints_old,
                         const std::vector<cv::KeyPoint>& keypoints_old_norm);
   void PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
@@ -132,8 +128,8 @@ class KFMatcher {
   vector<cv::KeyPoint> keypoints_norm;
   vector<cv::KeyPoint> window_keypoints_norm;
   vector<cv::KeyPoint> window_keypoints;
-  vector<BRIEF::bitset> brief_descriptors;
-  vector<BRIEF::bitset> window_brief_descriptors;
+  vector<DVision::BRIEF::bitset> brief_descriptors;
+  vector<DVision::BRIEF::bitset> window_brief_descriptors;
   bool has_fast_point;
   int sequence;
 

@@ -23,7 +23,7 @@ const bool KFMatcher::briskDescriptionScaleInvariance_ = false;    ///< The set 
 const double KFMatcher::briskMatchingThreshold_ = 80.0;            ///< The set BRISK matching threshold.
 
 template <typename Derived>
-static void reduceVector(vector<Derived>& v, vector<uchar> status) {  // NOLINT
+static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  // NOLINT
   int j = 0;
   for (int i = 0; i < static_cast<int>(v.size()); i++)
     if (status[i]) v[j++] = v[i];
@@ -33,8 +33,8 @@ static void reduceVector(vector<Derived>& v, vector<uchar> status) {  // NOLINT
 KFMatcher::KFMatcher(double _time_stamp,
                      vector<Eigen::Vector3d>& _point_ids,
                      int _index,
-                     Vector3d& _svin_T_w_i,
-                     Matrix3d& _svin_R_w_i,
+                     Eigen::Vector3d& _svin_T_w_i,
+                     Eigen::Matrix3d& _svin_R_w_i,
                      cv::Mat& _image,
                      vector<cv::Point3f>& _point_3d,
                      vector<cv::KeyPoint>& _point_2d_uv,
@@ -83,8 +83,8 @@ KFMatcher::KFMatcher(double _time_stamp,
 
 KFMatcher::KFMatcher(double _time_stamp,
                      int _index,
-                     Vector3d& _svin_T_w_i,
-                     Matrix3d& _svin_R_w_i,
+                     Eigen::Vector3d& _svin_T_w_i,
+                     Eigen::Matrix3d& _svin_R_w_i,
                      map<KFMatcher*, int>& KFcounter,
                      int _sequence,
                      const Parameters& params,
@@ -226,7 +226,7 @@ void KFMatcher::computeBRIEFPoint() {
 
 void BriefExtractor::operator()(const cv::Mat& im,
                                 vector<cv::KeyPoint>& keys,
-                                vector<BRIEF::bitset>& descriptors) const {
+                                vector<DVision::BRIEF::bitset>& descriptors) const {
   m_brief.compute(im, keys, descriptors);
 }
 
@@ -267,8 +267,8 @@ void KFMatcher::searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old
   }
 }
 
-bool KFMatcher::searchInAera(const BRIEF::bitset window_descriptor,
-                             const std::vector<BRIEF::bitset>& descriptors_old,
+bool KFMatcher::searchInAera(const DVision::BRIEF::bitset window_descriptor,
+                             const std::vector<DVision::BRIEF::bitset>& descriptors_old,
                              const std::vector<cv::KeyPoint>& keypoints_old,
                              const std::vector<cv::KeyPoint>& keypoints_old_norm,
                              cv::Point2f& best_match,
@@ -296,7 +296,7 @@ bool KFMatcher::searchInAera(const BRIEF::bitset window_descriptor,
 void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
                                  std::vector<cv::Point2f>& matched_2d_old_norm,
                                  std::vector<uchar>& status,
-                                 const std::vector<BRIEF::bitset>& descriptors_old,
+                                 const std::vector<DVision::BRIEF::bitset>& descriptors_old,
                                  const std::vector<cv::KeyPoint>& keypoints_old,
                                  const std::vector<cv::KeyPoint>& keypoints_old_norm) {
   for (int i = 0; i < static_cast<int>(window_brief_descriptors.size()); i++) {
@@ -318,11 +318,11 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
                           Eigen::Matrix3d& PnP_R_old) {
   cv::Mat r, rvec, t, D, tmp_r;
   cv::Mat K = (cv::Mat_<double>(3, 3) << 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0);
-  Matrix3d R_inital;
-  Vector3d P_inital;
+  Eigen::Matrix3d R_inital;
+  Eigen::Vector3d P_inital;
 
-  Matrix3d R_w_c = origin_svin_R;
-  Vector3d T_w_c = origin_svin_T;
+  Eigen::Matrix3d R_w_c = origin_svin_R;
+  Eigen::Vector3d T_w_c = origin_svin_T;
 
   R_inital = R_w_c.inverse();
   P_inital = -(R_inital * T_w_c);
@@ -359,10 +359,10 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   }
 
   cv::Rodrigues(rvec, r);
-  Matrix3d R_pnp, R_w_c_old;
+  Eigen::Matrix3d R_pnp, R_w_c_old;
   cv::cv2eigen(r, R_pnp);
   R_w_c_old = R_pnp.transpose();
-  Vector3d T_pnp, T_w_c_old;
+  Eigen::Vector3d T_pnp, T_w_c_old;
   cv::cv2eigen(t, T_pnp);
   T_w_c_old = R_w_c_old * (-T_pnp);
 
@@ -388,7 +388,6 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   matched_2d_cur = point_2d_uv;
   matched_ids = point_ids_;
 
-  // std::string
   if (params_.debug_image_) {
     cv::Mat old_img = UtilsOpenCV::DrawCircles(old_kf->image, old_kf->keypoints);
     cv::Mat cur_image = UtilsOpenCV::DrawCircles(image, point_2d_uv);
@@ -425,7 +424,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   Eigen::Vector3d PnP_T_old;
   Eigen::Matrix3d PnP_R_old;
   Eigen::Vector3d relative_t;
-  Quaterniond relative_q;
+  Eigen::Quaterniond relative_q;
   double relative_yaw;
 
   if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
@@ -467,37 +466,37 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   // std::cout<< "Size after RANSAC "<< matched_2d_cur.size() << std::endl;
 
   if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
-    if (params_.debug_image_) {
-      cv::Mat pnp_verified_image =
-          UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
-      cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
-      putText(notation,
-              "current frame: " + to_string(index),
-              cv::Point2f(20, 30),
-              cv::FONT_HERSHEY_SIMPLEX,
-              1,
-              cv::Scalar(255),
-              3);
-
-      putText(notation,
-              "previous frame: " + to_string(old_kf->index) + " matches: " + to_string(matched_2d_cur.size()),
-              cv::Point2f(20 + pnp_verified_image.cols / 2, 30),
-              cv::FONT_HERSHEY_SIMPLEX,
-              1,
-              cv::Scalar(255),
-              3);
-      cv::vconcat(notation, pnp_verified_image, pnp_verified_image);
-      std::string pnp_verified_dir = pkg_path + "/output_logs/loop_closure/";
-      std::string filename =
-          pnp_verified_dir + "loop_closure" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
-      cv::imwrite(filename, pnp_verified_image);
-    }
-
     relative_t = PnP_R_old.transpose() * (origin_svin_T - PnP_T_old);
     relative_q = PnP_R_old.transpose() * origin_svin_R;
+
     relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());
 
     if (abs(relative_yaw) < 30.0 && relative_t.norm() < 20.0) {
+      if (params_.debug_image_) {
+        cv::Mat pnp_verified_image =
+            UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
+        cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
+        putText(notation,
+                "current frame: " + to_string(index),
+                cv::Point2f(20, 30),
+                cv::FONT_HERSHEY_SIMPLEX,
+                1,
+                cv::Scalar(255),
+                3);
+
+        putText(notation,
+                "previous frame: " + to_string(old_kf->index) + " matches: " + to_string(matched_2d_cur.size()),
+                cv::Point2f(20 + pnp_verified_image.cols / 2, 30),
+                cv::FONT_HERSHEY_SIMPLEX,
+                1,
+                cv::Scalar(255),
+                3);
+        cv::vconcat(notation, pnp_verified_image, pnp_verified_image);
+        std::string pnp_verified_dir = pkg_path + "/output_logs/loop_closure/";
+        std::string filename =
+            pnp_verified_dir + "loop_closure_" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
+        cv::imwrite(filename, pnp_verified_image);
+      }
       has_loop = true;
       loop_index = old_kf->index;
       loop_info << relative_t.x(), relative_t.y(), relative_t.z(), relative_q.w(), relative_q.x(), relative_q.y(),
@@ -520,7 +519,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         // T, R in Old frame
         Eigen::Vector3d T = old_kf->T_w_i;
         Eigen::Matrix3d R = old_kf->R_w_i;
-        Quaterniond Q(R);
+        Eigen::Quaterniond Q(R);
         sensor_msgs::ChannelFloat32 t_q_index;
         t_q_index.values.push_back(T.x());
         t_q_index.values.push_back(T.y());
@@ -541,8 +540,8 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   return false;
 }
 
-int KFMatcher::HammingDis(const BRIEF::bitset& a, const BRIEF::bitset& b) {
-  BRIEF::bitset xor_of_bitset = a ^ b;
+int KFMatcher::HammingDis(const DVision::BRIEF::bitset& a, const DVision::BRIEF::bitset& b) {
+  DVision::BRIEF::bitset xor_of_bitset = a ^ b;
   int dis = xor_of_bitset.count();
   return dis;
 }
@@ -578,7 +577,7 @@ Eigen::Quaterniond KFMatcher::getLoopRelativeQ() {
 double KFMatcher::getLoopRelativeYaw() { return loop_info(7); }
 
 void KFMatcher::updateLoop(Eigen::Matrix<double, 8, 1>& _loop_info) {
-  if (abs(_loop_info(7)) < 30.0 && Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
+  if (abs(_loop_info(7)) < 30.0 && Eigen::Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
     // printf("update loop info\n");
     loop_info = _loop_info;
   }

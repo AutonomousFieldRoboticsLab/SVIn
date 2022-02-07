@@ -109,13 +109,13 @@ void PoseGraphOptimization::run() {
       }
 
       // build keyframe
-      Vector3d T =
-          Vector3d(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
-      Matrix3d R = Quaterniond(pose_msg->pose.pose.orientation.w,
-                               pose_msg->pose.pose.orientation.x,
-                               pose_msg->pose.pose.orientation.y,
-                               pose_msg->pose.pose.orientation.z)
-                       .toRotationMatrix();
+      Eigen::Vector3d T = Eigen::Vector3d(
+          pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
+      Eigen::Matrix3d R = Eigen::Quaterniond(pose_msg->pose.pose.orientation.w,
+                                             pose_msg->pose.pose.orientation.x,
+                                             pose_msg->pose.pose.orientation.y,
+                                             pose_msg->pose.pose.orientation.z)
+                              .toRotationMatrix();
 
       // std::cout << "T: " << T.transpose() << std::endl;
       // std::cout << "R: " << R << std::endl;
@@ -246,7 +246,7 @@ void PoseGraphOptimization::run() {
         std::vector<Eigen::Vector3d> colors;
         std::vector<Eigen::Vector3d> local_positions;
 
-        Matrix4d uber_pose_matrix = Utility::rosPoseToMatrix(uber_pose.pose);
+        Eigen::Matrix4d uber_pose_matrix = Utility::rosPoseToMatrix(uber_pose.pose);
         Eigen::Vector3d uber_position = uber_pose_matrix.block<3, 1>(0, 3);
         Eigen::Matrix3d uber_orientation = uber_pose_matrix.block<3, 3>(0, 0);
 
@@ -449,7 +449,7 @@ void PoseGraphOptimization::run() {
         publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
 
         primitive_estimator_keyframes_++;
-        Matrix4d updated_transform = Utility::rosPoseToMatrix(uber_pose.pose);
+        Eigen::Matrix4d updated_transform = Utility::rosPoseToMatrix(uber_pose.pose);
         Eigen::Vector3d T = updated_transform.block<3, 1>(0, 3);
         Eigen::Matrix3d R = updated_transform.block<3, 3>(0, 0);
         int kf_index = last_keyframe_index + primitive_estimator_keyframes_;
@@ -494,7 +494,7 @@ void PoseGraphOptimization::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB
   for (auto point_landmark_map : global_map_->getMapPoints()) {
     Landmark point_landmark = point_landmark_map.second;
     Eigen::Vector3d global_pos = point_landmark.point_;
-    Vector3d color = point_landmark.color_;
+    Eigen::Vector3d color = point_landmark.color_;
     double quality = point_landmark.quality_;
 
     if (quality > 0.005) {
@@ -613,4 +613,30 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
   for (const auto& entry : boost::filesystem::directory_iterator(loop_closure_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
+
+  std::string loop_closure_file = pacakge_path + "/output_logs/loop_closure.txt";
+  if (boost::filesystem::exists(loop_closure_file)) {
+    boost::filesystem::remove(loop_closure_file);
+  }
+  ofstream loop_path_file(loop_closure_file, ios::out);
+  loop_path_file << "#cur_kf_id"
+                 << " "
+                 << "#cur_kf_ts"
+                 << " "
+                 << "#matched_kf_id"
+                 << " "
+                 << "#matched_kf_ts"
+                 << " "
+                 << "relative_tx"
+                 << " "
+                 << "relative_ty"
+                 << " "
+                 << "relative_tz"
+                 << " "
+                 << "relative_roll"
+                 << " "
+                 << "relative_pitch"
+                 << " "
+                 << "relative_yaw" << endl;
+  loop_path_file.close();
 }

@@ -43,8 +43,8 @@ void LoopClosing::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase da
 
 void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   // shift to base frame
-  Vector3d svin_P_cur;
-  Matrix3d svin_R_cur;
+  Eigen::Vector3d svin_P_cur;
+  Eigen::Matrix3d svin_R_cur;
   if (sequence_cnt != cur_kf->sequence) {
     sequence_cnt++;
     sequence_loop.push_back(0);
@@ -81,22 +81,22 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
 
       if (earliest_loop_index > loop_index || earliest_loop_index == -1) earliest_loop_index = loop_index;
 
-      Vector3d w_P_old, w_P_cur, svin_P_cur;
-      Matrix3d w_R_old, w_R_cur, svin_R_cur;
+      Eigen::Vector3d w_P_old, w_P_cur, svin_P_cur;
+      Eigen::Matrix3d w_R_old, w_R_cur, svin_R_cur;
       old_kf->getSVInPose(w_P_old, w_R_old);  // old_kf replaced by min_loop_kf
       cur_kf->getSVInPose(svin_P_cur, svin_R_cur);
 
-      Vector3d relative_t;
-      Quaterniond relative_q;
+      Eigen::Vector3d relative_t;
+      Eigen::Quaterniond relative_q;
       relative_t = cur_kf->getLoopRelativeT();
       relative_q = (cur_kf->getLoopRelativeQ()).toRotationMatrix();
       w_P_cur = w_R_old * relative_t + w_P_old;
       w_R_cur = w_R_old * relative_q;
       double shift_yaw;
-      Matrix3d shift_r;
-      Vector3d shift_t;
+      Eigen::Matrix3d shift_r;
+      Eigen::Vector3d shift_t;
       shift_yaw = Utility::R2ypr(w_R_cur).x() - Utility::R2ypr(svin_R_cur).x();
-      shift_r = Utility::ypr2R(Vector3d(shift_yaw, 0, 0));
+      shift_r = Utility::ypr2R(Eigen::Vector3d(shift_yaw, 0, 0));
       shift_t = w_P_cur - w_R_cur * svin_R_cur.transpose() * svin_P_cur;
       // shift svin pose of whole sequence to the world frame
       if (old_kf->sequence != cur_kf->sequence && sequence_loop[cur_kf->sequence] == 0) {
@@ -108,8 +108,8 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
         list<KFMatcher*>::iterator it = keyframelist.begin();
         for (; it != keyframelist.end(); it++) {
           if ((*it)->sequence == cur_kf->sequence) {
-            Vector3d svin_P_cur;
-            Matrix3d svin_R_cur;
+            Eigen::Vector3d svin_P_cur;
+            Eigen::Matrix3d svin_R_cur;
             (*it)->getSVInPose(svin_P_cur, svin_R_cur);
             svin_P_cur = w_r_svin * svin_P_cur + w_t_svin;
             svin_R_cur = w_r_svin * svin_R_cur;
@@ -125,13 +125,13 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
 
   {
     std::lock_guard<std::mutex> l(kflistMutex_);
-    Vector3d P;
-    Matrix3d R;
+    Eigen::Vector3d P;
+    Eigen::Matrix3d R;
     cur_kf->getSVInPose(P, R);
     P = r_drift * P + t_drift;
     R = r_drift * R;
     cur_kf->updatePose(P, R);
-    Quaterniond Q{R};
+    Eigen::Quaterniond Q{R};
     geometry_msgs::PoseStamped pose_stamped;
     pose_stamped.header.stamp = ros::Time(cur_kf->time_stamp);
     pose_stamped.header.frame_id = "world";
@@ -159,8 +159,8 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
       list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
       for (int i = 0; i < 4; i++) {
         if (rit == keyframelist.rend()) break;
-        Vector3d conncected_P;
-        Matrix3d connected_R;
+        Eigen::Vector3d conncected_P;
+        Eigen::Matrix3d connected_R;
         if ((*rit)->sequence == cur_kf->sequence) {
           (*rit)->getPose(conncected_P, connected_R);
           posegraph_visualization->add_edge(P, conncected_P);
@@ -172,8 +172,8 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
       if (cur_kf->has_loop) {
         // printf("has loop \n");
         KFMatcher* connected_KF = getKFPtr(cur_kf->loop_index);
-        Vector3d connected_P, P0;
-        Matrix3d connected_R, R0;
+        Eigen::Vector3d connected_P, P0;
+        Eigen::Matrix3d connected_R, R0;
         connected_KF->getPose(connected_P, connected_R);
         // cur_kf->getSVInPose(P0, R0);
         cur_kf->getPose(P0, R0);
@@ -228,7 +228,7 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
 
   TicToc tmp_t;
   // first query; then add this frame into database!
-  QueryResults ret;
+  DBoW2::QueryResults ret;
   TicToc t_query;
   db.query(keyframe->brief_descriptors, ret, 4, frame_index - 50);
   // printf("query time: %f", t_query.toc());
@@ -297,9 +297,9 @@ void LoopClosing::optimize4DoFPoseGraph() {
       int max_length = cur_index + 1;
 
       double t_array[max_length][3];
-      Quaterniond q_array[max_length];    // NOLINT
-      double euler_array[max_length][3];  // NOLINT
-      double sequence_array[max_length];  // NOLINT
+      Eigen::Quaterniond q_array[max_length];  // NOLINT
+      double euler_array[max_length][3];       // NOLINT
+      double sequence_array[max_length];       // NOLINT
 
       ceres::LocalParameterization* angle_local_parameterization = AngleLocalParameterization::Create();
 
@@ -309,9 +309,9 @@ void LoopClosing::optimize4DoFPoseGraph() {
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
         if ((*it)->index < first_looped_index) continue;
         (*it)->local_index = i;
-        Quaterniond tmp_q;
-        Matrix3d tmp_r;
-        Vector3d tmp_t;
+        Eigen::Quaterniond tmp_q;
+        Eigen::Matrix3d tmp_r;
+        Eigen::Vector3d tmp_t;
         (*it)->getSVInPose(tmp_t, tmp_r);
         tmp_q = tmp_r;
         t_array[i][0] = tmp_t(0);
@@ -319,7 +319,7 @@ void LoopClosing::optimize4DoFPoseGraph() {
         t_array[i][2] = tmp_t(2);
         q_array[i] = tmp_q;
 
-        Vector3d euler_angle = Utility::R2ypr(tmp_q.toRotationMatrix());
+        Eigen::Vector3d euler_angle = Utility::R2ypr(tmp_q.toRotationMatrix());
         euler_array[i][0] = euler_angle.x();
         euler_array[i][1] = euler_angle.y();
         euler_array[i][2] = euler_angle.z();
@@ -338,10 +338,10 @@ void LoopClosing::optimize4DoFPoseGraph() {
         // adding sequential egde. Fixed sized window of length 4 serves as covisibility
         for (int j = 1; j < 5; j++) {
           if (i - j >= 0 && sequence_array[i] == sequence_array[i - j]) {
-            Vector3d euler_conncected = Utility::R2ypr(q_array[i - j].toRotationMatrix());
-            Vector3d relative_t(t_array[i][0] - t_array[i - j][0],
-                                t_array[i][1] - t_array[i - j][1],
-                                t_array[i][2] - t_array[i - j][2]);
+            Eigen::Vector3d euler_conncected = Utility::R2ypr(q_array[i - j].toRotationMatrix());
+            Eigen::Vector3d relative_t(t_array[i][0] - t_array[i - j][0],
+                                       t_array[i][1] - t_array[i - j][1],
+                                       t_array[i][2] - t_array[i - j][2]);
             relative_t = q_array[i - j].inverse() * relative_t;
             double relative_yaw = euler_array[i][0] - euler_array[i - j][0];
             ceres::CostFunction* cost_function = FourDOFError::Create(relative_t.x(),
@@ -360,8 +360,8 @@ void LoopClosing::optimize4DoFPoseGraph() {
         if ((*it)->has_loop) {
           assert((*it)->loop_index >= first_looped_index);
           int connected_index = getKFPtr((*it)->loop_index)->local_index;
-          Vector3d euler_conncected = Utility::R2ypr(q_array[connected_index].toRotationMatrix());
-          Vector3d relative_t;
+          Eigen::Vector3d euler_conncected = Utility::R2ypr(q_array[connected_index].toRotationMatrix());
+          Eigen::Vector3d relative_t;
           relative_t = (*it)->getLoopRelativeT();
           double relative_yaw = (*it)->getLoopRelativeYaw();
           ceres::CostFunction* cost_function = FourDOFWeightError::Create(
@@ -386,31 +386,31 @@ void LoopClosing::optimize4DoFPoseGraph() {
         i = 0;
         for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
           if ((*it)->index < first_looped_index) continue;
-          Quaterniond tmp_q;
-          tmp_q = Utility::ypr2R(Vector3d(euler_array[i][0], euler_array[i][1], euler_array[i][2]));
-          Vector3d tmp_t = Vector3d(t_array[i][0], t_array[i][1], t_array[i][2]);
-          Matrix3d tmp_r = tmp_q.toRotationMatrix();
+          Eigen::Quaterniond tmp_q;
+          tmp_q = Utility::ypr2R(Eigen::Vector3d(euler_array[i][0], euler_array[i][1], euler_array[i][2]));
+          Eigen::Vector3d tmp_t = Eigen::Vector3d(t_array[i][0], t_array[i][1], t_array[i][2]);
+          Eigen::Matrix3d tmp_r = tmp_q.toRotationMatrix();
           (*it)->updatePose(tmp_t, tmp_r);
 
           if ((*it)->index == cur_index) break;
           i++;
         }
 
-        Vector3d cur_t, svin_t;
-        Matrix3d cur_r, svin_r;
+        Eigen::Vector3d cur_t, svin_t;
+        Eigen::Matrix3d cur_r, svin_r;
         cur_kf->getPose(cur_t, cur_r);
         cur_kf->getSVInPose(svin_t, svin_r);
         {
           std::lock_guard<std::mutex> l(driftMutex_);
           yaw_drift = Utility::R2ypr(cur_r).x() - Utility::R2ypr(svin_r).x();
-          r_drift = Utility::ypr2R(Vector3d(yaw_drift, 0, 0));
+          r_drift = Utility::ypr2R(Eigen::Vector3d(yaw_drift, 0, 0));
           t_drift = cur_t - r_drift * svin_t;
         }
 
         it++;
         for (; it != keyframelist.end(); it++) {
-          Vector3d P;
-          Matrix3d R;
+          Eigen::Vector3d P;
+          Eigen::Matrix3d R;
           (*it)->getSVInPose(P, R);
           P = r_drift * P + t_drift;
           R = r_drift * R;
@@ -443,10 +443,10 @@ void LoopClosing::updatePath() {
   }
 
   for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
-    Vector3d P;
-    Matrix3d R;
+    Eigen::Vector3d P;
+    Eigen::Matrix3d R;
     (*it)->getPose(P, R);
-    Quaterniond Q;
+    Eigen::Quaterniond Q;
     Q = R;
 
     geometry_msgs::PoseStamped pose_stamped;
@@ -488,8 +488,8 @@ void LoopClosing::updatePath() {
           for (int i = 0; i < 4; i++) {
             if (lrit == keyframelist.rend()) break;
             if ((*lrit)->sequence == (*it)->sequence) {
-              Vector3d conncected_P;
-              Matrix3d connected_R;
+              Eigen::Vector3d conncected_P;
+              Eigen::Matrix3d connected_R;
               (*lrit)->getPose(conncected_P, connected_R);
               posegraph_visualization->add_edge(P, conncected_P);
             }
@@ -502,8 +502,8 @@ void LoopClosing::updatePath() {
     if (SHOW_L_EDGE) {
       if ((*it)->has_loop && (*it)->sequence == sequence_cnt) {
         KFMatcher* connected_KF = getKFPtr((*it)->loop_index);
-        Vector3d connected_P;
-        Matrix3d connected_R;
+        Eigen::Vector3d connected_P;
+        Eigen::Matrix3d connected_R;
         connected_KF->getPose(connected_P, connected_R);
         (*it)->getPose(P, R);
         if ((*it)->sequence > 0) {
@@ -528,25 +528,25 @@ void LoopClosing::publish() {
 void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info) {
   KFMatcher* kf = getKFPtr(index);
   kf->updateLoop(_loop_info);
-  if (abs(_loop_info(7)) < 30.0 && Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
+  if (abs(_loop_info(7)) < 30.0 && Eigen::Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
     if (is_fast_localization_) {
       KFMatcher* old_kf = getKFPtr(kf->loop_index);
-      Vector3d w_P_old, w_P_cur, svin_P_cur;
-      Matrix3d w_R_old, w_R_cur, svin_R_cur;
+      Eigen::Vector3d w_P_old, w_P_cur, svin_P_cur;
+      Eigen::Matrix3d w_R_old, w_R_cur, svin_R_cur;
       old_kf->getPose(w_P_old, w_R_old);
       kf->getSVInPose(svin_P_cur, svin_R_cur);
 
-      Vector3d relative_t;
-      Quaterniond relative_q;
+      Eigen::Vector3d relative_t;
+      Eigen::Quaterniond relative_q;
       relative_t = kf->getLoopRelativeT();
       relative_q = (kf->getLoopRelativeQ()).toRotationMatrix();
       w_P_cur = w_R_old * relative_t + w_P_old;
       w_R_cur = w_R_old * relative_q;
       double shift_yaw;
-      Matrix3d shift_r;
-      Vector3d shift_t;
+      Eigen::Matrix3d shift_r;
+      Eigen::Vector3d shift_t;
       shift_yaw = Utility::R2ypr(w_R_cur).x() - Utility::R2ypr(svin_R_cur).x();
-      shift_r = Utility::ypr2R(Vector3d(shift_yaw, 0, 0));
+      shift_r = Utility::ypr2R(Eigen::Vector3d(shift_yaw, 0, 0));
       shift_t = w_P_cur - w_R_cur * svin_R_cur.transpose() * svin_P_cur;
 
       {

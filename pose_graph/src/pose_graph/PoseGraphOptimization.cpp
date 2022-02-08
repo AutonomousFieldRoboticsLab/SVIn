@@ -619,13 +619,13 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
     boost::filesystem::remove(loop_closure_file);
   }
   ofstream loop_path_file(loop_closure_file, ios::out);
-  loop_path_file << "#cur_kf_id"
+  loop_path_file << "cur_kf_id"
                  << " "
-                 << "#cur_kf_ts"
+                 << "cur_kf_ts"
                  << " "
-                 << "#matched_kf_id"
+                 << "matched_kf_id"
                  << " "
-                 << "#matched_kf_ts"
+                 << "matched_kf_ts"
                  << " "
                  << "relative_tx"
                  << " "
@@ -633,10 +633,12 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
                  << " "
                  << "relative_tz"
                  << " "
-                 << "relative_roll"
+                 << "relative_qx"
                  << " "
-                 << "relative_pitch"
+                 << "relative_qy"
                  << " "
-                 << "relative_yaw" << endl;
+                 << "relative_qz"
+                 << " "
+                 << "relative_qw" << endl;
   loop_path_file.close();
 }

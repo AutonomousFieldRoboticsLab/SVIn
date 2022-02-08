@@ -151,8 +151,8 @@ void KFMatcher::computeBoW() {
 
 void KFMatcher::updateConnections() {
   if (KFcounter_.empty() && is_vio_keyframe_) {
-    std::cout << "KFcounter is empty for KF: " << index << " This SHOULDN't be happening except 1st frame."
-              << std::endl;
+    // std::cout << "KFcounter is empty for KF: " << index << " This SHOULDN't be happening except 1st frame."
+    // << std::endl;
     return;
   }
 
@@ -338,14 +338,7 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
   // This is a bug in opencv. The bug is fixed in opencv master branch.
   try {
-    if (CV_MAJOR_VERSION < 3) {
-      solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 100, inliers);
-    } else {
-      if (CV_MINOR_VERSION < 2)
-        solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, sqrt(10.0 / 230), 0.99, inliers);
-      else
-        solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 0.99, inliers);
-    }
+    solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 20.0 / params_.p_fx, 0.99, inliers);
   } catch (cv::Exception e) {
     // std::cout << "Caught exception in PnPRANSAC:" << e.what() << std::endl;
     inliers.setTo(cv::Scalar(0));
@@ -473,9 +466,9 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
     if (abs(relative_yaw) < 30.0 && relative_t.norm() < 20.0) {
       if (params_.debug_image_) {
-        cv::Mat pnp_verified_image =
+        cv::Mat loop_image =
             UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
-        cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
+        cv::Mat notation(50, loop_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
         putText(notation,
                 "current frame: " + to_string(index),
                 cv::Point2f(20, 30),
@@ -486,16 +479,26 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
         putText(notation,
                 "previous frame: " + to_string(old_kf->index) + " matches: " + to_string(matched_2d_cur.size()),
-                cv::Point2f(20 + pnp_verified_image.cols / 2, 30),
+                cv::Point2f(20 + loop_image.cols / 2, 30),
                 cv::FONT_HERSHEY_SIMPLEX,
                 1,
                 cv::Scalar(255),
                 3);
-        cv::vconcat(notation, pnp_verified_image, pnp_verified_image);
+        cv::vconcat(notation, loop_image, loop_image);
         std::string pnp_verified_dir = pkg_path + "/output_logs/loop_closure/";
         std::string filename =
             pnp_verified_dir + "loop_closure_" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
-        cv::imwrite(filename, pnp_verified_image);
+        cv::imwrite(filename, loop_image);
+        std::string loop_closure_stats = pkg_path + "/output_logs/loop_closure.txt";
+        std::ofstream loop_closure_file(loop_closure_stats, std::ios::app);
+        loop_closure_file.setf(ios::fixed, ios::floatfield);
+        Eigen::Vector3d relative_ypr = Utility::R2ypr(relative_q.toRotationMatrix());
+        loop_closure_file.precision(6);
+        loop_closure_file << index << " " << old_kf->index << " "
+                          << " " << relative_t.x() << " " << relative_t.y() << " " << relative_t.z() << " "
+                          << relative_q.x() << " " << relative_q.y() << " " << relative_q.z() << " " << relative_q.w()
+                          << std::endl;
+        loop_closure_file.close();
       }
       has_loop = true;
       loop_index = old_kf->index;

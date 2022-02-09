@@ -23,7 +23,7 @@
     <remap from="/left/image_raw" to="/cam0/image_raw" />
     <remap from="/right/image_raw" to="/cam1/image_raw" />
     <remap from="/left/camera_info" to="/cam_fl/camera_info" />
-    <remap from="/right/camera_info" to="/cam_fl/camera_info" /> 
+    <remap from="/right/camera_info" to="/cam_fr/camera_info" /> 
     <param name="approximate_sync" value="true"/>
   </node>
 

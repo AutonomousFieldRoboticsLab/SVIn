@@ -338,7 +338,7 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
   // This is a bug in opencv. The bug is fixed in opencv master branch.
   try {
-    solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 20.0 / params_.p_fx, 0.99, inliers);
+    solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 30.0 / params_.p_fx, 0.99, inliers);
   } catch (cv::Exception e) {
     // std::cout << "Caught exception in PnPRANSAC:" << e.what() << std::endl;
     inliers.setTo(cv::Scalar(0));

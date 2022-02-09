@@ -5,10 +5,10 @@ model_type: PINHOLE
 camera_name: cam_fl
 # Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
 projection_matrix:
-    fx: 1240.640395152514
-    fy: 1240.640395152514
-    cx: 272.7850456237793
-    cy: 310.3795585632324
+    fx: 1242.0480207554092
+    fy: 1242.0480207554092
+    cx: 276.810977935791
+    cy: 310.05108642578125
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 1.0
@@ -26,9 +26,9 @@ min_loop_num: 25
 
 #For uber estimator
 use_health: 1
-keypoints_threshold: 20
-consecutive_good_keyframes: 10
-switching_time: 1.75
+keypoints_threshold: 10
+consecutive_good_keyframes: 3
+switching_time: 1.5
 
 # if enabled will save debug images in pose_graph/output_logs/
 debug_image: 1
@@ -57,3 +57,4 @@ T_BS: [1.0, 0.0, 0.0, 0.0,
       0.0, -1.0, 0.0, 0.0,
       0.0, 0.0, -1.0, 0.0,
       0.0, 0.0, 0.0, 1.0]
+imageDelay: -0.02 #to synchronize keyframe and raw images. This should be same as okvis config file

@@ -362,7 +362,7 @@ void PoseGraphOptimization::run() {
 
         for (size_t i = 0; i < landmark_ids.size(); i++) {
           double quality = qualities.at(i);
-          if (quality < 1e-6) continue;
+          if (quality < 1e-4) continue;
 
           Eigen::Vector3d pos_cam_frame = local_positions.at(i);
 

@@ -167,18 +167,35 @@ void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
 const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
   sensor_msgs::ImageConstPtr img_msg;
 
-  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < ros_stamp) {
+  uint64_t search_stamp = ros_stamp;
+  if (params_.image_delay_ != 0.0) {
+    search_stamp = ros_stamp + ros::Duration(params_.image_delay_).toNSec();
+  }
+
+  // ROS_WARN_STREAM(ros_stamp << "\t" << search_stamp);
+
+  {
+    std::lock_guard<std::mutex> l(measurement_mutex_);
+    while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < search_stamp) {
+      orig_image_buffer_.pop();
+    }
+    if (!orig_image_buffer_.empty()) {
+      img_msg = orig_image_buffer_.front();
+      orig_image_buffer_.pop();
+    }
+  }
+  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < search_stamp) {
     img_msg = orig_image_buffer_.front();
     orig_image_buffer_.pop();
   }
 
   uint64_t diff = 0;
   if (img_msg) {
-    diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
+    diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(search_stamp));
   }
   if (!orig_image_buffer_.empty()) {
-    uint64_t upper_diff =
-        abs(static_cast<int64_t>(orig_image_buffer_.front()->header.stamp.toNSec()) - static_cast<int64_t>(ros_stamp));
+    uint64_t upper_diff = abs(static_cast<int64_t>(orig_image_buffer_.front()->header.stamp.toNSec()) -
+                              static_cast<int64_t>(search_stamp));
     if (img_msg == nullptr || diff > upper_diff) {
       img_msg = orig_image_buffer_.front();
       orig_image_buffer_.pop();
@@ -189,7 +206,7 @@ const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
   if (diff > 100000000) {
     ROS_WARN_STREAM("Time difference between keyframe and original image is too large: " << diff << " ns");
     ROS_WARN_STREAM("Image time: " << img_msg->header.stamp.toNSec() << " ns");
-    ROS_WARN_STREAM("Keyframe time: " << ros_stamp << " ns");
+    ROS_WARN_STREAM("Keyframe time: " << search_stamp << " ns");
   }
 
   cv_bridge::CvImageConstPtr cv_ptr;

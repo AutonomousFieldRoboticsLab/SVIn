@@ -1,7 +1,6 @@
 %YAML:1.0
 cameras:
     # Images are cropped rather than downsized
-    # Principal point shifted by (-400,-300); all other parameters same
     - {T_SC:
        [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
         0.99825455, -0.02099889, 0.05519876, -0.04791664,
@@ -10,8 +9,8 @@ cameras:
        image_dimension: [800, 600],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [1240.640395152514, 1240.640395152514],
-       principal_point: [272.7850456237793, 310.3795585632324]} 
+       focal_length: [1242.0480207554092, 1242.0480207554092],
+       principal_point: [276.810977935791, 310.05108642578125]}  # alpha = 0.0
 
     - {T_SC:
        [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
@@ -21,8 +20,8 @@ cameras:
        image_dimension: [800, 600],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [1240.640395152514, 1240.640395152514],
-       principal_point: [272.7850456237793, 310.3795585632324]}  
+       focal_length: [1242.0480207554092, 1242.0480207554092],
+       principal_point: [276.810977935791, 310.05108642578125]}  # alpha = 0.0
 
 camera_params:
     camera_rate: 30
@@ -35,12 +34,12 @@ camera_params:
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 12.0e-4 # gyro noise density [rad/s/sqrt(Hz)]
-    sigma_a_c: 8.0e-3 # accelerometer noise density [m/s^2/sqrt(Hz)]
+    sigma_g_c: 0.0016017 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
+    sigma_a_c: 0.0071376 # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 4.0e-6 # gyro drift noise density [rad/s^s/sqrt(Hz)]
-    sigma_aw_c: 4.0e-5 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
+    sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
+    sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
@@ -67,12 +66,12 @@ ceres_options:
 
 # detection
 detection_options:
-    threshold: 10.0      # detection threshold. By default the uniformity radius in pixels
+    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
-imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+imageDelay: -0.02  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
@@ -102,7 +101,7 @@ publishing_options:
 isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
-isCLAHE: false
+isCLAHE: true
 claheClipLimit: 2.0
 claheTilesGridSize: 4
 

@@ -52,6 +52,7 @@ class Parameters {
   uint16_t consecutive_good_keyframes_threshold_;
 
   bool debug_image_;
+  double image_delay_;
 
  public:
   void loadParameters(const ros::NodeHandle& nh);

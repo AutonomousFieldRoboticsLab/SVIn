@@ -17,6 +17,7 @@ Parameters::Parameters() {
   wait_for_keyframe_time_ = 0.5;
   consecutive_good_keyframes_threshold_ = 5;
   debug_image_ = false;
+  image_delay_ = 0.0;
 }
 
 void Parameters::loadParameters(const ros::NodeHandle& nh) {
@@ -200,5 +201,10 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
     ROS_INFO_STREAM("debug_image: " << debug_image_);
   }
 
+  cv::FileNode image_delay_node = fsSettings["imageDelay"];
+  if (image_delay_node.isInt() || image_delay_node.isReal()) {
+    image_delay_ = static_cast<double>(image_delay_node);
+    ROS_INFO_STREAM("image_delay: " << image_delay_);
+  }
   fsSettings.release();
 }

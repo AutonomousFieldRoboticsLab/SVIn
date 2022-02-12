@@ -2,8 +2,11 @@
 
 #include <ros/ros.h>
 
-bool LoopClosureUtils::geometricVerificationNister(std::vector<cv::KeyPoint>& matched_2d_cur,
-                                                   std::vector<cv::Point2f>& matched_2d_old,
+#include <memory>
+#include <vector>
+
+bool LoopClosureUtils::geometricVerificationNister(const std::vector<cv::KeyPoint>& matched_2d_cur,
+                                                   const std::vector<cv::Point2f>& matched_2d_old,
                                                    std::vector<uchar>& status,
                                                    int min_correspondences,
                                                    opengv::transformation_t* camMatch_T_camQuery_mono) {

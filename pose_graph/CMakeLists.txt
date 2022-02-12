@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV)
 find_package(PCL  REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)
+find_package(opengv REQUIRED)
 
 # brisk
 find_package( brisk 2 REQUIRED )
@@ -55,6 +56,7 @@ add_library(${PROJECT_NAME}
     src/utils/CameraPoseVisualization.cpp
     src/utils/UtilsOpenCV.cpp
     src/utils/Utils.cpp
+    src/utils/LoopClosureUtils.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp
     ThirdParty/DBoW/FeatureVector.cpp
@@ -67,7 +69,14 @@ add_library(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME} Dependencies brisk)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}  ${OpenCV_LIBS} ${CERES_LIBRARIES} ${BRISK_LIBRARIES} ${PCL_LIBRARIES} ${Boost_LIBRARIES}) 
+target_link_libraries(${PROJECT_NAME}
+  opengv
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  ${CERES_LIBRARIES} 
+  ${BRISK_LIBRARIES}
+  ${PCL_LIBRARIES}
+  ${Boost_LIBRARIES}) 
 
 add_executable(${PROJECT_NAME}_node src/pose_graph_node.cpp)
 target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})

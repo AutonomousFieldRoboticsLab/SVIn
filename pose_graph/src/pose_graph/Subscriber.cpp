@@ -174,16 +174,6 @@ const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
 
   // ROS_WARN_STREAM(ros_stamp << "\t" << search_stamp);
 
-  {
-    std::lock_guard<std::mutex> l(measurement_mutex_);
-    while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < search_stamp) {
-      orig_image_buffer_.pop();
-    }
-    if (!orig_image_buffer_.empty()) {
-      img_msg = orig_image_buffer_.front();
-      orig_image_buffer_.pop();
-    }
-  }
   while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < search_stamp) {
     img_msg = orig_image_buffer_.front();
     orig_image_buffer_.pop();

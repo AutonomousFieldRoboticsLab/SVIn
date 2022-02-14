@@ -581,36 +581,43 @@ void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::Odo
 void PoseGraphOptimization::setupOutputLogDirectories() {
   std::string pacakge_path = ros::package::getPath("pose_graph");
 
-  std::string loop_candidate_directory = pacakge_path + "/output_logs/loop_candidates/";
-  if (!boost::filesystem::is_directory(loop_candidate_directory) ||
-      !boost::filesystem::exists(loop_candidate_directory)) {
-    boost::filesystem::create_directory(loop_candidate_directory);
+  std::string output_dir = pacakge_path + "/output_logs/loop_candidates/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(loop_candidate_directory)) {
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  std::string descriptor_match_dir = pacakge_path + "/output_logs/descriptor_matched/";
-  if (!boost::filesystem::is_directory(descriptor_match_dir) || !boost::filesystem::exists(descriptor_match_dir)) {
-    boost::filesystem::create_directory(descriptor_match_dir);
+  output_dir = pacakge_path + "/output_logs/descriptor_matched/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(descriptor_match_dir)) {
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  std::string pnp_verified_dir = pacakge_path + "/output_logs/pnp_verified/";
-  if (!boost::filesystem::is_directory(pnp_verified_dir) || !boost::filesystem::exists(pnp_verified_dir)) {
-    boost::filesystem::create_directory(pnp_verified_dir);
+  output_dir = pacakge_path + "/output_logs/pnp_verified/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(pnp_verified_dir)) {
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  std::string loop_closure_dir = pacakge_path + "/output_logs/loop_closure/";
-  if (!boost::filesystem::is_directory(loop_closure_dir) || !boost::filesystem::exists(loop_closure_dir)) {
-    boost::filesystem::create_directory(loop_closure_dir);
+  output_dir = pacakge_path + "/output_logs/loop_closure/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(loop_closure_dir)) {
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/geometric_verification/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 

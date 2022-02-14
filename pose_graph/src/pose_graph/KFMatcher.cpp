@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "pose_graph/Parameters.h"
+#include "utils/LoopClosureUtils.h"
 #include "utils/UtilsOpenCV.h"
 
 const int KFMatcher::TH_HIGH = 100;
@@ -311,13 +312,13 @@ void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
   }
 }
 
-void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
+void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old,
                           const std::vector<cv::Point3f>& matched_3d,
                           std::vector<uchar>& status,
                           Eigen::Vector3d& PnP_T_old,
                           Eigen::Matrix3d& PnP_R_old) {
   cv::Mat r, rvec, t, D, tmp_r;
-  cv::Mat K = (cv::Mat_<double>(3, 3) << 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0);
+  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx, 0, params_.p_cx, 0, params_.p_fy, params_.p_cy, 0, 0, 1.0);
   Eigen::Matrix3d R_inital;
   Eigen::Vector3d P_inital;
 
@@ -338,13 +339,23 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
   // This is a bug in opencv. The bug is fixed in opencv master branch.
   try {
-    solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 30.0 / params_.p_fx, 0.99, inliers);
+    solvePnPRansac(matched_3d,
+                   matched_2d_old,
+                   K,
+                   D,
+                   rvec,
+                   t,
+                   false,
+                   params_.loop_closure_params_.pnp_ransac_iterations,
+                   params_.loop_closure_params_.pnp_reprojection_thresh,
+                   0.99,
+                   inliers);
   } catch (cv::Exception e) {
     // std::cout << "Caught exception in PnPRANSAC:" << e.what() << std::endl;
     inliers.setTo(cv::Scalar(0));
   }
 
-  for (int i = 0; i < static_cast<int>(matched_2d_old_norm.size()); i++) status.push_back(0);
+  for (int i = 0; i < static_cast<int>(matched_2d_old.size()); i++) status.push_back(0);
 
   for (int i = 0; i < inliers.rows; i++) {
     int n = inliers.at<int>(i);
@@ -414,14 +425,36 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   // std::cout << "Size Before RANSAC: " << matched_2d_cur.size() << std::endl;
 
+  opengv::transformation_t T_w_c_old;
+  if (LoopClosureUtils::geometricVerificationNister(
+          matched_2d_cur, matched_2d_old, status, params_.loop_closure_params_.min_correspondences, &T_w_c_old)) {
+    reduceVector(matched_2d_old, status);
+    reduceVector(matched_3d, status);
+    reduceVector(matched_2d_cur, status);
+    reduceVector(matched_2d_old_norm, status);
+    reduceVector(matched_ids, status);
+    status.clear();
+
+    if (params_.debug_image_) {
+      cv::Mat corners_match_image =
+          UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
+      std::string dscriptor_match_dir = pkg_path + "/output_logs/geometric_verification/";
+      std::string filename = dscriptor_match_dir + "geometric_verification_" + std::to_string(index) + "_" +
+                             std::to_string(old_kf->index) + ".png";
+      cv::imwrite(filename, corners_match_image);
+    }
+  } else {
+    return false;
+  }
+
   Eigen::Vector3d PnP_T_old;
   Eigen::Matrix3d PnP_R_old;
   Eigen::Vector3d relative_t;
   Eigen::Quaterniond relative_q;
   double relative_yaw;
 
-  if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
-    PnPRANSAC(matched_2d_old_norm, matched_3d, status, PnP_T_old, PnP_R_old);
+  if (static_cast<int>(matched_2d_cur.size()) > params_.loop_closure_params_.min_correspondences) {
+    PnPRANSAC(matched_2d_old, matched_3d, status, PnP_T_old, PnP_R_old);
     reduceVector(matched_2d_cur, status);
     reduceVector(matched_2d_old, status);
     reduceVector(matched_2d_old_norm, status);
@@ -458,7 +491,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   // std::cout<< "Size after RANSAC "<< matched_2d_cur.size() << std::endl;
 
-  if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
+  if (static_cast<int>(matched_2d_cur.size()) > params_.loop_closure_params_.min_correspondences) {
     relative_t = PnP_R_old.transpose() * (origin_svin_T - PnP_T_old);
     relative_q = PnP_R_old.transpose() * origin_svin_R;
 

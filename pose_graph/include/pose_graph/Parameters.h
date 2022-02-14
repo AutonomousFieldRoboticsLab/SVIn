@@ -10,6 +10,13 @@
 #include <string>
 #include <vector>
 
+struct LoopClosureParams {
+  bool loop_closure_enabled;
+  double pnp_reprojection_thresh;
+  double pnp_ransac_iterations;
+  int min_correspondences;
+};
+
 class Parameters {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -24,8 +31,6 @@ class Parameters {
   std::string svin_w_loop_path_;
 
   int fast_relocalization_;
-
-  int min_loop_num_;
 
   // projection matrix
   double p_fx;
@@ -53,6 +58,8 @@ class Parameters {
 
   bool debug_image_;
   double image_delay_;
+
+  LoopClosureParams loop_closure_params_;
 
  public:
   void loadParameters(const ros::NodeHandle& nh);

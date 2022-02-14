@@ -18,6 +18,11 @@ Parameters::Parameters() {
   consecutive_good_keyframes_threshold_ = 5;
   debug_image_ = false;
   image_delay_ = 0.0;
+
+  loop_closure_params_.loop_closure_enabled = true;
+  loop_closure_params_.min_correspondences = 25;
+  loop_closure_params_.pnp_reprojection_thresh = 20.0;
+  loop_closure_params_.pnp_ransac_iterations = 100;
 }
 
 void Parameters::loadParameters(const ros::NodeHandle& nh) {
@@ -59,8 +64,31 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
 
   brief_pattern_file_ = pkg_path + "/Vocabulary/brief_pattern.yml";
 
-  min_loop_num_ = fsSettings["min_loop_num"];
-  std::cout << "Num of matched keypoints for Loop Detection: " << min_loop_num_ << std::endl;
+  if (fsSettings["loop_closure_params"]["enable"].isInt()) {
+    loop_closure_params_.loop_closure_enabled = static_cast<int>(fsSettings["loop_closure_params"]["enable"]);
+    ROS_INFO_STREAM("loop_closure_params.enable: " << loop_closure_params_.loop_closure_enabled);
+
+    if (fsSettings["loop_closure_params"]["min_correspondences"].isInt() ||
+        fsSettings["loop_closure_params"]["min_correspondences"].isReal()) {
+      loop_closure_params_.min_correspondences =
+          static_cast<int>(fsSettings["loop_closure_params"]["min_correspondences"]);
+      ROS_INFO_STREAM("Num of matched keypoints for Loop Detection:" << loop_closure_params_.min_correspondences);
+    }
+
+    if (fsSettings["loop_closure_params"]["pnp_reprojection_threshold"].isReal() ||
+        fsSettings["loop_closure_params"]["pnp_reprojection_threshold"].isInt()) {
+      loop_closure_params_.pnp_reprojection_thresh =
+          static_cast<double>(fsSettings["loop_closure_params"]["pnp_reprojection_threshold"]);
+      ROS_INFO_STREAM("PnP reprojection threshold: " << loop_closure_params_.pnp_reprojection_thresh);
+    }
+
+    if (fsSettings["loop_closure_params"]["pnp_ransac_iterations"].isInt() ||
+        fsSettings["loop_closure_params"]["pnp_ransac_iterations"].isReal()) {
+      loop_closure_params_.pnp_ransac_iterations =
+          static_cast<int>(fsSettings["loop_closure_params"]["pnp_ransac_iterations"]);
+      ROS_INFO_STREAM("PnP ransac iterations: " << loop_closure_params_.pnp_ransac_iterations);
+    }
+  }
 
   fast_relocalization_ = fsSettings["fast_relocalization"];
 

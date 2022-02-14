@@ -19,8 +19,8 @@ class LoopClosureUtils {
   using SacProblemStereo = opengv::sac_problems::point_cloud::PointCloudSacProblem;
 
  public:
-  static bool geometricVerificationNister(const std::vector<cv::KeyPoint>& matched_2d_old,
-                                          const std::vector<cv::Point2f>& matched_2d_old_norm,
+  static bool geometricVerificationNister(const std::vector<cv::KeyPoint>& matched_2d_cur,
+                                          const std::vector<cv::Point2f>& matched_2d_old,
                                           std::vector<uchar>& status,  // NOLINT
                                           int min_correspondences,
                                           opengv::transformation_t* camMatch_T_camQuery_mono);

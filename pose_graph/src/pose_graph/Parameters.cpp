@@ -23,6 +23,8 @@ Parameters::Parameters() {
   loop_closure_params_.min_correspondences = 25;
   loop_closure_params_.pnp_reprojection_thresh = 20.0;
   loop_closure_params_.pnp_ransac_iterations = 100;
+
+  min_landmark_quality_ = 0.001;
 }
 
 void Parameters::loadParameters(const ros::NodeHandle& nh) {
@@ -229,10 +231,16 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
     ROS_INFO_STREAM("debug_image: " << debug_image_);
   }
 
-  cv::FileNode image_delay_node = fsSettings["imageDelay"];
+  cv::FileNode image_delay_node = fsSettings["image_delay"];
   if (image_delay_node.isInt() || image_delay_node.isReal()) {
     image_delay_ = static_cast<double>(image_delay_node);
     ROS_INFO_STREAM("image_delay: " << image_delay_);
   }
+
+  if (fsSettings["min_landmark_quality"].isReal()) {
+    min_landmark_quality_ = static_cast<double>(fsSettings["min_landmark_quality"]);
+    ROS_INFO_STREAM("min_landmark_quality: " << min_landmark_quality_);
+  }
+
   fsSettings.release();
 }

@@ -354,7 +354,7 @@ void PoseGraphOptimization::run() {
         {
           std::lock_guard<std::mutex> l(processMutex_);
           // start_flag = 1;
-          loop_closing_->addKFToPoseGraph(keyframe, 1);
+          loop_closing_->addKFToPoseGraph(keyframe, params_->loop_closure_params_.loop_closure_enabled);
         }
 
         // sensor_msgs::PointCloud2 sparse_pointcloud_msg;
@@ -362,7 +362,7 @@ void PoseGraphOptimization::run() {
 
         for (size_t i = 0; i < landmark_ids.size(); i++) {
           double quality = qualities.at(i);
-          if (quality < 1e-4) continue;
+          if (quality < params_->min_landmark_quality_) continue;
 
           Eigen::Vector3d pos_cam_frame = local_positions.at(i);
 

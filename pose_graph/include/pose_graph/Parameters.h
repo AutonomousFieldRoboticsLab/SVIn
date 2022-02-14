@@ -58,6 +58,7 @@ class Parameters {
 
   bool debug_image_;
   double image_delay_;
+  double min_landmark_quality_;
 
   LoopClosureParams loop_closure_params_;
 

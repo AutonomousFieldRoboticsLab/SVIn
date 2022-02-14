@@ -282,19 +282,33 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
 
   success = parseBoolean(file["isRelocalization"], vioParameters_.relocParameters.isRelocalization);
   OKVIS_ASSERT_TRUE(Exception, success, "'isRelocalization' parameter missing in configuration file.");
-  success = parseBoolean(file["isCLAHE"], vioParameters_.claheParams.isClaheUsed);
-  OKVIS_ASSERT_TRUE(Exception, success, "'isCLAHE' parameter missing in configuration file.");
 
-  if (vioParameters_.claheParams.isClaheUsed) {
-    if (file["claheClipLimit"].isReal()) {
-      vioParameters_.claheParams.claheClipLimit = static_cast<double>(file["claheClipLimit"]);
-    }
-    if (file["claheTilesGridSize"].isInt()) {
-      vioParameters_.claheParams.claheTilesGridSize = static_cast<int>(file["claheTilesGridSize"]);
-    }
+  if (file["histogramMethod"].isString()) {
+    std::string histogram_method = static_cast<std::string>(file["histogramMethod"]);
+    if (histogram_method == "NONE" || histogram_method == "none") {
+      vioParameters_.histogramParams.histogramMethod = HistogramMethod::NONE;
+    } else if (histogram_method == "HISTOGRAM" || histogram_method == "histogram") {
+      vioParameters_.histogramParams.histogramMethod = HistogramMethod::HISTOGRAM;
+    } else if (histogram_method == "CLAHE" || histogram_method == "clahe") {
+      vioParameters_.histogramParams.histogramMethod = HistogramMethod::CLAHE;
+      vioParameters_.histogramParams.claheClipLimit = 5.0;
+      vioParameters_.histogramParams.claheTilesGridSize = 8;
+      if (file["claheClipLimit"].isReal()) {
+        vioParameters_.histogramParams.claheClipLimit = static_cast<double>(file["claheClipLimit"]);
+      }
+      if (file["claheTilesGridSize"].isInt()) {
+        vioParameters_.histogramParams.claheTilesGridSize = static_cast<int>(file["claheTilesGridSize"]);
+      }
 
-    std::cout << "Read Clahe Params " << vioParameters_.claheParams.claheClipLimit << " "
-              << vioParameters_.claheParams.claheTilesGridSize << std::endl;
+      std::cout << "Read Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
+                << vioParameters_.histogramParams.claheTilesGridSize << std::endl;
+    } else {
+      LOG(WARNING) << histogram_method << " unknown/invalid histogramMethod, setting to NONE";
+      vioParameters_.histogramParams.histogramMethod = HistogramMethod::NONE;
+    }
+  } else {
+    LOG(WARNING) << "No histogramMethod specified in config file, setting to 'none'";
+    vioParameters_.histogramParams.histogramMethod = HistogramMethod::NONE;
   }
 
   // sonar parameters

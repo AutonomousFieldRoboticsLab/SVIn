@@ -67,6 +67,7 @@ class LoopClosing {
   int detectLoop(KFMatcher* keyframe, int frame_index);
   void addKeyFrameIntoVoc(KFMatcher* keyframe);
   void optimize4DoFPoseGraph();
+  void optimize6DoFPoseGraph();
   void updatePath();
   list<KFMatcher*> keyframelist;
   std::mutex kflistMutex_;
@@ -97,6 +98,7 @@ class LoopClosing {
  public:
   void set_svin_results_file(const std::string& svin_output_file);
   void set_fast_relocalization(const bool localization_flag);
+  void startOptimizationThread(bool is_vio_optimization = true);
 };
 
 template <typename T>

@@ -5,10 +5,10 @@ model_type: PINHOLE
 camera_name: cam_fl
 # Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
 projection_matrix:
-    fx: 1240.64067844
-    fy: 1240.64067844
-    cx: 272.78517151
-    cy: 310.37955475
+    fx: 579.92076363
+    fy: 579.92076363
+    cx: 326.80654526
+    cy: 312.22106171
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 1.0
@@ -28,11 +28,12 @@ loop_closure_params:
 
 fast_relocalization: 1
 
+
 #For uber estimator
 use_health: 1
-keypoints_threshold: 20
-consecutive_good_keyframes: 3
-switching_time: 1.75
+keypoints_threshold: 25
+consecutive_good_keyframes: 5
+switching_time: 2.0
 
 # if enabled will save debug images in pose_graph/output_logs/
 debug_image: 1
@@ -47,13 +48,14 @@ is_stereo: 1
 cam0:
     height: 600
     width: 800
-    D: [-0.16289394, 0.08351833, 0.01227648, 0.0006859]
-    K: [1138.83276975, 0.0, 308.17293738,
-        0.0, 1139.59469807, 317.12897383,
+    D: [-0.16289394362063583, 0.08351833356682732, 0.012276483503048642, 0.0006858966792660155]
+    K: [569.416384875, 0.0, 354.08646869,
+        0.0, 569.7973490352, 308.564486915,
         0.0, 0.0, 1.0]
-    R: [0.9987608453733716, -0.024735976749058985, 0.043184548201154145,
-        0.02417977658530305, 0.9996184201648292, 0.013354866957629642,
-        -0.043498415526920325, -0.012294125485009934, 0.9989778487660305]
+    R: [0.99876085, -0.02473601,  0.04318445,
+        0.02417981,  0.99961842,  0.01335487,
+       -0.04349831, -0.01229413,  0.99897785]
+
 
 # To transform pose between uber and okvis coordinate systems
 T_SC: [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
@@ -64,5 +66,6 @@ T_BS: [1.0, 0.0, 0.0, 0.0,
       0.0, -1.0, 0.0, 0.0,
       0.0, 0.0, -1.0, 0.0,
       0.0, 0.0, 0.0, 1.0]
+
  #to synchronize keyframe and raw images. This should be same as okvis config file
-image_delay: -0.02
+image_delay: 0.0

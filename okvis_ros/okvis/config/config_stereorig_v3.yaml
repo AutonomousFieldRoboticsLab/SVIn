@@ -8,8 +8,8 @@ cameras:
        image_dimension: [1600, 1200],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
        distortion_type: radialtangential,
-       focal_length: [1136.7477932812305, 1136.7477932812305], #projection matrix as pre-rectified images have been used
-       principal_point: [760.8502960205078, 610.0998077392578]} #projection matrix as pre-rectified images have been used
+       focal_length: [1139.57034463, 1139.57034463], #projection matrix as pre-rectified images have been used
+       principal_point: [754.97817993, 611.61469269]} #projection matrix as pre-rectified images have been used
 
     - {T_SC:
        [-0.9999822972664981, 0.00584741297162457, -0.0011013242740797412, -0.043088620439334535,
@@ -19,15 +19,15 @@ cameras:
        image_dimension: [1600, 1200],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
        distortion_type: radialtangential,
-       focal_length: [1136.7477932812305, 1136.7477932812305], #projection matrix as pre-rectified images have been used
-       principal_point: [760.8502960205078, 610.0998077392578]}  #projection matrix as pre-rectified images have been used
+       focal_length: [1139.57034463, 1139.57034463], #projection matrix as pre-rectified images have been used
+       principal_point: [754.97817993, 611.61469269]}  #projection matrix as pre-rectified images have been used
 
 camera_params:
-    camera_rate: 15
-    sigma_absolute_translation: 8.0e-6
-    sigma_absolute_orientation: 8.0e-6
-    sigma_c_relative_translation: 1.0e-6 # below 1.0e-6 ruines numerics...
-    sigma_c_relative_orientation: 1.0e-6 # below 1.0e-6 ruines numerics...
+    camera_rate: 20
+    sigma_absolute_translation: 0.0
+    sigma_absolute_orientation: 0.0
+    sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
+    sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
 
 
 imu_params:
@@ -73,7 +73,7 @@ ceres_options:
 detection_options:
     threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 300  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -106,6 +106,6 @@ publishing_options:
 isSonarUsed: true
 isDepthUsed: false
 isRelocalization: true
-isCLAHE: false
+histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 

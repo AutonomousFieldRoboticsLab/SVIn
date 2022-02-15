@@ -1,27 +1,27 @@
 %YAML:1.0
 cameras:
-    # Images are cropped rather than downsized
+    # Valid Fall 2018 and Spring 2019 to present (Summer 2021), not valid for Barbados 2019
     - {T_SC:
        [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
-        0.99825455, -0.02099889, 0.05519876, -0.04791664,
-        -0.009273, 0.86732768, 0.49765118, -0.02872042,
-        0.0, 0.0, 0.0, 1.0],
+         0.99825455, -0.02099889, 0.05519876, -0.04791664,
+         -0.009273, 0.86732768, 0.49765118, -0.02872042,
+         0., 0., 0., 1.],
        image_dimension: [800, 600],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [1240.64067844, 1240.64067844],
-       principal_point: [272.78517151, 310.37955475]}  # alpha = 0.0
+       focal_length: [579.92076363, 579.92076363],
+       principal_point: [326.80654526, 312.22106171]}  # alpha = 0.0
 
     - {T_SC:
-       [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
-        0.9982831, -0.0545409, 0.02135733, 0.04401349,
-        0.037832, 0.87875672, 0.47576818, -0.02956853,
-        0.0, 0.0, 0.0, 1.0],
+       [-0.04471672, -0.47414334,  0.87931138,  0.43962862,
+        0.9982831,  -0.0545409,   0.02135733,  0.04401349,
+        0.037832,    0.87875672,  0.47576818, -0.02956853,
+        0., 0., 0., 1.],
        image_dimension: [800, 600],
        distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [1240.64067844, 1240.64067844],
-       principal_point: [272.78517151, 310.37955475]}  # alpha = 0.0
+       focal_length: [579.92076363, 579.92076363],
+       principal_point: [326.80654526, 312.22106171]}  # alpha = 0.0
 
 camera_params:
     camera_rate: 30
@@ -61,17 +61,17 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 20  # never do more than these, even if not converged
+    maxIterations: 10  # never do more than these, even if not converged
     timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
-    threshold: 10.0      # detection threshold. By default the uniformity radius in pixels
+    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
-imageDelay: -0.02  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
@@ -90,10 +90,10 @@ publishing_options:
     publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:
-        [1.0, 0.0, 0.0, 0.0,
-         0.0, 1.0, 0.0, 0.0,
-         0.0, 0.0, 1.0, 0.0,
-         0.0, 0.0, 0.0, 1.0]
+        [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
+         0.0000, 0.0000, 0.0000, 1.0000]
     trackedBodyFrame: B                # B or S, the frame of reference that will be expressed relative to the selected worldFrame
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
@@ -104,7 +104,6 @@ isRelocalization: true
 histogramMethod: "CLAHE"     #NONE, HISTOGRAM, CLAHE
 claheClipLimit: 2.0
 claheTilesGridSize: 4
-
 
 resizeFactor: 1.0  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 

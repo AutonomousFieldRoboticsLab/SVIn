@@ -1,0 +1,52 @@
+<launch>
+
+  <!-- Arguments -->
+  <arg name="config_path" default = "$(find pose_graph)/config/speedo1/config_speedo1_downsize.yaml" />
+  
+  <param name="/use_sim_time" value="true"/>
+
+
+  <!-- To un-compress image topics -->
+  <node name="republish1" type="republish" pkg="image_transport" output="screen" args="compressed in:=/cam_fl/image_raw raw out:=/cam0/image_raw" />
+  <node name="republish2" type="republish" pkg="image_transport" output="screen" args="compressed in:=/cam_fr/image_raw raw out:=/cam1/image_raw" />
+ 
+
+  <!--Run pose_graph node-->
+  <node name="pose_graph_node" pkg="pose_graph" type="pose_graph_node" output="screen">
+    <param name="config_file" type="string" value="$(arg config_path)" />
+    <param name="use_health" type="bool" value="true"/>
+  </node>
+
+
+  <!-- Run the stereo image proc --> 
+  <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_image_proc" >
+    <remap from="/left/image_raw" to="/cam0/image_raw" />
+    <remap from="/right/image_raw" to="/cam1/image_raw" />
+    <remap from="/left/camera_info" to="/cam_fl/camera_info" />
+    <remap from="/right/camera_info" to="/cam_fr/camera_info" /> 
+    <param name="approximate_sync" value="true"/>
+  </node>
+
+  
+  <node name="okvis_node" pkg="okvis_ros" type="okvis_node" >
+
+    <param name="config_filename" value="$(find okvis_ros)/okvis/config/config_speedo1_water_downsize.yaml" />
+    <param name="mesh_file" value="firefly.dae" />
+
+
+    <remap from="/camera0" to="/left/image_rect"/> 
+    <remap from="/camera1" to="/right/image_rect"/> 
+
+    <remap from="/imu" to="/imu/imu" />
+
+  </node>
+
+  <include file="$(find aqua_uberestimator)/launch/primitive_estimator.launch"/>
+
+ <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_uber.rviz"/>
+
+
+</launch>
+
+
+

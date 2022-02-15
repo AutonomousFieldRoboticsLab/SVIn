@@ -5,11 +5,12 @@
 #include <set>
 #include <string>
 
+#include "pose_graph/Pose3DError.h"
+
 LoopClosing::LoopClosing() {
   posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
   posegraph_visualization->setScale(0.1);
   posegraph_visualization->setLineWidth(0.01);
-  t_optimization = std::thread(&LoopClosing::optimize4DoFPoseGraph, this);
   earliest_loop_index = -1;
   t_drift = Eigen::Vector3d(0, 0, 0);
   yaw_drift = 0;
@@ -39,6 +40,14 @@ void LoopClosing::setPublishers(ros::NodeHandle& nh) {
 void LoopClosing::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database) {
   voc = vocabulary;
   db = database;
+}
+
+void LoopClosing::startOptimizationThread(bool vio_only_optimization) {
+  if (vio_only_optimization) {
+    t_optimization = std::thread(&LoopClosing::optimize4DoFPoseGraph, this);
+  } else {
+    t_optimization = std::thread(&LoopClosing::optimize6DoFPoseGraph, this);
+  }
 }
 
 void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
@@ -404,6 +413,162 @@ void LoopClosing::optimize4DoFPoseGraph() {
           std::lock_guard<std::mutex> l(driftMutex_);
           yaw_drift = Utility::R2ypr(cur_r).x() - Utility::R2ypr(svin_r).x();
           r_drift = Utility::ypr2R(Eigen::Vector3d(yaw_drift, 0, 0));
+          t_drift = cur_t - r_drift * svin_t;
+        }
+
+        it++;
+        for (; it != keyframelist.end(); it++) {
+          Eigen::Vector3d P;
+          Eigen::Matrix3d R;
+          (*it)->getSVInPose(P, R);
+          P = r_drift * P + t_drift;
+          R = r_drift * R;
+          (*it)->updatePose(P, R);
+        }
+      }
+      updatePath();
+
+      loop_closure_optimization_callback_(ros::Time::now().toNSec());
+    }
+
+    std::chrono::milliseconds dura(2000);
+    std::this_thread::sleep_for(dura);
+  }
+}
+
+void LoopClosing::optimize6DoFPoseGraph() {
+  while (true) {
+    int cur_index = -1;
+    int first_looped_index = -1;
+
+    {
+      std::lock_guard<std::mutex> l(optimizationMutex_);
+      while (!optimizationBuffer_.empty()) {
+        cur_index = optimizationBuffer_.front();
+        first_looped_index = earliest_loop_index;
+        optimizationBuffer_.pop();
+      }
+    }
+    if (cur_index != -1) {
+      Eigen::Matrix<double, 6, 6> relative_pose_sqrt_information, loop_closure_sqrt_information;
+      relative_pose_sqrt_information << 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 20.0,
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 57.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 57.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 28.65;
+
+      loop_closure_sqrt_information << 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 100.0,
+          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          1000.0;
+
+      ceres::Problem problem;
+      ceres::Solver::Options options;
+      options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+      options.max_num_iterations = 5;
+      ceres::Solver::Summary summary;
+      ceres::LossFunction* loss_function = new ceres::HuberLoss(0.1);
+
+      kflistMutex_.lock();
+      KFMatcher* cur_kf = getKFPtr(cur_index);
+
+      int max_length = cur_index + 1;
+
+      Eigen::Vector3d t_array[max_length];
+      Eigen::Quaterniond q_array[max_length];  // NOLINT
+      double sequence_array[max_length];       // NOLINT
+
+      ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
+
+      list<KFMatcher*>::iterator it;
+
+      int i = 0;
+      for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
+        if ((*it)->index < first_looped_index) continue;
+        (*it)->local_index = i;
+        Eigen::Quaterniond tmp_q;
+        Eigen::Matrix3d tmp_r;
+        Eigen::Vector3d tmp_t;
+        (*it)->getSVInPose(tmp_t, tmp_r);
+        tmp_q = tmp_r;
+        t_array[i] = tmp_t;
+        q_array[i] = tmp_q;
+        sequence_array[i] = (*it)->sequence;
+
+        problem.AddParameterBlock(q_array[i].coeffs().data(), 4, quaternion_local_parameterization);
+        problem.AddParameterBlock(t_array[i].data(), 3);
+
+        if ((*it)->index == first_looped_index || (*it)->sequence == 0) {
+          problem.SetParameterBlockConstant(t_array[i].data());
+          problem.SetParameterBlockConstant(q_array[i].coeffs().data());
+        }
+
+        // add edge
+        // adding sequential egde. Fixed sized window of length 4 serves as covisibility
+        for (int j = 1; j < 5; j++) {
+          if (i - j >= 0 && sequence_array[i] == sequence_array[i - j]) {
+            Eigen::Quaterniond relative_q = q_array[i - j].inverse() * q_array[i];
+            Eigen::Vector3d relative_t = q_array[i - j].inverse() * (t_array[i] - t_array[i - j]);
+            ceres::Pose3d relative_pose(relative_t, relative_q);
+            ceres::CostFunction* cost_function =
+                ceres::PoseGraph3dErrorTerm::Create(relative_pose, relative_pose_sqrt_information);
+
+            problem.AddResidualBlock(cost_function,
+                                     NULL,
+                                     t_array[i - j].data(),
+                                     q_array[i - j].coeffs().data(),
+                                     t_array[i].data(),
+                                     q_array[i].coeffs().data());
+
+            // problem.SetParameterization(q_array[i - j].coeffs().data(), quaternion_local_parameterization);
+            // problem.SetParameterization(q_array[i].coeffs().data(), quaternion_local_parameterization);
+          }
+        }
+
+        // add loop edge
+
+        if ((*it)->has_loop) {
+          assert((*it)->loop_index >= first_looped_index);
+          Eigen::Vector3d relative_t = (*it)->getLoopRelativeT();
+          Eigen::Quaterniond relative_q = (*it)->getLoopRelativeQ();
+          ceres::Pose3d relative_pose(relative_t, relative_q);
+          ceres::CostFunction* cost_function =
+              ceres::PoseGraph3dErrorTerm::Create(relative_pose, loop_closure_sqrt_information);
+
+          int connected_index = getKFPtr((*it)->loop_index)->local_index;
+          problem.AddResidualBlock(cost_function,
+                                   loss_function,
+                                   t_array[connected_index].data(),
+                                   q_array[connected_index].coeffs().data(),
+                                   t_array[i].data(),
+                                   q_array[i].coeffs().data());
+
+          // problem.SetParameterization(q_array[connected_index].coeffs().data(), quaternion_local_parameterization);
+          // problem.SetParameterization(q_array[i].coeffs().data(), quaternion_local_parameterization);
+        }
+
+        if ((*it)->index == cur_index) break;
+        i++;
+      }
+      kflistMutex_.unlock();
+
+      ceres::Solve(options, &problem, &summary);
+
+      {
+        std::lock_guard<std::mutex> l(kflistMutex_);
+        i = 0;
+        for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
+          if ((*it)->index < first_looped_index) continue;
+          (*it)->updatePose(t_array[i], q_array[i].toRotationMatrix());
+
+          if ((*it)->index == cur_index) break;
+          i++;
+        }
+
+        Eigen::Vector3d cur_t, svin_t;
+        Eigen::Matrix3d cur_r, svin_r;
+        cur_kf->getPose(cur_t, cur_r);
+        cur_kf->getSVInPose(svin_t, svin_r);
+        {
+          std::lock_guard<std::mutex> l(driftMutex_);
+          r_drift = cur_r.transpose() * svin_r;
+          yaw_drift = Utility::R2ypr(r_drift).x();
           t_drift = cur_t - r_drift * svin_t;
         }
 

@@ -221,8 +221,9 @@ const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
 
 nav_msgs::OdometryConstPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t& ros_stamp) {
   nav_msgs::OdometryConstPtr prim_estimator_pose = nullptr;
+  // 25ms sync period while using primitive estimator publish rate of 20Hz
   while (!prim_estimator_odom_buffer_.empty() &&
-         prim_estimator_odom_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 10000000)) {
+         prim_estimator_odom_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 25000000)) {
     prim_estimator_pose = prim_estimator_odom_buffer_.front();
     prim_estimator_odom_buffer_.pop();
   }

@@ -60,10 +60,12 @@ class PoseGraphOptimization {
   ros::ServiceServer save_pointcloud_service_;
 
   double last_keyframe_time_;
+  double last_primitive_estmator_time_;
+  double scale_between_vio_prim_;
   uint64_t consecutive_tracking_failures_, consecutive_tracking_successes_;
   Eigen::Matrix4d last_t_w_svin_, last_t_w_prim_;
   Eigen::Matrix4d init_t_w_prim_, init_t_w_svin_;
-  Eigen::Matrix4d switch_svin_pose_, switch_prim_pose_, switch_uber_pose_;
+  Eigen::Matrix4d switch_svin_pose_, switch_prim_pose_, switch_uber_pose_, last_scaled_prim_pose_;
 
   std::vector<geometry_msgs::PoseStamped> primitive_estimator_poses_;
   std::vector<geometry_msgs::PoseStamped> uber_estimator_poses_;

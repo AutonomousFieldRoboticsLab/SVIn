@@ -18,6 +18,8 @@ max_solver_time: 0.04  # max solver itration time (ms), to guarantee real time
 max_num_iterations: 8   # max solver itrations, to guarantee real time
 keyframe_parallax: 10.0 # keyframe selection threshold (pixel)
 
+fast_relocalization: 1
+
 #loop closure 
 #if you want to use loop closure to minimize the drift, set loop_closure true and give your brief pattern file path and vocabulary file path accordingly;
 #also give the camera calibration file same as feature_tracker node
@@ -26,13 +28,14 @@ loop_closure_params:
     min_correspondences: 20
     pnp_reprojection_threshold: 30.0               
 
-fast_relocalization: 1
 
 #For uber estimator
-use_health: 1
-keypoints_threshold: 20
-consecutive_good_keyframes: 3
-switching_time: 1.75
+health:
+    enable: 1
+    min_keypoints: 15
+    consecutive_keyframes: 5
+    keyframe_wait_time: 1.8
+    kps_per_quadrant: 2
 
 # if enabled will save debug images in pose_graph/output_logs/
 debug_image: 1

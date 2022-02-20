@@ -59,3 +59,14 @@ std::string Utility::To_string_with_precision(const double a_value, const int n)
   out << std::setprecision(n) << a_value;
   return out.str();
 }
+
+std::string Utility::healthMsgToString(const okvis_ros::SvinHealthConstPtr& health) {
+  std::stringstream ss;
+  std::setprecision(5);
+  ss << "#keypoints: " << health->numTrackedKps << ","
+     << "#newkps: " << health->newKps << "\n";
+  ss << "keyframes_per_quartile: " << health->kpsPerQuadrant[0] << "," << health->kpsPerQuadrant[1] << ","
+     << health->kpsPerQuadrant[2] << "," << health->kpsPerQuadrant[3] << ",";
+
+  return ss.str();
+}

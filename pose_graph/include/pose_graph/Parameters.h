@@ -17,6 +17,14 @@ struct LoopClosureParams {
   int min_correspondences;
 };
 
+struct HealthParams {
+  bool health_monitoring_enabled = false;  // by default, health monitoring is disabled
+  uint16_t consecutive_keyframes;
+  uint16_t min_tracked_keypoints;
+  uint16_t kps_per_quadrant;
+  float kf_wait_time;
+};
+
 class Parameters {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -38,7 +46,6 @@ class Parameters {
   double p_cx;
   double p_cy;
 
-  bool use_health_;
   std::string vocabulary_file_;
 
   // for visulization
@@ -52,15 +59,15 @@ class Parameters {
   Eigen::Matrix4d T_imu_cam0_;
   Eigen::Matrix4d T_body_imu_;
 
-  uint16_t tracked_kypoints_threshold_;
-  double wait_for_keyframe_time_;
-  uint16_t consecutive_good_keyframes_threshold_;
-
   bool debug_image_;
   double image_delay_;
   double min_landmark_quality_;
 
+  // loop closure parameters
   LoopClosureParams loop_closure_params_;
+
+  // health monitoring parameters
+  HealthParams health_params_;
 
  public:
   void loadParameters(const ros::NodeHandle& nh);

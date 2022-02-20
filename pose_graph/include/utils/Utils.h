@@ -1,6 +1,7 @@
 #pragma once
 
 #include <geometry_msgs/Pose.h>
+#include <okvis_ros/SvinHealth.h>
 
 #include <cassert>
 #include <chrono>
@@ -134,6 +135,8 @@ class Utility {
   // Converts doulbe to sting with desired number of digits (total number of
   // digits)
   static std::string To_string_with_precision(const double a_value, const int n);
+
+  static std::string healthMsgToString(const okvis_ros::SvinHealthConstPtr& health);
 };
 
 enum TrackingStatus { NOT_INITIALIZED = 0, TRACKING_VIO = 1, TRACKING_PRIMITIVE_ESTIMATOR = 2 };

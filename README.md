@@ -1,6 +1,7 @@
 SVIn2 is a tightly coupled Sonar-Visual-Inertial-Depth formulation of Simultaneous Localization and Mapping (SLAM) algorithm for real-time Underwater navigation. The package contains two modules:
-	1. okvis_ros: Adaption of OKVIS (https://github.com/ethz-asl/okvis_ros) to fuse Sonar and Depth information in the tightly coupled formulation.
-	2. pose_graph:  Loop-closing module to enable real-time loop detection and pose-graph optimization based on the bag-of-binary-words library DBoW2.
+
+1. okvis_ros: Adaption of OKVIS (<https://github.com/ethz-asl/okvis_ros>) to fuse Sonar and Depth information in the tightly coupled formulation.
+2. pose_graph:  Loop-closing module to enable real-time loop detection and pose-graph optimization based on the bag-of-binary-words library DBoW2.
 
 ### How do I get set up? ###
 
@@ -62,7 +63,7 @@ You will need to install the following dependencies,
 
 ### Running the project ###
 
-Running it on our publicly available datasets: https://afrl.cse.sc.edu/afrl/resources/datasets/. If you follow "Datasets for Visual-Inertial-Based State Estimation Algorithms" link you will be directed to a google drive directory,  under the 'Bus' and 'Cave' you will find ROS bagfile with Sonar topic named as '/imagenex831l/range' and  '/imagenex831l/range_raw'.
+Running it on our publicly available datasets: <https://afrl.cse.sc.edu/afrl/resources/datasets/>. If you follow "Datasets for Visual-Inertial-Based State Estimation Algorithms" link you will be directed to a google drive directory,  under the 'Bus' and 'Cave' you will find ROS bagfile with Sonar topic named as '/imagenex831l/range' and  '/imagenex831l/range_raw'.
 
 Run the launch file for Cave:
 

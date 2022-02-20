@@ -230,7 +230,7 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   pubKeyframePose_.publish(odometry);
 
   // std::cout<<"Quat: " << q <<std::endl;
-  std::cout << "Trans: " << r << std::endl;
+  // std::cout << "Trans: " << r << std::endl;
 
   // SVIN health
   okvis_ros::SvinHealth svinInfo;
@@ -248,6 +248,7 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   point_cloud.header.frame_id = "world";
   point_cloud.header.stamp = ros::Time(t.sec, t.nsec);
 
+  uint32_t new_feature_keypoints = 0;
   for (std::vector<std::list<std::vector<double>>>::iterator it = keyframePoints.begin(); it != keyframePoints.end();
        it++) {
     std::list<std::vector<double>> ptList = *it;
@@ -275,24 +276,24 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
     std::vector<double> cvKeypoint_w_id = *lit;
 
     // @Reloc
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(0));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(1));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(2));
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(0));  // landmark id
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(1));  // poseId or multiframeId
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(2));  // keypointIndex
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(3));  // quality
 
     // kf_index where the MapPoint has been observed and it's corresponding 2d position in image
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(3));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(4));  // cv Point2f: x -> corres to column
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(5));  // cv Point2f: y -> corres to row
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(6));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(7));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(8));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(9));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(10));
-    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(11));
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(4));   // kf_index
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(5));   // cv Point2f: x -> corres to column
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(6));   // cv Point2f: y -> corres to row
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(7));   // keypoint size
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(8));   // keypoint angle/orientation
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(9));   // keypoint octave
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(10));  // keypoint response
+    p_id_w_uv.values.push_back(cvKeypoint_w_id.at(11));  // keypoint class_id
 
     // SVIN health
-    int x_coord = cvKeypoint_w_id.at(4);
-    int y_coord = cvKeypoint_w_id.at(5);
+    int x_coord = cvKeypoint_w_id.at(5);
+    int y_coord = cvKeypoint_w_id.at(6);
     // q00 = image[int(0):int(0.5*nrows), int(0):int(0.5*ncols)]
     // q01 = image[int(0):int(0.5*nrows), int(0.5*ncols):int(ncols)]
     // q10 = image[int(0.5*nrows):int(nrows), int(0):int(0.5*ncols)]
@@ -318,13 +319,17 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
       std::vector<double> kf_id = *lit;
       // std::cout<<"MapPoint observed ID:"<< kf_id.at(0) <<" In KF"<< cvKeypoint_w_id.at(3)<<std::endl;
       p_id_w_uv.values.push_back(kf_id.at(0));  // kf_index
-
-      lit++;  // advancing by 1 after getting the kf_id
+      lit++;                                    // advancing by 1 after getting the kf_id
       covis++;
+    }
+
+    if (covis == 0) {
+      new_feature_keypoints++;  // if 3D point is not observed by any other keyframe, it is a new feature
     }
     // SVIN health
     svinInfo.covisibilities.push_back(covis);
-
+    svinInfo.quality.push_back(cvKeypoint_w_id.at(3));
+    svinInfo.responseStrengths.push_back(cvKeypoint_w_id.at(10));
     // This also works fine as above
     /*for (size_t i = 2; i < ptList.size(); i++){
             std::vector<double> kf_id = *lit;
@@ -343,11 +348,13 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   } else {
     svinInfo.isTrackingOk = true;
   }
-  svinInfo.numTrackedKps = pointsMatched_.size();
-  svinInfo.kpsPerQuartile.push_back(q00_counter);
-  svinInfo.kpsPerQuartile.push_back(q01_counter);
-  svinInfo.kpsPerQuartile.push_back(q10_counter);
-  svinInfo.kpsPerQuartile.push_back(q11_counter);
+  svinInfo.numTrackedKps = point_cloud.points.size();
+  svinInfo.kpsPerQuadrant.push_back(q00_counter);
+  svinInfo.kpsPerQuadrant.push_back(q01_counter);
+  svinInfo.kpsPerQuadrant.push_back(q10_counter);
+  svinInfo.kpsPerQuadrant.push_back(q11_counter);
+  svinInfo.newKps = new_feature_keypoints;
+
   pubSvinHealth.publish(svinInfo);
 }
 // *************** End ***********************//

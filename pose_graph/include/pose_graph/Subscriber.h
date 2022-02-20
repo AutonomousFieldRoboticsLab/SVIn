@@ -28,6 +28,7 @@ class Subscriber {
                            okvis_ros::SvinHealthConstPtr& svin_health);  // NOLINT
 
   nav_msgs::OdometryConstPtr getPrimitiveEstimatorPose(const uint64_t& ros_stamp);
+  void getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vector<nav_msgs::OdometryConstPtr>& poses);
 
   const cv::Mat getCorrespondingImage(const uint64_t& ros_stamp);
   const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
@@ -74,5 +75,9 @@ class Subscriber {
   std::string svin_health_topic_;          // The topic name of the health of the SVIn.
   std::string primitive_estimator_topic_;  // The topic name of the primitive estimator odometry.
 
-  double last_image_time_;  // The time of the last image.
+  double last_image_time_;                // The time of the last image.
+  double last_primitive_estimator_time_;  // The time of the last primitive estimator odometry.
+
+ public:
+  inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }
 };

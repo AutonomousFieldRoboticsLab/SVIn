@@ -46,7 +46,7 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   // sub_svin_relocalization_odom_ =
   //     nh_->subscribe(svin_reloc_odom_topic_, 500, &Subscriber::svinRelocalizationOdomCallback, this);
 
-  if (params_.use_health_) {
+  if (params_.health_params_.health_monitoring_enabled) {
     sub_svin_health_ = nh_->subscribe(svin_health_topic_, 500, &Subscriber::svinHealthCallback, this);
     sub_primitive_estimator_ =
         nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
@@ -75,6 +75,7 @@ void Subscriber::keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg) {
 void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg) {
   std::lock_guard<std::mutex> l(measurement_mutex_);
   prim_estimator_odom_buffer_.push(msg);
+  last_primitive_estimator_time_ = msg->header.stamp.toSec();
 }
 
 void Subscriber::svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg) {
@@ -120,25 +121,27 @@ void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
                                      nav_msgs::OdometryConstPtr& kf_odom_msg,
                                      sensor_msgs::PointCloudConstPtr& kf_points_msg,
                                      okvis_ros::SvinHealthConstPtr& svin_health_msg) {
+  HealthParams health_params = params_.health_params_;
   // timestamp synchronization
   {
     std::lock_guard<std::mutex> l(measurement_mutex_);
     if (!kf_image_buffer_.empty() && !kf_pcl_buffer_.empty() && !kf_pose_buffer_.empty() &&
-        (!params_.use_health_ || !svin_health_buffer_.empty())) {  // TODO(bjoshi): this condition does not look good.
+        (!health_params.health_monitoring_enabled ||
+         !svin_health_buffer_.empty())) {  // TODO(bjoshi): this condition does not look good.
       if (kf_image_buffer_.front()->header.stamp.toSec() > kf_pose_buffer_.front()->header.stamp.toSec()) {
         kf_pose_buffer_.pop();
-        printf("Throw away pose at beginning\n");
+        ROS_INFO_STREAM("Throw away pose at beginning");
       } else if (kf_image_buffer_.front()->header.stamp.toSec() > kf_pcl_buffer_.front()->header.stamp.toSec()) {
         kf_pcl_buffer_.pop();
-        printf("Throw away pointcloud at beginning\n");
+        ROS_INFO_STREAM("Throw away pointcloud at beginning\n");
 
-      } else if (params_.use_health_ &&
+      } else if (health_params.health_monitoring_enabled &&
                  kf_image_buffer_.front()->header.stamp.toSec() > svin_health_buffer_.front()->header.stamp.toSec()) {
         svin_health_buffer_.pop();
-        printf("Throw away health at beginning\n");
+        ROS_INFO_STREAM("Throw away health at beginning\n");
       } else if (kf_image_buffer_.back()->header.stamp.toSec() >= kf_pose_buffer_.front()->header.stamp.toSec() &&
                  kf_pcl_buffer_.back()->header.stamp.toSec() >= kf_pose_buffer_.front()->header.stamp.toSec() &&
-                 (!params_.use_health_ ||
+                 (!health_params.health_monitoring_enabled ||
                   svin_health_buffer_.back()->header.stamp.toSec() >= kf_pose_buffer_.front()->header.stamp.toSec())) {
         kf_odom_msg = kf_pose_buffer_.front();
         kf_pose_buffer_.pop();
@@ -152,7 +155,7 @@ void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
         kf_points_msg = kf_pcl_buffer_.front();
         kf_pcl_buffer_.pop();
 
-        if (params_.use_health_) {
+        if (health_params.health_monitoring_enabled) {
           while (svin_health_buffer_.front()->header.stamp.toSec() < kf_odom_msg->header.stamp.toSec()) {
             svin_health_buffer_.pop();
           }
@@ -234,4 +237,19 @@ nav_msgs::OdometryConstPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t&
   }
 
   return prim_estimator_pose;
+}
+
+void Subscriber::getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vector<nav_msgs::OdometryConstPtr>& poses) {
+  nav_msgs::OdometryConstPtr prim_estimator_pose = nullptr;
+  // 25ms sync period while using primitive estimator publish rate of 20Hz
+
+  while (!prim_estimator_odom_buffer_.empty() &&
+         prim_estimator_odom_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 25000000)) {
+    prim_estimator_odom_buffer_.pop();
+  }
+
+  while (!prim_estimator_odom_buffer_.empty()) {
+    poses.emplace_back(prim_estimator_odom_buffer_.front());
+    prim_estimator_odom_buffer_.pop();
+  }
 }

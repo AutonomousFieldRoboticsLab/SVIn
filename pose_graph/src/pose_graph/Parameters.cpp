@@ -10,12 +10,11 @@
 
 Parameters::Parameters() {
   // default values
-  use_health_ = false;
   tic_ = Eigen::Vector3d::Zero();
   qic_ = Eigen::Matrix3d::Identity();
-  tracked_kypoints_threshold_ = 8;
-  wait_for_keyframe_time_ = 0.5;
-  consecutive_good_keyframes_threshold_ = 5;
+  health_params_.min_tracked_keypoints = 8;
+  health_params_.kf_wait_time = 0.5;
+  health_params_.consecutive_keyframes = 5;
   debug_image_ = false;
   image_delay_ = 0.0;
 
@@ -199,29 +198,33 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
 
   ROS_INFO_STREAM("T_BS: " << T_body_imu_);
 
-  cv::FileNode use_health_node = fsSettings["use_health"];
-  if (use_health_node.isInt()) {
-    use_health_ = static_cast<int>(use_health_node);
-    ROS_INFO_STREAM("use_health: " << use_health_);
-  }
-
-  if (use_health_) {
-    cv::FileNode kps_node = fsSettings["keypoints_threshold"];
-    if (kps_node.isInt()) {
-      tracked_kypoints_threshold_ = static_cast<int>(kps_node);
-      ROS_INFO_STREAM("tracked_kypoints_threshold: " << tracked_kypoints_threshold_);
+  cv::FileNode health_node = fsSettings["health"];
+  if (!health_node.isNone()) {
+    if (health_node["enable"].isInt()) {
+      health_params_.health_monitoring_enabled = static_cast<int>(health_node["enable"]);
+      ROS_INFO_STREAM("health monitoring: " << health_params_.health_monitoring_enabled);
     }
 
-    cv::FileNode kf_wait_time_node = fsSettings["switching_time"];
-    if (kf_wait_time_node.isReal()) {
-      wait_for_keyframe_time_ = static_cast<double>(kf_wait_time_node);
-      ROS_INFO_STREAM("wait_for_keyframe_time: " << wait_for_keyframe_time_);
-    }
+    if (health_params_.health_monitoring_enabled) {
+      if (health_node["min_keypoints"].isInt()) {
+        health_params_.min_tracked_keypoints = static_cast<int>(health_node["min_keypoints"]);
+        ROS_INFO_STREAM("tracked_kypoints_threshold: " << health_params_.min_tracked_keypoints);
+      }
 
-    cv::FileNode kf_success_node = fsSettings["consecutive_good_keyframes"];
-    if (kf_success_node.isInt()) {
-      consecutive_good_keyframes_threshold_ = static_cast<int>(kf_success_node);
-      ROS_INFO_STREAM("consecutive_good_keyframes_threshold: " << consecutive_good_keyframes_threshold_);
+      if (health_node["keyframe_wait_time"].isReal()) {
+        health_params_.kf_wait_time = static_cast<double>(health_node["keyframe_wait_time"]);
+        ROS_INFO_STREAM("wait_for_keyframe_time: " << health_params_.kf_wait_time);
+      }
+
+      if (health_node["consecutive_keyframes"].isInt()) {
+        health_params_.consecutive_keyframes = static_cast<int>(health_node["consecutive_keyframes"]);
+        ROS_INFO_STREAM("consecutive_keyframes_threshold: " << health_params_.consecutive_keyframes);
+      }
+
+      if (health_node["kps_per_quadrant"].isInt()) {
+        health_params_.kps_per_quadrant = static_cast<int>(health_node["kps_per_quadrant"]);
+        ROS_INFO_STREAM("kps_per_quadrant: " << health_params_.kps_per_quadrant);
+      }
     }
   }
 

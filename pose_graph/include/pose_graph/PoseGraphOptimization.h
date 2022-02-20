@@ -59,7 +59,7 @@ class PoseGraphOptimization {
   ros::Timer timer_;  // for periodic publishing
   ros::ServiceServer save_pointcloud_service_;
 
-  double last_keyframe_time_;
+  uint64_t last_keyframe_time_;
   double last_primitive_estmator_time_;
   double scale_between_vio_prim_;
   uint64_t consecutive_tracking_failures_, consecutive_tracking_successes_;
@@ -71,10 +71,11 @@ class PoseGraphOptimization {
   std::vector<geometry_msgs::PoseStamped> uber_estimator_poses_;
 
   TrackingStatus tracking_status_;
-  int primitive_estimator_keyframes_;
+  uint32_t prim_estimator_keyframes_;
   double vio_traj_length_;
   double prim_traj_length_;
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
   void setupOutputLogDirectories();
+  bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg);
 };

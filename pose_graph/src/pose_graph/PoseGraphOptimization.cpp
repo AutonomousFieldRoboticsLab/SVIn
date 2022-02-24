@@ -97,8 +97,14 @@ void PoseGraphOptimization::setup() {
 
 void PoseGraphOptimization::run() {
   HealthParams health_params = params_->health_params_;
+  std::string pkg_path = ros::package::getPath("pose_graph");
+  std::string switching_info = pkg_path + "/output_logs/switch_info.txt";
 
   while (true) {
+    std::ofstream switch_file(switching_info, std::ios::app);
+    switch_file.setf(ios::fixed, ios::floatfield);
+    switch_file.precision(9);
+
     sensor_msgs::ImageConstPtr image_msg = nullptr;
     sensor_msgs::PointCloudConstPtr point_msg = nullptr;
     nav_msgs::Odometry::ConstPtr pose_msg = nullptr;
@@ -130,7 +136,6 @@ void PoseGraphOptimization::run() {
       assert(point_msg);
       assert(image_msg);
 
-      uint16_t point_matches = 0;
       nav_msgs::OdometryConstPtr primitive_estimator_odom;
       geometry_msgs::PoseStamped uber_pose;
       nav_msgs::Odometry uber_odom;
@@ -207,11 +212,14 @@ void PoseGraphOptimization::run() {
             uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_svin_pose_.inverse() * svin_cam_pose);
             tracking_status_ = TrackingStatus::TRACKING_VIO;
             new_pose = true;
-            ROS_ERROR_STREAM("!!!!!!!! Switching to VIO !!!!!!!!!!");
+            switch_file << 1 << " " << pose_msg->header.stamp.toSec() << " "
+                        << primitive_estimator_odom->header.stamp.toSec() << " " << uber_pose.header.stamp << std::endl;
+
+            ROS_INFO_STREAM("!!!!!!!! Switching to VIO !!!!!!!!!!");
           }
         } else {
-          if (consecutive_tracking_failures_ >= health_params.consecutive_keyframes &&
-              !last_scaled_prim_pose_.isZero()) {
+          if (consecutive_tracking_failures_ >= (health_params.consecutive_keyframes + 3ul) &&
+              !last_scaled_prim_pose_.isZero() && primitive_estimator_odom) {
             switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
                                 params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
             switch_svin_pose_ = svin_body_pose;
@@ -220,8 +228,11 @@ void PoseGraphOptimization::run() {
                 Utility::matrixToRosPose(switch_uber_pose_ * switch_prim_pose_.inverse() * scaled_prim_estimator_pose *
                                          params_->T_body_imu_ * params_->T_imu_cam0_);
             tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
-            ROS_ERROR_STREAM(
+            ROS_INFO_STREAM(
                 "Switching to Primitive Estimator. Consecutive Tracking failures: " << consecutive_tracking_failures_);
+
+            switch_file << 0 << " " << pose_msg->header.stamp.toSec() << " "
+                        << primitive_estimator_odom->header.stamp.toSec() << " " << uber_pose.header.stamp << std::endl;
           } else {
             uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_svin_pose_.inverse() * svin_cam_pose);
           }
@@ -440,7 +451,7 @@ void PoseGraphOptimization::run() {
             prim_traj_length_ +=
                 (last_t_w_prim_.inverse() * prim_estimator_pose).block<3, 1>(0, 3).norm() / time_since_last_prim;
             scale_between_vio_prim_ = vio_traj_length_ / prim_traj_length_;
-            ROS_INFO_STREAM("Scaling factor between VIO and primitive estimator: " << scale_between_vio_prim_);
+            // ROS_INFO_STREAM("Scaling factor between VIO and primitive estimator: " << scale_between_vio_prim_);
           }
         }
 
@@ -483,7 +494,10 @@ void PoseGraphOptimization::run() {
             // cout << switch_prim_pose_ << endl;
             // cout << switch_uber_pose_ << endl;
             tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
-            ROS_ERROR_STREAM("!!!!!!!! Switching to Primitive Estimator !!!!!!!!!!");
+            ROS_INFO_STREAM("!!!!!!!! Switching to Primitive Estimator !!!!!!!!!!");
+            switch_file << 0 << " " << static_cast<double>(last_keyframe_time_) * 1e-9 << " "
+                        << prim_estimator_poses.front()->header.stamp.toSec() << " "
+                        << prim_estimator_poses.front()->header.stamp.toSec() << std::endl;
           }
 
           for (nav_msgs::OdometryConstPtr primitive_estimator_odom : prim_estimator_poses) {
@@ -542,6 +556,7 @@ void PoseGraphOptimization::run() {
       }
     }
 
+    switch_file.close();
     std::chrono::milliseconds dura(5);
     std::this_thread::sleep_for(dura);
   }
@@ -569,7 +584,7 @@ void PoseGraphOptimization::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB
     Eigen::Vector3d color = point_landmark.color_;
     double quality = point_landmark.quality_;
 
-    if (quality > 0.005) {
+    if (quality > params_->min_landmark_quality_) {
       pcl::PointXYZRGB point;
       point.x = global_pos(0);
       point.y = global_pos(1);
@@ -609,6 +624,12 @@ void PoseGraphOptimization::updateGlobalMap() {
       Eigen::Matrix3d R_kf_w;
       Eigen::Vector3d T_kf_w;
       kf->getPose(T_kf_w, R_kf_w);
+
+      // if (kf_quality > quality) {
+      //   point_3d = R_kf_w * local_pos + T_kf_w;
+      //   color = local_color;
+      //   quality = kf_quality;
+      // }
 
       Eigen::Vector3d global_pos = R_kf_w * local_pos + T_kf_w;
       point_3d = point_3d + global_pos * kf_quality;
@@ -697,7 +718,7 @@ bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& hea
                     [&](double response) { return response < average_response; }) /
       static_cast<float>(health_msg->responseStrengths.size());
 
-  if (fraction_with_low_detector_response > 0.75) {
+  if (fraction_with_low_detector_response >= 0.85) {
     ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
     error_msg = ss.str();
     return false;
@@ -765,7 +786,7 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
   if (boost::filesystem::exists(loop_closure_file)) {
     boost::filesystem::remove(loop_closure_file);
   }
-  ofstream loop_path_file(loop_closure_file, ios::out);
+  std::ofstream loop_path_file(loop_closure_file, ios::out);
   loop_path_file << "cur_kf_id"
                  << " "
                  << "cur_kf_ts"
@@ -788,4 +809,18 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
                  << " "
                  << "relative_qw" << endl;
   loop_path_file.close();
+
+  std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
+  if (boost::filesystem::exists(switch_info_file)) {
+    boost::filesystem::remove(switch_info_file);
+  }
+  std::ofstream switch_info_file_stream(switch_info_file, ios::out);
+  switch_info_file_stream << "type"
+                          << " "
+                          << "vio_stamp"
+                          << " "
+                          << "prim_stamp"
+                          << " "
+                          << "uber_stamp" << endl;
+  switch_info_file_stream.close();
 }

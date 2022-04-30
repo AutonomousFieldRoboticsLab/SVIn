@@ -1,4 +1,5 @@
-#pragma once
+#ifndef POSE_GRAPH_SUBSCRIBER_H_
+#define POSE_GRAPH_SUBSCRIBER_H_
 
 #include <image_transport/image_transport.h>
 #include <nav_msgs/Odometry.h>
@@ -9,6 +10,7 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <vector>
 
 #include "pose_graph/Parameters.h"
 
@@ -28,7 +30,7 @@ class Subscriber {
                            okvis_ros::SvinHealthConstPtr& svin_health);  // NOLINT
 
   nav_msgs::OdometryConstPtr getPrimitiveEstimatorPose(const uint64_t& ros_stamp);
-  void getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vector<nav_msgs::OdometryConstPtr>& poses);
+  void getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vector<nav_msgs::OdometryConstPtr>& poses);  // NOLINT
 
   const cv::Mat getCorrespondingImage(const uint64_t& ros_stamp);
   const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
@@ -81,3 +83,5 @@ class Subscriber {
  public:
   inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }
 };
+
+#endif  // POSE_GRAPH_SUBSCRIBER_H_

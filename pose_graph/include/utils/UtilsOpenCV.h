@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UTILS_UTILSOPENCV_H_
+#define UTILS_UTILSOPENCV_H_
 
 #include <opencv2/opencv.hpp>
 #include <string>
@@ -92,3 +93,5 @@ class UtilsOpenCV {
                                     const KeypointsCV& corners_2,
                                     const bool& random_color);
 };
+
+#endif  // UTILS_UTILSOPENCV_H_

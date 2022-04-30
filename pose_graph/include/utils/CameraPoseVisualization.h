@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UTILS_CAMERAPOSEVISUALIZATION_H_
+#define UTILS_CAMERAPOSEVISUALIZATION_H_
 
 #include <ros/ros.h>
 #include <std_msgs/ColorRGBA.h>
@@ -52,3 +53,5 @@ class CameraPoseVisualization {
   static const Eigen::Vector3d lt1;
   static const Eigen::Vector3d lt2;
 };
+
+#endif  // UTILS_CAMERAPOSEVISUALIZATION_H_

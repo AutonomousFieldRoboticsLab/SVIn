@@ -1,4 +1,5 @@
-#pragma once
+#ifndef POSE_GRAPH_LOOPCLOSING_H_
+#define POSE_GRAPH_LOOPCLOSING_H_
 
 #include <assert.h>
 #include <ceres/ceres.h>
@@ -69,7 +70,7 @@ class LoopClosing {
   void optimize4DoFPoseGraph();
   void optimize6DoFPoseGraph();
   void updatePath();
-  list<KFMatcher*> keyframelist;
+  std::list<KFMatcher*> keyframelist;
   std::mutex kflistMutex_;
   std::mutex optimizationMutex_;
   std::mutex pathMutex_;
@@ -79,8 +80,8 @@ class LoopClosing {
 
   int global_index;
   int sequence_cnt;
-  vector<bool> sequence_loop;
-  map<int, cv::Mat> image_pool;
+  std::vector<bool> sequence_loop;
+  std::map<int, cv::Mat> image_pool;
   int earliest_loop_index;
   int base_sequence;
 
@@ -250,3 +251,5 @@ struct FourDOFWeightError {
   double relative_yaw, pitch_i, roll_i;
   double weight;
 };
+
+#endif  // POSE_GRAPH_LOOPCLOSING_H_

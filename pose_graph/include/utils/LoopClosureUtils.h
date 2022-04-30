@@ -1,3 +1,6 @@
+#ifndef UTILS_LOOPCLOSUREUTILS_H_
+#define UTILS_LOOPCLOSUREUTILS_H_
+
 #include <Eigen/Core>
 #include <opengv/point_cloud/PointCloudAdapter.hpp>
 #include <opengv/relative_pose/CentralRelativeAdapter.hpp>
@@ -25,3 +28,5 @@ class LoopClosureUtils {
                                           int min_correspondences,
                                           opengv::transformation_t* camMatch_T_camQuery_mono);
 };
+
+#endif  // UTILS_LOOPCLOSUREUTILS_H_

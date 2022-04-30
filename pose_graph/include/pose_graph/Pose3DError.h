@@ -28,13 +28,17 @@
 //
 // Author: vitus@google.com (Michael Vitus)
 
-#pragma once
+#ifndef POSE_GRAPH_POSE3DERROR_H_
+#define POSE_GRAPH_POSE3DERROR_H_
 
 #include <ceres/autodiff_cost_function.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <functional>
 #include <map>
+#include <string>
+#include <utility>
 
 namespace ceres {
 
@@ -149,3 +153,5 @@ class PoseGraph3dErrorTerm {
 };
 
 }  // namespace ceres
+
+#endif  // POSE_GRAPH_POSE3DERROR_H_

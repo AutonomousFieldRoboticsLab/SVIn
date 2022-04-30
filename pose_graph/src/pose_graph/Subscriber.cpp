@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 Subscriber::Subscriber(ros::NodeHandle& nh, const Parameters& params) : params_(params) {
   // TODO(bjoshi): pass as params from roslaunch file

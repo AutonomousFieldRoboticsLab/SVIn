@@ -15,7 +15,6 @@
 #include <vector>
 #include "../DUtils/DUtils.h"
 
-using namespace std;
 using namespace DVision;
 
 // ----------------------------------------------------------------------------
@@ -34,7 +33,7 @@ BRIEF::~BRIEF() {}
 
 void BRIEF::compute(const cv::Mat& image,
                     const std::vector<cv::KeyPoint>& points,
-                    vector<bitset>& descriptors,
+                    std::vector<bitset>& descriptors,
                     bool treat_image) const {
   const float sigma = 2.f;
   const cv::Size ksize(9, 9);

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UTILS_UTILS_H_
+#define UTILS_UTILS_H_
 
 #include <geometry_msgs/Pose.h>
 #include <okvis_ros/SvinHealth.h>
@@ -140,3 +141,5 @@ class Utility {
 };
 
 enum TrackingStatus { NOT_INITIALIZED = 0, TRACKING_VIO = 1, TRACKING_PRIMITIVE_ESTIMATOR = 2 };
+
+#endif  // UTILS_UTILS_H_

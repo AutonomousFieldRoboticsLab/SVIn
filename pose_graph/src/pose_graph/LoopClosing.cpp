@@ -34,7 +34,7 @@ void LoopClosing::setPublishers(ros::NodeHandle& nh) {
   pubPoseGraphPath = nh.advertise<nav_msgs::Path>("pose_graph_path", 1000);
   pubBasePath = nh.advertise<nav_msgs::Path>("base_path", 1000);
   pubPoseGraph = nh.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000);
-  for (int i = 1; i < 10; i++) pubPath[i] = nh.advertise<nav_msgs::Path>("path_" + to_string(i), 1000);
+  for (int i = 1; i < 10; i++) pubPath[i] = nh.advertise<nav_msgs::Path>("path_" + std::to_string(i), 1000);
 }
 
 void LoopClosing::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database) {
@@ -73,7 +73,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   cur_kf->updateSVInPose(svin_P_cur, svin_R_cur);
   cur_kf->index = global_index;
   global_index++;
-  set<KFMatcher*> loopCandidates;
+  std::set<KFMatcher*> loopCandidates;
   int loop_index = -1;
 
   if (flag_detect_loop) {  // at least 20 KF has been passed
@@ -114,7 +114,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
         svin_P_cur = w_r_svin * svin_P_cur + w_t_svin;
         svin_R_cur = w_r_svin * svin_R_cur;
         cur_kf->updateSVInPose(svin_P_cur, svin_R_cur);
-        list<KFMatcher*>::iterator it = keyframelist.begin();
+        std::list<KFMatcher*>::iterator it = keyframelist.begin();
         for (; it != keyframelist.end(); it++) {
           if ((*it)->sequence == cur_kf->sequence) {
             Eigen::Vector3d svin_P_cur;
@@ -155,17 +155,17 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
     path[sequence_cnt].header = pose_stamped.header;
 
     if (SAVE_LOOP_PATH) {
-      ofstream loop_path_file(svin_output_file_, ios::app);
-      loop_path_file.setf(ios::fixed, ios::floatfield);
+      std::ofstream loop_path_file(svin_output_file_, std::ios::app);
+      loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
       loop_path_file.precision(9);
       loop_path_file << cur_kf->time_stamp << " ";
       loop_path_file << P.x() << " " << P.y() << " " << P.z() << " " << Q.x() << " " << Q.y() << " " << Q.z() << " "
-                     << Q.w() << endl;
+                     << Q.w() << std::endl;
       loop_path_file.close();
     }
     // draw local connection
     if (SHOW_S_EDGE) {
-      list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
+      std::list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
       for (int i = 0; i < 4; i++) {
         if (rit == keyframelist.rend()) break;
         Eigen::Vector3d conncected_P;
@@ -200,7 +200,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
 }
 
 KFMatcher* LoopClosing::getKFPtr(int index) {
-  list<KFMatcher*>::iterator it = keyframelist.begin();
+  std::list<KFMatcher*>::iterator it = keyframelist.begin();
   for (; it != keyframelist.end(); it++) {
     if ((*it)->index == index) break;
   }
@@ -220,7 +220,7 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
   }
 
   float min_score = 1.0;
-  for (map<KFMatcher*, int>::iterator mit = keyframe->mConnectedKeyFrameWeights.begin();
+  for (std::map<KFMatcher*, int>::iterator mit = keyframe->mConnectedKeyFrameWeights.begin();
        mit != keyframe->mConnectedKeyFrameWeights.end();
        mit++) {
     // BowVector neigh_vec;
@@ -312,7 +312,7 @@ void LoopClosing::optimize4DoFPoseGraph() {
 
       ceres::LocalParameterization* angle_local_parameterization = AngleLocalParameterization::Create();
 
-      list<KFMatcher*>::iterator it;
+      std::list<KFMatcher*>::iterator it;
 
       int i = 0;
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
@@ -477,15 +477,15 @@ void LoopClosing::optimize6DoFPoseGraph() {
       kflistMutex_.lock();
       KFMatcher* cur_kf = getKFPtr(cur_index);
 
-      int max_length = cur_index + 1;
+      int kMaxLength = cur_index + 1;
 
-      Eigen::Vector3d t_array[max_length];
-      Eigen::Quaterniond q_array[max_length];  // NOLINT
-      double sequence_array[max_length];       // NOLINT
+      Eigen::Vector3d t_array[kMaxLength];
+      Eigen::Quaterniond q_array[kMaxLength];  // NOLINT
+      double sequence_array[kMaxLength];       // NOLINT
 
       ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
 
-      list<KFMatcher*>::iterator it;
+      std::list<KFMatcher*>::iterator it;
 
       int i = 0;
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
@@ -604,7 +604,7 @@ void LoopClosing::optimize6DoFPoseGraph() {
 void LoopClosing::updatePath() {
   std::lock_guard<std::mutex> l(kflistMutex_);
 
-  list<KFMatcher*>::iterator it;
+  std::list<KFMatcher*>::iterator it;
   for (int i = 1; i <= sequence_cnt; i++) {
     path[i].poses.clear();
   }
@@ -612,7 +612,7 @@ void LoopClosing::updatePath() {
   posegraph_visualization->reset();
 
   if (SAVE_LOOP_PATH) {
-    ofstream loop_path_file_tmp(svin_output_file_, ios::out);
+    std::ofstream loop_path_file_tmp(svin_output_file_, std::ios::out);
     loop_path_file_tmp.close();
   }
 
@@ -642,19 +642,19 @@ void LoopClosing::updatePath() {
     }
 
     if (SAVE_LOOP_PATH) {
-      ofstream loop_path_file(svin_output_file_, ios::app);
-      loop_path_file.setf(ios::fixed, ios::floatfield);
+      std::ofstream loop_path_file(svin_output_file_, std::ios::app);
+      loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
 
       loop_path_file.precision(9);
       loop_path_file << (*it)->time_stamp << " ";
       loop_path_file << P.x() << " " << P.y() << " " << P.z() << " " << Q.x() << " " << Q.y() << " " << Q.z() << " "
-                     << Q.w() << endl;
+                     << Q.w() << std::endl;
       loop_path_file.close();
     }
     // draw local connection
     if (SHOW_S_EDGE) {
-      list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
-      list<KFMatcher*>::reverse_iterator lrit;
+      std::list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
+      std::list<KFMatcher*>::reverse_iterator lrit;
       for (; rit != keyframelist.rend(); rit++) {
         if ((*rit)->index == (*it)->index) {
           lrit = rit;

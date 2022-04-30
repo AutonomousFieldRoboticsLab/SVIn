@@ -1,4 +1,5 @@
-#pragma once
+#ifndef POSE_GRAPH_POSEGRAPHOPTIMIZATION_H_
+#define POSE_GRAPH_POSEGRAPHOPTIMIZATION_H_
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -7,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "pose_graph/GlobalMapping.h"
@@ -77,5 +79,7 @@ class PoseGraphOptimization {
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
   void setupOutputLogDirectories();
-  bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg);
+  bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg);  // NOLINT
 };
+
+#endif  // POSE_GRAPH_POSEGRAPHOPTIMIZATION_H_

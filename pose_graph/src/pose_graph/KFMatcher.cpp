@@ -32,14 +32,14 @@ static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  
 }
 
 KFMatcher::KFMatcher(double _time_stamp,
-                     vector<Eigen::Vector3d>& _point_ids,
+                     std::vector<Eigen::Vector3d>& _point_ids,
                      int _index,
                      Eigen::Vector3d& _svin_T_w_i,
                      Eigen::Matrix3d& _svin_R_w_i,
                      cv::Mat& _image,
-                     vector<cv::Point3f>& _point_3d,
-                     vector<cv::KeyPoint>& _point_2d_uv,
-                     map<KFMatcher*, int>& KFcounter,
+                     std::vector<cv::Point3f>& _point_3d,
+                     std::vector<cv::KeyPoint>& _point_2d_uv,
+                     std::map<KFMatcher*, int>& KFcounter,
                      int _sequence,
                      BriefVocabulary* vocBrief,
                      const Parameters& params,
@@ -86,7 +86,7 @@ KFMatcher::KFMatcher(double _time_stamp,
                      int _index,
                      Eigen::Vector3d& _svin_T_w_i,
                      Eigen::Matrix3d& _svin_R_w_i,
-                     map<KFMatcher*, int>& KFcounter,
+                     std::map<KFMatcher*, int>& KFcounter,
                      int _sequence,
                      const Parameters& params,
                      const bool is_vio_keyframe)
@@ -159,7 +159,7 @@ void KFMatcher::updateConnections() {
 
   // std::cout<<"Weights for observed keyframes in Kf: "<< this->index << std::endl;
   int th_weight = 20;  // TODO(Sharmin): Move it to the Config file
-  for (map<KFMatcher*, int>::iterator mit = KFcounter_.begin(); mit != KFcounter_.end(); mit++) {
+  for (std::map<KFMatcher*, int>::iterator mit = KFcounter_.begin(); mit != KFcounter_.end(); mit++) {
     if (mit->second > th_weight) {
       mConnectedKeyFrameWeights.insert(std::make_pair(mit->first, mit->second));
       // std::cout << "Observed Kf: " << mit->first->index << " with weight(common MapPoint): " << mit->second
@@ -204,7 +204,7 @@ void KFMatcher::computeBRIEFPoint() {
   if (1) {
     cv::FAST(image, keypoints, fast_th, true);
   } else {
-    vector<cv::Point2f> tmp_pts;
+    std::vector<cv::Point2f> tmp_pts;
     cv::goodFeaturesToTrack(image, tmp_pts, 500, 0.01, 10);
     for (int i = 0; i < static_cast<int>(tmp_pts.size()); i++) {
       cv::KeyPoint key;
@@ -226,8 +226,8 @@ void KFMatcher::computeBRIEFPoint() {
 }
 
 void BriefExtractor::operator()(const cv::Mat& im,
-                                vector<cv::KeyPoint>& keys,
-                                vector<DVision::BRIEF::bitset>& descriptors) const {
+                                std::vector<cv::KeyPoint>& keys,
+                                std::vector<DVision::BRIEF::bitset>& descriptors) const {
   m_brief.compute(im, keys, descriptors);
 }
 
@@ -312,7 +312,7 @@ void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
   }
 }
 
-void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old,
+void KFMatcher::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
                           const std::vector<cv::Point3f>& matched_3d,
                           std::vector<uchar>& status,
                           Eigen::Vector3d& PnP_T_old,
@@ -381,12 +381,12 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   TicToc tmp_t;
 
-  vector<cv::KeyPoint> matched_2d_cur;
-  vector<cv::Point2f> matched_2d_old;
-  vector<cv::Point2f> matched_2d_old_norm;
-  vector<cv::Point3f> matched_3d;
-  vector<Eigen::Vector3d> matched_ids;  // Reloc
-  vector<uchar> status;
+  std::vector<cv::KeyPoint> matched_2d_cur;
+  std::vector<cv::Point2f> matched_2d_old;
+  std::vector<cv::Point2f> matched_2d_old_norm;
+  std::vector<cv::Point3f> matched_3d;
+  std::vector<Eigen::Vector3d> matched_ids;  // Reloc
+  std::vector<uchar> status;
 
   matched_3d = point_3d;
   matched_2d_cur = point_2d_uv;
@@ -467,7 +467,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
           UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
       cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
       putText(notation,
-              "current frame: " + to_string(index),
+              "current frame: " + std::to_string(index),
               cv::Point2f(20, 30),
               cv::FONT_HERSHEY_SIMPLEX,
               1,
@@ -475,7 +475,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
               3);
 
       putText(notation,
-              "previous frame: " + to_string(old_kf->index),
+              "previous frame: " + std::to_string(old_kf->index),
               cv::Point2f(20 + pnp_verified_image.cols / 2, 30),
               cv::FONT_HERSHEY_SIMPLEX,
               1,
@@ -503,20 +503,21 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
             UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
         cv::Mat notation(50, loop_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
         putText(notation,
-                "current frame: " + to_string(index),
+                "current frame: " + std::to_string(index),
                 cv::Point2f(20, 30),
                 cv::FONT_HERSHEY_SIMPLEX,
                 1,
                 cv::Scalar(255),
                 3);
 
-        putText(notation,
-                "previous frame: " + to_string(old_kf->index) + " matches: " + to_string(matched_2d_cur.size()),
-                cv::Point2f(20 + loop_image.cols / 2, 30),
-                cv::FONT_HERSHEY_SIMPLEX,
-                1,
-                cv::Scalar(255),
-                3);
+        putText(
+            notation,
+            "previous frame: " + std::to_string(old_kf->index) + " matches: " + std::to_string(matched_2d_cur.size()),
+            cv::Point2f(20 + loop_image.cols / 2, 30),
+            cv::FONT_HERSHEY_SIMPLEX,
+            1,
+            cv::Scalar(255),
+            3);
         cv::vconcat(notation, loop_image, loop_image);
         std::string pnp_verified_dir = pkg_path + "/output_logs/loop_closure/";
         std::string filename =
@@ -524,7 +525,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         cv::imwrite(filename, loop_image);
         std::string loop_closure_stats = pkg_path + "/output_logs/loop_closure.txt";
         std::ofstream loop_closure_file(loop_closure_stats, std::ios::app);
-        loop_closure_file.setf(ios::fixed, ios::floatfield);
+        loop_closure_file.setf(std::ios::fixed, std::ios::floatfield);
         Eigen::Vector3d relative_ypr = Utility::R2ypr(relative_q.toRotationMatrix());
         loop_closure_file.precision(6);
         loop_closure_file << index << " " << old_kf->index << " "
@@ -627,9 +628,9 @@ BriefExtractor::BriefExtractor(const std::string& pattern_file) {
 
   // loads the pattern
   cv::FileStorage fs(pattern_file.c_str(), cv::FileStorage::READ);
-  if (!fs.isOpened()) throw string("Could not open file ") + pattern_file;
+  if (!fs.isOpened()) throw std::string("Could not open file ") + pattern_file;
 
-  vector<int> x1, y1, x2, y2;
+  std::vector<int> x1, y1, x2, y2;
   fs["x1"] >> x1;
   fs["x2"] >> x2;
   fs["y1"] >> y1;

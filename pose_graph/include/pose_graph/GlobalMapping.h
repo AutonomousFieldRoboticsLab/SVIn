@@ -1,4 +1,5 @@
-#pragma once
+#ifndef POSE_GRAPH_GLOBALMAPPING_H_
+#define POSE_GRAPH_GLOBALMAPPING_H_
 
 #include <Eigen/Core>
 #include <functional>
@@ -87,3 +88,5 @@ class GlobalMap {
   void loopClosureOptimizationFinishCallback(const uint64_t& time);
   bool loop_closure_optimization_finished_;  // this flag is set to true when loop closure optimization is done
 };
+
+#endif  // POSE_GRAPH_GLOBALMAPPING_H_

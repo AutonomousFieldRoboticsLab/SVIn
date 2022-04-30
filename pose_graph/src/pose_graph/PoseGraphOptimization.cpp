@@ -102,7 +102,7 @@ void PoseGraphOptimization::run() {
 
   while (true) {
     std::ofstream switch_file(switching_info, std::ios::app);
-    switch_file.setf(ios::fixed, ios::floatfield);
+    switch_file.setf(std::ios::fixed, std::ios::floatfield);
     switch_file.precision(9);
 
     sensor_msgs::ImageConstPtr image_msg = nullptr;
@@ -255,11 +255,11 @@ void PoseGraphOptimization::run() {
       }
 
       if ((T - last_translation_).norm() > SKIP_DIS && new_pose) {
-        vector<cv::Point3f> point_3d;
-        vector<cv::KeyPoint> point_2d_uv;
-        vector<Eigen::Vector3d> point_ids;  // @Reloc: landmarkId, mfId, keypointIdx related to each point
+        std::vector<cv::Point3f> point_3d;
+        std::vector<cv::KeyPoint> point_2d_uv;
+        std::vector<Eigen::Vector3d> point_ids;  // @Reloc: landmarkId, mfId, keypointIdx related to each point
         // For every KF, a map <observed_kf, weight> describing which other kfs how many MapPoints are common.
-        map<KFMatcher*, int> KFcounter;
+        std::map<KFMatcher*, int> KFcounter;
 
         int kf_index = -1;
         int combined_kf_index = -1;
@@ -364,7 +364,7 @@ void PoseGraphOptimization::run() {
               continue;
             }
 
-            map<int, KFMatcher*>::iterator mkfit;
+            std::map<int, KFMatcher*>::iterator mkfit;
             mkfit = kfMapper_.find(observed_kf_index);
             if (mkfit == kfMapper_.end()) {
               continue;
@@ -412,7 +412,7 @@ void PoseGraphOptimization::run() {
           Eigen::Vector3d pos_cam_frame = local_positions.at(i);
 
           if (kfMapper_.find(combined_kf_index) == kfMapper_.end()) {
-            cout << "Keyframe not found" << endl;
+            std::cout << "Keyframe not found" << std::endl;
             continue;
           }
 
@@ -536,7 +536,7 @@ void PoseGraphOptimization::run() {
             Eigen::Vector3d T = updated_transform.block<3, 1>(0, 3);
             Eigen::Matrix3d R = updated_transform.block<3, 3>(0, 0);
             int kf_index = last_keyframe_index + prim_estimator_keyframes_;
-            map<KFMatcher*, int> kf_counter;
+            std::map<KFMatcher*, int> kf_counter;
             KFMatcher* keyframe =
                 new KFMatcher(uber_pose.header.stamp.toSec(), kf_index, T, R, kf_counter, sequence_, *params_, false);
             keyframe->setRelocalizationPCLCallback(
@@ -616,7 +616,7 @@ void PoseGraphOptimization::updateGlobalMap() {
 
       // Converting to global coordinates
       if (kfMapper_.find(kf_id) == kfMapper_.end()) {
-        cout << "Keyframe not found" << endl;
+        std::cout << "Keyframe not found" << std::endl;
         continue;
       }
 
@@ -710,7 +710,8 @@ bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& hea
   }
 
   double average_response =
-      std::accumulate(health_msg->responseStrengths.begin(), health_msg->responseStrengths.end(), double(0.0)) /
+      std::accumulate(
+          health_msg->responseStrengths.begin(), health_msg->responseStrengths.end(), static_cast<double>(0.0)) /
       static_cast<double>(health_msg->responseStrengths.size());
   float fraction_with_low_detector_response =
       std::count_if(health_msg->responseStrengths.begin(),
@@ -786,7 +787,7 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
   if (boost::filesystem::exists(loop_closure_file)) {
     boost::filesystem::remove(loop_closure_file);
   }
-  std::ofstream loop_path_file(loop_closure_file, ios::out);
+  std::ofstream loop_path_file(loop_closure_file, std::ios::out);
   loop_path_file << "cur_kf_id"
                  << " "
                  << "cur_kf_ts"
@@ -807,20 +808,20 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
                  << " "
                  << "relative_qz"
                  << " "
-                 << "relative_qw" << endl;
+                 << "relative_qw" << std::endl;
   loop_path_file.close();
 
   std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
   if (boost::filesystem::exists(switch_info_file)) {
     boost::filesystem::remove(switch_info_file);
   }
-  std::ofstream switch_info_file_stream(switch_info_file, ios::out);
+  std::ofstream switch_info_file_stream(switch_info_file, std::ios::out);
   switch_info_file_stream << "type"
                           << " "
                           << "vio_stamp"
                           << " "
                           << "prim_stamp"
                           << " "
-                          << "uber_stamp" << endl;
+                          << "uber_stamp" << std::endl;
   switch_info_file_stream.close();
 }

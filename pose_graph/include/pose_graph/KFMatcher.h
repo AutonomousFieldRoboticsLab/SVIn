@@ -1,5 +1,5 @@
-#pragma once
-
+#ifndef POSE_GRAPH_KFMATCHER_H_
+#define POSE_GRAPH_KFMATCHER_H_
 #include <brisk/brisk.h>
 #include <brisk/internal/hamming.h>
 
@@ -23,8 +23,8 @@
 class BriefExtractor {
  public:
   virtual void operator()(const cv::Mat& im,
-                          vector<cv::KeyPoint>& keys,                          // NOLINT
-                          vector<DVision::BRIEF::bitset>& descriptors) const;  // NOLINT
+                          std::vector<cv::KeyPoint>& keys,                          // NOLINT
+                          std::vector<DVision::BRIEF::bitset>& descriptors) const;  // NOLINT
   explicit BriefExtractor(const std::string& pattern_file);
 
   DVision::BRIEF m_brief;
@@ -34,14 +34,14 @@ class KFMatcher {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   KFMatcher(double _time_stamp,
-            vector<Eigen::Vector3d>& _point_ids,  // NOLINT
+            std::vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
-            Eigen::Vector3d& _svin_T_w_i,        // NOLINT
-            Eigen::Matrix3d& _svin_R_w_i,        // NOLINT
-            cv::Mat& _image,                     // NOLINT
-            vector<cv::Point3f>& _point_3d,      // NOLINT
-            vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
-            map<KFMatcher*, int>& KFcounter,     // NOLINT
+            Eigen::Vector3d& _svin_T_w_i,             // NOLINT
+            Eigen::Matrix3d& _svin_R_w_i,             // NOLINT
+            cv::Mat& _image,                          // NOLINT
+            std::vector<cv::Point3f>& _point_3d,      // NOLINT
+            std::vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
+            std::map<KFMatcher*, int>& KFcounter,     // NOLINT
             int _sequence,
             BriefVocabulary* vocBrief,
             const Parameters& params,
@@ -49,9 +49,9 @@ class KFMatcher {
 
   KFMatcher(double _time_stamp,
             int _index,
-            Eigen::Vector3d& _svin_T_w_i,     // NOLINT
-            Eigen::Matrix3d& _svin_R_w_i,     // NOLINT
-            map<KFMatcher*, int>& KFcounter,  // NOLINT
+            Eigen::Vector3d& _svin_T_w_i,          // NOLINT
+            Eigen::Matrix3d& _svin_R_w_i,          // NOLINT
+            std::map<KFMatcher*, int>& KFcounter,  // NOLINT
             int _sequence,
             const Parameters& params,
             const bool is_vio_keyframe = false);
@@ -73,7 +73,7 @@ class KFMatcher {
                         const std::vector<DVision::BRIEF::bitset>& descriptors_old,
                         const std::vector<cv::KeyPoint>& keypoints_old,
                         const std::vector<cv::KeyPoint>& keypoints_old_norm);
-  void PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
+  void PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old_norm,
                  const std::vector<cv::Point3f>& matched_3d,
                  std::vector<uchar>& status,                           // NOLINT
                  Eigen::Vector3d& PnP_T_old,                           // NOLINT
@@ -93,7 +93,7 @@ class KFMatcher {
   void project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const;  // NOLINT
 
   void updateConnections();
-  int searchByBoW(KFMatcher* old_kf, vector<cv::Point3f>& vpMatches12, vector<bool>& vbMatched2);  // NOLINT
+  int searchByBoW(KFMatcher* old_kf, std::vector<cv::Point3f>& vpMatches12, std::vector<bool>& vbMatched2);  // NOLINT
 
   // For BRISK Descriptor
   void searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,  // NOLINT
@@ -120,16 +120,16 @@ class KFMatcher {
   Eigen::Vector3d origin_svin_T;
   Eigen::Matrix3d origin_svin_R;
   cv::Mat image;
-  vector<cv::Point3f> point_3d;
-  vector<cv::KeyPoint> point_2d_uv;
-  vector<Eigen::Vector3d> point_ids_;
+  std::vector<cv::Point3f> point_3d;
+  std::vector<cv::KeyPoint> point_2d_uv;
+  std::vector<Eigen::Vector3d> point_ids_;
 
-  vector<cv::KeyPoint> keypoints;
-  vector<cv::KeyPoint> keypoints_norm;
-  vector<cv::KeyPoint> window_keypoints_norm;
-  vector<cv::KeyPoint> window_keypoints;
-  vector<DVision::BRIEF::bitset> brief_descriptors;
-  vector<DVision::BRIEF::bitset> window_brief_descriptors;
+  std::vector<cv::KeyPoint> keypoints;
+  std::vector<cv::KeyPoint> keypoints_norm;
+  std::vector<cv::KeyPoint> window_keypoints_norm;
+  std::vector<cv::KeyPoint> window_keypoints;
+  std::vector<DVision::BRIEF::bitset> brief_descriptors;
+  std::vector<DVision::BRIEF::bitset> window_brief_descriptors;
   bool has_fast_point;
   int sequence;
 
@@ -137,8 +137,8 @@ class KFMatcher {
   int loop_index;
   Eigen::Matrix<double, 8, 1> loop_info;
 
-  map<KFMatcher*, int> KFcounter_;
-  map<KFMatcher*, int> mConnectedKeyFrameWeights;
+  std::map<KFMatcher*, int> KFcounter_;
+  std::map<KFMatcher*, int> mConnectedKeyFrameWeights;
 
   // BoW
   BriefVocabulary* voc;
@@ -168,3 +168,5 @@ class KFMatcher {
   // Bharat - easy check to see if this keyframe comes from primitive estimator
   bool is_vio_keyframe_;
 };
+
+#endif  // POSE_GRAPH_KFMATCHER_H_

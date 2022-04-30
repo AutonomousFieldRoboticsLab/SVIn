@@ -1,4 +1,5 @@
-#pragma once
+#ifndef POSE_GRAPH_PUBLISHER_H_
+#define POSE_GRAPH_PUBLISHER_H_
 
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
@@ -40,3 +41,5 @@ class Publisher {
   ros::Publisher pub_uber_odometry_;
   ros::Publisher pub_prim_odometry_;
 };
+
+#endif  // POSE_GRAPH_PUBLISHER_H_

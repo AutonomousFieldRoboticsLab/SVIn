@@ -6,7 +6,7 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_STANDARD 17)
 
 # changed to -march=native. Working in Ubuntu 18.04 and 20.04
-set(CMAKE_CXX_FLAGS "-march=native -O3 -Wall")
+set(CMAKE_CXX_FLAGS "-march=native -fPIC -Wall")
 
 find_package(catkin REQUIRED COMPONENTS
     roscpp

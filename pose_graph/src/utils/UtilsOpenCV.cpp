@@ -129,6 +129,7 @@ cv::Mat UtilsOpenCV::DrawCornersMatches(const cv::Mat& img1,
       color = cv::Scalar(0, 255, 0);
     }
 
+    // TODO TONI REUSE THE OTHER FUNCTIONS!!!!
     const KeypointCV& corner_1 = corners_1[match.queryIdx];
     const KeypointCV& corner_2 = corners_2[match.trainIdx];
 

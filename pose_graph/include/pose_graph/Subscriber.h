@@ -2,6 +2,9 @@
 #define POSE_GRAPH_SUBSCRIBER_H_
 
 #include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/exact_time.h>
 #include <nav_msgs/Odometry.h>
 #include <okvis_ros/SvinHealth.h>
 #include <sensor_msgs/PointCloud.h>
@@ -43,12 +46,22 @@ class Subscriber {
 
   Parameters params_;  // The parameters of the node.
 
-  // List of  subscribers.
-  image_transport::Subscriber sub_kf_image_;      // Subscriber to the keyframe image.
-  ros::Subscriber sub_kf_pose_;                   // Subscriber to the keyframe pose.
-  ros::Subscriber sub_kf_points_;                 // Subscriber to the keyframe points.
+  typedef image_transport::SubscriberFilter ImageSubscriber;
+  ImageSubscriber keyframe_image_subscriber_;
+  // Subscriber to the keyframe pose.
+  message_filters::Subscriber<nav_msgs::Odometry> keyframe_pose_subscriber_;
+  // Subscriber to the keyframe points.
+  message_filters::Subscriber<sensor_msgs::PointCloud> keyframe_points_subscriber_;
+  message_filters::Subscriber<okvis_ros::SvinHealth> svin_health_subscriber_;
+
+  typedef message_filters::sync_policies::
+      ExactTime<sensor_msgs::Image, nav_msgs::Odometry, sensor_msgs::PointCloud, okvis_ros::SvinHealth>
+          keyframe_sync_policy;
+
+  std::unique_ptr<message_filters::Synchronizer<keyframe_sync_policy>> sync_keyframe_;
+
+  // List of other subscribers.
   ros::Subscriber sub_svin_relocalization_odom_;  // Subscriber to the relocalization odometry.
-  ros::Subscriber sub_svin_health_;               // Subscriber to the health of the SVIn.
   image_transport::Subscriber sub_orig_image_;    // Subscriber to the original image.
   ros::Subscriber sub_primitive_estimator_;       // Subscriber to the primitive estimator odometry.
 
@@ -60,6 +73,10 @@ class Subscriber {
   void svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg);
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
   void primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg);
+
+  void keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg,
+                        const nav_msgs::OdometryConstPtr& kf_odom,
+                        const sensor_msgs::PointCloudConstPtr& kf_points);
 
   // Buffer queue for the measurements.
   std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;

@@ -34,25 +34,31 @@ void Subscriber::init(ros::NodeHandle& nh, const Parameters& params) {
 void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   nh_ = &nh;
   if (it_) it_.reset();
-  it_ = std::unique_ptr<image_transport::ImageTransport>(new image_transport::ImageTransport(std::move(*nh_)));
+  it_ = std::make_unique<image_transport::ImageTransport>(std::move(*nh_));
 
-  sub_kf_image_ =
-      it_->subscribe(kf_image_topic_, 500, std::bind(&Subscriber::keyframeImageCallback, this, std::placeholders::_1));
+  keyframe_image_subscriber_.subscribe(*it_, kf_image_topic_, 2);
+  keyframe_points_subscriber_.subscribe(*nh_, kf_points_topic_, 2);
+  keyframe_pose_subscriber_.subscribe(*nh_, kf_pose_topic_, 2);
+  svin_health_subscriber_.subscribe(*nh_, svin_health_topic_, 2);
+
+  static constexpr size_t kMaxKeyframeSynchronizerQueueSize = 10u;
+  sync_keyframe_ = std::make_unique<message_filters::Synchronizer<keyframe_sync_policy>>(
+      keyframe_sync_policy(kMaxKeyframeSynchronizerQueueSize),
+      keyframe_image_subscriber_,
+      keyframe_pose_subscriber_,
+      keyframe_points_subscriber_,
+      svin_health_subscriber_);
+  sync_keyframe_->registerCallback(boost::bind(&Subscriber::keyframeCallback, this, _1, _2, _3, _4));
 
   sub_orig_image_ =
       it_->subscribe("/cam0/image_raw", 500, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
-  sub_kf_points_ = nh_->subscribe(kf_points_topic_, 500, &Subscriber::keyframePointsCallback, this);
-
-  sub_kf_pose_ = nh_->subscribe(kf_pose_topic_, 500, &Subscriber::keyframePoseCallback, this);
-  // sub_svin_relocalization_odom_ =
-  //     nh_->subscribe(svin_reloc_odom_topic_, 500, &Subscriber::svinRelocalizationOdomCallback, this);
 
   if (params_.health_params_.health_monitoring_enabled) {
-    sub_svin_health_ = nh_->subscribe(svin_health_topic_, 500, &Subscriber::svinHealthCallback, this);
     sub_primitive_estimator_ =
         nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
   }
 }
+
 void Subscriber::keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg) {
   std::lock_guard<std::mutex> lock(measurement_mutex_);
   kf_image_buffer_.push(msg);
@@ -253,4 +259,11 @@ void Subscriber::getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vect
     poses.emplace_back(prim_estimator_odom_buffer_.front());
     prim_estimator_odom_buffer_.pop();
   }
+}
+
+void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg,
+                                  const nav_msgs::OdometryConstPtr& kf_odom,
+                                  const sensor_msgs::PointCloudConstPtr& kf_points,
+                                  const okvis_ros::SvinHealthConstPtr& svin_health) {
+  ROS_WARN_STREAM("Keyframe callback");
 }

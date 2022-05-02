@@ -1,5 +1,6 @@
 #ifndef POSE_GRAPH_KFMATCHER_H_
 #define POSE_GRAPH_KFMATCHER_H_
+
 #include <brisk/brisk.h>
 #include <brisk/internal/hamming.h>
 
@@ -33,7 +34,7 @@ class BriefExtractor {
 class KFMatcher {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  KFMatcher(double _time_stamp,
+  KFMatcher(ros::Time _time_stamp,
             std::vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
             Eigen::Vector3d& _svin_T_w_i,             // NOLINT
@@ -47,7 +48,7 @@ class KFMatcher {
             const Parameters& params,
             const bool vio_keyframe = true);
 
-  KFMatcher(double _time_stamp,
+  KFMatcher(ros::Time _time_stamp,
             int _index,
             Eigen::Vector3d& _svin_T_w_i,          // NOLINT
             Eigen::Matrix3d& _svin_R_w_i,          // NOLINT
@@ -110,7 +111,7 @@ class KFMatcher {
   cv::Mat brisk_descriptors;
   cv::Mat window_brisk_descriptors;
 
-  double time_stamp;
+  ros::Time time_stamp;
   int index;
   int local_index;
   Eigen::Vector3d svin_T_w_i;

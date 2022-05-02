@@ -11,11 +11,15 @@
 #include <Eigen/SVD>
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "utils/Statistics.h"
+
 PoseGraphOptimization::PoseGraphOptimization()
     : nh_private_("~"),
       params_(nullptr),
@@ -27,10 +31,6 @@ PoseGraphOptimization::PoseGraphOptimization()
   sequence_ = 1;
 
   last_translation_ = Eigen::Vector3d(-100, -100, -100);
-  SKIP_CNT = 0;
-  skip_cnt = 0;
-
-  SKIP_DIS = 0;
 
   params_ = std::make_shared<Parameters>();
   params_->loadParameters(nh_private_);
@@ -100,7 +100,11 @@ void PoseGraphOptimization::run() {
   std::string pkg_path = ros::package::getPath("pose_graph");
   std::string switching_info = pkg_path + "/output_logs/switch_info.txt";
 
-  while (true) {
+  // utils::StatsCollector measurement_stats_collector("Get Measurements [ms]");
+  // utils::StatsCollector kf_construct_stats_collector("Construct Keyframe [ms]");
+  // utils::StatsCollector("Optimize Keyframe [ms]");
+
+  while (!boost::this_thread::interruption_requested()) {
     std::ofstream switch_file(switching_info, std::ios::app);
     switch_file.setf(std::ios::fixed, std::ios::floatfield);
     switch_file.precision(9);
@@ -110,18 +114,16 @@ void PoseGraphOptimization::run() {
     nav_msgs::Odometry::ConstPtr pose_msg = nullptr;
     okvis_ros::SvinHealthConstPtr health_msg = nullptr;
 
+    // auto start_time = TicToc();
     subscriber_->getSyncMeasurements(image_msg, pose_msg, point_msg, health_msg);
+    // measurement_stats_collector.AddSample(start_time.toc());
 
     static int last_keyframe_index = -1;
     if (pose_msg) {
-      if (skip_cnt < SKIP_CNT) {
-        skip_cnt++;
-        continue;
-      } else {
-        skip_cnt = 0;
-      }
-
       // build keyframe
+
+      // start_time = TicToc();
+
       Eigen::Vector3d T = Eigen::Vector3d(
           pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
       Eigen::Matrix3d R = Eigen::Quaterniond(pose_msg->pose.pose.orientation.w,
@@ -129,9 +131,6 @@ void PoseGraphOptimization::run() {
                                              pose_msg->pose.pose.orientation.y,
                                              pose_msg->pose.pose.orientation.z)
                               .toRotationMatrix();
-
-      // std::cout << "T: " << T.transpose() << std::endl;
-      // std::cout << "R: " << R << std::endl;
 
       assert(point_msg);
       assert(image_msg);
@@ -194,6 +193,7 @@ void PoseGraphOptimization::run() {
           primtive_odometry.pose.pose = primitive_estimator_poses_.back().pose;
           primtive_odometry.header = primitive_estimator_poses_.back().header;
           publisher.publishOdometry(primtive_odometry, publisher.pub_prim_odometry_);
+          publisher.publishPath(primitive_estimator_poses_, publisher.pub_primitive_estimator_path_);
         }
 
         if (tracking_status_ == TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR) {
@@ -243,18 +243,18 @@ void PoseGraphOptimization::run() {
         new_pose = true;
       }
 
+      // if (new_pose) {
+      //   uber_estimator_poses_.push_back(uber_pose);
+
+      //   uber_pose.header.stamp = uber_estimator_poses_.back().header.stamp;
+      //   uber_odom.pose.pose = uber_pose.pose;
+      //   uber_odom.header = uber_pose.header;
+
+      //   publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
+      //   publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
+      // }
+
       if (new_pose) {
-        uber_estimator_poses_.push_back(uber_pose);
-
-        uber_pose.header.stamp = uber_estimator_poses_.back().header.stamp;
-        uber_odom.pose.pose = uber_pose.pose;
-        uber_odom.header = uber_pose.header;
-
-        publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
-        publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
-      }
-
-      if ((T - last_translation_).norm() > SKIP_DIS && new_pose) {
         std::vector<cv::Point3f> point_3d;
         std::vector<cv::KeyPoint> point_2d_uv;
         std::vector<Eigen::Vector3d> point_ids;  // @Reloc: landmarkId, mfId, keypointIdx related to each point
@@ -376,21 +376,19 @@ void PoseGraphOptimization::run() {
           }
         }
 
-        KFMatcher* keyframe;
-
-        keyframe = new KFMatcher(pose_msg->header.stamp.toSec(),
-                                 point_ids,
-                                 combined_kf_index,
-                                 uber_position,
-                                 uber_orientation,
-                                 kf_image,
-                                 point_3d,
-                                 point_2d_uv,
-                                 KFcounter,
-                                 sequence_,
-                                 voc_,
-                                 *params_,
-                                 true);
+        KFMatcher* keyframe = new KFMatcher(pose_msg->header.stamp,
+                                            point_ids,
+                                            combined_kf_index,
+                                            uber_position,
+                                            uber_orientation,
+                                            kf_image,
+                                            point_3d,
+                                            point_2d_uv,
+                                            KFcounter,
+                                            sequence_,
+                                            voc_,
+                                            *params_,
+                                            true);
 
         keyframe->setRelocalizationPCLCallback(
             std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
@@ -527,6 +525,7 @@ void PoseGraphOptimization::run() {
             primtive_odometry.pose.pose = primitive_estimator_poses_.back().pose;
             primtive_odometry.header = primitive_estimator_poses_.back().header;
             publisher.publishOdometry(primtive_odometry, publisher.pub_prim_odometry_);
+            publisher.publishPath(primitive_estimator_poses_, publisher.pub_primitive_estimator_path_);
 
             publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
             publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
@@ -538,7 +537,7 @@ void PoseGraphOptimization::run() {
             int kf_index = last_keyframe_index + prim_estimator_keyframes_;
             std::map<KFMatcher*, int> kf_counter;
             KFMatcher* keyframe =
-                new KFMatcher(uber_pose.header.stamp.toSec(), kf_index, T, R, kf_counter, sequence_, *params_, false);
+                new KFMatcher(uber_pose.header.stamp, kf_index, T, R, kf_counter, sequence_, *params_, false);
             keyframe->setRelocalizationPCLCallback(
                 std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
             kfMapper_.insert(std::make_pair(kf_index, keyframe));
@@ -560,6 +559,8 @@ void PoseGraphOptimization::run() {
     std::chrono::milliseconds dura(5);
     std::this_thread::sleep_for(dura);
   }
+
+  ROS_ERROR_STREAM("!!!!!!! Stopping tracking thread  !!!!!!!!!!!!");
 }
 
 void PoseGraphOptimization::updatePublishGlobalMap(const ros::TimerEvent& event) {
@@ -710,8 +711,7 @@ bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& hea
   }
 
   double average_response =
-      std::accumulate(
-          health_msg->responseStrengths.begin(), health_msg->responseStrengths.end(), static_cast<double>(0.0)) /
+      std::accumulate(health_msg->responseStrengths.begin(), health_msg->responseStrengths.end(), double(0.0)) /
       static_cast<double>(health_msg->responseStrengths.size());
   float fraction_with_low_detector_response =
       std::count_if(health_msg->responseStrengths.begin(),

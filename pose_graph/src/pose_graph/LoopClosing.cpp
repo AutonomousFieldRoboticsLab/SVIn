@@ -142,7 +142,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
     cur_kf->updatePose(P, R);
     Eigen::Quaterniond Q{R};
     geometry_msgs::PoseStamped pose_stamped;
-    pose_stamped.header.stamp = ros::Time(cur_kf->time_stamp);
+    pose_stamped.header.stamp = cur_kf->time_stamp;
     pose_stamped.header.frame_id = "world";
     pose_stamped.pose.position.x = P.x();
     pose_stamped.pose.position.y = P.y();
@@ -239,7 +239,7 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
   // first query; then add this frame into database!
   DBoW2::QueryResults ret;
   TicToc t_query;
-  db.query(keyframe->brief_descriptors, ret, 4, frame_index - 50);
+  db.query(keyframe->bowVec, ret, 4, frame_index - 50);
   // printf("query time: %f", t_query.toc());
 
   TicToc t_add;
@@ -624,7 +624,7 @@ void LoopClosing::updatePath() {
     Q = R;
 
     geometry_msgs::PoseStamped pose_stamped;
-    pose_stamped.header.stamp = ros::Time((*it)->time_stamp);
+    pose_stamped.header.stamp = (*it)->time_stamp;
     pose_stamped.header.frame_id = "world";
     pose_stamped.pose.position.x = P.x();
     pose_stamped.pose.position.y = P.y();

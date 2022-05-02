@@ -31,7 +31,7 @@ static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  
   v.resize(j);
 }
 
-KFMatcher::KFMatcher(double _time_stamp,
+KFMatcher::KFMatcher(ros::Time _time_stamp,
                      std::vector<Eigen::Vector3d>& _point_ids,
                      int _index,
                      Eigen::Vector3d& _svin_T_w_i,
@@ -82,7 +82,7 @@ KFMatcher::KFMatcher(double _time_stamp,
   if (!params.debug_image_) image.release();
 }
 
-KFMatcher::KFMatcher(double _time_stamp,
+KFMatcher::KFMatcher(ros::Time _time_stamp,
                      int _index,
                      Eigen::Vector3d& _svin_T_w_i,
                      Eigen::Matrix3d& _svin_R_w_i,
@@ -527,8 +527,9 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         std::ofstream loop_closure_file(loop_closure_stats, std::ios::app);
         loop_closure_file.setf(std::ios::fixed, std::ios::floatfield);
         Eigen::Vector3d relative_ypr = Utility::R2ypr(relative_q.toRotationMatrix());
-        loop_closure_file.precision(6);
-        loop_closure_file << index << " " << old_kf->index << " "
+        loop_closure_file.precision(9);
+        loop_closure_file << index << " " << time_stamp << " " << old_kf->index << " " << old_kf->time_stamp << " "
+                          << relative_ypr.transpose() << " "
                           << " " << relative_t.x() << " " << relative_t.y() << " " << relative_t.z() << " "
                           << relative_q.x() << " " << relative_q.y() << " " << relative_q.z() << " " << relative_q.w()
                           << std::endl;
@@ -542,7 +543,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
       std::cout << index << " has Loop with: " << loop_index << std::endl;
       if (params_.fast_relocalization_) {
         sensor_msgs::PointCloud msg_match_points;
-        msg_match_points.header.stamp = ros::Time(time_stamp);
+        msg_match_points.header.stamp = time_stamp;
 
         // Note that this PointCloud msg is not for visualization
         for (int i = 0; i < static_cast<int>(matched_ids.size()); i++) {

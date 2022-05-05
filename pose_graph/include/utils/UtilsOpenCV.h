@@ -1,6 +1,8 @@
 #ifndef UTILS_UTILSOPENCV_H_
 #define UTILS_UTILSOPENCV_H_
 
+#include <sensor_msgs/Image.h>
+
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
@@ -92,6 +94,8 @@ class UtilsOpenCV {
                                     const cv::Mat& img2,
                                     const KeypointsCV& corners_2,
                                     const bool& random_color);
+
+  static cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg);
 };
 
 #endif  // UTILS_UTILSOPENCV_H_

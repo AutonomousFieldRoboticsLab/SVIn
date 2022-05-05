@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "pose_graph/Parameters.h"
-#include "utils/LoopClosureUtils.h"
+// #include "utils/LoopClosureUtils.h"
 #include "utils/UtilsOpenCV.h"
 
 const int KFMatcher::TH_HIGH = 100;
@@ -425,27 +425,27 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   // std::cout << "Size Before RANSAC: " << matched_2d_cur.size() << std::endl;
 
-  opengv::transformation_t T_w_c_old;
-  if (LoopClosureUtils::geometricVerificationNister(
-          matched_2d_cur, matched_2d_old, status, params_.loop_closure_params_.min_correspondences, &T_w_c_old)) {
-    reduceVector(matched_2d_old, status);
-    reduceVector(matched_3d, status);
-    reduceVector(matched_2d_cur, status);
-    reduceVector(matched_2d_old_norm, status);
-    reduceVector(matched_ids, status);
-    status.clear();
+  // opengv::transformation_t T_w_c_old;
+  // if (LoopClosureUtils::geometricVerificationNister(
+  //         matched_2d_cur, matched_2d_old, status, params_.loop_closure_params_.min_correspondences, &T_w_c_old)) {
+  //   reduceVector(matched_2d_old, status);
+  //   reduceVector(matched_3d, status);
+  //   reduceVector(matched_2d_cur, status);
+  //   reduceVector(matched_2d_old_norm, status);
+  //   reduceVector(matched_ids, status);
+  //   status.clear();
 
-    if (params_.debug_image_) {
-      cv::Mat corners_match_image =
-          UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
-      std::string dscriptor_match_dir = pkg_path + "/output_logs/geometric_verification/";
-      std::string filename = dscriptor_match_dir + "geometric_verification_" + std::to_string(index) + "_" +
-                             std::to_string(old_kf->index) + ".png";
-      cv::imwrite(filename, corners_match_image);
-    }
-  } else {
-    return false;
-  }
+  //   if (params_.debug_image_) {
+  //     cv::Mat corners_match_image =
+  //         UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
+  //     std::string dscriptor_match_dir = pkg_path + "/output_logs/geometric_verification/";
+  //     std::string filename = dscriptor_match_dir + "geometric_verification_" + std::to_string(index) + "_" +
+  //                            std::to_string(old_kf->index) + ".png";
+  //     cv::imwrite(filename, corners_match_image);
+  //   }
+  // } else {
+  //   return false;
+  // }
 
   Eigen::Vector3d PnP_T_old;
   Eigen::Matrix3d PnP_R_old;

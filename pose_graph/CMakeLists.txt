@@ -56,7 +56,7 @@ add_library(${PROJECT_NAME}
     src/utils/CameraPoseVisualization.cpp
     src/utils/UtilsOpenCV.cpp
     src/utils/Utils.cpp
-    src/utils/LoopClosureUtils.cpp
+    # src/utils/LoopClosureUtils.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp
     ThirdParty/DBoW/FeatureVector.cpp

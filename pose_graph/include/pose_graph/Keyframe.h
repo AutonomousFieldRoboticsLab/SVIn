@@ -5,7 +5,6 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 
-using Timestamp = std::int64_t;
 
 struct TrackingInfo {
  public:
@@ -13,14 +12,14 @@ struct TrackingInfo {
 
   TrackingInfo(const Timestamp& timestamp,
                const bool is_tracking_ok,
-               const uint32_t num_new_keypoints,
+               const uint32_t num_tracked_keypoints,
                const uint32_t num_new_keypoints,
                const std::vector<uint32_t>& keypoints_per_quadrant,
                const std::vector<int32_t>& covisibilities,
                const std::vector<double>& keypoints_response_strengths,
                const std::vector<double>& points_quality)
       : is_tracking_ok_(is_tracking_ok_),
-        num_tracked_keypoints_(num_new_keypoints),
+        num_tracked_keypoints_(num_tracked_keypoints),
         num_new_keypoints_(num_new_keypoints),
         keypoints_per_quadrant_(keypoints_per_quadrant),
         covisibilities_(covisibilities),
@@ -47,12 +46,12 @@ struct KeyframeInfo {
                const std::vector<Eigen::Vector3d>& points_3d,
                const std::vector<cv::KeyPoint>& keypoints,
                const std::vector<Eigen::Vector3d>& points_ids)
-      :        translation_(translation),
+      : translation_(translation),
         rotation_(rotation),
         tracking_info_(tracking_info),
         points_3d_(points_3d),
         keypoints_(keypoints),
-        points_ids(points_ids){};
+        point_ids_(points_ids){};
 
   KeyframeInfo(const int64_t timestamp,
                const cv::Mat& image,
@@ -66,7 +65,7 @@ struct KeyframeInfo {
         rotation_(rotation),
         points_3d_(points_3d),
         keypoints_(keypoints),
-        points_ids(points_ids){};
+        point_ids_(points_ids){};
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Timestamp timestamp_;
@@ -74,10 +73,10 @@ struct KeyframeInfo {
   Eigen::Vector3d translation_;
   Eigen::Matrix3d rotation_;
   TrackingInfo tracking_info_;
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> points_3d_;
-  std::vector<cv::KeyPoint, Eigen::aligned_allocator<cv::KeyPoint>> keypoints_;
+  std::vector<Eigen::Vector3d> points_3d_;
+  std::vector<cv::KeyPoint> keypoints_;
   // @Reloc: landmarkId, mfId, keypointIdx related to each point
-  std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> point_ids_;
+  std::vector<Eigen::Vector3d> point_ids_;
 };
 
 #endif  // #POSE_GRAPH_KEYFRAME_INFORMATION_H_

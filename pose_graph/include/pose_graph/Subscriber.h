@@ -25,7 +25,6 @@ class Subscriber {
 
   ~Subscriber() = default;
 
-  void init(ros::NodeHandle& nh, const Parameters& params);              // NOLINT
   void setNodeHandle(ros::NodeHandle& nh);                               // NOLINT
   void getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,     // NOLINT
                            nav_msgs::OdometryConstPtr& kf_odom,          // NOLINT
@@ -76,7 +75,8 @@ class Subscriber {
 
   void keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg,
                         const nav_msgs::OdometryConstPtr& kf_odom,
-                        const sensor_msgs::PointCloudConstPtr& kf_points);
+                        const sensor_msgs::PointCloudConstPtr& kf_points,
+                        const okvis_ros::SvinHealthConstPtr& svin_health);
 
   // Buffer queue for the measurements.
   std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;

@@ -23,7 +23,7 @@ class PoseGraphOptimization {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  PoseGraphOptimization();
+  PoseGraphOptimization(const Parameters& params);
   ~PoseGraphOptimization() = default;
 
   void setup();
@@ -41,7 +41,6 @@ class PoseGraphOptimization {
   ros::NodeHandle nh_private_;
 
   std::shared_ptr<Parameters> params_;
-  std::unique_ptr<Subscriber> subscriber_;
   std::unique_ptr<LoopClosing> loop_closing_;
   std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
   std::unique_ptr<GlobalMap> global_map_;

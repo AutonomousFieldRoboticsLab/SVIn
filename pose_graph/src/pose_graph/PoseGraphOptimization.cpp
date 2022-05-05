@@ -19,21 +19,18 @@
 #include <vector>
 
 #include "utils/Statistics.h"
+#include "utils/UtilsOpenCV.h"
 
-PoseGraphOptimization::PoseGraphOptimization()
+PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
     : nh_private_("~"),
-      params_(nullptr),
+      params_(std::make_shared<Parameters>(params)),
       loop_closing_(nullptr),
       camera_pose_visualizer_(nullptr),
-      subscriber_(nullptr),
       global_map_(nullptr) {
   frame_index_ = 0;
   sequence_ = 1;
 
   last_translation_ = Eigen::Vector3d(-100, -100, -100);
-
-  params_ = std::make_shared<Parameters>();
-  params_->loadParameters(nh_private_);
 
   setup();
 
@@ -84,7 +81,6 @@ void PoseGraphOptimization::setup() {
   db.setVocabulary(*voc_, false, 0);
   loop_closing_->setBriefVocAndDB(voc_, db);
 
-  subscriber_ = std::unique_ptr<Subscriber>(new Subscriber(nh_private_, *params_));
   publisher.setParameters(*params_);
   publisher.setPublishers();
 
@@ -115,7 +111,7 @@ void PoseGraphOptimization::run() {
     okvis_ros::SvinHealthConstPtr health_msg = nullptr;
 
     // auto start_time = TicToc();
-    subscriber_->getSyncMeasurements(image_msg, pose_msg, point_msg, health_msg);
+    // subscriber_->getSyncMeasurements(image_msg, pose_msg, point_msg, health_msg);
     // measurement_stats_collector.AddSample(start_time.toc());
 
     static int last_keyframe_index = -1;
@@ -165,7 +161,7 @@ void PoseGraphOptimization::run() {
 
         // ROS_WARN_STREAM("Consecutive Tracking successes: " << consecutive_tracking_successes_);
 
-        primitive_estimator_odom = subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
+        // primitive_estimator_odom = subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
         if (primitive_estimator_odom) {
           if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) {
             init_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
@@ -263,7 +259,7 @@ void PoseGraphOptimization::run() {
 
         int kf_index = -1;
         int combined_kf_index = -1;
-        cv::Mat kf_image = subscriber_->readRosImage(image_msg);
+        cv::Mat kf_image = UtilsOpenCV::readRosImage(image_msg);
         cv::Mat orig_color_image = subscriber_->getCorrespondingImage(pose_msg->header.stamp.toNSec());
         cv::Mat undistort_image;
         cv::remap(orig_color_image,

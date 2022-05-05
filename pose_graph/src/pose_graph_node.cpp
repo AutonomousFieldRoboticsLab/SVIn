@@ -7,11 +7,13 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "pose_graph");
   ros::NodeHandle nh("~");
 
+  // read parameters
   Parameters params;
   params.loadParameters(nh);
 
-  // read parameters
-  PoseGraphOptimization pose_graph_optimizer;
+  Subscriber subscriber(nh, params);
+
+  PoseGraphOptimization pose_graph_optimizer(params);
 
   // std::shared_ptr<boost::thread> process_thread(
   // new boost::thread(boost::bind(&PoseGraphOptimization::run, &pose_graph_optimizer)));

@@ -19,18 +19,6 @@ Subscriber::Subscriber(ros::NodeHandle& nh, const Parameters& params) : params_(
   setNodeHandle(nh);
 }
 
-void Subscriber::init(ros::NodeHandle& nh, const Parameters& params) {
-  params_ = params;
-  kf_image_topic_ = "/okvis_node/keyframe_imageL";
-  kf_pose_topic_ = "/okvis_node/keyframe_pose";
-  kf_points_topic_ = "/okvis_node/keyframe_points";
-  svin_reloc_odom_topic_ = "/okvis_node/relocalization_odometry";
-  svin_health_topic_ = "/svin_health";
-  last_image_time_ = -1;
-
-  setNodeHandle(nh);
-}
-
 void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   nh_ = &nh;
   if (it_) it_.reset();
@@ -94,34 +82,6 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   std::lock_guard<std::mutex> lock(measurement_mutex_);
   orig_image_buffer_.push(msg);
   // ROS_WARN_STREAM("GOT COLOR IMAGE");
-}
-
-const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const {
-  cv_bridge::CvImageConstPtr cv_ptr;
-  try {
-    // TODO(Toni): here we should consider using toCvShare...
-    cv_ptr = cv_bridge::toCvCopy(img_msg);
-  } catch (cv_bridge::Exception& exception) {
-    ROS_FATAL("cv_bridge exception: %s", exception.what());
-    ros::shutdown();
-  }
-
-  const cv::Mat img_const = cv_ptr->image;  // Don't modify shared image in ROS.
-  cv::Mat converted_img(img_const.size(), CV_8U);
-  if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
-    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
-    cv::cvtColor(img_const, converted_img, cv::COLOR_BGR2GRAY);
-    return converted_img;
-  } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
-    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
-    cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2GRAY);
-    return converted_img;
-  } else {
-    ROS_ERROR_STREAM_COND(cv_ptr->encoding != sensor_msgs::image_encodings::MONO8,
-                          "Expected image with MONO8, BGR8, or RGB8 encoding."
-                          "Add in here more conversions if you wish.");
-    return img_const;
-  }
 }
 
 void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,

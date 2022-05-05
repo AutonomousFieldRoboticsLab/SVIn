@@ -1,5 +1,9 @@
 #include "utils/UtilsOpenCV.h"
 
+#include <cv_bridge/cv_bridge.h>
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -261,4 +265,32 @@ cv::Mat UtilsOpenCV::DrawCornersMatches(const cv::Mat& img1,
   }
 
   return canvas;
+}
+
+cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) {
+  cv_bridge::CvImageConstPtr cv_ptr;
+  try {
+    // TODO(Toni): here we should consider using toCvShare...
+    cv_ptr = cv_bridge::toCvCopy(img_msg);
+  } catch (cv_bridge::Exception& exception) {
+    ROS_FATAL("cv_bridge exception: %s", exception.what());
+    ros::shutdown();
+  }
+
+  const cv::Mat img_const = cv_ptr->image;  // Don't modify shared image in ROS.
+  cv::Mat converted_img(img_const.size(), CV_8U);
+  if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
+    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
+    cv::cvtColor(img_const, converted_img, cv::COLOR_BGR2GRAY);
+    return converted_img;
+  } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
+    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
+    cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2GRAY);
+    return converted_img;
+  } else {
+    ROS_ERROR_STREAM_COND(cv_ptr->encoding != sensor_msgs::image_encodings::MONO8,
+                          "Expected image with MONO8, BGR8, or RGB8 encoding."
+                          "Add in here more conversions if you wish.");
+    return img_const;
+  }
 }

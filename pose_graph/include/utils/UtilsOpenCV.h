@@ -1,5 +1,4 @@
-#ifndef UTILS_UTILSOPENCV_H_
-#define UTILS_UTILSOPENCV_H_
+#pragma once
 
 #include <sensor_msgs/Image.h>
 
@@ -97,5 +96,3 @@ class UtilsOpenCV {
 
   static cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg);
 };
-
-#endif  // UTILS_UTILSOPENCV_H_

@@ -267,7 +267,7 @@ cv::Mat UtilsOpenCV::DrawCornersMatches(const cv::Mat& img1,
   return canvas;
 }
 
-cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) {
+cv::Mat UtilsOpenCV::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) {
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
     // TODO(Toni): here we should consider using toCvShare...

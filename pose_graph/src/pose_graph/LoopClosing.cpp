@@ -733,9 +733,6 @@ void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _lo
   }
 }
 
-// void LoopClosing::registerLoopClosureCallback(const EventCallback& loop_found_callback) {
-//   loop_found_callback_ = loop_found_callback;
-// }
 
 void LoopClosing::registerLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
   loop_closure_optimization_callback_ = optimization_finish_callback;

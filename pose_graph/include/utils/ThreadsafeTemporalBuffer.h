@@ -38,17 +38,12 @@
 #include <queue>
 #include <utility>
 
-namespace VIO {
-
 namespace utils {
 
-template <typename ValueType,
-          typename AllocatorType =
-              std::allocator<std::pair<const Timestamp, ValueType> > >
+template <typename ValueType, typename AllocatorType = std::allocator<std::pair<const Timestamp, ValueType> > >
 class ThreadsafeTemporalBuffer {
  public:
-  typedef std::map<Timestamp, ValueType, std::less<Timestamp>, AllocatorType>
-      BufferType;
+  typedef std::map<Timestamp, ValueType, std::less<Timestamp>, AllocatorType> BufferType;
 
   // Create buffer of infinite length (buffer_length_nanoseconds = -1)
   ThreadsafeTemporalBuffer();
@@ -60,8 +55,7 @@ class ThreadsafeTemporalBuffer {
   ThreadsafeTemporalBuffer(const ThreadsafeTemporalBuffer& other);
 
   void addValue(Timestamp timestamp, const ValueType& value);
-  void addValue(const Timestamp timestamp, const ValueType& value,
-                const bool emit_warning_on_value_overwrite);
+  void addValue(const Timestamp timestamp, const ValueType& value, const bool emit_warning_on_value_overwrite);
   void insert(const ThreadsafeTemporalBuffer& other);
 
   inline size_t size() const {
@@ -83,9 +77,9 @@ class ThreadsafeTemporalBuffer {
   bool deleteValueAtTime(Timestamp timestamp_ns);
 
   bool getNearestValueToTime(Timestamp timestamp_ns, ValueType* value) const;
-  bool getNearestValueToTime(Timestamp timestamp_ns, Timestamp maximum_delta_ns,
-                             ValueType* value) const;
-  bool getNearestValueToTime(Timestamp timestamp, Timestamp maximum_delta_ns,
+  bool getNearestValueToTime(Timestamp timestamp_ns, Timestamp maximum_delta_ns, ValueType* value) const;
+  bool getNearestValueToTime(Timestamp timestamp,
+                             Timestamp maximum_delta_ns,
                              ValueType* value,
                              Timestamp* timestamp_at_value_ns) const;
 
@@ -93,12 +87,8 @@ class ThreadsafeTemporalBuffer {
   bool getNewestValue(ValueType* value) const;
 
   // These functions return False if there is no valid time.
-  bool getValueAtOrBeforeTime(Timestamp timestamp_ns,
-                              Timestamp* timestamp_ns_of_value,
-                              ValueType* value) const;
-  bool getValueAtOrAfterTime(Timestamp timestamp_ns,
-                             Timestamp* timestamp_ns_of_value,
-                             ValueType* value) const;
+  bool getValueAtOrBeforeTime(Timestamp timestamp_ns, Timestamp* timestamp_ns_of_value, ValueType* value) const;
+  bool getValueAtOrAfterTime(Timestamp timestamp_ns, Timestamp* timestamp_ns_of_value, ValueType* value) const;
 
   // Get all values between the two specified timestamps excluding the border
   // values.
@@ -123,17 +113,14 @@ class ThreadsafeTemporalBuffer {
   const BufferType& buffered_values() const { return values_; }
 
   inline bool operator==(const ThreadsafeTemporalBuffer& other) const {
-    return values_ == other.values_ &&
-           buffer_length_nanoseconds_ == other.buffer_length_nanoseconds_;
+    return values_ == other.values_ && buffer_length_nanoseconds_ == other.buffer_length_nanoseconds_;
   }
 
  protected:
   // Remove items that are older than the buffer length.
   void removeOutdatedItems();
 
-  bool getIteratorAtTimeOrEarlier(
-      Timestamp timestamp,
-      typename BufferType::const_iterator* it_lower_bound) const;
+  bool getIteratorAtTimeOrEarlier(Timestamp timestamp, typename BufferType::const_iterator* it_lower_bound) const;
 
   BufferType values_;
   Timestamp buffer_length_nanoseconds_;
@@ -141,7 +128,5 @@ class ThreadsafeTemporalBuffer {
 };
 
 }  // namespace utils
-
-}  // namespace VIO
 
 #include "./ThreadsafeTemporalBuffer-inl.h"

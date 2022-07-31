@@ -1,5 +1,4 @@
-#ifndef POSE_GRAPH_PARAMETERS_H_
-#define POSE_GRAPH_PARAMETERS_H_
+#pragma once
 
 #include <cv_bridge/cv_bridge.h>
 #include <ros/ros.h>
@@ -73,5 +72,3 @@ class Parameters {
  public:
   void loadParameters(const ros::NodeHandle& nh);
 };
-
-#endif  // POSE_GRAPH_PARAMETERS_H_

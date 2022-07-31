@@ -26,7 +26,8 @@ PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
       params_(std::make_shared<Parameters>(params)),
       loop_closing_(nullptr),
       camera_pose_visualizer_(nullptr),
-      global_map_(nullptr) {
+      global_map_(nullptr),
+      keyframe_tracking_queue_("keyframe_tracking_queue") {
   frame_index_ = 0;
   sequence_ = 1;
 
@@ -58,6 +59,7 @@ PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
   vio_traj_length_ = 0.0;
   prim_traj_length_ = 0.0;
   scale_between_vio_prim_ = 0.0;
+  shutdown_ = false;
 }
 
 void PoseGraphOptimization::setup() {
@@ -92,471 +94,38 @@ void PoseGraphOptimization::setup() {
 }
 
 void PoseGraphOptimization::run() {
-  HealthParams health_params = params_->health_params_;
-  std::string pkg_path = ros::package::getPath("pose_graph");
-  std::string switching_info = pkg_path + "/output_logs/switch_info.txt";
+  while (!shutdown_) {
+    std::unique_ptr<KeyframeInfo> keyframe_info = nullptr;
+    bool queue_state = keyframe_tracking_queue_.popBlocking(keyframe_info);
+    if (queue_state) {
+      CHECK(keyframe_info);
+      std::map<KFMatcher*, int> KFcounter;
 
-  // utils::StatsCollector measurement_stats_collector("Get Measurements [ms]");
-  // utils::StatsCollector kf_construct_stats_collector("Construct Keyframe [ms]");
-  // utils::StatsCollector("Optimize Keyframe [ms]");
-
-  while (!boost::this_thread::interruption_requested()) {
-    std::ofstream switch_file(switching_info, std::ios::app);
-    switch_file.setf(std::ios::fixed, std::ios::floatfield);
-    switch_file.precision(9);
-
-    sensor_msgs::ImageConstPtr image_msg = nullptr;
-    sensor_msgs::PointCloudConstPtr point_msg = nullptr;
-    nav_msgs::Odometry::ConstPtr pose_msg = nullptr;
-    okvis_ros::SvinHealthConstPtr health_msg = nullptr;
-
-    // auto start_time = TicToc();
-    // subscriber_->getSyncMeasurements(image_msg, pose_msg, point_msg, health_msg);
-    // measurement_stats_collector.AddSample(start_time.toc());
-
-    static int last_keyframe_index = -1;
-    if (pose_msg) {
-      // build keyframe
-
-      // start_time = TicToc();
-
-      Eigen::Vector3d T = Eigen::Vector3d(
-          pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
-      Eigen::Matrix3d R = Eigen::Quaterniond(pose_msg->pose.pose.orientation.w,
-                                             pose_msg->pose.pose.orientation.x,
-                                             pose_msg->pose.pose.orientation.y,
-                                             pose_msg->pose.pose.orientation.z)
-                              .toRotationMatrix();
-
-      assert(point_msg);
-      assert(image_msg);
-
-      nav_msgs::OdometryConstPtr primitive_estimator_odom;
-      geometry_msgs::PoseStamped uber_pose;
-      nav_msgs::Odometry uber_odom;
-      uber_pose.header.seq = uber_estimator_poses_.size() + 1;
-      uber_pose.header.frame_id = "world";
-      uber_pose.header.stamp = pose_msg->header.stamp;
-
-      bool new_pose = false;
-
-      Eigen::Matrix4d svin_cam_pose = Utility::rosPoseToMatrix(pose_msg->pose.pose);
-      Eigen::Matrix4d svin_body_pose = svin_cam_pose * params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
-      Eigen::Matrix4d prim_estimator_pose, scaled_prim_estimator_pose;
-
-      if (health_params.health_monitoring_enabled) {
-        assert(health_msg);
-
-        std::string vio_health_error_msg;
-        bool vio_working = healthCheck(health_msg, vio_health_error_msg);
-
-        if (!vio_working) {
-          // ROS_WARN_STREAM(vio_health_error_msg);
-          consecutive_tracking_failures_ += 1;
-          consecutive_tracking_successes_ = 0;
-        } else {
-          consecutive_tracking_successes_ += 1;
-          consecutive_tracking_failures_ = 0;
-        }
-
-        // ROS_WARN_STREAM("Consecutive Tracking successes: " << consecutive_tracking_successes_);
-
-        // primitive_estimator_odom = subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
-        if (primitive_estimator_odom) {
-          if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) {
-            init_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
-            init_t_w_svin_ = svin_body_pose;
-            switch_prim_pose_ = init_t_w_prim_;
-            switch_svin_pose_ = init_t_w_svin_;
-            switch_uber_pose_ = init_t_w_svin_;
-            tracking_status_ = TrackingStatus::TRACKING_VIO;
-          }
-
-          prim_estimator_pose =
-              init_t_w_svin_ * init_t_w_prim_.inverse() * Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
-
-          scaled_prim_estimator_pose = prim_estimator_pose;
-
-          if (scale_between_vio_prim_ != 0) {
-            Eigen::Matrix4d relative_lkf_kf = last_t_w_prim_.inverse() * prim_estimator_pose;
-            relative_lkf_kf.block<3, 1>(0, 3) = relative_lkf_kf.block<3, 1>(0, 3) * scale_between_vio_prim_;
-            scaled_prim_estimator_pose = last_scaled_prim_pose_ * relative_lkf_kf;
-          }
-
-          // TODO(bjoshi): publish the scaled primitive odometry
-          updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
-          nav_msgs::Odometry primtive_odometry;
-          primtive_odometry.pose.pose = primitive_estimator_poses_.back().pose;
-          primtive_odometry.header = primitive_estimator_poses_.back().header;
-          publisher.publishOdometry(primtive_odometry, publisher.pub_prim_odometry_);
-          publisher.publishPath(primitive_estimator_poses_, publisher.pub_primitive_estimator_path_);
-        }
-
-        if (tracking_status_ == TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR) {
-          if (consecutive_tracking_successes_ < health_params.consecutive_keyframes) {
-            if (primitive_estimator_odom) {
-              uber_pose.pose =
-                  Utility::matrixToRosPose(switch_uber_pose_ * switch_prim_pose_.inverse() *
-                                           scaled_prim_estimator_pose * params_->T_body_imu_ * params_->T_imu_cam0_);
-              new_pose = true;
-            }
-          } else {
-            switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
-                                params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
-            switch_svin_pose_ = svin_body_pose;
-            switch_prim_pose_ = scaled_prim_estimator_pose;
-            uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_svin_pose_.inverse() * svin_cam_pose);
-            tracking_status_ = TrackingStatus::TRACKING_VIO;
-            new_pose = true;
-            switch_file << 1 << " " << pose_msg->header.stamp.toSec() << " "
-                        << primitive_estimator_odom->header.stamp.toSec() << " " << uber_pose.header.stamp << std::endl;
-
-            ROS_INFO_STREAM("!!!!!!!! Switching to VIO !!!!!!!!!!");
-          }
-        } else {
-          if (consecutive_tracking_failures_ >= (health_params.consecutive_keyframes + 3ul) &&
-              !last_scaled_prim_pose_.isZero() && primitive_estimator_odom) {
-            switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
-                                params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
-            switch_svin_pose_ = svin_body_pose;
-            switch_prim_pose_ = last_scaled_prim_pose_;
-            uber_pose.pose =
-                Utility::matrixToRosPose(switch_uber_pose_ * switch_prim_pose_.inverse() * scaled_prim_estimator_pose *
-                                         params_->T_body_imu_ * params_->T_imu_cam0_);
-            tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
-            ROS_INFO_STREAM(
-                "Switching to Primitive Estimator. Consecutive Tracking failures: " << consecutive_tracking_failures_);
-
-            switch_file << 0 << " " << pose_msg->header.stamp.toSec() << " "
-                        << primitive_estimator_odom->header.stamp.toSec() << " " << uber_pose.header.stamp << std::endl;
-          } else {
-            uber_pose.pose = Utility::matrixToRosPose(switch_uber_pose_ * switch_svin_pose_.inverse() * svin_cam_pose);
-          }
-          new_pose = true;
-        }
-      } else {
-        uber_pose.pose = pose_msg->pose.pose;
-        new_pose = true;
-      }
-
-      // if (new_pose) {
-      //   uber_estimator_poses_.push_back(uber_pose);
-
-      //   uber_pose.header.stamp = uber_estimator_poses_.back().header.stamp;
-      //   uber_odom.pose.pose = uber_pose.pose;
-      //   uber_odom.header = uber_pose.header;
-
-      //   publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
-      //   publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
-      // }
-
-      if (new_pose) {
-        std::vector<cv::Point3f> point_3d;
-        std::vector<cv::KeyPoint> point_2d_uv;
-        std::vector<Eigen::Vector3d> point_ids;  // @Reloc: landmarkId, mfId, keypointIdx related to each point
-        // For every KF, a map <observed_kf, weight> describing which other kfs how many MapPoints are common.
-        std::map<KFMatcher*, int> KFcounter;
-
-        int kf_index = -1;
-        int combined_kf_index = -1;
-        cv::Mat kf_image = UtilsOpenCV::readRosImage(image_msg);
-        cv::Mat orig_color_image = subscriber_->getCorrespondingImage(pose_msg->header.stamp.toNSec());
-        cv::Mat undistort_image;
-        cv::remap(orig_color_image,
-                  undistort_image,
-                  params_->cam0_undistort_map_x_,
-                  params_->cam0_undistort_map_y_,
-                  cv::INTER_LINEAR);
-
-        if (params_->resize_factor_ != 1.0) {
-          uint16_t new_width = static_cast<uint16_t>(params_->image_width_ * params_->resize_factor_);
-          uint16_t new_height = static_cast<uint16_t>(params_->image_height_ * params_->resize_factor_);
-          cv::resize(undistort_image, undistort_image, cv::Size(new_width, new_height));
-        }
-
-        // TODO(bjoshi): publish debug image
-        // cv::imshow("image", undistort_image);
-        // cv::waitKey(1);
-
-        // Need this because we want to update global map only if there is new loop
-        // LoopClosing::addKFToPoseGraph updates keyframe to account for loop closure correction
-        // Hence, need to add global points after the function.
-
-        std::vector<uint64_t> landmark_ids;
-        std::vector<double> qualities;
-        std::vector<Eigen::Vector3d> colors;
-        std::vector<Eigen::Vector3d> local_positions;
-
-        Eigen::Matrix4d uber_pose_matrix = Utility::rosPoseToMatrix(uber_pose.pose);
-        Eigen::Vector3d uber_position = uber_pose_matrix.block<3, 1>(0, 3);
-        Eigen::Matrix3d uber_orientation = uber_pose_matrix.block<3, 3>(0, 0);
-
-        for (unsigned int i = 0; i < point_msg->points.size(); i++) {
-          double quality = point_msg->channels[i].values[3];
-
-          cv::Point3f p_3d;
-          p_3d.x = point_msg->points[i].x;
-          p_3d.y = point_msg->points[i].y;
-          p_3d.z = point_msg->points[i].z;
-
-          Eigen::Vector3d point_3d_eigen;
-          point_3d_eigen << p_3d.x, p_3d.y, p_3d.z;
-
-          Eigen::Vector3d point_cam_frame = R.transpose() * (point_3d_eigen - T);
-          Eigen::Vector3d point_w_f_uber = uber_orientation * point_cam_frame + uber_position;
-          p_3d = cv::Point3f(point_w_f_uber(0), point_w_f_uber(1), point_w_f_uber(2));
-          point_3d.push_back(p_3d);
-
-          // pcl::PointXYZRGB pcl_point;
-          // pcl_point.x = point_cam_frame.x();
-          // pcl_point.y = point_cam_frame.y();
-          // pcl_point.z = point_cam_frame.z();
-          // pcl_point.r = 255;
-          // pcl_point.g = 0;
-          // pcl_point.b = 0;
-          // sparse_pointcloud_->push_back(pcl_point);
-
-          // @Reloc
-          Eigen::Vector3d p_ids;
-          p_ids(0) = point_msg->channels[i].values[0];  // landmarkId
-          p_ids(1) = point_msg->channels[i].values[1];  // poseId or MultiFrameId
-          p_ids(2) = point_msg->channels[i].values[2];  // keypointIdx
-          point_ids.push_back(p_ids);
-
-          cv::KeyPoint p_2d_uv;
-          // double p_id;
-          kf_index = point_msg->channels[i].values[4];
-          combined_kf_index = kf_index + prim_estimator_keyframes_;
-          p_2d_uv.pt.x = point_msg->channels[i].values[5];
-          p_2d_uv.pt.y = point_msg->channels[i].values[6];
-          p_2d_uv.size = point_msg->channels[i].values[7];
-          p_2d_uv.angle = point_msg->channels[i].values[8];
-          p_2d_uv.octave = point_msg->channels[i].values[9];
-          p_2d_uv.response = point_msg->channels[i].values[10];
-          p_2d_uv.class_id = point_msg->channels[i].values[11];
-
-          point_2d_uv.push_back(p_2d_uv);
-
-          // std::cout << "CV Keypoint of size 8:" << p_2d_uv.pt.x << " , " << p_2d_uv.pt.y << " size: " <<
-          // p_2d_uv.size
-          //           << "angle : " << p_2d_uv.angle << " octave : " << p_2d_uv.octave
-          //           << " response : " << p_2d_uv.response << " class_id: " << p_2d_uv.class_id << std::endl;
-
-          cv::Vec3b color =
-              undistort_image.at<cv::Vec3b>(static_cast<uint16_t>(p_2d_uv.pt.y), static_cast<uint16_t>(p_2d_uv.pt.x));
-          Eigen::Vector3d color_eigen(
-              static_cast<double>(color[2]), static_cast<double>(color[1]), static_cast<double>(color[0]));
-
-          colors.push_back(color_eigen);
-          qualities.push_back(quality);
-          local_positions.push_back(point_cam_frame);
-          landmark_ids.push_back(static_cast<uint64_t>(p_ids(0)));
-
-          for (size_t sz = 12; sz < point_msg->channels[i].values.size(); sz++) {
-            int observed_kf_index =
-                point_msg->channels[i].values[sz] + prim_estimator_keyframes_;  // kf_index where this point_3d
-                                                                                // has been observed
-            if (observed_kf_index == combined_kf_index) {
-              continue;
-            }
-
-            std::map<int, KFMatcher*>::iterator mkfit;
-            mkfit = kfMapper_.find(observed_kf_index);
-            if (mkfit == kfMapper_.end()) {
-              continue;
-            }
-
+      for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
+        double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
+        for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
+          if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
             KFMatcher* observed_kf =
                 kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
             KFcounter[observed_kf]++;
           }
         }
-
-        KFMatcher* keyframe = new KFMatcher(pose_msg->header.stamp,
-                                            point_ids,
-                                            combined_kf_index,
-                                            uber_position,
-                                            uber_orientation,
-                                            kf_image,
-                                            point_3d,
-                                            point_2d_uv,
-                                            KFcounter,
-                                            sequence_,
-                                            voc_,
-                                            *params_,
-                                            true);
-
-        keyframe->setRelocalizationPCLCallback(
-            std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
-        kfMapper_.insert(std::make_pair(combined_kf_index, keyframe));
-
-        {
-          std::lock_guard<std::mutex> l(processMutex_);
-          // start_flag = 1;
-          loop_closing_->addKFToPoseGraph(keyframe, params_->loop_closure_params_.loop_closure_enabled);
-        }
-
-        // sensor_msgs::PointCloud2 sparse_pointcloud_msg;
-        // pcl::PointCloud<pcl::PointXYZRGB>::Ptr sparse_pointcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-
-        for (size_t i = 0; i < landmark_ids.size(); i++) {
-          double quality = qualities.at(i);
-          if (quality < params_->min_landmark_quality_) continue;
-
-          Eigen::Vector3d pos_cam_frame = local_positions.at(i);
-
-          if (kfMapper_.find(combined_kf_index) == kfMapper_.end()) {
-            std::cout << "Keyframe not found" << std::endl;
-            continue;
-          }
-
-          KFMatcher* kf = kfMapper_.find(combined_kf_index)->second;
-          Eigen::Matrix3d R_w_kf;
-          Eigen::Vector3d T_w_kf;
-          kf->getPose(T_w_kf, R_w_kf);
-
-          Eigen::Vector3d global_pos = R_w_kf * pos_cam_frame + T_w_kf;
-          Eigen::Vector3d color = colors.at(i);
-          uint64_t landmark_id = landmark_ids.at(i);
-
-          global_map_->addLandmark(global_pos, landmark_id, quality, combined_kf_index, pos_cam_frame, color);
-
-          // pcl::PointXYZRGB pcl_point;
-          // pcl_point.x = global_pos(0);
-          // pcl_point.y = global_pos(1);
-          // pcl_point.z = global_pos(2);
-          // pcl_point.r = (int)color(0);
-          // pcl_point.g = (int)color(1);
-          // pcl_point.b = (int)color(2);
-          // sparse_pointcloud_->push_back(pcl_point);
-        }
-
-        if (tracking_status_ == TrackingStatus::TRACKING_VIO && primitive_estimator_odom &&
-            !last_t_w_prim_.isIdentity()) {
-          double time_since_last_kf = pose_msg->header.stamp.toSec() - static_cast<double>(last_keyframe_time_) * 1e-9;
-          if (time_since_last_kf <= health_params.kf_wait_time) {
-            double time_since_last_prim =
-                primitive_estimator_odom->header.stamp.toSec() - last_primitive_estmator_time_;
-            // ROS_INFO_STREAM("Time since last keyframe: " << time_since_last_kf);
-            // ROS_INFO_STREAM("Time since last primitive: " << time_since_last_prim);
-
-            vio_traj_length_ +=
-                (last_t_w_svin_.inverse() * svin_body_pose).block<3, 1>(0, 3).norm() / time_since_last_kf;
-            prim_traj_length_ +=
-                (last_t_w_prim_.inverse() * prim_estimator_pose).block<3, 1>(0, 3).norm() / time_since_last_prim;
-            scale_between_vio_prim_ = vio_traj_length_ / prim_traj_length_;
-            // ROS_INFO_STREAM("Scaling factor between VIO and primitive estimator: " << scale_between_vio_prim_);
-          }
-        }
-
-        frame_index_++;
-        last_translation_ = T;
-        last_keyframe_time_ = pose_msg->header.stamp.toNSec();
-        if (kf_index > 0) last_keyframe_index = kf_index;
-
-        last_t_w_svin_ = svin_body_pose;
-        if (primitive_estimator_odom) {
-          last_t_w_prim_ = prim_estimator_pose;
-          last_scaled_prim_pose_ = scaled_prim_estimator_pose;
-          last_primitive_estmator_time_ = primitive_estimator_odom->header.stamp.toSec();
-        }
-        // pcl::toROSMsg(*sparse_pointcloud_, sparse_pointcloud_msg);
-        // sparse_pointcloud_msg.header.frame_id = "world";
-        // sparse_pointcloud_msg.header.stamp = pose_msg->header.stamp;
-        // pubSparseMap.publish(sparse_pointcloud_msg);
       }
-    } else if (health_params.health_monitoring_enabled) {
-      // SVIN Frontend does not pass keyframe because of not tracking
-      // Check if it is just not waiting for keyframe
 
-      if (tracking_status_ != TrackingStatus::NOT_INITIALIZED &&
-          abs(subscriber_->getLatestPrimitiveEstimatorTime() - static_cast<double>(last_keyframe_time_) * 1e-9) >
-              health_params.kf_wait_time) {
-        std::vector<nav_msgs::OdometryConstPtr> prim_estimator_poses;
-        subscriber_->getPrimitiveEstimatorPoses(last_keyframe_time_, prim_estimator_poses);
-
-        if (!prim_estimator_poses.empty()) {
-          if (tracking_status_ == TrackingStatus::TRACKING_VIO) {
-            switch_svin_pose_ = last_t_w_svin_;
-            switch_prim_pose_ = last_scaled_prim_pose_;
-            switch_uber_pose_ = Utility::rosPoseToMatrix(uber_estimator_poses_.back().pose) *
-                                params_->T_imu_cam0_.inverse() * params_->T_body_imu_.inverse();
-            // cout << std::setprecision(12) << primitive_estimator_odom->header.stamp.toSec() << " " <<
-            // last_keyframe_time_
-            //      << endl;
-            // cout << switch_svin_pose_ << endl;
-            // cout << switch_prim_pose_ << endl;
-            // cout << switch_uber_pose_ << endl;
-            tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
-            ROS_INFO_STREAM("!!!!!!!! Switching to Primitive Estimator !!!!!!!!!!");
-            switch_file << 0 << " " << static_cast<double>(last_keyframe_time_) * 1e-9 << " "
-                        << prim_estimator_poses.front()->header.stamp.toSec() << " "
-                        << prim_estimator_poses.front()->header.stamp.toSec() << std::endl;
-          }
-
-          for (nav_msgs::OdometryConstPtr primitive_estimator_odom : prim_estimator_poses) {
-            Eigen::Matrix4d prim_estimator_pose = init_t_w_svin_ * init_t_w_prim_.inverse() *
-                                                  Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
-            Eigen::Matrix4d scaled_prim_estimator_pose = prim_estimator_pose;
-
-            if (scale_between_vio_prim_ != 0) {
-              Eigen::Matrix4d relative_lkf_kf = last_t_w_prim_.inverse() * prim_estimator_pose;
-              relative_lkf_kf.block<3, 1>(0, 3) = relative_lkf_kf.block<3, 1>(0, 3) * scale_between_vio_prim_;
-              scaled_prim_estimator_pose = last_scaled_prim_pose_ * relative_lkf_kf;
-            }
-            geometry_msgs::PoseStamped uber_pose;
-            uber_pose.header.seq = uber_estimator_poses_.size() + 1;
-            uber_pose.header.frame_id = "world";
-            uber_pose.header.stamp = primitive_estimator_odom->header.stamp;
-            uber_pose.pose =
-                Utility::matrixToRosPose(switch_uber_pose_ * switch_prim_pose_.inverse() * scaled_prim_estimator_pose *
-                                         params_->T_body_imu_ * params_->T_imu_cam0_);
-            uber_estimator_poses_.push_back(uber_pose);
-            nav_msgs::Odometry uber_odom;
-            uber_odom.pose.pose = uber_pose.pose;
-            uber_odom.header = uber_pose.header;
-
-            updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
-            nav_msgs::Odometry primtive_odometry;
-            primtive_odometry.pose.pose = primitive_estimator_poses_.back().pose;
-            primtive_odometry.header = primitive_estimator_poses_.back().header;
-            publisher.publishOdometry(primtive_odometry, publisher.pub_prim_odometry_);
-            publisher.publishPath(primitive_estimator_poses_, publisher.pub_primitive_estimator_path_);
-
-            publisher.publishOdometry(uber_odom, publisher.pub_uber_odometry_);
-            publisher.publishPath(uber_estimator_poses_, publisher.pub_uber_path_);
-
-            prim_estimator_keyframes_++;
-            Eigen::Matrix4d updated_transform = Utility::rosPoseToMatrix(uber_pose.pose);
-            Eigen::Vector3d T = updated_transform.block<3, 1>(0, 3);
-            Eigen::Matrix3d R = updated_transform.block<3, 3>(0, 0);
-            int kf_index = last_keyframe_index + prim_estimator_keyframes_;
-            std::map<KFMatcher*, int> kf_counter;
-            KFMatcher* keyframe =
-                new KFMatcher(uber_pose.header.stamp, kf_index, T, R, kf_counter, sequence_, *params_, false);
-            keyframe->setRelocalizationPCLCallback(
-                std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
-            kfMapper_.insert(std::make_pair(kf_index, keyframe));
-
-            {
-              std::lock_guard<std::mutex> l(processMutex_);
-              // start_flag = 1;
-              loop_closing_->addKFToPoseGraph(keyframe, false);
-            }
-            last_t_w_prim_ = prim_estimator_pose;
-            last_scaled_prim_pose_ = scaled_prim_estimator_pose;
-          }
-        }
-        consecutive_tracking_successes_ = 0;
-      }
+      KFMatcher* keyframe = new KFMatcher(keyframe_info->timestamp_,
+                                          keyframe_info->keypoint_ids_,
+                                          keyframe_info->keyframe_index_,
+                                          keyframe_info->translation_,
+                                          keyframe_info->rotation_,
+                                          keyframe_info->keyframe_image_,
+                                          keyframe_info->keyfame_points_,
+                                          keyframe_info->cv_keypoints_,
+                                          KFcounter,
+                                          sequence_,
+                                          voc_,
+                                          *params_);
     }
-
-    switch_file.close();
-    std::chrono::milliseconds dura(5);
-    std::this_thread::sleep_for(dura);
   }
-
-  ROS_ERROR_STREAM("!!!!!!! Stopping tracking thread  !!!!!!!!!!!!");
 }
 
 void PoseGraphOptimization::updatePublishGlobalMap(const ros::TimerEvent& event) {
@@ -721,18 +290,6 @@ bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& hea
     return false;
   }
 
-  // double average_quality = std::accumulate(health_msg->quality.begin(), health_msg->quality.end(), double(0.0)) /
-  //                          static_cast<double>(health_msg->quality.size());
-  // float fraction_with_low_quality = std::count_if(health_msg->quality.begin(),
-  //                                                 health_msg->quality.end(),
-  //                                                 [&](double quality) { return quality < average_quality; }) /
-  //                                   static_cast<float>(health_msg->quality.size());
-  // if (fraction_with_low_quality > 0.90) {
-  //   ss << "Too many landmarks with low quality: " << fraction_with_low_quality << std::endl;
-  //   error_msg = ss.str();
-  //   return false;
-  // }
-
   return true;
 }
 
@@ -820,4 +377,10 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
                           << " "
                           << "uber_stamp" << std::endl;
   switch_info_file_stream.close();
+}
+
+void PoseGraphOptimization::shutdown() {
+  LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph modile was already shutdown.";
+  LOG(INFO) << "Shutting down PoseGraph module.";
+  shutdown_ = true;
 }

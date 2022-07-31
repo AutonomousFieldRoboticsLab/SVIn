@@ -1,5 +1,4 @@
-#ifndef POSE_GRAPH_POSEGRAPHOPTIMIZATION_H_
-#define POSE_GRAPH_POSEGRAPHOPTIMIZATION_H_
+#pragma once
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -11,13 +10,14 @@
 #include <string>
 #include <vector>
 
+#include "common/Definitions.h"
 #include "pose_graph/GlobalMapping.h"
 #include "pose_graph/KFMatcher.h"
 #include "pose_graph/LoopClosing.h"
 #include "pose_graph/Parameters.h"
 #include "pose_graph/Publisher.h"
-#include "pose_graph/Subscriber.h"
 #include "utils/CameraPoseVisualization.h"
+#include "utils/ThreadSafeQueue.h"
 
 class PoseGraphOptimization {
  public:
@@ -36,6 +36,13 @@ class PoseGraphOptimization {
   Publisher publisher;
 
   // ros::Publisher pubSparseMap;
+
+  inline void fillKeyframeTrackingQueue(std::unique_ptr<KeyframeInfo> keyframe_info) {
+    CHECK(keyframe_info);
+    keyframe_tracking_queue_.push(std::move(keyframe_info));
+  }
+
+  void shutdown();
 
  private:
   ros::NodeHandle nh_private_;
@@ -79,6 +86,8 @@ class PoseGraphOptimization {
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
   void setupOutputLogDirectories();
   bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg);  // NOLINT
-};
 
-#endif  // POSE_GRAPH_POSEGRAPHOPTIMIZATION_H_
+  ThreadsafeQueue<std::unique_ptr<KeyframeInfo>> keyframe_tracking_queue_;
+
+  bool shutdown_;
+};

@@ -1,5 +1,4 @@
-#ifndef POSE_GRAPH_SUBSCRIBER_H_
-#define POSE_GRAPH_SUBSCRIBER_H_
+#pragma once
 
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
@@ -15,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "common/Definitions.h"
 #include "pose_graph/Parameters.h"
 
 class Subscriber {
@@ -65,11 +65,11 @@ class Subscriber {
   ros::Subscriber sub_primitive_estimator_;       // Subscriber to the primitive estimator odometry.
 
   // Callback functions.
-  void keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg);
-  void keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg);
-  void keyframePointsCallback(const sensor_msgs::PointCloudConstPtr& msg);
+  // void keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg);
+  // void keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg);
+  // void keyframePointsCallback(const sensor_msgs::PointCloudConstPtr& msg);
   void svinRelocalizationOdomCallback(const nav_msgs::OdometryConstPtr& msg);
-  void svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg);
+  // void svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg);
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
   void primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg);
 
@@ -79,10 +79,10 @@ class Subscriber {
                         const okvis_ros::SvinHealthConstPtr& svin_health);
 
   // Buffer queue for the measurements.
-  std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;
-  std::queue<nav_msgs::OdometryConstPtr> kf_pose_buffer_;
-  std::queue<sensor_msgs::PointCloudConstPtr> kf_pcl_buffer_;
-  std::queue<okvis_ros::SvinHealthConstPtr> svin_health_buffer_;  // svin health buffer
+  // std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;
+  // std::queue<nav_msgs::OdometryConstPtr> kf_pose_buffer_;
+  // std::queue<sensor_msgs::PointCloudConstPtr> kf_pcl_buffer_;
+  // std::queue<okvis_ros::SvinHealthConstPtr> svin_health_buffer_;  // svin health buffer
   std::queue<sensor_msgs::ImageConstPtr> orig_image_buffer_;
   std::queue<nav_msgs::OdometryConstPtr> prim_estimator_odom_buffer_;
 
@@ -97,8 +97,11 @@ class Subscriber {
   double last_image_time_;                // The time of the last image.
   double last_primitive_estimator_time_;  // The time of the last primitive estimator odometry.
 
+  KeyframeCallback keyframe_callback_;         // The callback function for the keyframe.
+  PoseCallback primitive_estimator_callback_;  // The callback function for the pose.
+  ImageCallback raw_image_callback_;           // The callback function for the original_image.
+
  public:
   inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }
+  inline void registerKeyframeCallback(const KeyframeCallback& callback) { keyframe_callback_ = callback; }
 };
-
-#endif  // POSE_GRAPH_SUBSCRIBER_H_

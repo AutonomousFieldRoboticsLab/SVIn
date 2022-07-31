@@ -1,5 +1,4 @@
-#ifndef UTILS_TIC_TOC_H_
-#define UTILS_TIC_TOC_H_
+#pragma once
 
 #include <chrono>
 #include <cstdlib>
@@ -20,5 +19,3 @@ class TicToc {
  private:
   std::chrono::time_point<std::chrono::system_clock> start, end;
 };
-
-#endif  // UTILS_TIC_TOC_H_

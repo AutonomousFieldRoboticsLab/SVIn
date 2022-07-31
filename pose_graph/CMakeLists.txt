@@ -19,10 +19,13 @@ find_package(catkin REQUIRED COMPONENTS
     pcl_conversions
     )
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 find_package(OpenCV)
 find_package(PCL  REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)
 find_package(opengv REQUIRED)
+find_package(Glog REQUIRED)
 
 # brisk
 find_package( brisk 2 REQUIRED )
@@ -34,6 +37,7 @@ find_package(Ceres REQUIRED)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
 
+include_directories(BEFORE  ${GLOG_INCLUDE_DIRS})
 include_directories(include 
                     ThirdParty
                     ${catkin_INCLUDE_DIRS}
@@ -56,6 +60,7 @@ add_library(${PROJECT_NAME}
     src/utils/CameraPoseVisualization.cpp
     src/utils/UtilsOpenCV.cpp
     src/utils/Utils.cpp
+    src/utils/Statistics.cpp
     # src/utils/LoopClosureUtils.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp

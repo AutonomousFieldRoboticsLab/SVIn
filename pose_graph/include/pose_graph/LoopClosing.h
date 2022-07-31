@@ -1,5 +1,4 @@
-#ifndef POSE_GRAPH_LOOPCLOSING_H_
-#define POSE_GRAPH_LOOPCLOSING_H_
+#pragma once
 
 #include <assert.h>
 #include <ceres/ceres.h>
@@ -251,5 +250,3 @@ struct FourDOFWeightError {
   double relative_yaw, pitch_i, roll_i;
   double weight;
 };
-
-#endif  // POSE_GRAPH_LOOPCLOSING_H_

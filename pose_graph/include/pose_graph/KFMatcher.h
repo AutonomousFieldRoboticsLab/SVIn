@@ -1,5 +1,4 @@
-#ifndef POSE_GRAPH_KFMATCHER_H_
-#define POSE_GRAPH_KFMATCHER_H_
+#pragma once
 
 #include <brisk/brisk.h>
 #include <brisk/internal/hamming.h>
@@ -169,5 +168,3 @@ class KFMatcher {
   // Bharat - easy check to see if this keyframe comes from primitive estimator
   bool is_vio_keyframe_;
 };
-
-#endif  // POSE_GRAPH_KFMATCHER_H_

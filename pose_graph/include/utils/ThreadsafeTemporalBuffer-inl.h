@@ -30,27 +30,25 @@
 
 #pragma once
 
+#include <glog/logging.h>
+
 #include <algorithm>
 #include <atomic>
 #include <limits>
 #include <map>
 #include <mutex>
 
-#include <glog/logging.h>
-
-#include "kimera-vio/common/vio_types.h"
+#include "common/Definitions.h"
 
 namespace VIO {
 
 namespace utils {
 
 template <typename ValueType, typename AllocatorType>
-ThreadsafeTemporalBuffer<ValueType, AllocatorType>::ThreadsafeTemporalBuffer()
-    : buffer_length_nanoseconds_(-1) {}
+ThreadsafeTemporalBuffer<ValueType, AllocatorType>::ThreadsafeTemporalBuffer() : buffer_length_nanoseconds_(-1) {}
 
 template <typename ValueType, typename AllocatorType>
-ThreadsafeTemporalBuffer<ValueType, AllocatorType>::ThreadsafeTemporalBuffer(
-    Timestamp buffer_length_nanoseconds)
+ThreadsafeTemporalBuffer<ValueType, AllocatorType>::ThreadsafeTemporalBuffer(Timestamp buffer_length_nanoseconds)
     : buffer_length_nanoseconds_(buffer_length_nanoseconds) {}
 
 template <typename ValueType, typename AllocatorType>
@@ -67,34 +65,30 @@ ThreadsafeTemporalBuffer<ValueType, AllocatorType>::ThreadsafeTemporalBuffer(
 }
 
 template <typename ValueType, typename AllocatorType>
-void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::addValue(
-    const Timestamp timestamp, const ValueType& value) {
+void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::addValue(const Timestamp timestamp, const ValueType& value) {
   constexpr bool kEmitWarningOnValueOverwrite = false;
   addValue(timestamp, value, kEmitWarningOnValueOverwrite);
 }
 
 template <typename ValueType, typename AllocatorType>
-void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::addValue(
-    const Timestamp timestamp, const ValueType& value,
-    const bool emit_warning_on_value_overwrite) {
+void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::addValue(const Timestamp timestamp,
+                                                                  const ValueType& value,
+                                                                  const bool emit_warning_on_value_overwrite) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   const bool value_overwritten = values_.emplace(timestamp, value).second;
   LOG_IF(WARNING, value_overwritten && emit_warning_on_value_overwrite)
-      << "A value in temporal buffer at time " << timestamp
-      << " already exists!";
+      << "A value in temporal buffer at time " << timestamp << " already exists!";
   removeOutdatedItems();
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::deleteValueAtTime(
-    Timestamp timestamp_ns) {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::deleteValueAtTime(Timestamp timestamp_ns) {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   return values_.erase(timestamp_ns) > 0u;
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getOldestValue(
-    ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getOldestValue(ValueType* value) const {
   CHECK_NOTNULL(value);
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (empty()) {
@@ -105,8 +99,7 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getOldestValue(
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNewestValue(
-    ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNewestValue(ValueType* value) const {
   CHECK_NOTNULL(value);
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   if (empty()) {
@@ -117,8 +110,7 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNewestValue(
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtTime(
-    Timestamp timestamp, ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtTime(Timestamp timestamp, ValueType* value) const {
   CHECK_NOTNULL(value);
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   typename BufferType::const_iterator it = values_.find(timestamp);
@@ -130,23 +122,22 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtTime(
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(
-    Timestamp timestamp, ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(Timestamp timestamp,
+                                                                               ValueType* value) const {
   CHECK_NOTNULL(value);
-  return getNearestValueToTime(
-      timestamp, std::numeric_limits<Timestamp>::max(), value);
+  return getNearestValueToTime(timestamp, std::numeric_limits<Timestamp>::max(), value);
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtOrBeforeTime(
-    Timestamp timestamp, Timestamp* timestamp_of_value, ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtOrBeforeTime(Timestamp timestamp,
+                                                                                Timestamp* timestamp_of_value,
+                                                                                ValueType* value) const {
   CHECK_NOTNULL(timestamp_of_value);
   CHECK_NOTNULL(value);
 
   std::lock_guard<std::recursive_mutex> lock(mutex_);
   typename BufferType::const_iterator it_lower_bound;
-  const bool has_exact_match =
-      getIteratorAtTimeOrEarlier(timestamp, &it_lower_bound);
+  const bool has_exact_match = getIteratorAtTimeOrEarlier(timestamp, &it_lower_bound);
 
   if (!has_exact_match) {
     // has_exact_match could be also false if the buffer is empty, check that.
@@ -166,8 +157,9 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtOrBeforeTime(
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtOrAfterTime(
-    Timestamp timestamp, Timestamp* timestamp_of_value, ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtOrAfterTime(Timestamp timestamp,
+                                                                               Timestamp* timestamp_of_value,
+                                                                               ValueType* value) const {
   CHECK_NOTNULL(timestamp_of_value);
   CHECK_NOTNULL(value);
 
@@ -205,8 +197,7 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getIteratorAtTimeOrEarl
   // Returns first element with a time that compares not less to timestamp.
   *it_lower_bound = values_.lower_bound(timestamp);
 
-  if (*it_lower_bound != values_.end() &&
-      (*it_lower_bound)->first == timestamp) {
+  if (*it_lower_bound != values_.end() && (*it_lower_bound)->first == timestamp) {
     // It's an exact match.
     return true;
   }
@@ -215,9 +206,10 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getIteratorAtTimeOrEarl
 
 template <typename ValueType, typename AllocatorType>
 template <typename ValueContainerType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValuesBetweenTimes(
-    Timestamp timestamp_lower_ns, Timestamp timestamp_higher_ns,
-    ValueContainerType* values, const bool get_lower_bound) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValuesBetweenTimes(Timestamp timestamp_lower_ns,
+                                                                               Timestamp timestamp_higher_ns,
+                                                                               ValueContainerType* values,
+                                                                               const bool get_lower_bound) const {
   CHECK_NOTNULL(values)->clear();
   CHECK_GT(timestamp_higher_ns, timestamp_lower_ns);
   std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -234,13 +226,11 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValuesBetweenTimes(
   // Or at least accept as well when timestamp_lower_ns is smaller than
   // oldest_timestamp, such that we only return false if we are asking for
   // future msgs?
-  if (oldest_timestamp > timestamp_lower_ns ||
-      timestamp_higher_ns > latest_timestamp) {
+  if (oldest_timestamp > timestamp_lower_ns || timestamp_higher_ns > latest_timestamp) {
     return false;
   }
 
-  typename BufferType::const_iterator it =
-      values_.lower_bound(timestamp_lower_ns);
+  typename BufferType::const_iterator it = values_.lower_bound(timestamp_lower_ns);
   for (; it != values_.end() && it->first < timestamp_higher_ns; ++it) {
     CHECK(it != values_.end());
 
@@ -255,9 +245,10 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValuesBetweenTimes(
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(
-    Timestamp timestamp, Timestamp maximum_delta_ns, ValueType* value,
-    Timestamp* timestamp_at_value_ns) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(Timestamp timestamp,
+                                                                               Timestamp maximum_delta_ns,
+                                                                               ValueType* value,
+                                                                               Timestamp* timestamp_at_value_ns) const {
   CHECK_NOTNULL(timestamp_at_value_ns);
   CHECK_NOTNULL(value);
   std::lock_guard<std::recursive_mutex> lock(mutex_);
@@ -266,8 +257,7 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(
     return false;
   }
 
-  const typename BufferType::const_iterator it_lower =
-      values_.lower_bound(timestamp);
+  const typename BufferType::const_iterator it_lower = values_.lower_bound(timestamp);
 
   // Verify if we got an exact match.
   if (it_lower != values_.end() && it_lower->first == timestamp) {
@@ -278,8 +268,7 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(
 
   // No exact match found so we need to examine lower and upper
   // bound on the timestamp.
-  const typename BufferType::const_iterator it_upper =
-      values_.upper_bound(timestamp);
+  const typename BufferType::const_iterator it_upper = values_.upper_bound(timestamp);
 
   // If the lower bound points out of the array, we have to return the last
   // element.
@@ -332,11 +321,11 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(
 }
 
 template <typename ValueType, typename AllocatorType>
-bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(
-    Timestamp timestamp, Timestamp maximum_delta_ns, ValueType* value) const {
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNearestValueToTime(Timestamp timestamp,
+                                                                               Timestamp maximum_delta_ns,
+                                                                               ValueType* value) const {
   Timestamp timestamp_at_value_ns;
-  return getNearestValueToTime(
-      timestamp, maximum_delta_ns, value, &timestamp_at_value_ns);
+  return getNearestValueToTime(timestamp, maximum_delta_ns, value, &timestamp_at_value_ns);
 }
 
 template <typename ValueType, typename AllocatorType>
@@ -347,12 +336,10 @@ void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::removeOutdatedItems() {
   }
 
   const Timestamp newest_timestamp_ns = values_.rbegin()->first;
-  const Timestamp buffer_threshold_ns =
-      newest_timestamp_ns - buffer_length_nanoseconds_;
+  const Timestamp buffer_threshold_ns = newest_timestamp_ns - buffer_length_nanoseconds_;
 
   if (values_.begin()->first < buffer_threshold_ns) {
-    typename BufferType::const_iterator it =
-        values_.lower_bound(buffer_threshold_ns);
+    typename BufferType::const_iterator it = values_.lower_bound(buffer_threshold_ns);
 
     CHECK(it != values_.end());
     CHECK(it != values_.begin());
@@ -361,12 +348,8 @@ void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::removeOutdatedItems() {
 }
 
 template <typename ValueType, typename AllocatorType>
-void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::insert(
-    const ThreadsafeTemporalBuffer& other) {
-  values_.insert(
-      other.buffered_values().begin(), other.buffered_values().end());
+void ThreadsafeTemporalBuffer<ValueType, AllocatorType>::insert(const ThreadsafeTemporalBuffer& other) {
+  values_.insert(other.buffered_values().begin(), other.buffered_values().end());
 }
 
-} // End of utils namespace.
-
-} // End of VIO namespace.
+}  // namespace utils

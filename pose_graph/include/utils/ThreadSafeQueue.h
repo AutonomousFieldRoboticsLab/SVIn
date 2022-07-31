@@ -25,11 +25,12 @@
 #include <string>
 #include <utility>
 
+#include "utils/Statistics.h"
+
 template <typename T>
 class ThreadsafeQueueBase {
  public:
-  KIMERA_POINTER_TYPEDEFS(ThreadsafeQueueBase);
-  KIMERA_DELETE_COPY_CONSTRUCTORS(ThreadsafeQueueBase);
+
   typedef std::queue<std::shared_ptr<T>> InternalQueue;
   explicit ThreadsafeQueueBase(const std::string& queue_id);
   virtual ~ThreadsafeQueueBase() = default;
@@ -230,8 +231,6 @@ class ThreadsafeQueue : public ThreadsafeQueueBase<T> {
 template <typename T>
 class ThreadsafeNullQueue : public ThreadsafeQueue<T> {
  public:
-  KIMERA_POINTER_TYPEDEFS(ThreadsafeNullQueue);
-  KIMERA_DELETE_COPY_CONSTRUCTORS(ThreadsafeNullQueue);
   explicit ThreadsafeNullQueue(const std::string& queue_id) : ThreadsafeQueue<T>(queue_id) {}
   ~ThreadsafeNullQueue() override = default;
 
@@ -252,7 +251,7 @@ ThreadsafeQueueBase<T>::ThreadsafeQueueBase(const std::string& queue_id)
 template <typename T>
 ThreadsafeQueue<T>::ThreadsafeQueue(const std::string& queue_id, const bool& log_queue_size)
     : ThreadsafeQueueBase<T>(queue_id),
-      queue_size_stats_(log_queue_size ? VIO::make_unique<utils::StatsCollector>(queue_id + " Size [#]") : nullptr) {}
+      queue_size_stats_(log_queue_size ? std::make_unique<utils::StatsCollector>(queue_id + " Size [#]") : nullptr) {}
 
 template <typename T>
 bool ThreadsafeQueue<T>::push(T new_value) {

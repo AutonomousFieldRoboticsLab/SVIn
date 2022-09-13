@@ -3,12 +3,6 @@
 #camera calibration 
 model_type: PINHOLE
 camera_name: slave1
-# Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
-projection_matrix:
-    fx: 1136.7477932812305
-    fy: 1136.7477932812305
-    cx: 760.8502960205078
-    cy: 610.0998077392578
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 0.5
@@ -22,21 +16,11 @@ keyframe_parallax: 10.0 # keyframe selection threshold (pixel)
 loop_closure: 1   #if you want to use loop closure to minimize the drift, set loop_closure true and give your brief pattern file path and vocabulary file path accordingly;
                      #also give the camera calibration file same as feature_tracker node
 fast_relocalization: 1
-min_loop_num: 25
+min_loop_num: 30
+ransac_reproj_threshold: 10.0
 
-
-
-# For undistorting original color image
-is_stereo: 1
-cam0:
-    height: 1200
-    width: 1600
-    D: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295]
-    K: [1156.5188534683703, 0.0, 763.2083316463371,
-        0.0, 1156.5772666173266, 617.2779853849335,
-        0.0, 0.0, 1.0]
-    R: [0.99997936, -0.00438016,  0.0047013,
-        0.00437275,  0.99998919,  0.00158384,
-        -0.00470819, -0.00156325,  0.99998769]
-
-#R is rectification matrix
+image_height: 1200
+image_width: 1600
+focal_length: [1156.5188534683703, 1156.5772666173266]
+principal_point: [763.2083316463371, 617.2779853849335]
+distortion_coefficients: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295]

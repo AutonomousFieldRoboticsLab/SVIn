@@ -170,18 +170,15 @@ void PoseGraphOptimization::run() {
         int kf_index = -1;
         cv::Mat kf_image = subscriber_->readRosImage(image_msg);
         cv::Mat orig_color_image = subscriber_->getCorrespondingImage(pose_msg->header.stamp.toNSec());
+        if (params_->resize_factor_ != 1.0) {
+          cv::resize(orig_color_image, orig_color_image, cv::Size(params_->image_width_, params_->image_height_));
+        }
         cv::Mat undistort_image;
         cv::remap(orig_color_image,
                   undistort_image,
                   params_->cam0_undistort_map_x_,
                   params_->cam0_undistort_map_y_,
                   cv::INTER_LINEAR);
-
-        if (params_->resize_factor_ != 1.0) {
-          uint16_t new_width = static_cast<uint16_t>(params_->image_width_ * params_->resize_factor_);
-          uint16_t new_height = static_cast<uint16_t>(params_->image_height_ * params_->resize_factor_);
-          cv::resize(undistort_image, undistort_image, cv::Size(new_width, new_height));
-        }
 
         // TODO(bjoshi): publish debug image
         // cv::imshow("image", undistort_image);
@@ -273,7 +270,7 @@ void PoseGraphOptimization::run() {
           }
         }
 
-        KFMatcher* keyframe = new KFMatcher(pose_msg->header.stamp.toSec(),
+        KFMatcher* keyframe = new KFMatcher(pose_msg->header.stamp,
                                             point_ids,
                                             kf_index,
                                             T,

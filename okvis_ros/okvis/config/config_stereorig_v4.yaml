@@ -6,20 +6,20 @@ cameras:
         -0.02430381, -0.03486887, 0.99909634, 0.04011354,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
+       distortion_coefficients: [-0.16012168, 0.1020015, 0.00369027, 0.0034287],
        distortion_type: radialtangential,
-       focal_length: [1146.5925232, 1146.5925232], #projection matrix as pre-rectified images have been used
-       principal_point: [773.8216629, 578.06917572]} #projection matrix as pre-rectified images have been used
+       focal_length: [1149.52000993, 1150.57923685], 
+       principal_point: [798.75530924, 577.20248548]} 
     - {T_SC:
        [-0.99978446,  0.01454984, -0.01480997, -0.05868093,
         -0.01448955, -0.99988632, -0.00417068, -0.00695112,
         -0.01486897, -0.0039552,   0.99988163,  0.03934924,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
+       distortion_coefficients: [-0.14726897, 0.08035029, -0.00216681, 0.00125576],
        distortion_type: radialtangential,
-       focal_length: [1146.5925232, 1146.5925232], #projection matrix as pre-rectified images have been used
-       principal_point: [773.8216629, 578.06917572]}  #projection matrix as pre-rectified images have been used
+       focal_length: [1151.2674512, 1148.87177954], 
+       principal_point: [782.44896179, 573.73883587]} 
 
 camera_params:
     camera_rate: 15
@@ -49,6 +49,12 @@ imu_params:
          0.0000, 0.0000, 1.0000, 0.0,
          0.0000, 0.0000, 0.0000, 1.0000]
 
+sonar_params:
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
 #gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
@@ -65,8 +71,8 @@ ceres_options:
 # detection
 detection_options:
     threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 300  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -96,9 +102,11 @@ publishing_options:
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
 #Sharmin
-isSonarUsed: false
+isSonarUsed: true
 isDepthUsed: false
 isRelocalization: true
 isCLAHE: false
+claheClipLimit: 1
+claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 

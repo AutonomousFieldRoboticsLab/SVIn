@@ -28,7 +28,7 @@ static void reduceVector(vector<Derived>& v, vector<uchar> status) {  // NOLINT
   v.resize(j);
 }
 
-KFMatcher::KFMatcher(double _time_stamp,
+KFMatcher::KFMatcher(ros::Time _time_stamp,
                      vector<Eigen::Vector3d>& _point_ids,
                      int _index,
                      Vector3d& _svin_T_w_i,
@@ -274,13 +274,13 @@ void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
   }
 }
 
-void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
+void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old,
                           const std::vector<cv::Point3f>& matched_3d,
                           std::vector<uchar>& status,
                           Eigen::Vector3d& PnP_T_old,
                           Eigen::Matrix3d& PnP_R_old) {
   cv::Mat r, rvec, t, D, tmp_r;
-  cv::Mat K = (cv::Mat_<double>(3, 3) << 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0);
+  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx, 0, params_.p_cx, 0, params_.p_fy, params_.p_cy, 0, 0, 1.0);
   Matrix3d R_inital;
   Vector3d P_inital;
 
@@ -301,20 +301,23 @@ void KFMatcher::PnPRANSAC(const vector<cv::Point2f>& matched_2d_old_norm,
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
   // This is a bug in opencv. The bug is fixed in opencv master branch.
   try {
-    if (CV_MAJOR_VERSION < 3) {
-      solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 100, inliers);
-    } else {
-      if (CV_MINOR_VERSION < 2)
-        solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, sqrt(10.0 / 230), 0.99, inliers);
-      else
-        solvePnPRansac(matched_3d, matched_2d_old_norm, K, D, rvec, t, false, 100, 10.0 / 230, 0.99, inliers);
-    }
+    solvePnPRansac(matched_3d,
+                   matched_2d_old,
+                   K,
+                   params_.distortion_coeffs_,
+                   rvec,
+                   t,
+                   false,
+                   100,
+                   params_.ransac_reproj_threshold_,
+                   0.99,
+                   inliers);
   } catch (cv::Exception e) {
     // std::cout << "Caught exception in PnPRANSAC:" << e.what() << std::endl;
     inliers.setTo(cv::Scalar(0));
   }
 
-  for (int i = 0; i < static_cast<int>(matched_2d_old_norm.size()); i++) status.push_back(0);
+  for (int i = 0; i < static_cast<int>(matched_2d_old.size()); i++) status.push_back(0);
 
   for (int i = 0; i < inliers.rows; i++) {
     int n = inliers.at<int>(i);
@@ -370,7 +373,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
 
   if (static_cast<int>(matched_2d_cur.size()) > params_.min_loop_num_) {
     status.clear();
-    PnPRANSAC(matched_2d_old_norm, matched_3d, status, PnP_T_old, PnP_R_old);
+    PnPRANSAC(matched_2d_old, matched_3d, status, PnP_T_old, PnP_R_old);
     reduceVector(matched_2d_cur, status);
     reduceVector(matched_2d_old, status);
     reduceVector(matched_2d_old_norm, status);

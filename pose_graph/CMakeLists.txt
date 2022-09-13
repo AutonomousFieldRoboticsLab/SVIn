@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
     okvis_ros  # For SvinHealth msg
     pcl_ros
     pcl_conversions
+    image_transport
     )
 
 find_package(OpenCV)

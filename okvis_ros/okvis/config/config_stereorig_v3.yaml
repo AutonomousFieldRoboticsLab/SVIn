@@ -6,10 +6,10 @@ cameras:
         -0.006644577844233425, -0.027882716202835157, 0.9995891174489757, 0.024317486464850345,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
+       distortion_coefficients: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295], 
        distortion_type: radialtangential,
-       focal_length: [1136.7477932812305, 1136.7477932812305], #projection matrix as pre-rectified images have been used
-       principal_point: [760.8502960205078, 610.0998077392578]} #projection matrix as pre-rectified images have been used
+       focal_length: [1156.5188534683703, 1156.5772666173266], 
+       principal_point: [763.2083316463371, 617.2779853849335]} 
 
     - {T_SC:
        [-0.9999822972664981, 0.00584741297162457, -0.0011013242740797412, -0.043088620439334535,
@@ -17,17 +17,17 @@ cameras:
          -0.0012459511950961815, -0.0247877337158503, 0.9996919604872553, 0.023901322246288572,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
+       distortion_coefficients: [-0.173831269260396, 0.10747272137157605, 0.004231076633773206, -0.0026692219494915187], 
        distortion_type: radialtangential,
-       focal_length: [1136.7477932812305, 1136.7477932812305], #projection matrix as pre-rectified images have been used
-       principal_point: [760.8502960205078, 610.0998077392578]}  #projection matrix as pre-rectified images have been used
+       focal_length: [1158.625855755729, 1156.0604864187183], 
+       principal_point: [765.5609812846063, 588.6683184401453]}  
 
 camera_params:
     camera_rate: 15
-    sigma_absolute_translation: 8.0e-6
-    sigma_absolute_orientation: 8.0e-6
-    sigma_c_relative_translation: 1.0e-6 # below 1.0e-6 ruines numerics...
-    sigma_c_relative_orientation: 1.0e-6 # below 1.0e-6 ruines numerics...
+    sigma_absolute_translation: 0
+    sigma_absolute_orientation: 0
+    sigma_c_relative_translation: 0 # below 1.0e-6 ruines numerics...
+    sigma_c_relative_orientation: 0 # below 1.0e-6 ruines numerics...
 
 
 imu_params:
@@ -72,8 +72,8 @@ ceres_options:
 # detection
 detection_options:
     threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 300  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.

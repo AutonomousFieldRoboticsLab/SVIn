@@ -37,7 +37,7 @@ class BriefExtractor {
 class KFMatcher {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  KFMatcher(double _time_stamp,
+  KFMatcher(ros::Time _time_stamp,
             vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
             Vector3d& _svin_T_w_i,               // NOLINT
@@ -104,7 +104,7 @@ class KFMatcher {
   cv::Mat brisk_descriptors;
   cv::Mat window_brisk_descriptors;
 
-  double time_stamp;
+  ros::Time time_stamp;
   int index;
   int local_index;
   Eigen::Vector3d svin_T_w_i;

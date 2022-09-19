@@ -1,2 +1,3 @@
 pose_graph/svin_results/*
 pose_graph/reconstruction_results/*
+pose_graph/output_logs/*

@@ -1,35 +1,33 @@
 %YAML:1.0
 cameras:
-    # Images are cropped rather than downsized
-    # Principal point shifted by (-400,-300); all other parameters same
     - {T_SC:
-       [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
-        0.99825455, -0.02099889, 0.05519876, -0.04791664,
-        -0.009273, 0.86732768, 0.49765118, -0.02872042,
-        0.0, 0.0, 0.0, 1.0],
+       [ -0.9999514849243678, 0.007454284822327213, -0.00643905546937816, 0.09571982853264846,
+        -0.007271683630496376, -0.9995834071126521, -0.027930894046524813, -0.002254291217617223,
+        -0.006644577844233425, -0.027882716202835157, 0.9995891174489757, 0.024317486464850345,
+          0.0, 0.0, 0.0, 1.0],
        image_dimension: [800, 600],
-       distortion_coefficients: [-0.16289394362063583, 0.08351833356682732, 0.012276483503048642, 0.0006858966792660155],
+       distortion_coefficients: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295],
        distortion_type: radialtangential,
-       focal_length: [1138.83276975408, 1139.594698074792],
-       principal_point: [308.1729373830466, 317.1289738266081]} 
+       focal_length: [1156.5188534683703, 1156.5772666173266], 
+       principal_point: [363.2083316463371, 317.2779853849335]}
 
     - {T_SC:
-       [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
-        0.9982831, -0.0545409, 0.02135733, 0.04401349,
-        0.037832, 0.87875672, 0.47576818, -0.02956853,
-        0.0, 0.0, 0.0, 1.0],
+       [-0.9999822972664981, 0.00584741297162457, -0.0011013242740797412, -0.043088620439334535,
+         -0.005818312404541281, -0.99967563540319, -0.024794580496386425, -0.0015079897295443207,
+         -0.0012459511950961815, -0.0247877337158503, 0.9996919604872553, 0.023901322246288572,
+          0.0, 0.0, 0.0, 1.0],
        image_dimension: [800, 600],
-       distortion_coefficients: [-0.16234962118670349, 0.08155626136084612, 0.006298812391653791, -0.003038632652138194],
+       distortion_coefficients: [-0.173831269260396, 0.10747272137157605, 0.004231076633773206, -0.0026692219494915187],
        distortion_type: radialtangential,
-       focal_length: [1138.6334240599165, 1138.774613252216],
-       principal_point: [320.1812627366363, 302.906549415305]}  
+       focal_length: [1158.625855755729, 1156.0604864187183], 
+       principal_point: [365.5609812846063, 288.6683184401453]}  
 
 camera_params:
-    camera_rate: 30
-    sigma_absolute_translation:  0.0 #8.0e-3
-    sigma_absolute_orientation: 0.0 #8.0e-3
-    sigma_c_relative_translation: 0.0 #1.0e-6 # below 1.0e-6 ruines numerics...
-    sigma_c_relative_orientation: 0.0 #1.0e-6 # below 1.0e-6 ruines numerics...
+    camera_rate: 15
+    sigma_absolute_translation: 0.0
+    sigma_absolute_orientation: 0.0
+    sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
+    sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
 
 
 imu_params:
@@ -46,23 +44,30 @@ imu_params:
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
     imu_rate: 100
     # tranform Body-Sensor (IMU)
-    # Sharmin Consider IMU frame as Body Frame
     T_BS:
-        [1.0, 0.0, 0.0, 0.0,
-         0.0, 1.0, 0.0, 0.0,
-         0.0, 0.0, 1.0, 0.0,
-         0.0, 0.0, 0.0, 1.0]
+        [0.0000, 0.0000, 1.0000, -0.018,
+         1.0000, 0.0000, 0.0000, -0.016,
+         0.0000, 1.0000, 0.0000, 0.0,
+         0.0000, 0.0000, 0.0000, 1.0000]
 
+sonar_params:
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
+
+#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
-numImuFrames: 3 #number of frames linked by most recent nonlinear IMU error terms
+numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
 
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 15  # never do more than these, even if not converged
-    timeLimit: 0.035  # [s] negative values will set the an unlimited time limit
+    maxIterations: 10  # never do more than these, even if not converged
+    timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
@@ -90,10 +95,10 @@ publishing_options:
     publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:
-        [1.0, 0.0, 0.0, 0.,
-         0.0, 1.0, 0.0, 0.0,
-         0.0, 0.0, 1.0, 0.0,
-         0.0, 0.0, 0.0, 1.0]
+        [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
+         0.0000, 0.0000, 0.0000, 1.0000]
     trackedBodyFrame: B                # B or S, the frame of reference that will be expressed relative to the selected worldFrame
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
@@ -101,10 +106,6 @@ publishing_options:
 isSonarUsed: false
 isDepthUsed: false
 isRelocalization: false
-isCLAHE: true
-claheClipLimit: 2.0
-claheTilesGridSize: 4
-
+isCLAHE: false
 resizeFactor: 1.0  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
-isResetable: false  # Adds callbacks to allow hard and soft resets of SVIn2

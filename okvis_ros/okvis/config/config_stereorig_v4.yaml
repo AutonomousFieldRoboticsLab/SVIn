@@ -65,8 +65,8 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 20  # never do more than these, even if not converged
-    timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
+    maxIterations: 10  # never do more than these, even if not converged
+    timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:

@@ -22,7 +22,8 @@ namespace DBoW2 {
 /// Functions to manipulate BRIEF descriptors
 class FBrief : protected FClass {
  public:
-  typedef DVision::BRIEF::bitset TDescriptor;
+  static const int L = 256;  // Descriptor length (in bits)
+  typedef std::bitset<L> TDescriptor;
   typedef const TDescriptor* pDescriptor;
 
   /**

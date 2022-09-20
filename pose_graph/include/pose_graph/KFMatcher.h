@@ -23,11 +23,11 @@
 class BriefExtractor {
  public:
   virtual void operator()(const cv::Mat& im,
-                          std::vector<cv::KeyPoint>& keys,                          // NOLINT
-                          std::vector<DVision::BRIEF::bitset>& descriptors) const;  // NOLINT
+                          std::vector<cv::KeyPoint>& keys,                             // NOLINT
+                          std::vector<DVision::BRIEF256::bitset>& descriptors) const;  // NOLINT
   explicit BriefExtractor(const std::string& pattern_file);
 
-  DVision::BRIEF m_brief;
+  DVision::BRIEF256 m_brief;
 };
 
 class KFMatcher {
@@ -60,9 +60,9 @@ class KFMatcher {
   void computeWindowBRIEFPoint();
   void computeBRIEFPoint();
 
-  int HammingDis(const DVision::BRIEF::bitset& a, const DVision::BRIEF::bitset& b);
-  bool searchInAera(const DVision::BRIEF::bitset window_descriptor,
-                    const std::vector<DVision::BRIEF::bitset>& descriptors_old,
+  int HammingDis(const DVision::BRIEF256::bitset& a, const DVision::BRIEF256::bitset& b);
+  bool searchInAera(const DVision::BRIEF256::bitset window_descriptor,
+                    const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
                     const std::vector<cv::KeyPoint>& keypoints_old,
                     const std::vector<cv::KeyPoint>& keypoints_old_norm,
                     cv::Point2f& best_match,                            // NOLINT
@@ -70,7 +70,7 @@ class KFMatcher {
   void searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,       // NOLINT
                         std::vector<cv::Point2f>& matched_2d_old_norm,  // NOLINT
                         std::vector<uchar>& status,                     // NOLINT
-                        const std::vector<DVision::BRIEF::bitset>& descriptors_old,
+                        const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
                         const std::vector<cv::KeyPoint>& keypoints_old,
                         const std::vector<cv::KeyPoint>& keypoints_old_norm);
   void PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old_norm,
@@ -128,8 +128,8 @@ class KFMatcher {
   std::vector<cv::KeyPoint> keypoints_norm;
   std::vector<cv::KeyPoint> window_keypoints_norm;
   std::vector<cv::KeyPoint> window_keypoints;
-  std::vector<DVision::BRIEF::bitset> brief_descriptors;
-  std::vector<DVision::BRIEF::bitset> window_brief_descriptors;
+  std::vector<DVision::BRIEF256::bitset> brief_descriptors;
+  std::vector<DVision::BRIEF256::bitset> window_brief_descriptors;
   bool has_fast_point;
   int sequence;
 

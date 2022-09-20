@@ -188,13 +188,13 @@ void KFMatcher::computeWindowBRIEFPoint() {
 }
 
 void KFMatcher::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const {
-  const float invfx = 1.0f / params_.p_fx;
-  const float invfy = 1.0f / params_.p_fy;
+  const float invfx = 1.0f / params_.p_fx_;
+  const float invfy = 1.0f / params_.p_fy_;
 
   const float u = kp[0];
   const float v = kp[1];
-  point3d[0] = (u - params_.p_cx) * invfx;
-  point3d[1] = (v - params_.p_cy) * invfy;
+  point3d[0] = (u - params_.p_cx_) * invfx;
+  point3d[1] = (v - params_.p_cy_) * invfy;
   point3d[2] = 1.0;
 }
 
@@ -227,7 +227,7 @@ void KFMatcher::computeBRIEFPoint() {
 
 void BriefExtractor::operator()(const cv::Mat& im,
                                 std::vector<cv::KeyPoint>& keys,
-                                std::vector<DVision::BRIEF::bitset>& descriptors) const {
+                                std::vector<DVision::BRIEF256::bitset>& descriptors) const {
   m_brief.compute(im, keys, descriptors);
 }
 
@@ -268,8 +268,8 @@ void KFMatcher::searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old
   }
 }
 
-bool KFMatcher::searchInAera(const DVision::BRIEF::bitset window_descriptor,
-                             const std::vector<DVision::BRIEF::bitset>& descriptors_old,
+bool KFMatcher::searchInAera(const DVision::BRIEF256::bitset window_descriptor,
+                             const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
                              const std::vector<cv::KeyPoint>& keypoints_old,
                              const std::vector<cv::KeyPoint>& keypoints_old_norm,
                              cv::Point2f& best_match,
@@ -297,7 +297,7 @@ bool KFMatcher::searchInAera(const DVision::BRIEF::bitset window_descriptor,
 void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
                                  std::vector<cv::Point2f>& matched_2d_old_norm,
                                  std::vector<uchar>& status,
-                                 const std::vector<DVision::BRIEF::bitset>& descriptors_old,
+                                 const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
                                  const std::vector<cv::KeyPoint>& keypoints_old,
                                  const std::vector<cv::KeyPoint>& keypoints_old_norm) {
   for (int i = 0; i < static_cast<int>(window_brief_descriptors.size()); i++) {
@@ -317,8 +317,8 @@ void KFMatcher::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
                           std::vector<uchar>& status,
                           Eigen::Vector3d& PnP_T_old,
                           Eigen::Matrix3d& PnP_R_old) {
-  cv::Mat r, rvec, t, D, tmp_r;
-  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx, 0, params_.p_cx, 0, params_.p_fy, params_.p_cy, 0, 0, 1.0);
+  cv::Mat r, rvec, t, tmp_r;
+  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx_, 0, params_.p_cx_, 0, params_.p_fy_, params_.p_cy_, 0, 0, 1.0);
   Eigen::Matrix3d R_inital;
   Eigen::Vector3d P_inital;
 
@@ -342,7 +342,7 @@ void KFMatcher::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
     solvePnPRansac(matched_3d,
                    matched_2d_old,
                    K,
-                   D,
+                   params_.distortion_coeffs_,
                    rvec,
                    t,
                    false,
@@ -568,7 +568,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
         t_q_index.values.push_back(Q.z());
 
         msg_match_points.channels.push_back(t_q_index);
-        relocalization_pcl_callback_(msg_match_points);
+        if (relocalization_pcl_callback_) relocalization_pcl_callback_(msg_match_points);
         // pubMatchedPoints.publish(msg_match_points);
       }
       return true;
@@ -578,8 +578,8 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   return false;
 }
 
-int KFMatcher::HammingDis(const DVision::BRIEF::bitset& a, const DVision::BRIEF::bitset& b) {
-  DVision::BRIEF::bitset xor_of_bitset = a ^ b;
+int KFMatcher::HammingDis(const DVision::BRIEF256::bitset& a, const DVision::BRIEF256::bitset& b) {
+  DVision::BRIEF256::bitset xor_of_bitset = a ^ b;
   int dis = xor_of_bitset.count();
   return dis;
 }

@@ -1,33 +1,35 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [ -0.9999514849243678, 0.007454284822327213, -0.00643905546937816, 0.09571982853264846,
-        -0.007271683630496376, -0.9995834071126521, -0.027930894046524813, -0.002254291217617223,
-        -0.006644577844233425, -0.027882716202835157, 0.9995891174489757, 0.024317486464850345,
+       [-0.9995659, 0.01749552, -0.02370463, 0.08351123,
+        -0.01665316, -0.99923874, -0.03527894, -0.00506557,
+        -0.02430381, -0.03486887, 0.99909634, 0.04011354,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
+       distortion_coefficients: [-0.16012168, 0.1020015, 0.00369027, 0.0034287],
        distortion_type: radialtangential,
-       focal_length: [1139.57034463, 1139.57034463], #projection matrix as pre-rectified images have been used
-       principal_point: [754.97817993, 611.61469269]} #projection matrix as pre-rectified images have been used
-
+       focal_length: [1149.52000993, 1150.57923685], 
+       principal_point: [798.75530924, 577.20248548]} 
     - {T_SC:
-       [-0.9999822972664981, 0.00584741297162457, -0.0011013242740797412, -0.043088620439334535,
-         -0.005818312404541281, -0.99967563540319, -0.024794580496386425, -0.0015079897295443207,
-         -0.0012459511950961815, -0.0247877337158503, 0.9996919604872553, 0.023901322246288572,
+       [-0.99978446,  0.01454984, -0.01480997, -0.05868093,
+        -0.01448955, -0.99988632, -0.00417068, -0.00695112,
+        -0.01486897, -0.0039552,   0.99988163,  0.03934924,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0], #pre-rectified images
+       distortion_coefficients: [-0.14726897, 0.08035029, -0.00216681, 0.00125576],
        distortion_type: radialtangential,
-       focal_length: [1139.57034463, 1139.57034463], #projection matrix as pre-rectified images have been used
-       principal_point: [754.97817993, 611.61469269]}  #projection matrix as pre-rectified images have been used
+       focal_length: [1151.2674512, 1148.87177954], 
+       principal_point: [782.44896179, 573.73883587]} 
 
 camera_params:
-    camera_rate: 20
-    sigma_absolute_translation: 0.0
-    sigma_absolute_orientation: 0.0
-    sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
-    sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
+    camera_rate: 15 # just to manage the expectations of when there should be frames arriving
+    sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
+    sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
+    sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
+    sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
+    # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
+
+
 
 
 imu_params:
@@ -72,7 +74,7 @@ ceres_options:
 # detection
 detection_options:
     threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
@@ -103,9 +105,8 @@ publishing_options:
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
 #Sharmin
-isSonarUsed: true
+isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
-

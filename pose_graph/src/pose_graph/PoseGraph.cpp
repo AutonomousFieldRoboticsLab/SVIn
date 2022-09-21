@@ -1,4 +1,4 @@
-#include "pose_graph/LoopClosing.h"
+#include "pose_graph/PoseGraph.h"
 
 #include <list>
 #include <map>
@@ -7,7 +7,7 @@
 
 #include "pose_graph/Pose3DError.h"
 
-LoopClosing::LoopClosing() {
+PoseGraph::PoseGraph() {
   posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
   posegraph_visualization->setScale(0.1);
   posegraph_visualization->setLineWidth(0.01);
@@ -23,34 +23,32 @@ LoopClosing::LoopClosing() {
   base_sequence = 1;
 }
 
-LoopClosing::~LoopClosing() { t_optimization.join(); }
+PoseGraph::~PoseGraph() { t_optimization.join(); }
 
-void LoopClosing::set_svin_results_file(const std::string& svin_output_file) { svin_output_file_ = svin_output_file; }
-void LoopClosing::set_fast_relocalization(const bool fast_relocalization) {
-  is_fast_localization_ = fast_relocalization;
-}
+void PoseGraph::set_svin_results_file(const std::string& svin_output_file) { svin_output_file_ = svin_output_file; }
+void PoseGraph::set_fast_relocalization(const bool fast_relocalization) { is_fast_localization_ = fast_relocalization; }
 
-void LoopClosing::setPublishers(ros::NodeHandle& nh) {
+void PoseGraph::setPublishers(ros::NodeHandle& nh) {
   pubPoseGraphPath = nh.advertise<nav_msgs::Path>("pose_graph_path", 1000);
   pubBasePath = nh.advertise<nav_msgs::Path>("base_path", 1000);
   pubPoseGraph = nh.advertise<visualization_msgs::MarkerArray>("pose_graph", 1000);
   for (int i = 1; i < 10; i++) pubPath[i] = nh.advertise<nav_msgs::Path>("path_" + std::to_string(i), 1000);
 }
 
-void LoopClosing::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database) {
+void PoseGraph::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database) {
   voc = vocabulary;
   db = database;
 }
 
-void LoopClosing::startOptimizationThread(bool vio_only_optimization) {
+void PoseGraph::startOptimizationThread(bool vio_only_optimization) {
   if (vio_only_optimization) {
-    t_optimization = std::thread(&LoopClosing::optimize4DoFPoseGraph, this);
+    t_optimization = std::thread(&PoseGraph::optimize4DoFPoseGraph, this);
   } else {
-    t_optimization = std::thread(&LoopClosing::optimize6DoFPoseGraph, this);
+    t_optimization = std::thread(&PoseGraph::optimize6DoFPoseGraph, this);
   }
 }
 
-void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
+void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
   // shift to base frame
   Eigen::Vector3d svin_P_cur;
   Eigen::Matrix3d svin_R_cur;
@@ -73,7 +71,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   cur_kf->updateSVInPose(svin_P_cur, svin_R_cur);
   cur_kf->index = global_index;
   global_index++;
-  std::set<KFMatcher*> loopCandidates;
+  std::set<Keyframe*> loopCandidates;
   int loop_index = -1;
 
   if (flag_detect_loop) {  // at least 20 KF has been passed
@@ -84,7 +82,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   }
 
   if (loop_index != -1) {
-    KFMatcher* old_kf = getKFPtr(loop_index);
+    Keyframe* old_kf = getKFPtr(loop_index);
     if (cur_kf->findConnection(old_kf)) {
       // std::cout << "FOUND Loop Connection!!!!" << std::endl;
 
@@ -114,7 +112,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
         svin_P_cur = w_r_svin * svin_P_cur + w_t_svin;
         svin_R_cur = w_r_svin * svin_R_cur;
         cur_kf->updateSVInPose(svin_P_cur, svin_R_cur);
-        std::list<KFMatcher*>::iterator it = keyframelist.begin();
+        std::list<Keyframe*>::iterator it = keyframelist.begin();
         for (; it != keyframelist.end(); it++) {
           if ((*it)->sequence == cur_kf->sequence) {
             Eigen::Vector3d svin_P_cur;
@@ -165,7 +163,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
     }
     // draw local connection
     if (SHOW_S_EDGE) {
-      std::list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
+      std::list<Keyframe*>::reverse_iterator rit = keyframelist.rbegin();
       for (int i = 0; i < 4; i++) {
         if (rit == keyframelist.rend()) break;
         Eigen::Vector3d conncected_P;
@@ -180,7 +178,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
     if (SHOW_L_EDGE) {
       if (cur_kf->has_loop) {
         // printf("has loop \n");
-        KFMatcher* connected_KF = getKFPtr(cur_kf->loop_index);
+        Keyframe* connected_KF = getKFPtr(cur_kf->loop_index);
         Eigen::Vector3d connected_P, P0;
         Eigen::Matrix3d connected_R, R0;
         connected_KF->getPose(connected_P, connected_R);
@@ -199,8 +197,8 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   }
 }
 
-KFMatcher* LoopClosing::getKFPtr(int index) {
-  std::list<KFMatcher*>::iterator it = keyframelist.begin();
+Keyframe* PoseGraph::getKFPtr(int index) {
+  std::list<Keyframe*>::iterator it = keyframelist.begin();
   for (; it != keyframelist.end(); it++) {
     if ((*it)->index == index) break;
   }
@@ -210,7 +208,7 @@ KFMatcher* LoopClosing::getKFPtr(int index) {
     return NULL;
 }
 
-int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
+int PoseGraph::detectLoop(Keyframe* keyframe, int frame_index) {
   cv::Mat compressed_image;
 
   if (keyframe->bowVec.empty() || keyframe->featVec.empty()) {
@@ -220,7 +218,7 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
   }
 
   float min_score = 1.0;
-  for (std::map<KFMatcher*, int>::iterator mit = keyframe->mConnectedKeyFrameWeights.begin();
+  for (std::map<Keyframe*, int>::iterator mit = keyframe->mConnectedKeyFrameWeights.begin();
        mit != keyframe->mConnectedKeyFrameWeights.end();
        mit++) {
     // BowVector neigh_vec;
@@ -272,12 +270,12 @@ int LoopClosing::detectLoop(KFMatcher* keyframe, int frame_index) {
   }
 }
 
-void LoopClosing::addKeyFrameIntoVoc(KFMatcher* keyframe) {
+void PoseGraph::addKeyFrameIntoVoc(Keyframe* keyframe) {
   cv::Mat compressed_image;
   db.add(keyframe->brief_descriptors);
 }
 
-void LoopClosing::optimize4DoFPoseGraph() {
+void PoseGraph::optimize4DoFPoseGraph() {
   while (true) {
     int cur_index = -1;
     int first_looped_index = -1;
@@ -301,7 +299,7 @@ void LoopClosing::optimize4DoFPoseGraph() {
       loss_function = new ceres::HuberLoss(0.1);
 
       kflistMutex_.lock();
-      KFMatcher* cur_kf = getKFPtr(cur_index);
+      Keyframe* cur_kf = getKFPtr(cur_index);
 
       int max_length = cur_index + 1;
 
@@ -312,7 +310,7 @@ void LoopClosing::optimize4DoFPoseGraph() {
 
       ceres::LocalParameterization* angle_local_parameterization = AngleLocalParameterization::Create();
 
-      std::list<KFMatcher*>::iterator it;
+      std::list<Keyframe*>::iterator it;
 
       int i = 0;
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
@@ -435,7 +433,7 @@ void LoopClosing::optimize4DoFPoseGraph() {
   }
 }
 
-void LoopClosing::optimize6DoFPoseGraph() {
+void PoseGraph::optimize6DoFPoseGraph() {
   while (true) {
     int cur_index = -1;
     int first_looped_index = -1;
@@ -474,7 +472,7 @@ void LoopClosing::optimize6DoFPoseGraph() {
       ceres::LossFunction* loss_function = new ceres::HuberLoss(0.1);
 
       kflistMutex_.lock();
-      KFMatcher* cur_kf = getKFPtr(cur_index);
+      Keyframe* cur_kf = getKFPtr(cur_index);
 
       int kMaxLength = cur_index + 1;
 
@@ -484,7 +482,7 @@ void LoopClosing::optimize6DoFPoseGraph() {
 
       ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
 
-      std::list<KFMatcher*>::iterator it;
+      std::list<Keyframe*>::iterator it;
 
       int i = 0;
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
@@ -600,10 +598,10 @@ void LoopClosing::optimize6DoFPoseGraph() {
   }
 }
 
-void LoopClosing::updatePath() {
+void PoseGraph::updatePath() {
   std::lock_guard<std::mutex> l(kflistMutex_);
 
-  std::list<KFMatcher*>::iterator it;
+  std::list<Keyframe*>::iterator it;
   for (int i = 1; i <= sequence_cnt; i++) {
     path[i].poses.clear();
   }
@@ -652,8 +650,8 @@ void LoopClosing::updatePath() {
     }
     // draw local connection
     if (SHOW_S_EDGE) {
-      std::list<KFMatcher*>::reverse_iterator rit = keyframelist.rbegin();
-      std::list<KFMatcher*>::reverse_iterator lrit;
+      std::list<Keyframe*>::reverse_iterator rit = keyframelist.rbegin();
+      std::list<Keyframe*>::reverse_iterator lrit;
       for (; rit != keyframelist.rend(); rit++) {
         if ((*rit)->index == (*it)->index) {
           lrit = rit;
@@ -674,7 +672,7 @@ void LoopClosing::updatePath() {
     }
     if (SHOW_L_EDGE) {
       if ((*it)->has_loop && (*it)->sequence == sequence_cnt) {
-        KFMatcher* connected_KF = getKFPtr((*it)->loop_index);
+        Keyframe* connected_KF = getKFPtr((*it)->loop_index);
         Eigen::Vector3d connected_P;
         Eigen::Matrix3d connected_R;
         connected_KF->getPose(connected_P, connected_R);
@@ -687,7 +685,7 @@ void LoopClosing::updatePath() {
   }
   publish();
 }
-void LoopClosing::publish() {
+void PoseGraph::publish() {
   for (int i = 1; i <= sequence_cnt; i++) {
     if (i == base_sequence) {
       pubPoseGraphPath.publish(path[i]);
@@ -698,12 +696,12 @@ void LoopClosing::publish() {
   pubBasePath.publish(base_path);
 }
 
-void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info) {
-  KFMatcher* kf = getKFPtr(index);
+void PoseGraph::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info) {
+  Keyframe* kf = getKFPtr(index);
   kf->updateLoop(_loop_info);
   if (abs(_loop_info(7)) < 30.0 && Eigen::Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
     if (is_fast_localization_) {
-      KFMatcher* old_kf = getKFPtr(kf->loop_index);
+      Keyframe* old_kf = getKFPtr(kf->loop_index);
       Eigen::Vector3d w_P_old, w_P_cur, svin_P_cur;
       Eigen::Matrix3d w_R_old, w_R_cur, svin_R_cur;
       old_kf->getPose(w_P_old, w_R_old);
@@ -732,6 +730,6 @@ void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _lo
   }
 }
 
-void LoopClosing::registerLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
+void PoseGraph::registerLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
   loop_closure_optimization_callback_ = optimization_finish_callback;
 }

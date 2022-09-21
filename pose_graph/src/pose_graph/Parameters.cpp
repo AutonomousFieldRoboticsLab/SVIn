@@ -27,12 +27,7 @@ Parameters::Parameters() {
   min_landmark_quality_ = 0.001;
 }
 
-void Parameters::loadParameters(const ros::NodeHandle& nh) {
-  // Optional connection to svin_health
-  // nh.getParam("use_health", use_health_);
-
-  std::string config_file;
-  nh.getParam("config_file", config_file);
+void Parameters::loadParameters(const std::string& config_file) {
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
   if (!fsSettings.isOpened()) {
     LOG(FATAL) << "ERROR: Wrong path to settings" << std::endl;
@@ -49,27 +44,27 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
 
   if (fsSettings["loop_closure_params"]["enable"].isInt()) {
     loop_closure_params_.loop_closure_enabled = static_cast<int>(fsSettings["loop_closure_params"]["enable"]);
-    ROS_INFO_STREAM("loop_closure_params.enable: " << loop_closure_params_.loop_closure_enabled);
+    LOG(INFO) << "loop_closure_params.enable: " << loop_closure_params_.loop_closure_enabled;
 
     if (fsSettings["loop_closure_params"]["min_correspondences"].isInt() ||
         fsSettings["loop_closure_params"]["min_correspondences"].isReal()) {
       loop_closure_params_.min_correspondences =
           static_cast<int>(fsSettings["loop_closure_params"]["min_correspondences"]);
-      ROS_INFO_STREAM("Num of matched keypoints for Loop Detection:" << loop_closure_params_.min_correspondences);
+      LOG(INFO) << "Num of matched keypoints for Loop Detection:" << loop_closure_params_.min_correspondences;
     }
 
     if (fsSettings["loop_closure_params"]["pnp_reprojection_threshold"].isReal() ||
         fsSettings["loop_closure_params"]["pnp_reprojection_threshold"].isInt()) {
       loop_closure_params_.pnp_reprojection_thresh =
           static_cast<double>(fsSettings["loop_closure_params"]["pnp_reprojection_threshold"]);
-      ROS_INFO_STREAM("PnP reprojection threshold: " << loop_closure_params_.pnp_reprojection_thresh);
+      LOG(INFO) << "PnP reprojection threshold: " << loop_closure_params_.pnp_reprojection_thresh;
     }
 
     if (fsSettings["loop_closure_params"]["pnp_ransac_iterations"].isInt() ||
         fsSettings["loop_closure_params"]["pnp_ransac_iterations"].isReal()) {
       loop_closure_params_.pnp_ransac_iterations =
           static_cast<int>(fsSettings["loop_closure_params"]["pnp_ransac_iterations"]);
-      ROS_INFO_STREAM("PnP ransac iterations: " << loop_closure_params_.pnp_ransac_iterations);
+      LOG(INFO) << "PnP ransac iterations: " << loop_closure_params_.pnp_ransac_iterations;
     }
   }
 
@@ -123,9 +118,8 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   }
 
   cv::Size image_size(image_width_, image_height_);
-
-  ROS_INFO_STREAM("distortion_coefficients: " << distortion_coeffs_);
-  ROS_INFO_STREAM("camera_matrix : \n" << K);
+  LOG(INFO) << "distortion_coefficients: " << distortion_coeffs_;
+  LOG(INFO) << "camera_matrix : \n" << K;
   cv::initUndistortRectifyMap(
       K, distortion_coeffs_, cv::Mat(), K, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
 
@@ -146,7 +140,7 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
     T_imu_cam0_(2, 3) = static_cast<double>(t_s_c_node[11]);
   }
 
-  ROS_INFO_STREAM("T_imu_cam0: " << T_imu_cam0_);
+  LOG(INFO) << "T_imu_cam0: " << T_imu_cam0_;
 
   fsSettings.release();
 }

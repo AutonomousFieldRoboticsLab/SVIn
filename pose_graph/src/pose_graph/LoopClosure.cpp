@@ -1,10 +1,10 @@
-#include "pose_graph/PoseGraphOptimization.h"
+#include "pose_graph/LoopClosure.h"
 
 #include <pcl/io/ply_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <ros/console.h>
 #include <ros/package.h>
+#include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Trigger.h>
 
@@ -21,10 +21,10 @@
 #include "utils/Statistics.h"
 #include "utils/UtilsOpenCV.h"
 
-PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
+LoopClosure::LoopClosure(const Parameters& params)
     : nh_private_("~"),
       params_(std::make_shared<Parameters>(params)),
-      loop_closing_(nullptr),
+      pose_graph_(nullptr),
       camera_pose_visualizer_(nullptr),
       global_map_(nullptr),
       keyframe_tracking_queue_("keyframe_queue") {
@@ -37,8 +37,7 @@ PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
 
   // pubSparseMap = nh_private_.advertise<sensor_msgs::PointCloud2>("sparse_pointcloud", 10);
 
-  save_pointcloud_service_ =
-      nh_private_.advertiseService("save_pointcloud", &PoseGraphOptimization::savePointCloud, this);
+  save_pointcloud_service_ = nh_private_.advertiseService("save_pointcloud", &LoopClosure::savePointCloud, this);
 
   consecutive_tracking_failures_ = 0;
   last_keyframe_time_ = 0;
@@ -62,16 +61,16 @@ PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
   shutdown_ = false;
 }
 
-void PoseGraphOptimization::setup() {
+void LoopClosure::setup() {
   global_map_ = std::unique_ptr<GlobalMap>(new GlobalMap());
 
-  loop_closing_ = std::unique_ptr<LoopClosing>(new LoopClosing());
-  loop_closing_->setPublishers(nh_private_);
-  loop_closing_->set_svin_results_file(params_->svin_w_loop_path_);
-  loop_closing_->set_fast_relocalization(params_->fast_relocalization_);
-  loop_closing_->registerLoopClosureOptimizationCallback(
+  pose_graph_ = std::unique_ptr<PoseGraph>(new PoseGraph());
+  pose_graph_->setPublishers(nh_private_);
+  pose_graph_->set_svin_results_file(params_->svin_w_loop_path_);
+  pose_graph_->set_fast_relocalization(params_->fast_relocalization_);
+  pose_graph_->registerLoopClosureOptimizationCallback(
       std::bind(&GlobalMap::loopClosureOptimizationFinishCallback, global_map_.get(), std::placeholders::_1));
-  loop_closing_->startOptimizationThread();
+  pose_graph_->startOptimizationThread();
 
   camera_pose_visualizer_ = std::unique_ptr<CameraPoseVisualization>(new CameraPoseVisualization(1, 0, 0, 1));
   camera_pose_visualizer_->setScale(params_->camera_visual_size_);
@@ -81,56 +80,56 @@ void PoseGraphOptimization::setup() {
   voc_ = new BriefVocabulary(params_->vocabulary_file_);
   BriefDatabase db;
   db.setVocabulary(*voc_, false, 0);
-  loop_closing_->setBriefVocAndDB(voc_, db);
+  pose_graph_->setBriefVocAndDB(voc_, db);
 
   publisher.setParameters(*params_);
   publisher.setPublishers();
 
-  timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
+  timer_ = nh_private_.createTimer(ros::Duration(3), &LoopClosure::updatePublishGlobalMap, this);
 
   if (params_->debug_image_) {
     setupOutputLogDirectories();
   }
 }
 
-void PoseGraphOptimization::run() {
+void LoopClosure::run() {
   while (!shutdown_) {
     std::unique_ptr<KeyframeInfo> keyframe_info = nullptr;
     bool queue_state = keyframe_tracking_queue_.popBlocking(keyframe_info);
     if (queue_state) {
       CHECK(keyframe_info);
-      std::map<KFMatcher*, int> KFcounter;
+      std::map<Keyframe*, int> KFcounter;
 
       for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
         double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
         for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
           if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
-            KFMatcher* observed_kf =
+            Keyframe* observed_kf =
                 kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
             KFcounter[observed_kf]++;
           }
         }
       }
 
-      KFMatcher* keyframe = new KFMatcher(keyframe_info->timestamp_,
-                                          keyframe_info->keypoint_ids_,
-                                          keyframe_info->keyframe_index_,
-                                          keyframe_info->translation_,
-                                          keyframe_info->rotation_,
-                                          keyframe_info->keyframe_image_,
-                                          keyframe_info->keyfame_points_,
-                                          keyframe_info->cv_keypoints_,
-                                          KFcounter,
-                                          sequence_,
-                                          voc_,
-                                          *params_);
+      Keyframe* keyframe = new Keyframe(keyframe_info->timestamp_,
+                                        keyframe_info->keypoint_ids_,
+                                        keyframe_info->keyframe_index_,
+                                        keyframe_info->translation_,
+                                        keyframe_info->rotation_,
+                                        keyframe_info->keyframe_image_,
+                                        keyframe_info->keyfame_points_,
+                                        keyframe_info->cv_keypoints_,
+                                        KFcounter,
+                                        sequence_,
+                                        voc_,
+                                        *params_);
       kfMapper_.insert(std::make_pair(keyframe_info->keyframe_index_, keyframe));
-      loop_closing_->addKFToPoseGraph(keyframe, 1);
+      pose_graph_->addKFToPoseGraph(keyframe, 1);
     }
   }
 }
 
-void PoseGraphOptimization::updatePublishGlobalMap(const ros::TimerEvent& event) {
+void LoopClosure::updatePublishGlobalMap(const ros::TimerEvent& event) {
   // only update the global map if the pose graph optimization is finished after loop closure
 
   if (global_map_->loop_closure_optimization_finished_) updateGlobalMap();
@@ -145,7 +144,7 @@ void PoseGraphOptimization::updatePublishGlobalMap(const ros::TimerEvent& event)
   publisher.publishGlobalMap(pcl_msg);
 }
 
-void PoseGraphOptimization::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
+void LoopClosure::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
   for (auto point_landmark_map : global_map_->getMapPoints()) {
     Landmark point_landmark = point_landmark_map.second;
     Eigen::Vector3d global_pos = point_landmark.point_;
@@ -166,7 +165,7 @@ void PoseGraphOptimization::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB
   }
 }
 
-void PoseGraphOptimization::updateGlobalMap() {
+void LoopClosure::updateGlobalMap() {
   for (auto point_landmark_map : global_map_->getMapPoints()) {
     uint64_t landmark_id = point_landmark_map.first;
     Landmark point_landmark = point_landmark_map.second;
@@ -188,7 +187,7 @@ void PoseGraphOptimization::updateGlobalMap() {
         continue;
       }
 
-      KFMatcher* kf = kfMapper_.find(kf_id)->second;
+      Keyframe* kf = kfMapper_.find(kf_id)->second;
       Eigen::Matrix3d R_kf_w;
       Eigen::Vector3d T_kf_w;
       kf->getPose(T_kf_w, R_kf_w);
@@ -215,7 +214,7 @@ void PoseGraphOptimization::updateGlobalMap() {
   global_map_->loop_closure_optimization_finished_ = false;
 }
 
-bool PoseGraphOptimization::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
+bool LoopClosure::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
   ROS_INFO_STREAM("!! Saving Point Cloud !!");
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   getGlobalPointCloud(pointcloud);
@@ -229,7 +228,7 @@ bool PoseGraphOptimization::savePointCloud(std_srvs::TriggerRequest& request, st
   return true;
 }
 
-void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
+void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
   geometry_msgs::PoseStamped pose_stamped;
   pose_stamped.header = pose_msg->header;
   pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
@@ -239,7 +238,7 @@ void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::Odo
   primitive_estimator_poses_.push_back(pose_stamped);
 }
 
-bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg) {
+bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg) {
   // ROS_INFO_STREAM(Utility::healthMsgToString(health_msg));
   std::stringstream ss;
   std::setprecision(5);
@@ -295,7 +294,7 @@ bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& hea
   return true;
 }
 
-void PoseGraphOptimization::setupOutputLogDirectories() {
+void LoopClosure::setupOutputLogDirectories() {
   std::string pacakge_path = ros::package::getPath("pose_graph");
 
   std::string output_dir = pacakge_path + "/output_logs/loop_candidates/";
@@ -381,7 +380,7 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
   switch_info_file_stream.close();
 }
 
-void PoseGraphOptimization::shutdown() {
+void LoopClosure::shutdown() {
   LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph modile was already shutdown.";
   LOG(INFO) << "Shutting down PoseGraph module.";
   keyframe_tracking_queue_.shutdown();

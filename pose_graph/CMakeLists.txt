@@ -52,10 +52,10 @@ catkin_package(CATKIN_DEPENDS okvis_ros pcl_ros pcl_conversions)
 
 add_library(${PROJECT_NAME} 
     src/pose_graph/GlobalMapping.cpp
-    src/pose_graph/KFMatcher.cpp
-    src/pose_graph/LoopClosing.cpp
+    src/pose_graph/Keyframe.cpp
+    src/pose_graph/LoopClosure.cpp
     src/pose_graph/Parameters.cpp
-    src/pose_graph/PoseGraphOptimization.cpp
+    src/pose_graph/PoseGraph.cpp
     src/pose_graph/Publisher.cpp
     src/pose_graph/Subscriber.cpp
     src/utils/CameraPoseVisualization.cpp

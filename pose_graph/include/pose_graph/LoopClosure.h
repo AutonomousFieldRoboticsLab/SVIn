@@ -12,19 +12,19 @@
 
 #include "common/Definitions.h"
 #include "pose_graph/GlobalMapping.h"
-#include "pose_graph/KFMatcher.h"
-#include "pose_graph/LoopClosing.h"
+#include "pose_graph/Keyframe.h"
 #include "pose_graph/Parameters.h"
+#include "pose_graph/PoseGraph.h"
 #include "pose_graph/Publisher.h"
 #include "utils/CameraPoseVisualization.h"
 #include "utils/ThreadSafeQueue.h"
 
-class PoseGraphOptimization {
+class LoopClosure {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  PoseGraphOptimization(const Parameters& params);
-  ~PoseGraphOptimization() = default;
+  LoopClosure(const Parameters& params);
+  ~LoopClosure() = default;
 
   void setup();
   void run();
@@ -48,10 +48,10 @@ class PoseGraphOptimization {
   ros::NodeHandle nh_private_;
 
   std::shared_ptr<Parameters> params_;
-  std::unique_ptr<LoopClosing> loop_closing_;
+  std::unique_ptr<PoseGraph> pose_graph_;
   std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
   std::unique_ptr<GlobalMap> global_map_;
-  std::map<int, KFMatcher*> kfMapper_;  // Mapping between kf_index and KFMatcher*; to make KFcounter
+  std::map<int, Keyframe*> kfMapper_;  // Mapping between kf_index and Keyframe*; to make KFcounter
 
   std::mutex processMutex_;
   int frame_index_;

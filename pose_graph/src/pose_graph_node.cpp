@@ -1,7 +1,7 @@
 #include <future>
 
+#include "pose_graph/LoopClosure.h"
 #include "pose_graph/Parameters.h"
-#include "pose_graph/PoseGraphOptimization.h"
 #include "pose_graph/Subscriber.h"
 
 int main(int argc, char** argv) {
@@ -18,15 +18,18 @@ int main(int argc, char** argv) {
   FLAGS_log_prefix = false;
 
   // read parameters
+  std::string config_file;
+  nh.getParam("config_file", config_file);
+
   Parameters params;
-  params.loadParameters(nh);
+  params.loadParameters(config_file);
 
   auto subscriber = std::make_shared<Subscriber>(nh, params);
-  auto pose_graph = std::make_shared<PoseGraphOptimization>(params);
+  auto loop_closure = std::make_shared<LoopClosure>(params);
 
   subscriber->registerKeyframeCallback(
-      std::bind(&PoseGraphOptimization::fillKeyframeTrackingQueue, pose_graph, std::placeholders::_1));
-  auto process_thread = std::make_unique<std::thread>(&PoseGraphOptimization::run, pose_graph);
+      std::bind(&LoopClosure::fillKeyframeTrackingQueue, loop_closure, std::placeholders::_1));
+  auto process_thread = std::make_unique<std::thread>(&LoopClosure::run, loop_closure);
 
   ros::Time last_print_time = ros::Time::now();
 
@@ -39,7 +42,7 @@ int main(int argc, char** argv) {
   }
 
   LOG(INFO) << "Shutting down threads...";
-  pose_graph->shutdown();
+  loop_closure->shutdown();
 
   return EXIT_SUCCESS;
 }

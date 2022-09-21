@@ -1,4 +1,4 @@
-#include "pose_graph/KFMatcher.h"
+#include "pose_graph/Keyframe.h"
 
 #include <ros/package.h>
 #include <sensor_msgs/PointCloud.h>
@@ -13,15 +13,15 @@
 // #include "utils/LoopClosureUtils.h"
 #include "utils/UtilsOpenCV.h"
 
-const int KFMatcher::TH_HIGH = 100;
-const int KFMatcher::TH_LOW = 50;
-const size_t KFMatcher::briskDetectionOctaves_ = 0;                ///< The set number of brisk octaves.
-const double KFMatcher::briskDetectionThreshold_ = 40.0;           ///< The set BRISK detection threshold.
-const double KFMatcher::briskDetectionAbsoluteThreshold_ = 800;    ///< The set BRISK absolute detection threshold.
-const size_t KFMatcher::briskDetectionMaximumKeypoints_ = 300;     ///< The set maximum number of keypoints.
-const bool KFMatcher::briskDescriptionRotationInvariance_ = true;  ///< The set rotation invariance setting.
-const bool KFMatcher::briskDescriptionScaleInvariance_ = false;    ///< The set scale invariance setting.
-const double KFMatcher::briskMatchingThreshold_ = 80.0;            ///< The set BRISK matching threshold.
+const int Keyframe::TH_HIGH = 100;
+const int Keyframe::TH_LOW = 50;
+const size_t Keyframe::briskDetectionOctaves_ = 0;                ///< The set number of brisk octaves.
+const double Keyframe::briskDetectionThreshold_ = 40.0;           ///< The set BRISK detection threshold.
+const double Keyframe::briskDetectionAbsoluteThreshold_ = 800;    ///< The set BRISK absolute detection threshold.
+const size_t Keyframe::briskDetectionMaximumKeypoints_ = 300;     ///< The set maximum number of keypoints.
+const bool Keyframe::briskDescriptionRotationInvariance_ = true;  ///< The set rotation invariance setting.
+const bool Keyframe::briskDescriptionScaleInvariance_ = false;    ///< The set scale invariance setting.
+const double Keyframe::briskMatchingThreshold_ = 80.0;            ///< The set BRISK matching threshold.
 
 template <typename Derived>
 static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  // NOLINT
@@ -31,19 +31,19 @@ static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  
   v.resize(j);
 }
 
-KFMatcher::KFMatcher(ros::Time _time_stamp,
-                     std::vector<Eigen::Vector3d>& _point_ids,
-                     int _index,
-                     Eigen::Vector3d& _svin_T_w_i,
-                     Eigen::Matrix3d& _svin_R_w_i,
-                     cv::Mat& _image,
-                     std::vector<cv::Point3f>& _point_3d,
-                     std::vector<cv::KeyPoint>& _point_2d_uv,
-                     std::map<KFMatcher*, int>& KFcounter,
-                     int _sequence,
-                     BriefVocabulary* vocBrief,
-                     const Parameters& params,
-                     const bool is_vio_keyframe)
+Keyframe::Keyframe(ros::Time _time_stamp,
+                   std::vector<Eigen::Vector3d>& _point_ids,
+                   int _index,
+                   Eigen::Vector3d& _svin_T_w_i,
+                   Eigen::Matrix3d& _svin_R_w_i,
+                   cv::Mat& _image,
+                   std::vector<cv::Point3f>& _point_3d,
+                   std::vector<cv::KeyPoint>& _point_2d_uv,
+                   std::map<Keyframe*, int>& KFcounter,
+                   int _sequence,
+                   BriefVocabulary* vocBrief,
+                   const Parameters& params,
+                   const bool is_vio_keyframe)
     : params_(params) {
   time_stamp = _time_stamp;
 
@@ -82,14 +82,14 @@ KFMatcher::KFMatcher(ros::Time _time_stamp,
   if (!params.debug_image_) image.release();
 }
 
-KFMatcher::KFMatcher(ros::Time _time_stamp,
-                     int _index,
-                     Eigen::Vector3d& _svin_T_w_i,
-                     Eigen::Matrix3d& _svin_R_w_i,
-                     std::map<KFMatcher*, int>& KFcounter,
-                     int _sequence,
-                     const Parameters& params,
-                     const bool is_vio_keyframe)
+Keyframe::Keyframe(ros::Time _time_stamp,
+                   int _index,
+                   Eigen::Vector3d& _svin_T_w_i,
+                   Eigen::Matrix3d& _svin_R_w_i,
+                   std::map<Keyframe*, int>& KFcounter,
+                   int _sequence,
+                   const Parameters& params,
+                   const bool is_vio_keyframe)
     : params_(params) {
   time_stamp = _time_stamp;
 
@@ -112,23 +112,23 @@ KFMatcher::KFMatcher(ros::Time _time_stamp,
   updateConnections();  // for Covisibility graph
 }
 
-double KFMatcher::brisk_distance(const cv::Mat& a, const cv::Mat& b) {
+double Keyframe::brisk_distance(const cv::Mat& a, const cv::Mat& b) {
   const unsigned char* pa = a.ptr<unsigned char>();
   const unsigned char* pb = b.ptr<unsigned char>();
   // number_of_128_bit_words or number_of_col, L = 48
   return static_cast<double>(brisk::Hamming::PopcntofXORed(pa, pb, 3 /*48 / 16*/));
 }
 
-void KFMatcher::computeBRISKPoint() {
+void Keyframe::computeBRISKPoint() {
   // for searchByDescriptor to create new BRISK keypoints and descriptors
   std::shared_ptr<cv::FeatureDetector> detector(
-      new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(KFMatcher::briskDetectionThreshold_,
-                                                                         KFMatcher::briskDetectionOctaves_,
-                                                                         KFMatcher::briskDetectionAbsoluteThreshold_,
-                                                                         KFMatcher::briskDetectionMaximumKeypoints_));
+      new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(Keyframe::briskDetectionThreshold_,
+                                                                         Keyframe::briskDetectionOctaves_,
+                                                                         Keyframe::briskDetectionAbsoluteThreshold_,
+                                                                         Keyframe::briskDetectionMaximumKeypoints_));
 
   std::shared_ptr<cv::DescriptorExtractor> extractor(new brisk::BriskDescriptorExtractor(
-      KFMatcher::briskDescriptionRotationInvariance_, KFMatcher::briskDescriptionScaleInvariance_));
+      Keyframe::briskDescriptionRotationInvariance_, Keyframe::briskDescriptionScaleInvariance_));
 
   detector->detect(image, brisk_keypoints);
 
@@ -142,7 +142,7 @@ void KFMatcher::computeBRISKPoint() {
   std::cout << "Size of Brisk keypoints: " << brisk_keypoints.size() << std::endl;
 }
 
-void KFMatcher::computeBoW() {
+void Keyframe::computeBoW() {
   if (bowVec.empty() || featVec.empty()) {
     // Feature vector associate features with nodes in the 4th level (from leaves up)
     // We assume the vocabulary tree has 6 levels, change the 4 otherwise
@@ -150,7 +150,7 @@ void KFMatcher::computeBoW() {
   }
 }
 
-void KFMatcher::updateConnections() {
+void Keyframe::updateConnections() {
   if (KFcounter_.empty() && is_vio_keyframe_) {
     // std::cout << "KFcounter is empty for KF: " << index << " This SHOULDN't be happening except 1st frame."
     // << std::endl;
@@ -159,7 +159,7 @@ void KFMatcher::updateConnections() {
 
   // std::cout<<"Weights for observed keyframes in Kf: "<< this->index << std::endl;
   int th_weight = 20;  // TODO(Sharmin): Move it to the Config file
-  for (std::map<KFMatcher*, int>::iterator mit = KFcounter_.begin(); mit != KFcounter_.end(); mit++) {
+  for (std::map<Keyframe*, int>::iterator mit = KFcounter_.begin(); mit != KFcounter_.end(); mit++) {
     if (mit->second > th_weight) {
       mConnectedKeyFrameWeights.insert(std::make_pair(mit->first, mit->second));
       // std::cout << "Observed Kf: " << mit->first->index << " with weight(common MapPoint): " << mit->second
@@ -169,7 +169,7 @@ void KFMatcher::updateConnections() {
 }
 
 // Note Keypoints found by okvis_estimator
-void KFMatcher::computeWindowBRIEFPoint() {
+void Keyframe::computeWindowBRIEFPoint() {
   BriefExtractor extractor(params_.brief_pattern_file_.c_str());
 
   window_keypoints = point_2d_uv;
@@ -187,7 +187,7 @@ void KFMatcher::computeWindowBRIEFPoint() {
   }
 }
 
-void KFMatcher::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const {
+void Keyframe::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const {
   const float invfx = 1.0f / params_.p_fx_;
   const float invfy = 1.0f / params_.p_fy_;
 
@@ -198,7 +198,7 @@ void KFMatcher::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) con
   point3d[2] = 1.0;
 }
 
-void KFMatcher::computeBRIEFPoint() {
+void Keyframe::computeBRIEFPoint() {
   BriefExtractor extractor(params_.brief_pattern_file_.c_str());
   const int fast_th = 20;  // corner detector response threshold
   if (1) {
@@ -231,10 +231,10 @@ void BriefExtractor::operator()(const cv::Mat& im,
   m_brief.compute(im, keys, descriptors);
 }
 
-bool KFMatcher::matchBrisk(const cv::Mat& window_descriptor,
-                           const cv::Mat& descriptors_old,
-                           const std::vector<cv::KeyPoint>& keypoints_old,
-                           cv::Point2f& best_match) {
+bool Keyframe::matchBrisk(const cv::Mat& window_descriptor,
+                          const cv::Mat& descriptors_old,
+                          const std::vector<cv::KeyPoint>& keypoints_old,
+                          cv::Point2f& best_match) {
   cv::Point2f best_pt;
   int bestDist = 256;
   int bestIndex = -1;
@@ -254,10 +254,10 @@ bool KFMatcher::matchBrisk(const cv::Mat& window_descriptor,
   }
 }
 
-void KFMatcher::searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,
-                                        std::vector<uchar>& status,
-                                        const cv::Mat& descriptors_old,
-                                        const std::vector<cv::KeyPoint>& keypoints_old) {
+void Keyframe::searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,
+                                       std::vector<uchar>& status,
+                                       const cv::Mat& descriptors_old,
+                                       const std::vector<cv::KeyPoint>& keypoints_old) {
   for (size_t i = 0; i < window_brisk_descriptors.rows; i++) {
     cv::Point2f pt(0.f, 0.f);
     if (matchBrisk(window_brisk_descriptors.row(i), descriptors_old, keypoints_old, pt))
@@ -268,12 +268,12 @@ void KFMatcher::searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old
   }
 }
 
-bool KFMatcher::searchInAera(const DVision::BRIEF256::bitset window_descriptor,
-                             const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
-                             const std::vector<cv::KeyPoint>& keypoints_old,
-                             const std::vector<cv::KeyPoint>& keypoints_old_norm,
-                             cv::Point2f& best_match,
-                             cv::Point2f& best_match_norm) {
+bool Keyframe::searchInAera(const DVision::BRIEF256::bitset window_descriptor,
+                            const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
+                            const std::vector<cv::KeyPoint>& keypoints_old,
+                            const std::vector<cv::KeyPoint>& keypoints_old_norm,
+                            cv::Point2f& best_match,
+                            cv::Point2f& best_match_norm) {
   cv::Point2f best_pt;
   int bestDist = 128;
   int bestIndex = -1;
@@ -294,12 +294,12 @@ bool KFMatcher::searchInAera(const DVision::BRIEF256::bitset window_descriptor,
   }
 }
 
-void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
-                                 std::vector<cv::Point2f>& matched_2d_old_norm,
-                                 std::vector<uchar>& status,
-                                 const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
-                                 const std::vector<cv::KeyPoint>& keypoints_old,
-                                 const std::vector<cv::KeyPoint>& keypoints_old_norm) {
+void Keyframe::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
+                                std::vector<cv::Point2f>& matched_2d_old_norm,
+                                std::vector<uchar>& status,
+                                const std::vector<DVision::BRIEF256::bitset>& descriptors_old,
+                                const std::vector<cv::KeyPoint>& keypoints_old,
+                                const std::vector<cv::KeyPoint>& keypoints_old_norm) {
   for (int i = 0; i < static_cast<int>(window_brief_descriptors.size()); i++) {
     cv::Point2f pt(0.f, 0.f);
     cv::Point2f pt_norm(0.f, 0.f);
@@ -312,11 +312,11 @@ void KFMatcher::searchByBRIEFDes(std::vector<cv::Point2f>& matched_2d_old,
   }
 }
 
-void KFMatcher::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
-                          const std::vector<cv::Point3f>& matched_3d,
-                          std::vector<uchar>& status,
-                          Eigen::Vector3d& PnP_T_old,
-                          Eigen::Matrix3d& PnP_R_old) {
+void Keyframe::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
+                         const std::vector<cv::Point3f>& matched_3d,
+                         std::vector<uchar>& status,
+                         Eigen::Vector3d& PnP_T_old,
+                         Eigen::Matrix3d& PnP_R_old) {
   cv::Mat r, rvec, t, tmp_r;
   cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx_, 0, params_.p_cx_, 0, params_.p_fy_, params_.p_cy_, 0, 0, 1.0);
   Eigen::Matrix3d R_inital;
@@ -374,7 +374,7 @@ void KFMatcher::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
   PnP_T_old = T_w_c_old;
 }
 
-bool KFMatcher::findConnection(KFMatcher* old_kf) {
+bool Keyframe::findConnection(Keyframe* old_kf) {
   if (!old_kf->is_vio_keyframe_) return false;
 
   std::string pkg_path = ros::package::getPath("pose_graph");
@@ -578,43 +578,43 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
   return false;
 }
 
-int KFMatcher::HammingDis(const DVision::BRIEF256::bitset& a, const DVision::BRIEF256::bitset& b) {
+int Keyframe::HammingDis(const DVision::BRIEF256::bitset& a, const DVision::BRIEF256::bitset& b) {
   DVision::BRIEF256::bitset xor_of_bitset = a ^ b;
   int dis = xor_of_bitset.count();
   return dis;
 }
 
-void KFMatcher::getSVInPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i) {
+void Keyframe::getSVInPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i) {
   _T_w_i = svin_T_w_i;
   _R_w_i = svin_R_w_i;
 }
 
-void KFMatcher::getPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i) {
+void Keyframe::getPose(Eigen::Vector3d& _T_w_i, Eigen::Matrix3d& _R_w_i) {
   _T_w_i = T_w_i;
   _R_w_i = R_w_i;
 }
 
-void KFMatcher::updatePose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i) {
+void Keyframe::updatePose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i) {
   T_w_i = _T_w_i;
   R_w_i = _R_w_i;
 }
 
-void KFMatcher::updateSVInPose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i) {
+void Keyframe::updateSVInPose(const Eigen::Vector3d& _T_w_i, const Eigen::Matrix3d& _R_w_i) {
   svin_T_w_i = _T_w_i;
   svin_R_w_i = _R_w_i;
   T_w_i = svin_T_w_i;
   R_w_i = svin_R_w_i;
 }
 
-Eigen::Vector3d KFMatcher::getLoopRelativeT() { return Eigen::Vector3d(loop_info(0), loop_info(1), loop_info(2)); }
+Eigen::Vector3d Keyframe::getLoopRelativeT() { return Eigen::Vector3d(loop_info(0), loop_info(1), loop_info(2)); }
 
-Eigen::Quaterniond KFMatcher::getLoopRelativeQ() {
+Eigen::Quaterniond Keyframe::getLoopRelativeQ() {
   return Eigen::Quaterniond(loop_info(3), loop_info(4), loop_info(5), loop_info(6));
 }
 
-double KFMatcher::getLoopRelativeYaw() { return loop_info(7); }
+double Keyframe::getLoopRelativeYaw() { return loop_info(7); }
 
-void KFMatcher::updateLoop(Eigen::Matrix<double, 8, 1>& _loop_info) {
+void Keyframe::updateLoop(Eigen::Matrix<double, 8, 1>& _loop_info) {
   if (abs(_loop_info(7)) < 30.0 && Eigen::Vector3d(_loop_info(0), _loop_info(1), _loop_info(2)).norm() < 20.0) {
     // printf("update loop info\n");
     loop_info = _loop_info;
@@ -640,6 +640,6 @@ BriefExtractor::BriefExtractor(const std::string& pattern_file) {
   m_brief.importPairs(x1, y1, x2, y2);
 }
 
-void KFMatcher::setRelocalizationPCLCallback(const PointCloudCallback& pcl_callback) {
+void Keyframe::setRelocalizationPCLCallback(const PointCloudCallback& pcl_callback) {
   relocalization_pcl_callback_ = pcl_callback;
 }

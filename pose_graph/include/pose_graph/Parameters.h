@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cv_bridge/cv_bridge.h>
-#include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/image_encodings.h>
@@ -70,5 +69,5 @@ class Parameters {
   HealthParams health_params_;
 
  public:
-  void loadParameters(const ros::NodeHandle& nh);
+  void loadParameters(const std::string& config_file);
 };

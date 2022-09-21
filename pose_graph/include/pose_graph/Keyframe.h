@@ -30,10 +30,10 @@ class BriefExtractor {
   DVision::BRIEF256 m_brief;
 };
 
-class KFMatcher {
+class Keyframe {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  KFMatcher(ros::Time _time_stamp,
+  Keyframe(ros::Time _time_stamp,
             std::vector<Eigen::Vector3d>& _point_ids,  // NOLINT
             int _index,
             Eigen::Vector3d& _svin_T_w_i,             // NOLINT
@@ -41,22 +41,22 @@ class KFMatcher {
             cv::Mat& _image,                          // NOLINT
             std::vector<cv::Point3f>& _point_3d,      // NOLINT
             std::vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
-            std::map<KFMatcher*, int>& KFcounter,     // NOLINT
+            std::map<Keyframe*, int>& KFcounter,     // NOLINT
             int _sequence,
             BriefVocabulary* vocBrief,
             const Parameters& params,
             const bool vio_keyframe = true);
 
-  KFMatcher(ros::Time _time_stamp,
+  Keyframe(ros::Time _time_stamp,
             int _index,
             Eigen::Vector3d& _svin_T_w_i,          // NOLINT
             Eigen::Matrix3d& _svin_R_w_i,          // NOLINT
-            std::map<KFMatcher*, int>& KFcounter,  // NOLINT
+            std::map<Keyframe*, int>& KFcounter,  // NOLINT
             int _sequence,
             const Parameters& params,
             const bool is_vio_keyframe = false);
 
-  bool findConnection(KFMatcher* old_kf);
+  bool findConnection(Keyframe* old_kf);
   void computeWindowBRIEFPoint();
   void computeBRIEFPoint();
 
@@ -93,7 +93,7 @@ class KFMatcher {
   void project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const;  // NOLINT
 
   void updateConnections();
-  int searchByBoW(KFMatcher* old_kf, std::vector<cv::Point3f>& vpMatches12, std::vector<bool>& vbMatched2);  // NOLINT
+  int searchByBoW(Keyframe* old_kf, std::vector<cv::Point3f>& vpMatches12, std::vector<bool>& vbMatched2);  // NOLINT
 
   // For BRISK Descriptor
   void searchByBRISKDescriptor(std::vector<cv::Point2f>& matched_2d_old,  // NOLINT
@@ -137,8 +137,8 @@ class KFMatcher {
   int loop_index;
   Eigen::Matrix<double, 8, 1> loop_info;
 
-  std::map<KFMatcher*, int> KFcounter_;
-  std::map<KFMatcher*, int> mConnectedKeyFrameWeights;
+  std::map<Keyframe*, int> KFcounter_;
+  std::map<Keyframe*, int> mConnectedKeyFrameWeights;
 
   // BoW
   BriefVocabulary* voc;

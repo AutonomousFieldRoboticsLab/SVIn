@@ -2,6 +2,7 @@
 
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
 
@@ -40,4 +41,3 @@ class Publisher {
   ros::Publisher pub_uber_odometry_;
   ros::Publisher pub_prim_odometry_;
 };
-

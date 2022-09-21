@@ -23,7 +23,7 @@
 #include "DBoW/TemplatedDatabase.h"
 #include "DBoW/TemplatedVocabulary.h"
 #include "DVision/DVision.h"
-#include "pose_graph/KFMatcher.h"
+#include "pose_graph/Keyframe.h"
 #include "utils/CameraPoseVisualization.h"
 #include "utils/Utils.h"
 #include "utils/tic_toc.h"
@@ -32,16 +32,16 @@
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
 
-class LoopClosing {
+class PoseGraph {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  LoopClosing();
-  ~LoopClosing();
+  PoseGraph();
+  ~PoseGraph();
   void setPublishers(ros::NodeHandle& n);  // NOLINT
-  void addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop);
+  void addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop);
 
   void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info);  // NOLINT
-  KFMatcher* getKFPtr(int index);
+  Keyframe* getKFPtr(int index);
 
   void setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database);
 
@@ -64,12 +64,12 @@ class LoopClosing {
   void registerLoopClosureOptimizationCallback(const EventCallback& finish_optimization_callback);
 
  private:
-  int detectLoop(KFMatcher* keyframe, int frame_index);
-  void addKeyFrameIntoVoc(KFMatcher* keyframe);
+  int detectLoop(Keyframe* keyframe, int frame_index);
+  void addKeyFrameIntoVoc(Keyframe* keyframe);
   void optimize4DoFPoseGraph();
   void optimize6DoFPoseGraph();
   void updatePath();
-  std::list<KFMatcher*> keyframelist;
+  std::list<Keyframe*> keyframelist;
   std::mutex kflistMutex_;
   std::mutex optimizationMutex_;
   std::mutex pathMutex_;

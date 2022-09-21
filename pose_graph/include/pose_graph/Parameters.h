@@ -69,6 +69,12 @@ class Parameters {
   // health monitoring parameters
   HealthParams health_params_;
 
+  bool use_health_;
+  std::string vocabulary_file_;
+
+  // for visulization
+  double camera_visual_size_;
+
  public:
   void loadParameters(const ros::NodeHandle& nh);
 };

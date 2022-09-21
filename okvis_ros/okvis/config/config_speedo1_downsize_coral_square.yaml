@@ -2,26 +2,25 @@
 cameras:
     # Valid Fall 2018 and Spring 2019 to present (Summer 2021), not valid for Barbados 2019
     - {T_SC:
-       [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
-         0.99825455, -0.02099889, 0.05519876, -0.04791664,
-         -0.009273, 0.86732768, 0.49765118, -0.02872042,
-         0., 0., 0., 1.],
-       image_dimension: [800, 600],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
+       [-0.9995659, 0.01749552, -0.02370463, 0.08351123,
+        -0.01665316, -0.99923874, -0.03527894, -0.00506557,
+        -0.02430381, -0.03486887, 0.99909634, 0.04011354,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1200],
+       distortion_coefficients: [-0.16012168, 0.1020015, 0.00369027, 0.0034287],
        distortion_type: radialtangential,
-       focal_length: [579.92076363, 579.92076363],
-       principal_point: [326.80654526, 312.22106171]}  # alpha = 0.0
-
+       focal_length: [1149.52000993, 1150.57923685], 
+       principal_point: [798.75530924, 577.20248548]} 
     - {T_SC:
-       [-0.04471672, -0.47414334,  0.87931138,  0.43962862,
-        0.9982831,  -0.0545409,   0.02135733,  0.04401349,
-        0.037832,    0.87875672,  0.47576818, -0.02956853,
-        0., 0., 0., 1.],
-       image_dimension: [800, 600],
-       distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
+       [-0.99978446,  0.01454984, -0.01480997, -0.05868093,
+        -0.01448955, -0.99988632, -0.00417068, -0.00695112,
+        -0.01486897, -0.0039552,   0.99988163,  0.03934924,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1200],
+       distortion_coefficients: [-0.14726897, 0.08035029, -0.00216681, 0.00125576],
        distortion_type: radialtangential,
-       focal_length: [579.92076363, 579.92076363],
-       principal_point: [326.80654526, 312.22106171]}  # alpha = 0.0
+       focal_length: [1151.2674512, 1148.87177954], 
+       principal_point: [782.44896179, 573.73883587]} 
 
 camera_params:
     camera_rate: 30
@@ -47,10 +46,17 @@ imu_params:
     # tranform Body-Sensor (IMU)
     # Sharmin Consider IMU frame as Body Frame
     T_BS:
-        [1.0, 0.0, 0.0, 0.0,
-         0.0, -1.0, 0.0, 0.0,
-         0.0, 0.0, -1.0, 0.0,
-         0.0, 0.0, 0.0, 1.0]
+        [1.0000, 0.0000, 0.0000, 0.0,
+         0.0000, 1.0000, 0.0000, 0.0,
+         0.0000, 0.0000, 1.0000, 0.0,
+         0.0000, 0.0000, 0.0000, 1.0000]
+
+sonar_params:
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
 #gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
@@ -62,12 +68,12 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
     maxIterations: 10  # never do more than these, even if not converged
-    timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
+    timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
-    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
+    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
@@ -98,13 +104,12 @@ publishing_options:
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
 #Sharmin
-isSonarUsed: false
+isSonarUsed: true
 isDepthUsed: false
 isRelocalization: true
-histogramMethod: "CLAHE"     #NONE, HISTOGRAM, CLAHE
-claheClipLimit: 2.0
+isCLAHE: false
+claheClipLimit: 1
 claheTilesGridSize: 4
-
-resizeFactor: 1.0  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
 isResetable: true  # Adds callbacks to allow hard and soft resets of SVIn2

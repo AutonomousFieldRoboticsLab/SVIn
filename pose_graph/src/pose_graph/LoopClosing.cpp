@@ -595,7 +595,7 @@ void LoopClosing::optimize6DoFPoseGraph() {
       loop_closure_optimization_callback_(ros::Time::now().toNSec());
     }
 
-    std::chrono::milliseconds dura(100);
+    std::chrono::milliseconds dura(2000);
     std::this_thread::sleep_for(dura);
   }
 }

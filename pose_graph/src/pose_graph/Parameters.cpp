@@ -73,9 +73,6 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
     }
   }
 
-  ransac_reproj_threshold_ = static_cast<double>(fsSettings["ransac_reproj_threshold"]);
-  std::cout << "Ransac reprojection threshold: " << ransac_reproj_threshold_ << std::endl;
-
   fast_relocalization_ = fsSettings["fast_relocalization"];
 
   svin_w_loop_path_ = pkg_path + "/svin_results/svin_" + Utility::getTimeStr() + ".txt";

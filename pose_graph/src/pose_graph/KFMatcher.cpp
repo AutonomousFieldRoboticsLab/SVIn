@@ -318,9 +318,9 @@ void KFMatcher::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
                           Eigen::Vector3d& PnP_T_old,
                           Eigen::Matrix3d& PnP_R_old) {
   cv::Mat r, rvec, t, tmp_r;
-  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx, 0, params_.p_cx, 0, params_.p_fy, params_.p_cy, 0, 0, 1.0);
-  Matrix3d R_inital;
-  Vector3d P_inital;
+  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx_, 0, params_.p_cx_, 0, params_.p_fy_, params_.p_cy_, 0, 0, 1.0);
+  Eigen::Matrix3d R_inital;
+  Eigen::Vector3d P_inital;
 
   Eigen::Matrix3d R_w_c = origin_svin_R;
   Eigen::Vector3d T_w_c = origin_svin_T;

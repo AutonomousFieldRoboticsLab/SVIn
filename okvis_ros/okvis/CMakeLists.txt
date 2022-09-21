@@ -141,7 +141,7 @@ find_package(SuiteSparse REQUIRED QUIET) #will be needed in any case...
 find_package(CXSparse QUIET) #optional
 if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-  find_package( Ceres REQUIRED )
+  find_package( Ceres 1.14 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
   message(STATUS "Using system Ceres.")
 else()

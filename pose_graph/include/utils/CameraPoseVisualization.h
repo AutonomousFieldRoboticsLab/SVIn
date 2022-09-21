@@ -52,3 +52,4 @@ class CameraPoseVisualization {
   static const Eigen::Vector3d lt1;
   static const Eigen::Vector3d lt2;
 };
+

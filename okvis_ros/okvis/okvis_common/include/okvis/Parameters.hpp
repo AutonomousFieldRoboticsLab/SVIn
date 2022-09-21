@@ -67,9 +67,10 @@ struct MiscParams {
   double resizeFactor;
 };
 
+enum HistogramMethod { NONE, HISTOGRAM, CLAHE };
 // Sharmin: Read from config file.
-struct ClaheParams {
-  bool isClaheUsed;
+struct HistogramParams {
+  HistogramMethod histogramMethod;
   double claheClipLimit;
   int claheTilesGridSize;
 };
@@ -343,7 +344,7 @@ struct VioParameters {
   PublishingParameters publishing;                    ///< Publishing parameters.
   SensorList sensorList;                              ///< Sharmin: which sensors are used
   RelocParameters relocParameters;                    ///< Sharmin: Relocalization Parameters
-  ClaheParams claheParams;                            ///< Sharmin: CLAHE Parameters
+  HistogramParams histogramParams;                            ///< Sharmin: CLAHE Parameters
   MiscParams miscParams;                ///< Sharmin: contains misc parameters, e.g. opencv image resize factor
   SonarParameters sonar;                ///< Sharmin: sonar parameters (T_SSo)
   ResetPoseParameters resetableParams;  ///< Hunter: Reset pose parameters

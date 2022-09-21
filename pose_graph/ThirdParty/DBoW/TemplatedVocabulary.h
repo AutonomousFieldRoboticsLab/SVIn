@@ -10,23 +10,23 @@
 #ifndef __D_T_TEMPLATED_VOCABULARY__
 #define __D_T_TEMPLATED_VOCABULARY__
 
-#include <cassert>
-
 #include <algorithm>
+#include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <numeric>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
 #include <string>
 #include <vector>
 
+#include "../DUtils/DUtils.h"
 #include "BowVector.h"
 #include "FeatureVector.h"
 #include "ScoringObject.h"
 
-#include "../DUtils/DUtils.h"
-
 // Added by VINS [[[
 #include <boost/dynamic_bitset.hpp>
+
 #include "../VocabularyBinary.hpp"
 // Added by VINS ]]]
 
@@ -376,6 +376,28 @@ class TemplatedVocabulary {
    */
   void setNodeWeights(const std::vector<std::vector<TDescriptor> >& features);
 
+  /**
+   * Returns a random number in the range [min..max]
+   * @param min
+   * @param max
+   * @return random T number in [min..max]
+   */
+  template <class T>
+  static T RandomValue(T min, T max) {
+    return ((T)rand() / (T)RAND_MAX) * (max - min) + min;
+  }
+
+  /**
+   * Returns a random int in the range [min..max]
+   * @param min
+   * @param max
+   * @return random int in [min..max]
+   */
+  static int RandomInt(int min, int max) {
+    int d = max - min + 1;
+    return int(((double)rand() / ((double)RAND_MAX + 1.0)) * d) + min;
+  }
+
  protected:
   /// Branching factor
   int m_k;
@@ -405,7 +427,6 @@ class TemplatedVocabulary {
 template <class TDescriptor, class F>
 TemplatedVocabulary<TDescriptor, F>::TemplatedVocabulary(int k, int L, WeightingType weighting, ScoringType scoring)
     : m_k(k), m_L(L), m_weighting(weighting), m_scoring(scoring), m_scoring_object(NULL) {
-  // printf("loop start load bin\n");
   createScoringObject();
 }
 
@@ -774,15 +795,13 @@ void TemplatedVocabulary<TDescriptor, F>::initiateClustersKMpp(const std::vector
   // 5. Now that the initial centers have been chosen, proceed using standard k-means
   //    clustering.
 
-  DUtils::Random::SeedRandOnce();
-
   clusters.resize(0);
   clusters.reserve(m_k);
   std::vector<double> min_dists(pfeatures.size(), std::numeric_limits<double>::max());
 
   // 1.
 
-  int ifeature = DUtils::Random::RandomInt(0, pfeatures.size() - 1);
+  int ifeature = RandomInt(0, pfeatures.size() - 1);
 
   // create first cluster
   clusters.push_back(*pfeatures[ifeature]);
@@ -811,7 +830,7 @@ void TemplatedVocabulary<TDescriptor, F>::initiateClustersKMpp(const std::vector
     if (dist_sum > 0) {
       double cut_d;
       do {
-        cut_d = DUtils::Random::RandomValue<double>(0, dist_sum);
+        cut_d = RandomValue<double>(0, dist_sum);
       } while (cut_d == 0.0);
 
       double d_up_now = 0;
@@ -1390,12 +1409,9 @@ void TemplatedVocabulary<TDescriptor, F>::loadBin(const std::string& filename) {
     m_nodes[pid].children.push_back(nid);
 
     // Sorry to break template here
-    m_nodes[nid].descriptor = boost::dynamic_bitset<>(voc.nodes[i].descriptor, voc.nodes[i].descriptor + 4);
-
-    if (i < 5) {
-      std::string test;
-      boost::to_string(m_nodes[nid].descriptor, test);
-      // cout << "descriptor[" << i << "] = " << test << endl;
+    boost::dynamic_bitset input_bitset = boost::dynamic_bitset<>(voc.nodes[i].descriptor, voc.nodes[i].descriptor + 4);
+    for (size_t i = 0; i < F::L; i++) {
+      m_nodes[nid].descriptor[i] = input_bitset[i];
     }
   }
 

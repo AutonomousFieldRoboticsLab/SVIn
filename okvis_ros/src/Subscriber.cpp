@@ -84,14 +84,14 @@ Subscriber::Subscriber(ros::NodeHandle& nh,
   imgLeftCounter = 0;   // @Sharmin
   imgRightCounter = 0;  // @Sharmin
   // Added by Sharmin
-  if (vioParameters_.claheParams.isClaheUsed) {
+  if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::CLAHE) {
     clahe = cv::createCLAHE();
-    clahe->setClipLimit(vioParameters_.claheParams.claheClipLimit);
+    clahe->setClipLimit(vioParameters_.histogramParams.claheClipLimit);
     clahe->setTilesGridSize(
-        cv::Size(vioParameters_.claheParams.claheTilesGridSize, vioParameters_.claheParams.claheTilesGridSize));
+        cv::Size(vioParameters_.histogramParams.claheTilesGridSize, vioParameters_.histogramParams.claheTilesGridSize));
 
-    std::cout << "Set Clahe Params " << vioParameters_.claheParams.claheClipLimit << " "
-              << vioParameters_.claheParams.claheTilesGridSize << std::endl;
+    std::cout << "Set Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
+              << vioParameters_.histogramParams.claheTilesGridSize << std::endl;
   }
 }
 
@@ -154,11 +154,13 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned i
   }
 
   // Added by Sharmin for CLAHE
-  cv::Mat clahe_img;
-  if (vioParameters_.claheParams.isClaheUsed) {
-    clahe->apply(filtered, clahe_img);
+  cv::Mat histogram_equalized_image;
+  if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::CLAHE) {
+    clahe->apply(filtered, histogram_equalized_image);
+  } else if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::HISTOGRAM) {
+    cv::equalizeHist(filtered, histogram_equalized_image);
   } else {
-    clahe_img = filtered;
+    histogram_equalized_image = filtered;
   }
   // End Added by Sharmin
 
@@ -166,7 +168,7 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned i
   okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nsec);
   t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
 
-  if (!vioInterface_->addImage(t, cameraIndex, clahe_img)) {
+  if (!vioInterface_->addImage(t, cameraIndex, histogram_equalized_image)) {
     LOG(WARNING) << "Frame delayed at time " << t;
   }
 }

@@ -1,30 +1,41 @@
 #include "pose_graph/Parameters.h"
 
+#include <glog/logging.h>
 #include <ros/package.h>
 
 #include <fstream>
 #include <opencv2/calib3d.hpp>
 #include <string>
 
-#include "utility/utility.h"
+#include "utils/Utils.h"
 
 Parameters::Parameters() {
   // default values
-  use_health_ = false;
   tic_ = Eigen::Vector3d::Zero();
   qic_ = Eigen::Matrix3d::Identity();
+  health_params_.min_tracked_keypoints = 8;
+  health_params_.kf_wait_time = 0.5;
+  health_params_.consecutive_keyframes = 5;
+  debug_image_ = false;
+  image_delay_ = 0.0;
+
+  loop_closure_params_.loop_closure_enabled = true;
+  loop_closure_params_.min_correspondences = 25;
+  loop_closure_params_.pnp_reprojection_thresh = 20.0;
+  loop_closure_params_.pnp_ransac_iterations = 100;
+
+  min_landmark_quality_ = 0.001;
 }
 
 void Parameters::loadParameters(const ros::NodeHandle& nh) {
   // Optional connection to svin_health
-  nh.getParam("use_health", use_health_);
+  // nh.getParam("use_health", use_health_);
 
-  ROS_ERROR_STREAM("use_health: " << use_health_);
   std::string config_file;
   nh.getParam("config_file", config_file);
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
   if (!fsSettings.isOpened()) {
-    std::cerr << "ERROR: Wrong path to settings" << std::endl;
+    LOG(FATAL) << "ERROR: Wrong path to settings" << std::endl;
   }
 
   camera_visual_size_ = fsSettings["visualize_camera_size"];
@@ -36,8 +47,31 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
 
   brief_pattern_file_ = pkg_path + "/Vocabulary/brief_pattern.yml";
 
-  min_loop_num_ = fsSettings["min_loop_num"];
-  std::cout << "Num of matched keypoints for Loop Detection: " << min_loop_num_ << std::endl;
+  if (fsSettings["loop_closure_params"]["enable"].isInt()) {
+    loop_closure_params_.loop_closure_enabled = static_cast<int>(fsSettings["loop_closure_params"]["enable"]);
+    ROS_INFO_STREAM("loop_closure_params.enable: " << loop_closure_params_.loop_closure_enabled);
+
+    if (fsSettings["loop_closure_params"]["min_correspondences"].isInt() ||
+        fsSettings["loop_closure_params"]["min_correspondences"].isReal()) {
+      loop_closure_params_.min_correspondences =
+          static_cast<int>(fsSettings["loop_closure_params"]["min_correspondences"]);
+      ROS_INFO_STREAM("Num of matched keypoints for Loop Detection:" << loop_closure_params_.min_correspondences);
+    }
+
+    if (fsSettings["loop_closure_params"]["pnp_reprojection_threshold"].isReal() ||
+        fsSettings["loop_closure_params"]["pnp_reprojection_threshold"].isInt()) {
+      loop_closure_params_.pnp_reprojection_thresh =
+          static_cast<double>(fsSettings["loop_closure_params"]["pnp_reprojection_threshold"]);
+      ROS_INFO_STREAM("PnP reprojection threshold: " << loop_closure_params_.pnp_reprojection_thresh);
+    }
+
+    if (fsSettings["loop_closure_params"]["pnp_ransac_iterations"].isInt() ||
+        fsSettings["loop_closure_params"]["pnp_ransac_iterations"].isReal()) {
+      loop_closure_params_.pnp_ransac_iterations =
+          static_cast<int>(fsSettings["loop_closure_params"]["pnp_ransac_iterations"]);
+      ROS_INFO_STREAM("PnP ransac iterations: " << loop_closure_params_.pnp_ransac_iterations);
+    }
+  }
 
   ransac_reproj_threshold_ = static_cast<double>(fsSettings["ransac_reproj_threshold"]);
   std::cout << "Ransac reprojection threshold: " << ransac_reproj_threshold_ << std::endl;
@@ -54,33 +88,33 @@ void Parameters::loadParameters(const ros::NodeHandle& nh) {
   resize_factor_ = static_cast<double>(fsSettings["resizeFactor"]);
 
   cv::FileNode fnode = fsSettings["focal_length"];
-  p_fx = static_cast<double>(fnode[0]);
-  p_fy = static_cast<double>(fnode[1]);
+  p_fx_ = static_cast<double>(fnode[0]);
+  p_fy_ = static_cast<double>(fnode[1]);
 
   fnode = fsSettings["principal_point"];
-  p_cx = static_cast<double>(fnode[0]);
-  p_cy = static_cast<double>(fnode[1]);
+  p_cx_ = static_cast<double>(fnode[0]);
+  p_cy_ = static_cast<double>(fnode[1]);
 
   image_height_ = static_cast<int>(fsSettings["image_height"]);
   image_width_ = static_cast<int>(fsSettings["image_width"]);
 
-  std::cout << "focal_length: " << p_fx << " " << p_fy << std::endl;
-  std::cout << "principal points: " << p_cx << " " << p_cy << std::endl;
+  std::cout << "focal_length: " << p_fx_ << " " << p_fy_ << std::endl;
+  std::cout << "principal points: " << p_cx_ << " " << p_cy_ << std::endl;
 
   if (resize_factor_ != 1.0) {
-    p_fx *= resize_factor_;
-    p_fy *= resize_factor_;
-    p_cx *= resize_factor_;
-    p_cy *= resize_factor_;
+    p_fx_ *= resize_factor_;
+    p_fy_ *= resize_factor_;
+    p_cx_ *= resize_factor_;
+    p_cy_ *= resize_factor_;
     image_height_ = static_cast<int>(static_cast<double>(image_height_) * resize_factor_);
     image_width_ = static_cast<int>(static_cast<double>(image_width_) * resize_factor_);
   }
 
   cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
-  K.at<double>(0, 0) = p_fx;
-  K.at<double>(1, 1) = p_fy;
-  K.at<double>(0, 2) = p_cx;
-  K.at<double>(1, 2) = p_cy;
+  K.at<double>(0, 0) = p_fx_;
+  K.at<double>(1, 1) = p_fy_;
+  K.at<double>(0, 2) = p_cx_;
+  K.at<double>(1, 2) = p_cy_;
 
   cv::FileNode dnode = fsSettings["distortion_coefficients"];
   distortion_coeffs_ = cv::Mat::zeros(4, 1, CV_64F);

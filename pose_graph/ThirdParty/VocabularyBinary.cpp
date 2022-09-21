@@ -1,6 +1,5 @@
 #include "VocabularyBinary.hpp"
 #include <opencv2/core/core.hpp>
-using namespace std;
 
 SVINLoop::Vocabulary::Vocabulary() : nNodes(0), nodes(nullptr), nWords(0), words(nullptr) {}
 
@@ -16,13 +15,13 @@ SVINLoop::Vocabulary::~Vocabulary() {
   }
 }
 
-void SVINLoop::Vocabulary::serialize(ofstream& stream) {
+void SVINLoop::Vocabulary::serialize(std::ofstream& stream) {
   stream.write((const char*)this, staticDataSize());
   stream.write((const char*)nodes, sizeof(Node) * nNodes);
   stream.write((const char*)words, sizeof(Word) * nWords);
 }
 
-void SVINLoop::Vocabulary::deserialize(ifstream& stream) {
+void SVINLoop::Vocabulary::deserialize(std::ifstream& stream) {
   stream.read((char*)this, staticDataSize());
 
   nodes = new Node[nNodes];

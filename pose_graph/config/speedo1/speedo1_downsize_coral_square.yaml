@@ -1,0 +1,72 @@
+%YAML:1.0
+
+#camera calibration 
+model_type: PINHOLE
+camera_name: cam_fl
+# Note: considers only projection matrix assuming that the images (keyframes from okvis) are pre-rectifed
+projection_matrix:
+    fx: 579.92076363
+    fy: 579.92076363
+    cx: 326.80654526
+    cy: 312.22106171
+
+#image resize factor. Note that, this factor MUST be same as OKVIS config file
+resizeFactor: 1.0
+
+#optimization parameters
+max_solver_time: 0.04  # max solver itration time (ms), to guarantee real time
+max_num_iterations: 8   # max solver itrations, to guarantee real time
+keyframe_parallax: 10.0 # keyframe selection threshold (pixel)
+
+#loop closure 
+#if you want to use loop closure to minimize the drift, set loop_closure true and give your brief pattern file path and vocabulary file path accordingly;
+#also give the camera calibration file same as feature_tracker node
+loop_closure_params:
+    enable: 1  
+    min_correspondences: 25
+    pnp_reprojection_threshold: 30.0               
+
+fast_relocalization: 1
+
+
+#For uber estimator
+health:
+    enable: 1
+    min_keypoints: 15
+    consecutive_keyframes: 3
+    keyframe_wait_time: 2.0
+
+# if enabled will save debug images in pose_graph/output_logs/
+debug_image: 1
+
+#minimum triangulated point quality to be added to the global map
+min_landmark_quality: 0.001
+
+# For undistorting original color image
+# R is rectification matrix
+# K is camera matrix
+is_stereo: 1
+cam0:
+    height: 600
+    width: 800
+    D: [-0.16289394362063583, 0.08351833356682732, 0.012276483503048642, 0.0006858966792660155]
+    K: [569.416384875, 0.0, 354.08646869,
+        0.0, 569.7973490352, 308.564486915,
+        0.0, 0.0, 1.0]
+    R: [0.99876085, -0.02473601,  0.04318445,
+        0.02417981,  0.99961842,  0.01335487,
+       -0.04349831, -0.01229413,  0.99897785]
+
+
+# To transform pose between uber and okvis coordinate systems
+T_SC: [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
+        0.99825455, -0.02099889, 0.05519876, -0.04791664,
+        -0.009273, 0.86732768, 0.49765118, -0.02872042,
+        0.0, 0.0, 0.0, 1.0]
+T_BS: [1.0, 0.0, 0.0, 0.0,
+      0.0, -1.0, 0.0, 0.0,
+      0.0, 0.0, -1.0, 0.0,
+      0.0, 0.0, 0.0, 1.0]
+
+ #to synchronize keyframe and raw images. This should be same as okvis config file
+image_delay: 0.0

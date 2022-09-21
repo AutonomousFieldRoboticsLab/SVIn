@@ -1,32 +1,34 @@
 %YAML:1.0
 cameras:
+    # Images are cropped rather than downsized
     - {T_SC:
-       [-0.9995659, 0.01749552, -0.02370463, 0.08351123,
-        -0.01665316, -0.99923874, -0.03527894, -0.00506557,
-        -0.02430381, -0.03486887, 0.99909634, 0.04011354,
-          0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.16012168, 0.1020015, 0.00369027, 0.0034287],
+       [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
+        0.99825455, -0.02099889, 0.05519876, -0.04791664,
+        -0.009273, 0.86732768, 0.49765118, -0.02872042,
+        0.0, 0.0, 0.0, 1.0],
+       image_dimension: [800, 600],
+       distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [1149.52000993, 1150.57923685], 
-       principal_point: [798.75530924, 577.20248548]} 
+       focal_length: [1240.64067844, 1240.64067844],
+       principal_point: [272.78517151, 310.37955475]}  # alpha = 0.0
+
     - {T_SC:
-       [-0.99978446,  0.01454984, -0.01480997, -0.05868093,
-        -0.01448955, -0.99988632, -0.00417068, -0.00695112,
-        -0.01486897, -0.0039552,   0.99988163,  0.03934924,
-          0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.14726897, 0.08035029, -0.00216681, 0.00125576],
+       [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
+        0.9982831, -0.0545409, 0.02135733, 0.04401349,
+        0.037832, 0.87875672, 0.47576818, -0.02956853,
+        0.0, 0.0, 0.0, 1.0],
+       image_dimension: [800, 600],
+       distortion_coefficients: [0.0, 0.0, 0.0, 0.0],
        distortion_type: radialtangential,
-       focal_length: [1151.2674512, 1148.87177954], 
-       principal_point: [782.44896179, 573.73883587]} 
+       focal_length: [1240.64067844, 1240.64067844],
+       principal_point: [272.78517151, 310.37955475]}  # alpha = 0.0
 
 camera_params:
-    camera_rate: 15
-    sigma_absolute_translation: 0.0
-    sigma_absolute_orientation: 0.0
-    sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
-    sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
+    camera_rate: 30
+    sigma_absolute_translation:  0.0 #8.0e-3
+    sigma_absolute_orientation: 0.0 #8.0e-3
+    sigma_c_relative_translation: 0.0 #1.0e-6 # below 1.0e-6 ruines numerics...
+    sigma_c_relative_orientation: 0.0 #1.0e-6 # below 1.0e-6 ruines numerics...
 
 
 imu_params:
@@ -43,18 +45,12 @@ imu_params:
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
     imu_rate: 100
     # tranform Body-Sensor (IMU)
+    # Sharmin Consider IMU frame as Body Frame
     T_BS:
-        [1.0000, 0.0000, 0.0000, 0.0,
-         0.0000, 1.0000, 0.0000, 0.0,
-         0.0000, 0.0000, 1.0000, 0.0,
-         0.0000, 0.0000, 0.0000, 1.0000]
-
-sonar_params:
-    T_SSo:
-        [0.0000, 1.0000, 0.0000, 0.015995,
-         -1.0000, 0.0000, 0.0000, 0.125,
-         0.0000, 0.0000, 1.0000, 0.128,
-         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
+        [1.0, 0.0, 0.0, 0.0,
+         0.0, -1.0, 0.0, 0.0,
+         0.0, 0.0, -1.0, 0.0,
+         0.0, 0.0, 0.0, 1.0]
 
 #gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
@@ -65,17 +61,17 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 10  # never do more than these, even if not converged
-    timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
+    maxIterations: 20  # never do more than these, even if not converged
+    timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
-    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    threshold: 10.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
-imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+imageDelay: -0.02  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
@@ -94,19 +90,22 @@ publishing_options:
     publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:
-        [1.0000, 0.0000, 0.0000, 0.0000,
-         0.0000, 1.0000, 0.0000, 0.0000,
-         0.0000, 0.0000, 1.0000, 0.0000,
-         0.0000, 0.0000, 0.0000, 1.0000]
+        [1.0, 0.0, 0.0, 0.0,
+         0.0, 1.0, 0.0, 0.0,
+         0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, 0.0, 1.0]
     trackedBodyFrame: B                # B or S, the frame of reference that will be expressed relative to the selected worldFrame
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
 #Sharmin
-isSonarUsed: true
+isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
-isCLAHE: false
-claheClipLimit: 1
+histogramMethod: "CLAHE"     #NONE, HISTOGRAM, CLAHE
+claheClipLimit: 2.0
 claheTilesGridSize: 4
-resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
+
+resizeFactor: 1.0  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+
+isResetable: true  # Adds callbacks to allow hard and soft resets of SVIn2

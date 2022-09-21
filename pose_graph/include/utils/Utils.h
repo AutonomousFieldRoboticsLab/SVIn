@@ -1,6 +1,7 @@
 #pragma once
 
 #include <geometry_msgs/Pose.h>
+#include <okvis_ros/SvinHealth.h>
 
 #include <cassert>
 #include <chrono>
@@ -126,36 +127,17 @@ class Utility {
       return angle_degrees + two_pi * std::floor((-angle_degrees + T(180)) / two_pi);
   }
 
-  static std::string getTimeStr() {
-    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  static std::string getTimeStr();
+  static Eigen::Matrix4d rosPoseToMatrix(const geometry_msgs::Pose& pose);
+  static geometry_msgs::Pose matrixToRosPose(const Eigen::Matrix4d& trasform);
+  static void printPoseAsEulerAngles(const Eigen::Matrix4d& pose);
 
-    char s[100];
-    std::strftime(s, sizeof(s), "%Y_%m_%d_%H_%M_%S", std::localtime(&now));
-    return s;
-  }
+  // Converts doulbe to sting with desired number of digits (total number of
+  // digits)
+  static std::string To_string_with_precision(const double a_value, const int n);
 
-  static Eigen::Matrix4d rosPoseToMatrix(const geometry_msgs::Pose& pose) {
-    Eigen::Matrix4d m;
-    m.setIdentity();
-    m.block<3, 3>(0, 0) =
-        Eigen::Quaterniond(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z)
-            .toRotationMatrix();
-    m.block<3, 1>(0, 3) = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
-    return m;
-  }
-
-  static geometry_msgs::Pose matrixToRosPose(const Eigen::Matrix4d& trasform) {
-    geometry_msgs::Pose pose;
-    pose.position.x = trasform(0, 3);
-    pose.position.y = trasform(1, 3);
-    pose.position.z = trasform(2, 3);
-
-    Eigen::Quaterniond q(trasform.block<3, 3>(0, 0));
-    pose.orientation.w = q.w();
-    pose.orientation.x = q.x();
-    pose.orientation.y = q.y();
-    pose.orientation.z = q.z();
-
-    return pose;
-  }
+  static std::string healthMsgToString(const okvis_ros::SvinHealthConstPtr& health);
 };
+
+enum TrackingStatus { NOT_INITIALIZED = 0, TRACKING_VIO = 1, TRACKING_PRIMITIVE_ESTIMATOR = 2 };
+

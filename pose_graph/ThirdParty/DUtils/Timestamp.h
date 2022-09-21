@@ -11,7 +11,6 @@
 #define __D_TIMESTAMP__
 
 #include <iostream>
-using namespace std;
 
 namespace DUtils {
 
@@ -69,7 +68,7 @@ class Timestamp {
    * Sets the timestamp from a string with the time in seconds
    * @param stime: string such as "1235603336.036609"
    */
-  void setTime(const string& stime);
+  void setTime(const std::string& stime);
 
   /**
    * Sets the timestamp from a number of seconds from the epoch
@@ -85,7 +84,7 @@ class Timestamp {
   /**
    * Returns this timestamp as the number of seconds in fixed length string format
    */
-  string getStringTime() const;
+  std::string getStringTime() const;
 
   /**
    * Returns the difference in seconds between this timestamp (greater) and t (smaller)
@@ -172,14 +171,14 @@ class Timestamp {
    * @note This has not been tested under Windows
    * @note The timestamp is truncated to seconds
    */
-  string Format(bool machine_friendly = false) const;
+  std::string Format(bool machine_friendly = false) const;
 
   /**
    * Returns a string version of the elapsed time in seconds, with the format
    * xd hh:mm:ss, hh:mm:ss, mm:ss or s.us
    * @param s: elapsed seconds (given by getFloatTime) to format
    */
-  static string Format(double s);
+  static std::string Format(double s);
 
  protected:
   /// Seconds

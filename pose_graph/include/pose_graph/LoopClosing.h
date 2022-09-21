@@ -24,16 +24,13 @@
 #include "DBoW/TemplatedVocabulary.h"
 #include "DVision/DVision.h"
 #include "pose_graph/KFMatcher.h"
-#include "utility/CameraPoseVisualization.h"
-#include "utility/tic_toc.h"
-#include "utility/utility.h"
+#include "utils/CameraPoseVisualization.h"
+#include "utils/Utils.h"
+#include "utils/tic_toc.h"
 
 #define SHOW_S_EDGE false
 #define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
-
-using namespace DVision;  // NOLINT
-using namespace DBoW2;    // NOLINT
 
 class LoopClosing {
  public:
@@ -54,12 +51,12 @@ class LoopClosing {
 
   void publish();
   // Relocalization
-  Vector3d t_drift;
+  Eigen::Vector3d t_drift;
   double yaw_drift;
-  Matrix3d r_drift;
+  Eigen::Matrix3d r_drift;
 
-  Vector3d w_t_svin;
-  Matrix3d w_r_svin;
+  Eigen::Vector3d w_t_svin;
+  Eigen::Matrix3d w_r_svin;
 
   typedef std::function<void(const uint64_t& time)> EventCallback;
 
@@ -70,8 +67,9 @@ class LoopClosing {
   int detectLoop(KFMatcher* keyframe, int frame_index);
   void addKeyFrameIntoVoc(KFMatcher* keyframe);
   void optimize4DoFPoseGraph();
+  void optimize6DoFPoseGraph();
   void updatePath();
-  list<KFMatcher*> keyframelist;
+  std::list<KFMatcher*> keyframelist;
   std::mutex kflistMutex_;
   std::mutex optimizationMutex_;
   std::mutex pathMutex_;
@@ -81,8 +79,8 @@ class LoopClosing {
 
   int global_index;
   int sequence_cnt;
-  vector<bool> sequence_loop;
-  map<int, cv::Mat> image_pool;
+  std::vector<bool> sequence_loop;
+  std::map<int, cv::Mat> image_pool;
   int earliest_loop_index;
   int base_sequence;
 
@@ -100,6 +98,7 @@ class LoopClosing {
  public:
   void set_svin_results_file(const std::string& svin_output_file);
   void set_fast_relocalization(const bool localization_flag);
+  void startOptimizationThread(bool is_vio_optimization = true);
 };
 
 template <typename T>

@@ -87,3 +87,4 @@ class GlobalMap {
   void loopClosureOptimizationFinishCallback(const uint64_t& time);
   bool loop_closure_optimization_finished_;  // this flag is set to true when loop closure optimization is done
 };
+

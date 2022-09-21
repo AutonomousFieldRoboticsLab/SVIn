@@ -188,7 +188,7 @@ else()
   endif ()
    
   find_package(OpenMP QUIET)
-  if (OPENMP_FOUND)
+  if (OPENMP_FOUND OR OpenMP_FOUND)
     message(STATUS "OpenMP found")
     add_definitions(-DUSE_OPENMP)
     set(CERES_LIBRARIES ceres gomp ${SUITESPARSE_LIBRARIES} ${CXSPARSE_LIBRARIES} ${Eigen_LIBS} ${GLOG_LIBRARY}) #ceres won't export these

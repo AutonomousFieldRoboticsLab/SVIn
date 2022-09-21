@@ -1,6 +1,9 @@
 #pragma once
 
 #include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/exact_time.h>
 #include <nav_msgs/Odometry.h>
 #include <okvis_ros/SvinHealth.h>
 #include <sensor_msgs/PointCloud.h>
@@ -9,7 +12,9 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <vector>
 
+#include "common/Definitions.h"
 #include "pose_graph/Parameters.h"
 
 class Subscriber {
@@ -20,7 +25,6 @@ class Subscriber {
 
   ~Subscriber() = default;
 
-  void init(ros::NodeHandle& nh, const Parameters& params);              // NOLINT
   void setNodeHandle(ros::NodeHandle& nh);                               // NOLINT
   void getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,     // NOLINT
                            nav_msgs::OdometryConstPtr& kf_odom,          // NOLINT
@@ -28,6 +32,7 @@ class Subscriber {
                            okvis_ros::SvinHealthConstPtr& svin_health);  // NOLINT
 
   nav_msgs::OdometryConstPtr getPrimitiveEstimatorPose(const uint64_t& ros_stamp);
+  void getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vector<nav_msgs::OdometryConstPtr>& poses);  // NOLINT
 
   const cv::Mat getCorrespondingImage(const uint64_t& ros_stamp);
   const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
@@ -40,29 +45,44 @@ class Subscriber {
 
   Parameters params_;  // The parameters of the node.
 
-  // List of  subscribers.
-  image_transport::Subscriber sub_kf_image_;      // Subscriber to the keyframe image.
-  ros::Subscriber sub_kf_pose_;                   // Subscriber to the keyframe pose.
-  ros::Subscriber sub_kf_points_;                 // Subscriber to the keyframe points.
+  typedef image_transport::SubscriberFilter ImageSubscriber;
+  ImageSubscriber keyframe_image_subscriber_;
+  // Subscriber to the keyframe pose.
+  message_filters::Subscriber<nav_msgs::Odometry> keyframe_pose_subscriber_;
+  // Subscriber to the keyframe points.
+  message_filters::Subscriber<sensor_msgs::PointCloud> keyframe_points_subscriber_;
+  message_filters::Subscriber<okvis_ros::SvinHealth> svin_health_subscriber_;
+
+  typedef message_filters::sync_policies::
+      ExactTime<sensor_msgs::Image, nav_msgs::Odometry, sensor_msgs::PointCloud, okvis_ros::SvinHealth>
+          keyframe_sync_policy;
+
+  std::unique_ptr<message_filters::Synchronizer<keyframe_sync_policy>> sync_keyframe_;
+
+  // List of other subscribers.
   ros::Subscriber sub_svin_relocalization_odom_;  // Subscriber to the relocalization odometry.
-  ros::Subscriber sub_svin_health_;               // Subscriber to the health of the SVIn.
   image_transport::Subscriber sub_orig_image_;    // Subscriber to the original image.
   ros::Subscriber sub_primitive_estimator_;       // Subscriber to the primitive estimator odometry.
 
   // Callback functions.
-  void keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg);
-  void keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg);
-  void keyframePointsCallback(const sensor_msgs::PointCloudConstPtr& msg);
+  // void keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg);
+  // void keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg);
+  // void keyframePointsCallback(const sensor_msgs::PointCloudConstPtr& msg);
   void svinRelocalizationOdomCallback(const nav_msgs::OdometryConstPtr& msg);
-  void svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg);
+  // void svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg);
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
   void primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg);
 
+  void keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg,
+                        const nav_msgs::OdometryConstPtr& kf_odom,
+                        const sensor_msgs::PointCloudConstPtr& kf_points,
+                        const okvis_ros::SvinHealthConstPtr& svin_health);
+
   // Buffer queue for the measurements.
-  std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;
-  std::queue<nav_msgs::OdometryConstPtr> kf_pose_buffer_;
-  std::queue<sensor_msgs::PointCloudConstPtr> kf_pcl_buffer_;
-  std::queue<okvis_ros::SvinHealthConstPtr> svin_health_buffer_;  // svin health buffer
+  // std::queue<sensor_msgs::ImageConstPtr> kf_image_buffer_;
+  // std::queue<nav_msgs::OdometryConstPtr> kf_pose_buffer_;
+  // std::queue<sensor_msgs::PointCloudConstPtr> kf_pcl_buffer_;
+  // std::queue<okvis_ros::SvinHealthConstPtr> svin_health_buffer_;  // svin health buffer
   std::queue<sensor_msgs::ImageConstPtr> orig_image_buffer_;
   std::queue<nav_msgs::OdometryConstPtr> prim_estimator_odom_buffer_;
 
@@ -74,5 +94,14 @@ class Subscriber {
   std::string svin_health_topic_;          // The topic name of the health of the SVIn.
   std::string primitive_estimator_topic_;  // The topic name of the primitive estimator odometry.
 
-  double last_image_time_;  // The time of the last image.
+  double last_image_time_;                // The time of the last image.
+  double last_primitive_estimator_time_;  // The time of the last primitive estimator odometry.
+
+  KeyframeCallback keyframe_callback_;         // The callback function for the keyframe.
+  PoseCallback primitive_estimator_callback_;  // The callback function for the pose.
+  ImageCallback raw_image_callback_;           // The callback function for the original_image.
+
+ public:
+  inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }
+  inline void registerKeyframeCallback(const KeyframeCallback& callback) { keyframe_callback_ = callback; }
 };

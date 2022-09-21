@@ -54,10 +54,8 @@
 /// @Sharmin
 #include <okvis/IdProvider.hpp>
 
-int nNextId = 0;   // FIXME Sharmin To remove this global variable.
-int numKF = 0;     // Sharmin: Number of keyframe
-int SKIP_CNT = 5;  // Sharmin: to skip frames while publishing every frame
-int skip_cnt = 0;  // Sharmin: to skip frames while publishing every frame
+int nNextId = 0;  // FIXME Sharmin To remove this global variable.
+int numKF = 0;    // Sharmin: Number of keyframe
 
 // Sharmin
 static Eigen::Vector3d R2ypr(const Eigen::Matrix3d& R) {
@@ -1378,9 +1376,7 @@ void ThreadedKFVio::optimizationLoop() {
 
         // To publish the topics needed by pose-graph
 
-        if (estimator_.isKeyframe(frame_pairs->id()) || skip_cnt == SKIP_CNT) {
-          skip_cnt = 0;
-
+        if (estimator_.isKeyframe(frame_pairs->id())) {
           // publish keyframe image, pose, and points
           if (keyframeCallback_ && !result.landmarksVector.empty()) {
             {
@@ -1489,9 +1485,6 @@ void ThreadedKFVio::optimizationLoop() {
             std::cout << "Keyframe Index: " << kf_index_ << std::endl;
             kf_index_++;
           }
-
-        } else {
-          skip_cnt++;
         }
 
         //*********** End Added by Sharmin *******//

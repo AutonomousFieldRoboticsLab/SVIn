@@ -10,30 +10,28 @@
 
 #include <Eigen/SVD>
 #include <algorithm>
+#include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-PoseGraphOptimization::PoseGraphOptimization()
+#include "utils/Statistics.h"
+#include "utils/UtilsOpenCV.h"
+
+PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
     : nh_private_("~"),
-      params_(nullptr),
+      params_(std::make_shared<Parameters>(params)),
       loop_closing_(nullptr),
       camera_pose_visualizer_(nullptr),
-      subscriber_(nullptr),
-      global_map_(nullptr) {
+      global_map_(nullptr),
+      keyframe_tracking_queue_("keyframe_queue") {
   frame_index_ = 0;
   sequence_ = 1;
 
   last_translation_ = Eigen::Vector3d(-100, -100, -100);
-  SKIP_CNT = 0;
-  skip_cnt = 0;
-
-  SKIP_DIS = 0;
-
-  params_ = std::make_shared<Parameters>();
-  params_->loadParameters(nh_private_);
 
   setup();
 
@@ -44,6 +42,24 @@ PoseGraphOptimization::PoseGraphOptimization()
 
   consecutive_tracking_failures_ = 0;
   last_keyframe_time_ = 0;
+  last_primitive_estmator_time_ = 0.0;
+  tracking_status_ = TrackingStatus::NOT_INITIALIZED;
+
+  init_t_w_prim_.setIdentity();
+  init_t_w_svin_.setIdentity();
+
+  switch_prim_pose_.setIdentity();
+  switch_svin_pose_.setIdentity();
+  switch_uber_pose_.setIdentity();
+
+  last_t_w_prim_.setIdentity();
+  last_scaled_prim_pose_.setZero();
+
+  prim_estimator_keyframes_ = 0;
+  vio_traj_length_ = 0.0;
+  prim_traj_length_ = 0.0;
+  scale_between_vio_prim_ = 0.0;
+  shutdown_ = false;
 }
 
 void PoseGraphOptimization::setup() {
@@ -53,9 +69,9 @@ void PoseGraphOptimization::setup() {
   loop_closing_->setPublishers(nh_private_);
   loop_closing_->set_svin_results_file(params_->svin_w_loop_path_);
   loop_closing_->set_fast_relocalization(params_->fast_relocalization_);
-
   loop_closing_->registerLoopClosureOptimizationCallback(
       std::bind(&GlobalMap::loopClosureOptimizationFinishCallback, global_map_.get(), std::placeholders::_1));
+  loop_closing_->startOptimizationThread();
 
   camera_pose_visualizer_ = std::unique_ptr<CameraPoseVisualization>(new CameraPoseVisualization(1, 0, 0, 1));
   camera_pose_visualizer_->setScale(params_->camera_visual_size_);
@@ -67,279 +83,50 @@ void PoseGraphOptimization::setup() {
   db.setVocabulary(*voc_, false, 0);
   loop_closing_->setBriefVocAndDB(voc_, db);
 
-  subscriber_ = std::unique_ptr<Subscriber>(new Subscriber(nh_private_, *params_));
   publisher.setParameters(*params_);
   publisher.setPublishers();
 
   timer_ = nh_private_.createTimer(ros::Duration(3), &PoseGraphOptimization::updatePublishGlobalMap, this);
-  init_t_w_prim_.setZero();
-  init_t_w_svin_.setZero();
-  svin_pose_stabilized_ = false;
+
+  if (params_->debug_image_) {
+    setupOutputLogDirectories();
+  }
 }
 
 void PoseGraphOptimization::run() {
-  while (true) {
-    sensor_msgs::ImageConstPtr image_msg = nullptr;
-    sensor_msgs::PointCloudConstPtr point_msg = nullptr;
-    nav_msgs::Odometry::ConstPtr pose_msg = nullptr;
-    okvis_ros::SvinHealthConstPtr health_msg = nullptr;
+  while (!shutdown_) {
+    std::unique_ptr<KeyframeInfo> keyframe_info = nullptr;
+    bool queue_state = keyframe_tracking_queue_.popBlocking(keyframe_info);
+    if (queue_state) {
+      CHECK(keyframe_info);
+      std::map<KFMatcher*, int> KFcounter;
 
-    subscriber_->getSyncMeasurements(image_msg, pose_msg, point_msg, health_msg);
-
-    if (pose_msg) {
-      if (skip_cnt < SKIP_CNT) {
-        skip_cnt++;
-        continue;
-      } else {
-        skip_cnt = 0;
-      }
-
-      // build keyframe
-      Vector3d T =
-          Vector3d(pose_msg->pose.pose.position.x, pose_msg->pose.pose.position.y, pose_msg->pose.pose.position.z);
-      Matrix3d R = Quaterniond(pose_msg->pose.pose.orientation.w,
-                               pose_msg->pose.pose.orientation.x,
-                               pose_msg->pose.pose.orientation.y,
-                               pose_msg->pose.pose.orientation.z)
-                       .toRotationMatrix();
-
-      // std::cout << "T: " << T.transpose() << std::endl;
-      // std::cout << "R: " << R << std::endl;
-
-      assert(point_msg);
-      assert(image_msg);
-      bool vio_healthy = true;
-
-      if (params_->use_health_) {
-        assert(health_msg);
-        vio_healthy = static_cast<bool>(health_msg->isTrackingOk);
-      }
-      if (!vio_healthy) {
-        ROS_WARN_STREAM("VIO Tracking failure.");
-        consecutive_tracking_failures_ += 1;
-      } else {
-        consecutive_tracking_failures_ = 0;
-      }
-
-      last_keyframe_time_ = pose_msg->header.stamp.toSec();
-
-      nav_msgs::OdometryConstPtr primitive_estimator_odom =
-          subscriber_->getPrimitiveEstimatorPose(pose_msg->header.stamp.toNSec());
-
-      if (primitive_estimator_odom) {
-        // Eigen::Vector3d average_ypr;
-        // if (!svin_pose_stabilized_) {
-        //   if (svin_init_ypr_queue_.size() < 5) {
-        //     svin_init_ypr_queue_.push(Utility::R2ypr(Utility::rosPoseToMatrix(pose_msg->pose.pose).block<3, 3>(0,
-        //     0)));
-        //   } else {
-        //     while (!svin_init_ypr_queue_.empty()) {
-        //       Eigen::Vector3d svin_odom_init = svin_init_ypr_queue_.front();
-        //       average_ypr += svin_odom_init;
-        //       svin_init_ypr_queue_.pop();
-        //       ROS_INFO_STREAM("SVIN odom :" << svin_odom_init);
-        //     }
-        //     average_ypr /= 5;
-        //     ROS_INFO_STREAM("SVIN odom average :" << average_ypr.transpose());
-        //     svin_pose_stabilized_ = true;
-        //   }
-        // }
-
-        if (!svin_pose_stabilized_) {
-          init_t_w_prim_ = Utility::rosPoseToMatrix(primitive_estimator_odom->pose.pose);
-          init_t_w_svin_ = Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_.inverse();
-          svin_pose_stabilized_ = true;
-          ROS_INFO_STREAM("Initial primitive estimator: " << init_t_w_prim_);
-          ROS_INFO_STREAM("Initial svin: " << init_t_w_svin_);
-        }
-        updatePrimiteEstimatorTrajectory(primitive_estimator_odom);
-        nav_msgs::Odometry test_odom;
-        test_odom.pose.pose = primitive_estimator_poses_.back().pose;
-        test_odom.header = primitive_estimator_poses_.back().header;
-        publisher.publishOdometry(test_odom);
-        publisher.publishPrimitiveEstimatorPath(primitive_estimator_poses_);
-      }
-
-      if ((T - last_translation_).norm() > SKIP_DIS) {
-        vector<cv::Point3f> point_3d;
-        vector<cv::KeyPoint> point_2d_uv;
-        vector<Eigen::Vector3d> point_ids;  // @Reloc: landmarkId, mfId, keypointIdx related to each point
-        // For every KF, a map <observed_kf, weight> describing which other kfs how many MapPoints are common.
-        map<KFMatcher*, int> KFcounter;
-
-        int kf_index = -1;
-        cv::Mat kf_image = subscriber_->readRosImage(image_msg);
-        cv::Mat orig_color_image = subscriber_->getCorrespondingImage(pose_msg->header.stamp.toNSec());
-        if (params_->resize_factor_ != 1.0) {
-          cv::resize(orig_color_image, orig_color_image, cv::Size(params_->image_width_, params_->image_height_));
-        }
-        cv::Mat undistort_image;
-        cv::remap(orig_color_image,
-                  undistort_image,
-                  params_->cam0_undistort_map_x_,
-                  params_->cam0_undistort_map_y_,
-                  cv::INTER_LINEAR);
-
-        // TODO(bjoshi): publish debug image
-        // cv::imshow("image", undistort_image);
-        // cv::waitKey(1);
-
-        // Need this because we want to update global map only if there is new loop
-        // LoopClosing::addKFToPoseGraph updates keyframe to account for loop closure correction
-        // Hence, need to add global points after the function.
-
-        std::vector<uint64_t> landmark_ids;
-        std::vector<double> qualities;
-        std::vector<Eigen::Vector3d> colors;
-        std::vector<Eigen::Vector3d> local_positions;
-
-        for (unsigned int i = 0; i < point_msg->points.size(); i++) {
-          double quality = point_msg->channels[i].values[3];
-          if (quality < 1e-6) continue;
-
-          cv::Point3f p_3d;
-          p_3d.x = point_msg->points[i].x;
-          p_3d.y = point_msg->points[i].y;
-          p_3d.z = point_msg->points[i].z;
-          point_3d.push_back(p_3d);
-
-          Eigen::Vector3d point_3d_eigen;
-          point_3d_eigen << p_3d.x, p_3d.y, p_3d.z;
-
-          Eigen::Vector3d point_cam_frame = R.transpose() * (point_3d_eigen - T);
-          // pcl::PointXYZRGB pcl_point;
-          // pcl_point.x = point_cam_frame.x();
-          // pcl_point.y = point_cam_frame.y();
-          // pcl_point.z = point_cam_frame.z();
-          // pcl_point.r = 255;
-          // pcl_point.g = 0;
-          // pcl_point.b = 0;
-          // sparse_pointcloud_->push_back(pcl_point);
-
-          // @Reloc
-          Eigen::Vector3d p_ids;
-          p_ids(0) = point_msg->channels[i].values[0];  // landmarkId
-          p_ids(1) = point_msg->channels[i].values[1];  // poseId or MultiFrameId
-          p_ids(2) = point_msg->channels[i].values[2];  // keypointIdx
-          point_ids.push_back(p_ids);
-
-          cv::KeyPoint p_2d_uv;
-          double p_id;
-          kf_index = point_msg->channels[i].values[4];
-          p_2d_uv.pt.x = point_msg->channels[i].values[5];
-          p_2d_uv.pt.y = point_msg->channels[i].values[6];
-          p_2d_uv.size = point_msg->channels[i].values[7];
-          p_2d_uv.angle = point_msg->channels[i].values[8];
-          p_2d_uv.octave = point_msg->channels[i].values[9];
-          p_2d_uv.response = point_msg->channels[i].values[10];
-          p_2d_uv.class_id = point_msg->channels[i].values[11];
-
-          point_2d_uv.push_back(p_2d_uv);
-
-          // std::cout << "CV Keypoint of size 8:" << p_2d_uv.pt.x << " , " << p_2d_uv.pt.y << " size: " <<
-          // p_2d_uv.size
-          //           << "angle : " << p_2d_uv.angle << " octave : " << p_2d_uv.octave
-          //           << " response : " << p_2d_uv.response << " class_id: " << p_2d_uv.class_id << std::endl;
-
-          cv::Vec3b color =
-              undistort_image.at<cv::Vec3b>(static_cast<uint16_t>(p_2d_uv.pt.y), static_cast<uint16_t>(p_2d_uv.pt.x));
-          Eigen::Vector3d color_eigen(
-              static_cast<double>(color[2]), static_cast<double>(color[1]), static_cast<double>(color[0]));
-
-          colors.push_back(color_eigen);
-          qualities.push_back(quality);
-          local_positions.push_back(point_cam_frame);
-          landmark_ids.push_back(static_cast<uint64_t>(p_ids(0)));
-
-          for (size_t sz = 12; sz < point_msg->channels[i].values.size(); sz++) {
-            int observed_kf_index = point_msg->channels[i].values[sz];  // kf_index where this point_3d has been
-                                                                        // observed
-            if (observed_kf_index == kf_index) {
-              continue;
-            }
-
-            map<int, KFMatcher*>::iterator mkfit;
-            mkfit = kfMapper_.find(observed_kf_index);
-            if (mkfit == kfMapper_.end()) {
-              continue;
-            }
-
+      for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
+        double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
+        for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
+          if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
             KFMatcher* observed_kf =
                 kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
             KFcounter[observed_kf]++;
           }
         }
-
-        KFMatcher* keyframe = new KFMatcher(pose_msg->header.stamp,
-                                            point_ids,
-                                            kf_index,
-                                            T,
-                                            R,
-                                            kf_image,
-                                            point_3d,
-                                            point_2d_uv,
-                                            KFcounter,
-                                            sequence_,
-                                            voc_,
-                                            *params_);
-
-        keyframe->setRelocalizationPCLCallback(
-            std::bind(&Publisher::kfMatchedPointCloudCallback, &publisher, std::placeholders::_1));
-        kfMapper_.insert(std::make_pair(kf_index, keyframe));
-
-        {
-          std::lock_guard<std::mutex> l(processMutex_);
-          // start_flag = 1;
-          loop_closing_->addKFToPoseGraph(keyframe, 1);
-        }
-
-        // sensor_msgs::PointCloud2 sparse_pointcloud_msg;
-        // pcl::PointCloud<pcl::PointXYZRGB>::Ptr sparse_pointcloud_(new pcl::PointCloud<pcl::PointXYZRGB>);
-
-        for (size_t i = 0; i < landmark_ids.size(); i++) {
-          Eigen::Vector3d pos_cam_frame = local_positions.at(i);
-
-          if (kfMapper_.find(kf_index) == kfMapper_.end()) {
-            cout << "Keyframe not found" << endl;
-            continue;
-          }
-
-          KFMatcher* kf = kfMapper_.find(kf_index)->second;
-          Eigen::Matrix3d R_w_kf;
-          Eigen::Vector3d T_w_kf;
-          kf->getPose(T_w_kf, R_w_kf);
-
-          Eigen::Vector3d global_pos = R_w_kf * pos_cam_frame + T_w_kf;
-          Eigen::Vector3d color = colors.at(i);
-          double quality = qualities.at(i);
-          uint64_t landmark_id = landmark_ids.at(i);
-
-          global_map_->addLandmark(global_pos, landmark_id, quality, kf_index, pos_cam_frame, color);
-
-          // pcl::PointXYZRGB pcl_point;
-          // pcl_point.x = global_pos(0);
-          // pcl_point.y = global_pos(1);
-          // pcl_point.z = global_pos(2);
-          // pcl_point.r = (int)color(0);
-          // pcl_point.g = (int)color(1);
-          // pcl_point.b = (int)color(2);
-          // sparse_pointcloud_->push_back(pcl_point);
-        }
-
-        frame_index_++;
-        last_translation_ = T;
-
-        // pcl::toROSMsg(*sparse_pointcloud_, sparse_pointcloud_msg);
-        // sparse_pointcloud_msg.header.frame_id = "world";
-        // sparse_pointcloud_msg.header.stamp = pose_msg->header.stamp;
-        // pubSparseMap.publish(sparse_pointcloud_msg);
       }
-    } else {  // SVIN Frontend does not pass keyframe because of not tracking
-      // while()
-    }
 
-    std::chrono::milliseconds dura(5);
-    std::this_thread::sleep_for(dura);
+      KFMatcher* keyframe = new KFMatcher(keyframe_info->timestamp_,
+                                          keyframe_info->keypoint_ids_,
+                                          keyframe_info->keyframe_index_,
+                                          keyframe_info->translation_,
+                                          keyframe_info->rotation_,
+                                          keyframe_info->keyframe_image_,
+                                          keyframe_info->keyfame_points_,
+                                          keyframe_info->cv_keypoints_,
+                                          KFcounter,
+                                          sequence_,
+                                          voc_,
+                                          *params_);
+      kfMapper_.insert(std::make_pair(keyframe_info->keyframe_index_, keyframe));
+      loop_closing_->addKFToPoseGraph(keyframe, 1);
+    }
   }
 }
 
@@ -362,15 +149,15 @@ void PoseGraphOptimization::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB
   for (auto point_landmark_map : global_map_->getMapPoints()) {
     Landmark point_landmark = point_landmark_map.second;
     Eigen::Vector3d global_pos = point_landmark.point_;
-    Vector3d color = point_landmark.color_;
+    Eigen::Vector3d color = point_landmark.color_;
     double quality = point_landmark.quality_;
 
-    if (quality > 0.005) {
+    if (quality > params_->min_landmark_quality_) {
       pcl::PointXYZRGB point;
       point.x = global_pos(0);
       point.y = global_pos(1);
       point.z = global_pos(2);
-      float intensity = std::min(0.025, quality) / 0.025;
+      // float intensity = std::min(0.025, quality) / 0.025;
       point.r = static_cast<uint8_t>(color.x());
       point.g = static_cast<uint8_t>(color.y());
       point.b = static_cast<uint8_t>(color.z());
@@ -397,7 +184,7 @@ void PoseGraphOptimization::updateGlobalMap() {
 
       // Converting to global coordinates
       if (kfMapper_.find(kf_id) == kfMapper_.end()) {
-        cout << "Keyframe not found" << endl;
+        std::cout << "Keyframe not found" << std::endl;
         continue;
       }
 
@@ -405,6 +192,12 @@ void PoseGraphOptimization::updateGlobalMap() {
       Eigen::Matrix3d R_kf_w;
       Eigen::Vector3d T_kf_w;
       kf->getPose(T_kf_w, R_kf_w);
+
+      // if (kf_quality > quality) {
+      //   point_3d = R_kf_w * local_pos + T_kf_w;
+      //   color = local_color;
+      //   quality = kf_quality;
+      // }
 
       Eigen::Vector3d global_pos = R_kf_w * local_pos + T_kf_w;
       point_3d = point_3d + global_pos * kf_quality;
@@ -441,6 +234,156 @@ void PoseGraphOptimization::updatePrimiteEstimatorTrajectory(const nav_msgs::Odo
   pose_stamped.header = pose_msg->header;
   pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
   pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
-                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_imu_cam0_);
+                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_body_imu_ *
+                                               params_->T_imu_cam0_);
   primitive_estimator_poses_.push_back(pose_stamped);
+}
+
+bool PoseGraphOptimization::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg) {
+  // ROS_INFO_STREAM(Utility::healthMsgToString(health_msg));
+  std::stringstream ss;
+  std::setprecision(5);
+
+  HealthParams health_params = params_->health_params_;
+  uint32_t total_triangulated_keypoints = health_msg->numTrackedKps;
+
+  if (total_triangulated_keypoints < health_params.min_tracked_keypoints) {
+    ss << "Not enough triangulated keypoints: " << total_triangulated_keypoints << std::endl;
+    error_msg = ss.str();
+    return false;
+  }
+
+  std::vector<int> keypoints_per_quadrant = health_msg->kpsPerQuadrant;
+
+  bool quadrant_check = std::all_of(keypoints_per_quadrant.begin(), keypoints_per_quadrant.end(), [&](int kp_count) {
+    return kp_count >= health_params.kps_per_quadrant;
+  });
+
+  if (!quadrant_check && *std::max_element(keypoints_per_quadrant.begin(), keypoints_per_quadrant.end()) <=
+                             10.0 * health_params.kps_per_quadrant) {
+    ss << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", " << keypoints_per_quadrant[1]
+       << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3] << "]" << std::endl;
+    error_msg = ss.str();
+    return false;
+  }
+
+  uint32_t new_detected_keypoints_kf = health_msg->newKps;
+  float new_detected_keypoints_ratio =
+      static_cast<float>(new_detected_keypoints_kf) / static_cast<float>(total_triangulated_keypoints);
+
+  if (new_detected_keypoints_ratio >= 0.75) {
+    ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
+    error_msg = ss.str();
+    return false;
+  }
+
+  double average_response =
+      std::accumulate(health_msg->responseStrengths.begin(), health_msg->responseStrengths.end(), double(0.0)) /
+      static_cast<double>(health_msg->responseStrengths.size());
+  float fraction_with_low_detector_response =
+      std::count_if(health_msg->responseStrengths.begin(),
+                    health_msg->responseStrengths.end(),
+                    [&](double response) { return response < average_response; }) /
+      static_cast<float>(health_msg->responseStrengths.size());
+
+  if (fraction_with_low_detector_response >= 0.85) {
+    ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
+    error_msg = ss.str();
+    return false;
+  }
+
+  return true;
+}
+
+void PoseGraphOptimization::setupOutputLogDirectories() {
+  std::string pacakge_path = ros::package::getPath("pose_graph");
+
+  std::string output_dir = pacakge_path + "/output_logs/loop_candidates/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/descriptor_matched/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/pnp_verified/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/loop_closure/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/geometric_verification/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  std::string loop_closure_file = pacakge_path + "/output_logs/loop_closure.txt";
+  if (boost::filesystem::exists(loop_closure_file)) {
+    boost::filesystem::remove(loop_closure_file);
+  }
+  std::ofstream loop_path_file(loop_closure_file, std::ios::out);
+  loop_path_file << "cur_kf_id"
+                 << " "
+                 << "cur_kf_ts"
+                 << " "
+                 << "matched_kf_id"
+                 << " "
+                 << "matched_kf_ts"
+                 << " "
+                 << "relative_tx"
+                 << " "
+                 << "relative_ty"
+                 << " "
+                 << "relative_tz"
+                 << " "
+                 << "relative_qx"
+                 << " "
+                 << "relative_qy"
+                 << " "
+                 << "relative_qz"
+                 << " "
+                 << "relative_qw" << std::endl;
+  loop_path_file.close();
+
+  std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
+  if (boost::filesystem::exists(switch_info_file)) {
+    boost::filesystem::remove(switch_info_file);
+  }
+  std::ofstream switch_info_file_stream(switch_info_file, std::ios::out);
+  switch_info_file_stream << "type"
+                          << " "
+                          << "vio_stamp"
+                          << " "
+                          << "prim_stamp"
+                          << " "
+                          << "uber_stamp" << std::endl;
+  switch_info_file_stream.close();
+}
+
+void PoseGraphOptimization::shutdown() {
+  LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph modile was already shutdown.";
+  LOG(INFO) << "Shutting down PoseGraph module.";
+  keyframe_tracking_queue_.shutdown();
+  shutdown_ = true;
 }

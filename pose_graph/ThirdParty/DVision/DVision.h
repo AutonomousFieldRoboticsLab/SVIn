@@ -36,5 +36,6 @@
 namespace DVision {}
 
 #include "BRIEF.h"
+#include "BRIEF256.h"
 
 #endif

@@ -27,7 +27,7 @@ PoseGraphOptimization::PoseGraphOptimization(const Parameters& params)
       loop_closing_(nullptr),
       camera_pose_visualizer_(nullptr),
       global_map_(nullptr),
-      keyframe_tracking_queue_("keyframe_tracking_queue") {
+      keyframe_tracking_queue_("keyframe_queue") {
   frame_index_ = 0;
   sequence_ = 1;
 
@@ -124,6 +124,8 @@ void PoseGraphOptimization::run() {
                                           sequence_,
                                           voc_,
                                           *params_);
+      kfMapper_.insert(std::make_pair(keyframe_info->keyframe_index_, keyframe));
+      loop_closing_->addKFToPoseGraph(keyframe, 1);
     }
   }
 }
@@ -382,5 +384,6 @@ void PoseGraphOptimization::setupOutputLogDirectories() {
 void PoseGraphOptimization::shutdown() {
   LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph modile was already shutdown.";
   LOG(INFO) << "Shutting down PoseGraph module.";
+  keyframe_tracking_queue_.shutdown();
   shutdown_ = true;
 }

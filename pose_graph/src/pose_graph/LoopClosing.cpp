@@ -86,7 +86,7 @@ void LoopClosing::addKFToPoseGraph(KFMatcher* cur_kf, bool flag_detect_loop) {
   if (loop_index != -1) {
     KFMatcher* old_kf = getKFPtr(loop_index);
     if (cur_kf->findConnection(old_kf)) {
-      std::cout << "FOUND Loop Connection!!!!" << std::endl;
+      // std::cout << "FOUND Loop Connection!!!!" << std::endl;
 
       if (earliest_loop_index > loop_index || earliest_loop_index == -1) earliest_loop_index = loop_index;
 
@@ -427,8 +427,7 @@ void LoopClosing::optimize4DoFPoseGraph() {
         }
       }
       updatePath();
-
-      loop_closure_optimization_callback_(ros::Time::now().toNSec());
+      if (loop_closure_optimization_callback_) loop_closure_optimization_callback_(ros::Time::now().toNSec());
     }
 
     std::chrono::milliseconds dura(2000);
@@ -732,7 +731,6 @@ void LoopClosing::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _lo
     }
   }
 }
-
 
 void LoopClosing::registerLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
   loop_closure_optimization_callback_ = optimization_finish_callback;

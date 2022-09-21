@@ -26,12 +26,12 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   if (it_) it_.reset();
   it_ = std::make_unique<image_transport::ImageTransport>(std::move(*nh_));
 
-  keyframe_image_subscriber_.subscribe(*it_, kf_image_topic_, 2);
-  keyframe_points_subscriber_.subscribe(*nh_, kf_points_topic_, 2);
-  keyframe_pose_subscriber_.subscribe(*nh_, kf_pose_topic_, 2);
-  svin_health_subscriber_.subscribe(*nh_, svin_health_topic_, 2);
+  keyframe_image_subscriber_.subscribe(*it_, kf_image_topic_, 100);
+  keyframe_points_subscriber_.subscribe(*nh_, kf_points_topic_, 100);
+  keyframe_pose_subscriber_.subscribe(*nh_, kf_pose_topic_, 100);
+  svin_health_subscriber_.subscribe(*nh_, svin_health_topic_, 100);
 
-  static constexpr size_t kMaxKeyframeSynchronizerQueueSize = 10u;
+  static constexpr size_t kMaxKeyframeSynchronizerQueueSize = 100u;
   sync_keyframe_ = std::make_unique<message_filters::Synchronizer<keyframe_sync_policy>>(
       keyframe_sync_policy(kMaxKeyframeSynchronizerQueueSize),
       keyframe_image_subscriber_,
@@ -40,34 +40,14 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
       svin_health_subscriber_);
   sync_keyframe_->registerCallback(boost::bind(&Subscriber::keyframeCallback, this, _1, _2, _3, _4));
 
-  sub_orig_image_ =
-      it_->subscribe("/cam0/image_raw", 500, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
+  // sub_orig_image_ =
+  // it_->subscribe("/cam0/image_raw", 500, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
 
   if (params_.health_params_.health_monitoring_enabled) {
     sub_primitive_estimator_ =
         nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
   }
 }
-
-// void Subscriber::keyframeImageCallback(const sensor_msgs::ImageConstPtr& msg) {
-//   std::lock_guard<std::mutex> lock(measurement_mutex_);
-//   kf_image_buffer_.push(msg);
-//   last_image_time_ = msg->header.stamp.toSec();
-// }
-
-// void Subscriber::keyframePointsCallback(const sensor_msgs::PointCloudConstPtr& msg) {
-//   std::lock_guard<std::mutex> l(measurement_mutex_);
-//   kf_pcl_buffer_.push(msg);
-// }
-
-// void Subscriber::keyframePoseCallback(const nav_msgs::OdometryConstPtr& msg) {
-//   std::lock_guard<std::mutex> l(measurement_mutex_);
-//   kf_pose_buffer_.push(msg);
-// }
-
-// void Subscriber::svinRelocalizationOdomCallback(const nav_msgs::OdometryConstPtr& msg) {
-//   svin_relocalization_odom_ = msg;
-// }
 
 void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg) {
   std::lock_guard<std::mutex> l(measurement_mutex_);
@@ -84,57 +64,6 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   std::lock_guard<std::mutex> lock(measurement_mutex_);
   orig_image_buffer_.push(msg);
   // ROS_WARN_STREAM("GOT COLOR IMAGE");
-}
-
-void Subscriber::getSyncMeasurements(sensor_msgs::ImageConstPtr& kf_image_msg,
-                                     nav_msgs::OdometryConstPtr& kf_odom_msg,
-                                     sensor_msgs::PointCloudConstPtr& kf_points_msg,
-                                     okvis_ros::SvinHealthConstPtr& svin_health_msg) {
-  // HealthParams health_params = params_.health_params_;
-  // // timestamp synchronization
-  // {
-  //   std::lock_guard<std::mutex> l(measurement_mutex_);
-  //   if (!kf_image_buffer_.empty() && !kf_pcl_buffer_.empty() && !kf_pose_buffer_.empty() &&
-  //       (!health_params.health_monitoring_enabled ||
-  //        !svin_health_buffer_.empty())) {  // TODO(bjoshi): this condition does not look good.
-  //     if (kf_image_buffer_.front()->header.stamp.toSec() > kf_pose_buffer_.front()->header.stamp.toSec()) {
-  //       kf_pose_buffer_.pop();
-  //       ROS_INFO_STREAM("Throw away pose at beginning");
-  //     } else if (kf_image_buffer_.front()->header.stamp.toSec() > kf_pcl_buffer_.front()->header.stamp.toSec()) {
-  //       kf_pcl_buffer_.pop();
-  //       ROS_INFO_STREAM("Throw away pointcloud at beginning\n");
-
-  //     } else if (health_params.health_monitoring_enabled &&
-  //                kf_image_buffer_.front()->header.stamp.toSec() > svin_health_buffer_.front()->header.stamp.toSec())
-  //                {
-  //       svin_health_buffer_.pop();
-  //       ROS_INFO_STREAM("Throw away health at beginning\n");
-  //     } else if (kf_image_buffer_.back()->header.stamp.toSec() >= kf_pose_buffer_.front()->header.stamp.toSec() &&
-  //                kf_pcl_buffer_.back()->header.stamp.toSec() >= kf_pose_buffer_.front()->header.stamp.toSec() &&
-  //                (!health_params.health_monitoring_enabled ||
-  //                 svin_health_buffer_.back()->header.stamp.toSec() >= kf_pose_buffer_.front()->header.stamp.toSec()))
-  //                 {
-  //       kf_odom_msg = kf_pose_buffer_.front();
-  //       kf_pose_buffer_.pop();
-  //       while (!kf_pose_buffer_.empty()) kf_pose_buffer_.pop();
-  //       while (kf_image_buffer_.front()->header.stamp.toSec() < kf_odom_msg->header.stamp.toSec())
-  //         kf_image_buffer_.pop();
-  //       kf_image_msg = kf_image_buffer_.front();
-  //       kf_image_buffer_.pop();
-
-  //       while (kf_pcl_buffer_.front()->header.stamp.toSec() < kf_odom_msg->header.stamp.toSec())
-  //       kf_pcl_buffer_.pop(); kf_points_msg = kf_pcl_buffer_.front(); kf_pcl_buffer_.pop();
-
-  //       if (health_params.health_monitoring_enabled) {
-  //         while (svin_health_buffer_.front()->header.stamp.toSec() < kf_odom_msg->header.stamp.toSec()) {
-  //           svin_health_buffer_.pop();
-  //         }
-  //         svin_health_msg = svin_health_buffer_.front();
-  //         svin_health_buffer_.pop();
-  //       }
-  //     }
-  //   }
-  // }
 }
 
 const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
@@ -228,7 +157,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
                                   const nav_msgs::OdometryConstPtr& kf_odom,
                                   const sensor_msgs::PointCloudConstPtr& kf_points,
                                   const okvis_ros::SvinHealthConstPtr& svin_health) {
-  TrackingInfo tracking_info(kf_odom->header.stamp.toNSec(),
+  TrackingInfo tracking_info(kf_odom->header.stamp,
                              svin_health->numTrackedKps,
                              svin_health->newKps,
                              svin_health->kpsPerQuadrant,
@@ -244,7 +173,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
                                                 kf_odom->pose.pose.orientation.z)
                                  .toRotationMatrix();
 
-  std::vector<Eigen::Vector3d> keyframe_points;
+  std::vector<cv::Point3f> keyframe_points;
   std::vector<cv::KeyPoint> keypoint_observations;
   std::vector<Eigen::Vector3d> point_ids;
   std::vector<int64_t> landmark_ids;
@@ -254,7 +183,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
   cv::Mat kf_image = UtilsOpenCV::readRosImage(kf_image_msg);
 
   for (unsigned int i = 0; i < kf_points->points.size(); i++) {
-    Eigen::Vector3d point_3d(kf_points->points[i].x, kf_points->points[i].y, kf_points->points[i].z);
+    cv::Point3f point_3d(kf_points->points[i].x, kf_points->points[i].y, kf_points->points[i].z);
     keyframe_points.push_back(point_3d);
 
     // @Reloc landmarkId, poseId or MultiFrameId,  keypointIdx
@@ -285,14 +214,14 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
   }
 
   std::unique_ptr<KeyframeInfo> keyframe_info = std::make_unique<KeyframeInfo>(keyframe_index,
-                                                               kf_image,
-                                                               translation,
-                                                               rotation,
-                                                               tracking_info,
-                                                               keyframe_points,
-                                                               keypoint_observations,
-                                                               point_ids,
-                                                               kf_covisibilities);
+                                                                               kf_image,
+                                                                               translation,
+                                                                               rotation,
+                                                                               tracking_info,
+                                                                               keyframe_points,
+                                                                               keypoint_observations,
+                                                                               point_ids,
+                                                                               kf_covisibilities);
 
   keyframe_callback_(std::move(keyframe_info));
 }

@@ -4,8 +4,6 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 
-using Timestamp = std::int64_t;
-
 struct  // TODO(bjoshi): publish debug image
         // cv::imshow("image", undistort_image);
         // cv::waitKey(1);
@@ -14,7 +12,7 @@ struct  // TODO(bjoshi): publish debug image
   TrackingInfo() = default;
   ~TrackingInfo() = default;
 
-  TrackingInfo(const Timestamp timestamp,
+  TrackingInfo(const ros::Time timestamp,
                const uint32_t num_tracked_keypoints,
                const uint32_t num_new_keypoints,
                const std::vector<int>& keypoints_per_quadrant,
@@ -29,7 +27,7 @@ struct  // TODO(bjoshi): publish debug image
         keypoints_response_strengths_(keypoints_response_strengths),
         points_quality_(points_quality){};
 
-  Timestamp timestamp_;
+  ros::Time timestamp_;
   uint32_t num_tracked_keypoints_;
   uint32_t num_new_keypoints_;
   std::vector<int> keypoints_per_quadrant_;
@@ -48,7 +46,7 @@ struct KeyframeInfo {
                const Eigen::Vector3d& translation,
                const Eigen::Matrix3d& rotation,
                const TrackingInfo& tracking_info,
-               const std::vector<Eigen::Vector3d>& keyframe_points,
+               const std::vector<cv::Point3f>& keyframe_points,
                const std::vector<cv::KeyPoint>& keypoints,
                const std::vector<Eigen::Vector3d>& points_ids,
                const std::vector<std::vector<int64_t>>& points_covisibilities)
@@ -64,12 +62,12 @@ struct KeyframeInfo {
     timestamp_ = tracking_info_.timestamp_;
   };
 
-  KeyframeInfo(const std::int64_t& timestamp,
+  KeyframeInfo(const ros::Time& timestamp,
                const int64_t& keyframe_index,
                const cv::Mat& image,
                const Eigen::Vector3d& translation,
                const Eigen::Matrix3d& rotation,
-               const std::vector<Eigen::Vector3d>& keyframe_points,
+               const std::vector<cv::Point3f>& keyframe_points,
                const std::vector<cv::KeyPoint>& keypoints,
                const std::vector<Eigen::Vector3d>& points_ids,
                const std::vector<std::vector<int64_t>>& points_observations)
@@ -84,13 +82,13 @@ struct KeyframeInfo {
         point_covisibilities_(points_observations){};
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Timestamp timestamp_;
+  ros::Time timestamp_;
   int64_t keyframe_index_;
   cv::Mat keyframe_image_;
   Eigen::Vector3d translation_;
   Eigen::Matrix3d rotation_;
   TrackingInfo tracking_info_;
-  std::vector<Eigen::Vector3d> keyfame_points_;
+  std::vector<cv::Point3f> keyfame_points_;
   std::vector<cv::KeyPoint> cv_keypoints_;
   // @Reloc: landmarkId, mfId, keypointIdx related to each point
   std::vector<Eigen::Vector3d> keypoint_ids_;
@@ -98,5 +96,5 @@ struct KeyframeInfo {
 };
 
 typedef std::function<void(std::unique_ptr<KeyframeInfo>)> KeyframeCallback;
-typedef std::function<void(std::unique_ptr<std::pair<Timestamp, cv::Mat>>)> ImageCallback;
-typedef std::function<void(std::unique_ptr<std::pair<Timestamp, Eigen::Matrix4d>>)> PoseCallback;
+typedef std::function<void(std::unique_ptr<std::pair<ros::Time, cv::Mat>>)> ImageCallback;
+typedef std::function<void(std::unique_ptr<std::pair<ros::Time, Eigen::Matrix4d>>)> PoseCallback;

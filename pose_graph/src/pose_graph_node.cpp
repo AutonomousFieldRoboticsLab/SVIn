@@ -28,10 +28,14 @@ int main(int argc, char** argv) {
       std::bind(&PoseGraphOptimization::fillKeyframeTrackingQueue, pose_graph, std::placeholders::_1));
   auto process_thread = std::make_unique<std::thread>(&PoseGraphOptimization::run, pose_graph);
 
+  ros::Time last_print_time = ros::Time::now();
+
   while (ros::ok()) {
     ros::spinOnce();
-    LOG(INFO) << utils::Statistics::Print();
-    ros::Duration(5.0).sleep();
+    if (ros::Time::now() - last_print_time > ros::Duration(10.0)) {
+      last_print_time = ros::Time::now();
+      LOG(INFO) << utils::Statistics::Print();
+    }
   }
 
   LOG(INFO) << "Shutting down threads...";

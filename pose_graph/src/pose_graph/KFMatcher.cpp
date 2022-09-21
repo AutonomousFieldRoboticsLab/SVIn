@@ -540,7 +540,7 @@ bool KFMatcher::findConnection(KFMatcher* old_kf) {
       loop_info << relative_t.x(), relative_t.y(), relative_t.z(), relative_q.w(), relative_q.x(), relative_q.y(),
           relative_q.z(), relative_yaw;
 
-      std::cout << index << " has Loop with: " << loop_index << std::endl;
+      // std::cout << index << " has Loop with: " << loop_index << std::endl;
       if (params_.fast_relocalization_) {
         sensor_msgs::PointCloud msg_match_points;
         msg_match_points.header.stamp = time_stamp;

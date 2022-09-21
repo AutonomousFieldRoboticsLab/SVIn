@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
     okvis_ros  # For SvinHealth msg
     pcl_ros
     pcl_conversions
+    image_transport
     )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")

@@ -31,7 +31,6 @@ health:
 
 debug_image: 0
 
-# For undistorting original color image
 image_height: 1200
 image_width: 1600
 focal_length: [1149.52000993, 1150.57923685]

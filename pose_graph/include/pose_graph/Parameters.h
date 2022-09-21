@@ -41,10 +41,10 @@ class Parameters {
   int fast_relocalization_;
 
   // projection matrix
-  double p_fx;
-  double p_fy;
-  double p_cx;
-  double p_cy;
+  double p_fx_;
+  double p_fy_;
+  double p_cx_;
+  double p_cy_;
 
   std::string vocabulary_file_;
 

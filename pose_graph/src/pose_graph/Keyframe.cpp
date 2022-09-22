@@ -32,7 +32,7 @@ static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  
 }
 
 Keyframe::Keyframe(ros::Time _time_stamp,
-                   std::vector<Eigen::Vector3d>& _point_ids,
+                   std::vector<Eigen::Vector3i>& _point_ids,
                    int _index,
                    Eigen::Vector3d& _svin_T_w_i,
                    Eigen::Matrix3d& _svin_R_w_i,
@@ -385,7 +385,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
   std::vector<cv::Point2f> matched_2d_old;
   std::vector<cv::Point2f> matched_2d_old_norm;
   std::vector<cv::Point3f> matched_3d;
-  std::vector<Eigen::Vector3d> matched_ids;  // Reloc
+  std::vector<Eigen::Vector3i> matched_ids;  // Reloc
   std::vector<uchar> status;
 
   matched_3d = point_3d;

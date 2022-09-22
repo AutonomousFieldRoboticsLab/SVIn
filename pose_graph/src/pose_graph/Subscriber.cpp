@@ -17,6 +17,7 @@ Subscriber::Subscriber(ros::NodeHandle& nh, const Parameters& params) : params_(
   svin_health_topic_ = "/okvis_node/svin_health";
   primitive_estimator_topic_ = "/aqua_primitive_estimator/odometry";
   last_image_time_ = -1;
+  raw_image_topic_ = "/cam0/image_raw";
 
   setNodeHandle(nh);
 }
@@ -40,8 +41,8 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
       svin_health_subscriber_);
   sync_keyframe_->registerCallback(boost::bind(&Subscriber::keyframeCallback, this, _1, _2, _3, _4));
 
-  // sub_orig_image_ =
-  // it_->subscribe("/cam0/image_raw", 500, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
+  sub_orig_image_ =
+      it_->subscribe(raw_image_topic_, 100, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
 
   if (params_.health_params_.health_monitoring_enabled) {
     sub_primitive_estimator_ =
@@ -55,70 +56,11 @@ void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& ms
   last_primitive_estimator_time_ = msg->header.stamp.toSec();
 }
 
-// void Subscriber::svinHealthCallback(const okvis_ros::SvinHealthConstPtr& msg) {
-//   std::lock_guard<std::mutex> l(measurement_mutex_);
-//   svin_health_buffer_.push(msg);
-// }
-
-void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
-  std::lock_guard<std::mutex> lock(measurement_mutex_);
-  orig_image_buffer_.push(msg);
-  // ROS_WARN_STREAM("GOT COLOR IMAGE");
-}
-
-const cv::Mat Subscriber::getCorrespondingImage(const uint64_t& ros_stamp) {
-  sensor_msgs::ImageConstPtr img_msg;
-
-  uint64_t search_stamp = ros_stamp;
-  if (params_.image_delay_ != 0.0) {
-    search_stamp = ros_stamp + ros::Duration(params_.image_delay_).toNSec();
-  }
-
-  // ROS_WARN_STREAM(ros_stamp << "\t" << search_stamp);
-
-  while (!orig_image_buffer_.empty() && orig_image_buffer_.front()->header.stamp.toNSec() < search_stamp) {
-    img_msg = orig_image_buffer_.front();
-    orig_image_buffer_.pop();
-  }
-
-  uint64_t diff = 0;
-  if (img_msg) {
-    diff = abs(static_cast<int64_t>(img_msg->header.stamp.toNSec()) - static_cast<int64_t>(search_stamp));
-  }
-  if (!orig_image_buffer_.empty()) {
-    uint64_t upper_diff = abs(static_cast<int64_t>(orig_image_buffer_.front()->header.stamp.toNSec()) -
-                              static_cast<int64_t>(search_stamp));
-    if (img_msg == nullptr || diff > upper_diff) {
-      img_msg = orig_image_buffer_.front();
-      orig_image_buffer_.pop();
-      diff = upper_diff;
-    }
-  }
-
-  if (diff > 100000000) {
-    ROS_WARN_STREAM("Time difference between keyframe and original image is too large: " << diff << " ns");
-    ROS_WARN_STREAM("Image time: " << img_msg->header.stamp.toNSec() << " ns");
-    ROS_WARN_STREAM("Keyframe time: " << search_stamp << " ns");
-  }
-
-  cv_bridge::CvImageConstPtr cv_ptr;
-  try {
-    // TODO(Toni): here we should consider using toCvShare...
-    cv_ptr = cv_bridge::toCvCopy(img_msg);
-  } catch (cv_bridge::Exception& exception) {
-    ROS_FATAL("cv_bridge exception: %s", exception.what());
-    ros::shutdown();
-  }
-
-  const cv::Mat img_const = cv_ptr->image;  // Don't modify shared image in ROS.
-  cv::Mat converted_img;
-  if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
-    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
-    cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2BGR);
-    return converted_img;
-  } else {
-    return img_const;
-  }
+void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& image_msg) {
+  cv::Mat image = UtilsOpenCV::readRosImage(image_msg, false);
+  auto image_with_timestamp =
+      std::make_unique<std::pair<ros::Time, cv::Mat>>(std::make_pair(image_msg->header.stamp, image));
+  raw_image_callback_(std::move(image_with_timestamp));
 }
 
 nav_msgs::OdometryConstPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t& ros_stamp) {
@@ -175,7 +117,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
 
   std::vector<cv::Point3f> keyframe_points;
   std::vector<cv::KeyPoint> keypoint_observations;
-  std::vector<Eigen::Vector3d> point_ids;
+  std::vector<Eigen::Vector3i> point_ids;
   std::vector<int64_t> landmark_ids;
   std::vector<std::vector<int64_t>> kf_covisibilities;
 
@@ -188,7 +130,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
 
     // @Reloc landmarkId, poseId or MultiFrameId,  keypointIdx
     int64_t landmark_id = kf_points->channels[i].values[0];
-    Eigen::Vector3d point_id(
+    Eigen::Vector3i point_id(
         kf_points->channels[i].values[0], kf_points->channels[i].values[1], kf_points->channels[i].values[2]);
     point_ids.push_back(point_id);
 

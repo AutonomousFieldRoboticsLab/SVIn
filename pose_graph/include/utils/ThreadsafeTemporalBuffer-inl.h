@@ -40,8 +40,6 @@
 
 #include "common/Definitions.h"
 
-namespace VIO {
-
 namespace utils {
 
 template <typename ValueType, typename AllocatorType>

@@ -267,7 +267,7 @@ cv::Mat UtilsOpenCV::DrawCornersMatches(const cv::Mat& img1,
   return canvas;
 }
 
-cv::Mat UtilsOpenCV::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) {
+cv::Mat UtilsOpenCV::readRosImage(const sensor_msgs::ImageConstPtr& img_msg, bool grayscale) {
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
     // TODO(Toni): here we should consider using toCvShare...
@@ -280,12 +280,18 @@ cv::Mat UtilsOpenCV::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) {
   const cv::Mat img_const = cv_ptr->image;  // Don't modify shared image in ROS.
   cv::Mat converted_img(img_const.size(), CV_8U);
   if (img_msg->encoding == sensor_msgs::image_encodings::BGR8) {
-    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
-    cv::cvtColor(img_const, converted_img, cv::COLOR_BGR2GRAY);
+    if (grayscale) {
+      cv::cvtColor(img_const, converted_img, cv::COLOR_BGR2GRAY);
+    } else {
+      converted_img = img_const;
+    }
     return converted_img;
   } else if (img_msg->encoding == sensor_msgs::image_encodings::RGB8) {
-    // LOG_EVERY_N(WARNING, 10) << "Converting image...";
-    cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2GRAY);
+    if (grayscale) {
+      cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2GRAY);
+    } else {
+      cv::cvtColor(img_const, converted_img, cv::COLOR_RGB2BGR);
+    }
     return converted_img;
   } else {
     ROS_ERROR_STREAM_COND(cv_ptr->encoding != sensor_msgs::image_encodings::MONO8,

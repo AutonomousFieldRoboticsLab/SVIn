@@ -18,6 +18,7 @@
 #include "pose_graph/Publisher.h"
 #include "utils/CameraPoseVisualization.h"
 #include "utils/ThreadSafeQueue.h"
+#include "utils/ThreadsafeTemporalBuffer.h"
 
 class LoopClosure {
  public:
@@ -33,6 +34,15 @@ class LoopClosure {
   void updateGlobalMap();
   void getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud);  // NOLINT (already pointer)
   bool savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);  // NOLINT
+  void addPointsToGlobalMap(const int64_t keyframe_index,
+                            const cv::Mat& color_image,
+                            const Eigen::Matrix3d& camera_orientation,
+                            const Eigen::Vector3d& camera_position,
+                            const std::vector<cv::Point3f>& keyframe_points,
+                            const std::vector<float>& point_qualities,
+                            const std::vector<Eigen::Vector3i>& point_ids,
+                            const std::vector<cv::KeyPoint>& cv_keypoints);
+
   Publisher publisher;
 
   // ros::Publisher pubSparseMap;
@@ -42,9 +52,15 @@ class LoopClosure {
     keyframe_tracking_queue_.push(std::move(keyframe_info));
   }
 
+  inline void fillImageQueue(std::unique_ptr<std::pair<ros::Time, cv::Mat>> original_image_with_timestamp) {
+    CHECK(original_image_with_timestamp);
+    raw_image_buffer_.addValue(original_image_with_timestamp->first.toNSec(), original_image_with_timestamp->second);
+  }
+
   void shutdown();
 
  private:
+  static constexpr int64_t kBufferLengthNs = 3000000000;  // 3 seconds
   ros::NodeHandle nh_private_;
 
   std::shared_ptr<Parameters> params_;
@@ -53,7 +69,6 @@ class LoopClosure {
   std::unique_ptr<GlobalMap> global_map_;
   std::map<int, Keyframe*> kfMapper_;  // Mapping between kf_index and Keyframe*; to make KFcounter
 
-  std::mutex processMutex_;
   int frame_index_;
   int sequence_;
   // TODO(bjoshi): these varibales are bullshit. Keep for now
@@ -88,6 +103,7 @@ class LoopClosure {
   bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg);  // NOLINT
 
   ThreadsafeQueue<std::unique_ptr<KeyframeInfo>> keyframe_tracking_queue_;
+  utils::ThreadsafeTemporalBuffer<cv::Mat> raw_image_buffer_;
 
   bool shutdown_;
 };

@@ -34,27 +34,27 @@ class Keyframe {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Keyframe(ros::Time _time_stamp,
-            std::vector<Eigen::Vector3d>& _point_ids,  // NOLINT
-            int _index,
-            Eigen::Vector3d& _svin_T_w_i,             // NOLINT
-            Eigen::Matrix3d& _svin_R_w_i,             // NOLINT
-            cv::Mat& _image,                          // NOLINT
-            std::vector<cv::Point3f>& _point_3d,      // NOLINT
-            std::vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
-            std::map<Keyframe*, int>& KFcounter,     // NOLINT
-            int _sequence,
-            BriefVocabulary* vocBrief,
-            const Parameters& params,
-            const bool vio_keyframe = true);
+           std::vector<Eigen::Vector3i>& _point_ids,  // NOLINT
+           int _index,
+           Eigen::Vector3d& _svin_T_w_i,             // NOLINT
+           Eigen::Matrix3d& _svin_R_w_i,             // NOLINT
+           cv::Mat& _image,                          // NOLINT
+           std::vector<cv::Point3f>& _point_3d,      // NOLINT
+           std::vector<cv::KeyPoint>& _point_2d_uv,  // NOLINT
+           std::map<Keyframe*, int>& KFcounter,      // NOLINT
+           int _sequence,
+           BriefVocabulary* vocBrief,
+           const Parameters& params,
+           const bool vio_keyframe = true);
 
   Keyframe(ros::Time _time_stamp,
-            int _index,
-            Eigen::Vector3d& _svin_T_w_i,          // NOLINT
-            Eigen::Matrix3d& _svin_R_w_i,          // NOLINT
-            std::map<Keyframe*, int>& KFcounter,  // NOLINT
-            int _sequence,
-            const Parameters& params,
-            const bool is_vio_keyframe = false);
+           int _index,
+           Eigen::Vector3d& _svin_T_w_i,         // NOLINT
+           Eigen::Matrix3d& _svin_R_w_i,         // NOLINT
+           std::map<Keyframe*, int>& KFcounter,  // NOLINT
+           int _sequence,
+           const Parameters& params,
+           const bool is_vio_keyframe = false);
 
   bool findConnection(Keyframe* old_kf);
   void computeWindowBRIEFPoint();
@@ -122,7 +122,7 @@ class Keyframe {
   cv::Mat image;
   std::vector<cv::Point3f> point_3d;
   std::vector<cv::KeyPoint> point_2d_uv;
-  std::vector<Eigen::Vector3d> point_ids_;
+  std::vector<Eigen::Vector3i> point_ids_;
 
   std::vector<cv::KeyPoint> keypoints;
   std::vector<cv::KeyPoint> keypoints_norm;

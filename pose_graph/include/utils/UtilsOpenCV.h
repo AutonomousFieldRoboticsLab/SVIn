@@ -94,5 +94,5 @@ class UtilsOpenCV {
                                     const KeypointsCV& corners_2,
                                     const bool& random_color);
 
-  static cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg);
+  static cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg, bool grayscale = true);
 };

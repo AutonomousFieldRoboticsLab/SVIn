@@ -27,7 +27,8 @@ LoopClosure::LoopClosure(const Parameters& params)
       pose_graph_(nullptr),
       camera_pose_visualizer_(nullptr),
       global_map_(nullptr),
-      keyframe_tracking_queue_("keyframe_queue") {
+      keyframe_tracking_queue_("keyframe_queue"),
+      raw_image_buffer_(kBufferLengthNs) {
   frame_index_ = 0;
   sequence_ = 1;
 
@@ -125,7 +126,34 @@ void LoopClosure::run() {
                                         *params_);
       kfMapper_.insert(std::make_pair(keyframe_info->keyframe_index_, keyframe));
       pose_graph_->addKFToPoseGraph(keyframe, 1);
+
+      cv::Mat original_color_image;
+      if (!raw_image_buffer_.getNearestValueToTime(
+              keyframe_info->timestamp_.toNSec(), 1000000, &original_color_image)) {
+        LOG(WARNING) << "Could not color image for keyframe with timestamp " << keyframe_info->timestamp_.toNSec();
+      } else {
+        if (params_->resize_factor_ != 0) {
+          cv::resize(original_color_image,
+                     original_color_image,
+                     cv::Size(params_->image_width_, params_->image_height_),
+                     cv::INTER_LINEAR);
+        }
+        if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
+          addPointsToGlobalMap(keyframe_info->keyframe_index_,
+                               original_color_image,
+                               keyframe_info->rotation_,
+                               keyframe_info->translation_,
+                               keyframe_info->keyfame_points_,
+                               keyframe_info->tracking_info_.points_quality_,
+                               keyframe_info->keypoint_ids_,
+
+                               keyframe_info->cv_keypoints_);
+        } else {
+          LOG(WARNING) << "Keyframe not found";
+        }
+      }
     }
+    frame_index_++;
   }
 }
 
@@ -156,12 +184,37 @@ void LoopClosure::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& po
       point.x = global_pos(0);
       point.y = global_pos(1);
       point.z = global_pos(2);
-      // float intensity = std::min(0.025, quality) / 0.025;
       point.r = static_cast<uint8_t>(color.x());
       point.g = static_cast<uint8_t>(color.y());
       point.b = static_cast<uint8_t>(color.z());
       pointcloud->push_back(point);
     }
+  }
+}
+
+void LoopClosure::addPointsToGlobalMap(const int64_t keyframe_index,
+                                       const cv::Mat& color_image,
+                                       const Eigen::Matrix3d& camera_rotation,
+                                       const Eigen::Vector3d& camera_translation,
+                                       const std::vector<cv::Point3f>& keyframe_points,
+                                       const std::vector<float>& point_qualities,
+                                       const std::vector<Eigen::Vector3i>& point_ids,
+                                       const std::vector<cv::KeyPoint>& cv_keypoints) {
+  for (size_t i = 0; i < keyframe_points.size(); ++i) {
+    float quality = point_qualities[i];
+    if (quality < params_->min_landmark_quality_) continue;
+    Eigen::Vector3d global_point_position(keyframe_points[i].x, keyframe_points[i].y, keyframe_points[i].z);
+    Eigen::Vector3d point_cam_frame = camera_rotation.transpose() * (global_point_position - camera_translation);
+
+    cv::KeyPoint image_point = cv_keypoints[i];
+    cv::Vec3b color =
+        color_image.at<cv::Vec3b>(static_cast<uint16_t>(image_point.pt.y), static_cast<uint16_t>(image_point.pt.x));
+    // bgr to rgb
+    Eigen::Vector3d color_eigen(
+        static_cast<double>(color[2]), static_cast<double>(color[1]), static_cast<double>(color[0]));
+    uint64_t landmark_id = static_cast<uint64_t>(point_ids[i].x());
+
+    global_map_->addLandmark(global_point_position, landmark_id, quality, keyframe_index, point_cam_frame, color_eigen);
   }
 }
 
@@ -191,12 +244,6 @@ void LoopClosure::updateGlobalMap() {
       Eigen::Matrix3d R_kf_w;
       Eigen::Vector3d T_kf_w;
       kf->getPose(T_kf_w, R_kf_w);
-
-      // if (kf_quality > quality) {
-      //   point_3d = R_kf_w * local_pos + T_kf_w;
-      //   color = local_color;
-      //   quality = kf_quality;
-      // }
 
       Eigen::Vector3d global_pos = R_kf_w * local_pos + T_kf_w;
       point_3d = point_3d + global_pos * kf_quality;

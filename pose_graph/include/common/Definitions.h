@@ -4,10 +4,9 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 
-struct  // TODO(bjoshi): publish debug image
-        // cv::imshow("image", undistort_image);
-        // cv::waitKey(1);
-    TrackingInfo {
+using Timestamp = int64_t;
+
+struct TrackingInfo {
  public:
   TrackingInfo() = default;
   ~TrackingInfo() = default;
@@ -48,7 +47,7 @@ struct KeyframeInfo {
                const TrackingInfo& tracking_info,
                const std::vector<cv::Point3f>& keyframe_points,
                const std::vector<cv::KeyPoint>& keypoints,
-               const std::vector<Eigen::Vector3d>& points_ids,
+               const std::vector<Eigen::Vector3i>& points_ids,
                const std::vector<std::vector<int64_t>>& points_covisibilities)
       : keyframe_index_(keyframe_index),
         keyframe_image_(image),
@@ -69,7 +68,7 @@ struct KeyframeInfo {
                const Eigen::Matrix3d& rotation,
                const std::vector<cv::Point3f>& keyframe_points,
                const std::vector<cv::KeyPoint>& keypoints,
-               const std::vector<Eigen::Vector3d>& points_ids,
+               const std::vector<Eigen::Vector3i>& points_ids,
                const std::vector<std::vector<int64_t>>& points_observations)
       : timestamp_(timestamp),
         keyframe_index_(keyframe_index),
@@ -91,7 +90,7 @@ struct KeyframeInfo {
   std::vector<cv::Point3f> keyfame_points_;
   std::vector<cv::KeyPoint> cv_keypoints_;
   // @Reloc: landmarkId, mfId, keypointIdx related to each point
-  std::vector<Eigen::Vector3d> keypoint_ids_;
+  std::vector<Eigen::Vector3i> keypoint_ids_;
   std::vector<std::vector<int64_t>> point_covisibilities_;
 };
 

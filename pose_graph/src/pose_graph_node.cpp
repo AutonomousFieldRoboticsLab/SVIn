@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
 
   subscriber->registerKeyframeCallback(
       std::bind(&LoopClosure::fillKeyframeTrackingQueue, loop_closure, std::placeholders::_1));
+  subscriber->registerImageCallback(std::bind(&LoopClosure::fillImageQueue, loop_closure, std::placeholders::_1));
+
   auto process_thread = std::make_unique<std::thread>(&LoopClosure::run, loop_closure);
 
   ros::Time last_print_time = ros::Time::now();

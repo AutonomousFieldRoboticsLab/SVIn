@@ -8,7 +8,7 @@
 
 #include "utils/UtilsOpenCV.h"
 
-Subscriber::Subscriber(ros::NodeHandle& nh, const Parameters& params) : params_(params) {
+Subscriber::Subscriber(ros::NodeHandle& nh, std::shared_ptr<Parameters> params) : params_(params) {
   // TODO(bjoshi): pass as params from roslaunch file
   kf_image_topic_ = "/okvis_node/keyframe_imageL";
   kf_pose_topic_ = "/okvis_node/keyframe_pose";
@@ -44,7 +44,7 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   sub_orig_image_ =
       it_->subscribe(raw_image_topic_, 100, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
 
-  if (params_.health_params_.health_monitoring_enabled) {
+  if (params_->health_params_.health_monitoring_enabled) {
     sub_primitive_estimator_ =
         nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
   }

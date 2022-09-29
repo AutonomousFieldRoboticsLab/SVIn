@@ -4,6 +4,7 @@
 #include <pcl/point_types.h>
 #include <std_srvs/Trigger.h>
 
+#include <boost/optional.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -15,7 +16,6 @@
 #include "pose_graph/Keyframe.h"
 #include "pose_graph/Parameters.h"
 #include "pose_graph/PoseGraph.h"
-#include "pose_graph/Publisher.h"
 #include "utils/CameraPoseVisualization.h"
 #include "utils/ThreadSafeQueue.h"
 #include "utils/ThreadsafeTemporalBuffer.h"
@@ -24,10 +24,9 @@ class LoopClosure {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  LoopClosure(const Parameters& params);
+  LoopClosure(std::shared_ptr<Parameters> params);
   ~LoopClosure() = default;
 
-  void setup();
   void run();
 
   void updatePublishGlobalMap(const ros::TimerEvent& event);
@@ -43,10 +42,6 @@ class LoopClosure {
                             const std::vector<Eigen::Vector3i>& point_ids,
                             const std::vector<cv::KeyPoint>& cv_keypoints);
 
-  Publisher publisher;
-
-  // ros::Publisher pubSparseMap;
-
   inline void fillKeyframeTrackingQueue(std::unique_ptr<KeyframeInfo> keyframe_info) {
     CHECK(keyframe_info);
     keyframe_tracking_queue_.push(std::move(keyframe_info));
@@ -59,7 +54,11 @@ class LoopClosure {
 
   void shutdown();
 
+  void setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback);
+  void setLoopClosureCallback(const PathCallback& loop_closure_callback);
+
  private:
+  void setup();
   static constexpr int64_t kBufferLengthNs = 3000000000;  // 3 seconds
   ros::NodeHandle nh_private_;
 
@@ -79,9 +78,6 @@ class LoopClosure {
 
   BriefVocabulary* voc_;
 
-  ros::Timer timer_;  // for periodic publishing
-  ros::ServiceServer save_pointcloud_service_;
-
   uint64_t last_keyframe_time_;
   double last_primitive_estmator_time_;
   double scale_between_vio_prim_;
@@ -100,7 +96,7 @@ class LoopClosure {
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
   void setupOutputLogDirectories();
-  bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg);  // NOLINT
+  bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, boost::optional<std::string> error_msg);  // NOLINT
 
   ThreadsafeQueue<std::unique_ptr<KeyframeInfo>> keyframe_tracking_queue_;
   utils::ThreadsafeTemporalBuffer<cv::Mat> raw_image_buffer_;

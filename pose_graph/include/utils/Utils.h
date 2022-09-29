@@ -139,5 +139,3 @@ class Utility {
   static std::string healthMsgToString(const okvis_ros::SvinHealthConstPtr& health);
 };
 
-enum TrackingStatus { NOT_INITIALIZED = 0, TRACKING_VIO = 1, TRACKING_PRIMITIVE_ESTIMATOR = 2 };
-

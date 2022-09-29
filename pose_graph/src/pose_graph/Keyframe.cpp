@@ -76,9 +76,6 @@ Keyframe::Keyframe(ros::Time _time_stamp,
 
   computeBRIEFPoint();
 
-  // pubMatchedPoints =
-  //     nh.advertise<sensor_msgs::PointCloud>("match_points", 100);  // to publish matched points after relocalization
-
   if (!params.debug_image_) image.release();
 }
 

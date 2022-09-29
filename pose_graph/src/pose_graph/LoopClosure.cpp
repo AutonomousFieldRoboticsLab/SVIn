@@ -11,6 +11,7 @@
 #include <Eigen/SVD>
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
 #include <boost/thread.hpp>
 #include <map>
 #include <memory>
@@ -21,9 +22,8 @@
 #include "utils/Statistics.h"
 #include "utils/UtilsOpenCV.h"
 
-LoopClosure::LoopClosure(const Parameters& params)
-    : nh_private_("~"),
-      params_(std::make_shared<Parameters>(params)),
+LoopClosure::LoopClosure(std::shared_ptr<Parameters> params)
+    : params_(params),
       pose_graph_(nullptr),
       camera_pose_visualizer_(nullptr),
       global_map_(nullptr),
@@ -35,11 +35,6 @@ LoopClosure::LoopClosure(const Parameters& params)
   last_translation_ = Eigen::Vector3d(-100, -100, -100);
 
   setup();
-
-  // pubSparseMap = nh_private_.advertise<sensor_msgs::PointCloud2>("sparse_pointcloud", 10);
-
-  save_pointcloud_service_ = nh_private_.advertiseService("save_pointcloud", &LoopClosure::savePointCloud, this);
-
   consecutive_tracking_failures_ = 0;
   last_keyframe_time_ = 0;
   last_primitive_estmator_time_ = 0.0;
@@ -53,6 +48,7 @@ LoopClosure::LoopClosure(const Parameters& params)
   switch_uber_pose_.setIdentity();
 
   last_t_w_prim_.setIdentity();
+  last_t_w_svin_.setIdentity();
   last_scaled_prim_pose_.setZero();
 
   prim_estimator_keyframes_ = 0;
@@ -64,9 +60,8 @@ LoopClosure::LoopClosure(const Parameters& params)
 
 void LoopClosure::setup() {
   global_map_ = std::unique_ptr<GlobalMap>(new GlobalMap());
-
   pose_graph_ = std::unique_ptr<PoseGraph>(new PoseGraph());
-  pose_graph_->setPublishers(nh_private_);
+
   pose_graph_->set_svin_results_file(params_->svin_w_loop_path_);
   pose_graph_->set_fast_relocalization(params_->fast_relocalization_);
   pose_graph_->registerLoopClosureOptimizationCallback(
@@ -83,10 +78,7 @@ void LoopClosure::setup() {
   db.setVocabulary(*voc_, false, 0);
   pose_graph_->setBriefVocAndDB(voc_, db);
 
-  publisher.setParameters(*params_);
-  publisher.setPublishers();
-
-  timer_ = nh_private_.createTimer(ros::Duration(3), &LoopClosure::updatePublishGlobalMap, this);
+  // timer_ = nh_private_.createTimer(ros::Duration(3), &LoopClosure::updatePublishGlobalMap, this);
 
   if (params_->debug_image_) {
     setupOutputLogDirectories();
@@ -169,7 +161,7 @@ void LoopClosure::updatePublishGlobalMap(const ros::TimerEvent& event) {
   pcl_msg.header.frame_id = "world";
   pcl_msg.header.stamp = ros::Time::now();
 
-  publisher.publishGlobalMap(pcl_msg);
+  // publisher.publishGlobalMap(pcl_msg);
 }
 
 void LoopClosure::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
@@ -231,12 +223,11 @@ void LoopClosure::updateGlobalMap() {
       uint64_t kf_id = kf_observation.first;
       Observation obs = kf_observation.second;
       Eigen::Vector3d local_pos = obs.local_pos_;
-      Eigen::Vector3d local_color = obs.color_;
       double kf_quality = obs.quality_;
 
       // Converting to global coordinates
       if (kfMapper_.find(kf_id) == kfMapper_.end()) {
-        std::cout << "Keyframe not found" << std::endl;
+        LOG(WARNING) << "Keyframe not found";
         continue;
       }
 
@@ -247,7 +238,7 @@ void LoopClosure::updateGlobalMap() {
 
       Eigen::Vector3d global_pos = R_kf_w * local_pos + T_kf_w;
       point_3d = point_3d + global_pos * kf_quality;
-      color = color + local_color * kf_quality;
+      color = color + obs.color_ * kf_quality;
       quality = quality + kf_quality;
       total_observations += 1;
     }
@@ -285,8 +276,7 @@ void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConst
   primitive_estimator_poses_.push_back(pose_stamped);
 }
 
-bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, std::string& error_msg) {
-  // ROS_INFO_STREAM(Utility::healthMsgToString(health_msg));
+bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, boost::optional<std::string> error_msg) {
   std::stringstream ss;
   std::setprecision(5);
 
@@ -294,8 +284,10 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, s
   uint32_t total_triangulated_keypoints = health_msg->numTrackedKps;
 
   if (total_triangulated_keypoints < health_params.min_tracked_keypoints) {
-    ss << "Not enough triangulated keypoints: " << total_triangulated_keypoints << std::endl;
-    error_msg = ss.str();
+    if (error_msg) {
+      ss << "Not enough triangulated keypoints: " << total_triangulated_keypoints << std::endl;
+      error_msg = ss.str();
+    }
     return false;
   }
 
@@ -307,9 +299,11 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, s
 
   if (!quadrant_check && *std::max_element(keypoints_per_quadrant.begin(), keypoints_per_quadrant.end()) <=
                              10.0 * health_params.kps_per_quadrant) {
-    ss << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", " << keypoints_per_quadrant[1]
-       << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3] << "]" << std::endl;
-    error_msg = ss.str();
+    if (error_msg) {
+      ss << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", " << keypoints_per_quadrant[1]
+         << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3] << "]" << std::endl;
+      error_msg = ss.str();
+    }
     return false;
   }
 
@@ -318,8 +312,10 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, s
       static_cast<float>(new_detected_keypoints_kf) / static_cast<float>(total_triangulated_keypoints);
 
   if (new_detected_keypoints_ratio >= 0.75) {
-    ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
-    error_msg = ss.str();
+    if (error_msg) {
+      ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
+      error_msg = ss.str();
+    }
     return false;
   }
 
@@ -333,8 +329,10 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, s
       static_cast<float>(health_msg->responseStrengths.size());
 
   if (fraction_with_low_detector_response >= 0.85) {
-    ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
-    error_msg = ss.str();
+    if (error_msg) {
+      ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
+      error_msg = ss.str();
+    }
     return false;
   }
 
@@ -429,7 +427,14 @@ void LoopClosure::setupOutputLogDirectories() {
 
 void LoopClosure::shutdown() {
   LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph modile was already shutdown.";
-  LOG(INFO) << "Shutting down PoseGraph module.";
   keyframe_tracking_queue_.shutdown();
   shutdown_ = true;
+  LOG(INFO) << "Shutting down PoseGraph module.";
+}
+
+void LoopClosure::setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback) {
+  pose_graph_->setKeyframePoseCallback(keyframe_pose_callback);
+}
+void LoopClosure::setLoopClosureCallback(const PathCallback& loop_closure_callback) {
+  pose_graph_->setLoopClosureCallback(loop_closure_callback);
 }

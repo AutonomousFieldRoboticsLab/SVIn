@@ -506,7 +506,6 @@ void TemplatedVocabulary<TDescriptor, F>::setWeightingType(WeightingType type) {
 template <class TDescriptor, class F>
 TemplatedVocabulary<TDescriptor, F>::TemplatedVocabulary(const TemplatedVocabulary<TDescriptor, F>& voc)
     : m_scoring_object(NULL) {
-  printf("loop start load vocabulary\n");
   *this = voc;
 }
 
@@ -1398,7 +1397,7 @@ void TemplatedVocabulary<TDescriptor, F>::loadBin(const std::string& filename) {
   m_nodes.resize(voc.nNodes + 1);  // +1 to include root
   m_nodes[0].id = 0;
 
-  for (unsigned int i = 0; i < voc.nNodes; ++i) {
+  for (int i = 0; i < voc.nNodes; ++i) {
     NodeId nid = voc.nodes[i].nodeId;
     NodeId pid = voc.nodes[i].parentId;
     WordValue weight = voc.nodes[i].weight;
@@ -1409,7 +1408,8 @@ void TemplatedVocabulary<TDescriptor, F>::loadBin(const std::string& filename) {
     m_nodes[pid].children.push_back(nid);
 
     // Sorry to break template here
-    boost::dynamic_bitset input_bitset = boost::dynamic_bitset<>(voc.nodes[i].descriptor, voc.nodes[i].descriptor + 4);
+    boost::dynamic_bitset<> input_bitset =
+        boost::dynamic_bitset<>(voc.nodes[i].descriptor, voc.nodes[i].descriptor + 4);
     for (size_t i = 0; i < F::L; i++) {
       m_nodes[nid].descriptor[i] = input_bitset[i];
     }
@@ -1418,7 +1418,7 @@ void TemplatedVocabulary<TDescriptor, F>::loadBin(const std::string& filename) {
   // words
   m_words.resize(voc.nWords);
 
-  for (unsigned int i = 0; i < voc.nWords; ++i) {
+  for (int i = 0; i < voc.nWords; ++i) {
     NodeId wid = (int)voc.words[i].wordId;
     NodeId nid = (int)voc.words[i].nodeId;
 

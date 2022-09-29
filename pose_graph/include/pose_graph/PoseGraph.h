@@ -23,6 +23,7 @@
 #include "DBoW/TemplatedDatabase.h"
 #include "DBoW/TemplatedVocabulary.h"
 #include "DVision/DVision.h"
+#include "common/Definitions.h"
 #include "pose_graph/Keyframe.h"
 #include "utils/CameraPoseVisualization.h"
 #include "utils/Utils.h"
@@ -37,7 +38,6 @@ class PoseGraph {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   PoseGraph();
   ~PoseGraph();
-  void setPublishers(ros::NodeHandle& n);  // NOLINT
   void addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop);
 
   void updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info);  // NOLINT
@@ -58,10 +58,13 @@ class PoseGraph {
   Eigen::Vector3d w_t_svin;
   Eigen::Matrix3d w_r_svin;
 
-  typedef std::function<void(const uint64_t& time)> EventCallback;
-
   EventCallback loop_closure_optimization_callback_;
+  PoseCallback keyframe_pose_callback_;
+  PathCallback loop_closure_callback_;
+
   void registerLoopClosureOptimizationCallback(const EventCallback& finish_optimization_callback);
+  void setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback);
+  void setLoopClosureCallback(const PathCallback& loop_closure_callback);
 
  private:
   int detectLoop(Keyframe* keyframe, int frame_index);

@@ -94,6 +94,10 @@ struct KeyframeInfo {
   std::vector<std::vector<int64_t>> point_covisibilities_;
 };
 
+enum TrackingStatus { NOT_INITIALIZED = 0, TRACKING_VIO = 1, TRACKING_PRIMITIVE_ESTIMATOR = 2 };
+
+typedef std::function<void(const uint64_t)> EventCallback;
 typedef std::function<void(std::unique_ptr<KeyframeInfo>)> KeyframeCallback;
 typedef std::function<void(std::unique_ptr<std::pair<ros::Time, cv::Mat>>)> ImageCallback;
-typedef std::function<void(std::unique_ptr<std::pair<ros::Time, Eigen::Matrix4d>>)> PoseCallback;
+typedef std::function<void(const std::pair<ros::Time, Eigen::Matrix4d>&)> PoseCallback;
+typedef std::function<void(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>&)> PathCallback;

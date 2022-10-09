@@ -2,7 +2,7 @@
 
 #camera calibration 
 model_type: PINHOLE
-camera_name: slave1
+camera_name: cam_fl
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 0.5
@@ -20,7 +20,7 @@ fast_relocalization: 1
 loop_closure_params:
     enable: 1  
     min_correspondences: 25
-    pnp_reprojection_threshold: 15.0 
+    pnp_reprojection_threshold: 10.0 
 
 health:
     enable: 0
@@ -33,6 +33,6 @@ debug_image: 0
 
 image_height: 1200
 image_width: 1600
-focal_length: [1167.87421447215, 1166.9553764645004]
-principal_point: [771.763112280329, 589.9626482585169]
-distortion_coefficients: [-0.16610165879624592, 0.1156504557423161, -5.9407782773707644e-05, 0.0018508320481282106]
+focal_length: [1138.83276975408, 1139.594698074792]
+principal_point: [708.1729373830466, 617.1289738266081]
+distortion_coefficients: [-0.16289394362063583, 0.08351833356682732, 0.012276483503048642, 0.0006858966792660155]

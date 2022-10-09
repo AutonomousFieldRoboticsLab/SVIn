@@ -330,7 +330,6 @@ void Keyframe::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
   cv::eigen2cv(P_inital, t);
 
   cv::Mat inliers;
-  TicToc t_pnp_ransac;
 
   // bjoshi
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
@@ -375,8 +374,6 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
   if (!old_kf->is_vio_keyframe_) return false;
 
   std::string pkg_path = ros::package::getPath("pose_graph");
-
-  TicToc tmp_t;
 
   std::vector<cv::KeyPoint> matched_2d_cur;
   std::vector<cv::Point2f> matched_2d_old;

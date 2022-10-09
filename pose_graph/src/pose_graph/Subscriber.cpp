@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "utils/Statistics.h"
+#include "utils/Timer.h"
 #include "utils/UtilsOpenCV.h"
 
 Subscriber::Subscriber(ros::NodeHandle& nh, std::shared_ptr<Parameters> params) : params_(params) {
@@ -27,12 +29,12 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   if (it_) it_.reset();
   it_ = std::make_unique<image_transport::ImageTransport>(std::move(*nh_));
 
-  keyframe_image_subscriber_.subscribe(*it_, kf_image_topic_, 100);
-  keyframe_points_subscriber_.subscribe(*nh_, kf_points_topic_, 100);
-  keyframe_pose_subscriber_.subscribe(*nh_, kf_pose_topic_, 100);
-  svin_health_subscriber_.subscribe(*nh_, svin_health_topic_, 100);
+  keyframe_image_subscriber_.subscribe(*it_, kf_image_topic_, 10);
+  keyframe_points_subscriber_.subscribe(*nh_, kf_points_topic_, 10);
+  keyframe_pose_subscriber_.subscribe(*nh_, kf_pose_topic_, 10);
+  svin_health_subscriber_.subscribe(*nh_, svin_health_topic_, 10);
 
-  static constexpr size_t kMaxKeyframeSynchronizerQueueSize = 100u;
+  static constexpr size_t kMaxKeyframeSynchronizerQueueSize = 10u;
   sync_keyframe_ = std::make_unique<message_filters::Synchronizer<keyframe_sync_policy>>(
       keyframe_sync_policy(kMaxKeyframeSynchronizerQueueSize),
       keyframe_image_subscriber_,
@@ -60,7 +62,12 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& image_msg) {
   cv::Mat image = UtilsOpenCV::readRosImage(image_msg, false);
   auto image_with_timestamp =
       std::make_unique<std::pair<ros::Time, cv::Mat>>(std::make_pair(image_msg->header.stamp, image));
-  raw_image_callback_(std::move(image_with_timestamp));
+  // raw image callback is not compulsory
+  if (raw_image_callback_) {
+    raw_image_callback_(std::move(image_with_timestamp));
+  } else {
+    LOG_EVERY_N(WARNING, 100) << "Raw image callback not set";
+  }
 }
 
 nav_msgs::OdometryConstPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t& ros_stamp) {
@@ -121,10 +128,12 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
   std::vector<int64_t> landmark_ids;
   std::vector<std::vector<int64_t>> kf_covisibilities;
 
-  int64_t keyframe_index = kf_points->channels[0].values[4];
+  int64_t keyframe_index = -1;
   cv::Mat kf_image = UtilsOpenCV::readRosImage(kf_image_msg);
 
   for (unsigned int i = 0; i < kf_points->points.size(); i++) {
+    keyframe_index = kf_points->channels[i].values[4];
+
     cv::Point3f point_3d(kf_points->points[i].x, kf_points->points[i].y, kf_points->points[i].z);
     keyframe_points.push_back(point_3d);
 

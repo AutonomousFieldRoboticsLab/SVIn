@@ -76,6 +76,7 @@ void LoopClosure::setup() {
   voc_ = new BriefVocabulary(params_->vocabulary_file_);
   BriefDatabase db;
   db.setVocabulary(*voc_, false, 0);
+  LOG(INFO) << "Vocabulary loaded!";
   pose_graph_->setBriefVocAndDB(voc_, db);
 
   // timer_ = nh_private_.createTimer(ros::Duration(3), &LoopClosure::updatePublishGlobalMap, this);
@@ -120,9 +121,8 @@ void LoopClosure::run() {
       pose_graph_->addKFToPoseGraph(keyframe, 1);
 
       cv::Mat original_color_image;
-      if (!raw_image_buffer_.getNearestValueToTime(
-              keyframe_info->timestamp_.toNSec(), 1000000, &original_color_image)) {
-        LOG(WARNING) << "Could not color image for keyframe with timestamp " << keyframe_info->timestamp_.toNSec();
+      if (!raw_image_buffer_.getValueAtTime(keyframe_info->timestamp_.toNSec(), &original_color_image)) {
+        LOG(WARNING) << "Could not find color image for keyframe with timestamp " << keyframe_info->timestamp_.toNSec();
       } else {
         if (params_->resize_factor_ != 0) {
           cv::resize(original_color_image,

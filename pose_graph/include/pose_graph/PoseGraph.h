@@ -27,7 +27,6 @@
 #include "pose_graph/Keyframe.h"
 #include "utils/CameraPoseVisualization.h"
 #include "utils/Utils.h"
-#include "utils/tic_toc.h"
 
 #define SHOW_S_EDGE false
 #define SHOW_L_EDGE true

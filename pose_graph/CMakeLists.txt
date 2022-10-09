@@ -2,7 +2,13 @@ cmake_minimum_required(VERSION 2.8.3)
 project(pose_graph)
 include(ExternalProject)
 
-set(CMAKE_BUILD_TYPE "Release")
+
+if(CMAKE_BUILD_TYPE)
+    message(STATUS "Build type specified as ${CMAKE_BUILD_TYPE}")
+else()
+    message(STATUS "Build type not specified, using Release")
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 set(CMAKE_CXX_STANDARD 14)
 
 # changed to -march=native. Working in Ubuntu 18.04 and 20.04
@@ -74,7 +80,6 @@ add_library(${PROJECT_NAME}
     ThirdParty/VocabularyBinary.cpp
 )
 
-add_dependencies(${PROJECT_NAME} Dependencies brisk)
 target_link_libraries(${PROJECT_NAME}
   opengv
   ${catkin_LIBRARIES}

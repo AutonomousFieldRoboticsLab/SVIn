@@ -68,7 +68,6 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
   int loop_index = -1;
 
   if (flag_detect_loop) {  // at least 20 KF has been passed
-    TicToc tmp_t;
     loop_index = detectLoop(cur_kf, cur_kf->index);
   } else {
     addKeyFrameIntoVoc(cur_kf);
@@ -218,14 +217,9 @@ int PoseGraph::detectLoop(Keyframe* keyframe, int frame_index) {
 
   // std::cout<< "Min BoW Score: "<< min_score << std::endl;
 
-  TicToc tmp_t;
   // first query; then add this frame into database!
   DBoW2::QueryResults ret;
-  TicToc t_query;
   db.query(keyframe->bowVec, ret, 4, frame_index - 50);
-  // printf("query time: %f", t_query.toc());
-
-  TicToc t_add;
   db.add(keyframe->brief_descriptors);
 
   bool find_loop = false;
@@ -273,7 +267,6 @@ void PoseGraph::optimize4DoFPoseGraph() {
       }
     }
     if (cur_index != -1) {
-      TicToc tmp_t;
       ceres::Problem problem;
       ceres::Solver::Options options;
       options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;

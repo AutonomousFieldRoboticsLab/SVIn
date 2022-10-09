@@ -18,7 +18,6 @@
 #include "DVision/DVision.h"
 #include "pose_graph/Parameters.h"
 #include "utils/Utils.h"
-#include "utils/tic_toc.h"
 
 class BriefExtractor {
  public:

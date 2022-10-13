@@ -13,10 +13,10 @@ cameras:
 
 camera_params:
     camera_rate: 30
-    sigma_absolute_translation: 1.0e-6
-    sigma_absolute_orientation: 1.0e-6
-    sigma_c_relative_translation: 1.0e-6 # below 1.0e-6 ruines numerics...
-    sigma_c_relative_orientation: 1.0e-6 # below 1.0e-6 ruines numerics...
+    sigma_absolute_translation: 0
+    sigma_absolute_orientation: 0
+    sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
+    sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
 
 
 imu_params:
@@ -46,13 +46,13 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 10  # never do more than these, even if not converged
-    timeLimit: -1   # [s] negative values will set the an unlimited time limit
+    maxIterations: 20  # never do more than these, even if not converged
+    timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
-    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
+    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:

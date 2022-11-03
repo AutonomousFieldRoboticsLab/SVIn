@@ -28,8 +28,6 @@
 #include "utils/CameraPoseVisualization.h"
 #include "utils/Utils.h"
 
-#define SHOW_S_EDGE false
-#define SHOW_L_EDGE true
 #define SAVE_LOOP_PATH true
 
 class PoseGraph {
@@ -44,11 +42,6 @@ class PoseGraph {
 
   void setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database);
 
-  nav_msgs::Path path[10];
-  nav_msgs::Path base_path;
-  CameraPoseVisualization* posegraph_visualization;
-
-  void publish();
   // Relocalization
   Eigen::Vector3d t_drift;
   double yaw_drift;
@@ -58,12 +51,12 @@ class PoseGraph {
   Eigen::Matrix3d w_r_svin;
 
   EventCallback loop_closure_optimization_callback_;
-  PoseCallback keyframe_pose_callback_;
-  PathCallback loop_closure_callback_;
+  KeframeWithLoopClosureCallback keyframe_pose_callback_;
+  PathWithLoopClosureCallback loop_closure_callback_;
 
-  void registerLoopClosureOptimizationCallback(const EventCallback& finish_optimization_callback);
-  void setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback);
-  void setLoopClosureCallback(const PathCallback& loop_closure_callback);
+  void setLoopClosureOptimizationCallback(const EventCallback& finish_optimization_callback);
+  void setKeyframePoseCallback(const KeframeWithLoopClosureCallback& keyframe_pose_callback);
+  void setLoopClosureCallback(const PathWithLoopClosureCallback& loop_closure_callback);
 
  private:
   int detectLoop(Keyframe* keyframe, int frame_index);
@@ -88,11 +81,6 @@ class PoseGraph {
 
   BriefDatabase db;
   BriefVocabulary* voc;
-
-  ros::Publisher pubPoseGraphPath;
-  ros::Publisher pubBasePath;
-  ros::Publisher pubPoseGraph;
-  ros::Publisher pubPath[10];
 
   std::string svin_output_file_;
   bool is_fast_localization_;

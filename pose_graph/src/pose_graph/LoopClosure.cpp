@@ -64,7 +64,7 @@ void LoopClosure::setup() {
 
   pose_graph_->set_svin_results_file(params_->svin_w_loop_path_);
   pose_graph_->set_fast_relocalization(params_->fast_relocalization_);
-  pose_graph_->registerLoopClosureOptimizationCallback(
+  pose_graph_->setLoopClosureOptimizationCallback(
       std::bind(&GlobalMap::loopClosureOptimizationFinishCallback, global_map_.get(), std::placeholders::_1));
   pose_graph_->startOptimizationThread();
 
@@ -432,9 +432,9 @@ void LoopClosure::shutdown() {
   LOG(INFO) << "Shutting down PoseGraph module.";
 }
 
-void LoopClosure::setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback) {
+void LoopClosure::setKeyframePoseCallback(const KeframeWithLoopClosureCallback& keyframe_pose_callback) {
   pose_graph_->setKeyframePoseCallback(keyframe_pose_callback);
 }
-void LoopClosure::setLoopClosureCallback(const PathCallback& loop_closure_callback) {
+void LoopClosure::setLoopClosureCallback(const PathWithLoopClosureCallback& loop_closure_callback) {
   pose_graph_->setLoopClosureCallback(loop_closure_callback);
 }

@@ -49,13 +49,14 @@ void CameraPoseVisualization::add_edge(const Eigen::Vector3d& p0, const Eigen::V
   visualization_msgs::Marker marker;
 
   marker.ns = m_marker_ns;
-  marker.id = m_markers.size() + 1;
+  marker.id = loop_edge_markers.size() + 1;
   marker.type = visualization_msgs::Marker::LINE_LIST;
   marker.action = visualization_msgs::Marker::ADD;
   marker.scale.x = 0.01;
 
   marker.color.b = 1.0f;
   marker.color.a = 1.0;
+  marker.pose = geometry_msgs::Pose();
 
   geometry_msgs::Point point0, point1;
 
@@ -65,7 +66,7 @@ void CameraPoseVisualization::add_edge(const Eigen::Vector3d& p0, const Eigen::V
   marker.points.push_back(point0);
   marker.points.push_back(point1);
 
-  m_markers.push_back(marker);
+  loop_edge_markers.push_back(marker);
 }
 
 void CameraPoseVisualization::add_loopedge(const Eigen::Vector3d& p0, const Eigen::Vector3d& p1) {
@@ -73,19 +74,20 @@ void CameraPoseVisualization::add_loopedge(const Eigen::Vector3d& p0, const Eige
   visualization_msgs::Marker marker;
 
   marker.ns = m_marker_ns;
-  marker.id = m_markers.size() + 1;
-  // tmp_loop_edge_num++;
-  // if(tmp_loop_edge_num >= LOOP_EDGE_NUM)
-  //  tmp_loop_edge_num = 1;
+  marker.id = loop_edge_markers.size() + 1;
   marker.type = visualization_msgs::Marker::LINE_STRIP;
   marker.action = visualization_msgs::Marker::ADD;
-  marker.lifetime = ros::Duration();
-  // marker.scale.x = 0.4;
   marker.scale.x = 0.02;
   marker.color.r = 1.0f;
-  // marker.color.g = 1.0f;
-  // marker.color.b = 1.0f;
   marker.color.a = 1.0;
+
+  marker.pose.position.x = 0.0;
+  marker.pose.position.y = 0.0;
+  marker.pose.position.z = 0.0;
+  marker.pose.orientation.w = 1.0;
+  marker.pose.orientation.x = 0.0;
+  marker.pose.orientation.y = 0.0;
+  marker.pose.orientation.z = 0.0;
 
   geometry_msgs::Point point0, point1;
 
@@ -95,7 +97,7 @@ void CameraPoseVisualization::add_loopedge(const Eigen::Vector3d& p0, const Eige
   marker.points.push_back(point0);
   marker.points.push_back(point1);
 
-  m_markers.push_back(marker);
+  loop_edge_markers.push_back(marker);
 }
 
 void CameraPoseVisualization::add_pose(const Eigen::Vector3d& p, const Eigen::Quaterniond& q) {
@@ -179,14 +181,17 @@ void CameraPoseVisualization::add_pose(const Eigen::Vector3d& p, const Eigen::Qu
   marker.colors.push_back(m_optical_center_connector_color);
   marker.colors.push_back(m_optical_center_connector_color);
 
-  m_markers.push_back(marker);
+  camera_pose_markers.push_back(marker);
 }
 
 void CameraPoseVisualization::reset() {
-  m_markers.clear();
+  loop_edge_markers.clear();
+  camera_pose_markers.clear();
   // image.points.clear();
   // image.colors.clear();
 }
+
+void CameraPoseVisualization::clearCameraPoseMarkers() { camera_pose_markers.clear(); }
 
 void CameraPoseVisualization::publish_by(ros::Publisher& pub, const std_msgs::Header& header) {
   visualization_msgs::MarkerArray markerArray_msg;
@@ -200,7 +205,12 @@ void CameraPoseVisualization::publish_by(ros::Publisher& pub, const std_msgs::He
   }
   */
 
-  for (auto& marker : m_markers) {
+  for (auto& marker : camera_pose_markers) {
+    marker.header = header;
+    markerArray_msg.markers.push_back(marker);
+  }
+
+  for (auto& marker : loop_edge_markers) {
     marker.header = header;
     markerArray_msg.markers.push_back(marker);
   }

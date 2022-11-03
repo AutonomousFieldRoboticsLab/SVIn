@@ -54,8 +54,8 @@ class LoopClosure {
 
   void shutdown();
 
-  void setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback);
-  void setLoopClosureCallback(const PathCallback& loop_closure_callback);
+  void setKeyframePoseCallback(const KeframeWithLoopClosureCallback& keyframe_pose_callback);
+  void setLoopClosureCallback(const PathWithLoopClosureCallback& loop_closure_callback);
 
  private:
   void setup();

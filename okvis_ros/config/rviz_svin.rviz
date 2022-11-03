@@ -63,13 +63,13 @@ Visualization Manager:
       Value: true
     - Alpha: 1
       Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 0.20000000298023224
       Name: Axes
       Radius: 0.029999999329447746
       Reference Frame: body
       Show Trail: false
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1000
       Class: rviz/Path
@@ -174,14 +174,6 @@ Visualization Manager:
       Topic: /pose_graph_node/loop_closure_path
       Unreliable: false
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /pose_graph_node/pose_graph
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -250,6 +242,14 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /pose_graph_node/visualization
+      Name: MarkerArray
+      Namespaces:
+        CameraPoseVisualization: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -278,7 +278,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.420106887817383
+      Distance: 6.5595927238464355
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -294,9 +294,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.484796404838562
+      Pitch: 1.5697963237762451
       Target Frame: fcu
-      Yaw: 5.480422019958496
+      Yaw: 0.527230441570282
     Saved: ~
 Window Geometry:
   Displays:

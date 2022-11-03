@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "pose_graph/Parameters.h"
+#include "utils/CameraPoseVisualization.h"
 
 class Publisher {
  public:
@@ -26,8 +27,10 @@ class Publisher {
   void publishPath(const nav_msgs::Path& path, const ros::Publisher& pub) const;
   void publishOdometry(const nav_msgs::Odometry& odometry, const ros::Publisher& pub) const;
 
-  void publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>& keyframe_pose);
-  void publishLoopClosurePath(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>& loop_closure_poses);
+  void publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>& keyframe_pose,
+                           const std::pair<Eigen::Vector3d, Eigen::Vector3d>& loop_closure_edge);
+  void publishLoopClosurePath(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>& loop_closure_poses,
+                              const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& loop_closure_edges);
 
  private:
   ros::Publisher pub_matched_points_;  // Publish keyframe matched points
@@ -39,6 +42,8 @@ class Publisher {
   ros::Publisher pub_primitive_odometry_;  // Publishes primitive estimator odometry (debugging)
   ros::Publisher pub_loop_closure_path_;   // Publishes loop closure path
   ros::Publisher pub_kf_connections_;      // Publisher keyframe connections
+  ros::Publisher pub_visualization_;       // Publishes visualization markers for rviz
 
   nav_msgs::Path loop_closure_path_;
+  std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
 };

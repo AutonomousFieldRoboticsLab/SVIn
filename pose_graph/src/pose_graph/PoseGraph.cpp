@@ -8,9 +8,6 @@
 #include "pose_graph/Pose3DError.h"
 
 PoseGraph::PoseGraph() {
-  posegraph_visualization = new CameraPoseVisualization(1.0, 0.0, 1.0, 1.0);
-  posegraph_visualization->setScale(0.1);
-  posegraph_visualization->setLineWidth(0.01);
   earliest_loop_index = -1;
   t_drift = Eigen::Vector3d(0, 0, 0);
   yaw_drift = 0;
@@ -130,44 +127,17 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
     cur_kf->updatePose(P, R);
     Eigen::Quaterniond Q{R};
 
-    if (SAVE_LOOP_PATH) {
-      std::ofstream loop_path_file(svin_output_file_, std::ios::app);
-      loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
-      loop_path_file.precision(9);
-      loop_path_file << cur_kf->time_stamp << " ";
-      loop_path_file << P.x() << " " << P.y() << " " << P.z() << " " << Q.x() << " " << Q.y() << " " << Q.z() << " "
-                     << Q.w() << std::endl;
-      loop_path_file.close();
-    }
-    // draw local connection
-    if (SHOW_S_EDGE) {
-      std::list<Keyframe*>::reverse_iterator rit = keyframelist.rbegin();
-      for (int i = 0; i < 4; i++) {
-        if (rit == keyframelist.rend()) break;
-        Eigen::Vector3d conncected_P;
-        Eigen::Matrix3d connected_R;
-        if ((*rit)->sequence == cur_kf->sequence) {
-          (*rit)->getPose(conncected_P, connected_R);
-          posegraph_visualization->add_edge(P, conncected_P);
-        }
-        rit++;
-      }
-    }
-    if (SHOW_L_EDGE) {
-      if (cur_kf->has_loop) {
-        // printf("has loop \n");
-        Keyframe* connected_KF = getKFPtr(cur_kf->loop_index);
-        Eigen::Vector3d connected_P, P0;
-        Eigen::Matrix3d connected_R, R0;
-        connected_KF->getPose(connected_P, connected_R);
-        // cur_kf->getSVInPose(P0, R0);
-        cur_kf->getPose(P0, R0);
-        if (cur_kf->sequence > 0) {
-          // printf("add loop into visual \n");
-          // std::cout<< "Drawing loop edge for " << cur_kf->index << " and "<< cur_kf->loop_index <<std::endl;
-          posegraph_visualization->add_loopedge(P0, connected_P);
-        }
-      }
+    std::pair<Eigen::Vector3d, Eigen::Vector3d> loop_info;
+    loop_info.first = Eigen::Vector3d::Zero();
+    loop_info.second = Eigen::Vector3d::Zero();
+
+    if (cur_kf->has_loop) {
+      Keyframe* connected_KF = getKFPtr(cur_kf->loop_index);
+      Eigen::Vector3d connected_P, P0;
+      Eigen::Matrix3d connected_R, R0;
+      connected_KF->getPose(connected_P, connected_R);
+      cur_kf->getPose(P0, R0);
+      loop_info = {P0, connected_P};
     }
 
     keyframelist.push_back(cur_kf);
@@ -177,7 +147,7 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
     pose.second.block<3, 3>(0, 0) = R;
     pose.second.block<3, 1>(0, 3) = P;
     CHECK(keyframe_pose_callback_);
-    keyframe_pose_callback_(pose);
+    keyframe_pose_callback_(pose, loop_info);
   }
 }
 
@@ -579,11 +549,6 @@ void PoseGraph::updatePath() {
   std::lock_guard<std::mutex> l(kflistMutex_);
 
   std::list<Keyframe*>::iterator it;
-  for (int i = 1; i <= sequence_cnt; i++) {
-    path[i].poses.clear();
-  }
-  base_path.poses.clear();
-  posegraph_visualization->reset();
 
   if (SAVE_LOOP_PATH) {
     std::ofstream loop_path_file_tmp(svin_output_file_, std::ios::out);
@@ -591,6 +556,8 @@ void PoseGraph::updatePath() {
   }
 
   std::vector<std::pair<ros::Time, Eigen::Matrix4d>> loop_closure_path;
+  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> loop_closure_edges;
+
   for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
     Eigen::Vector3d P;
     Eigen::Matrix3d R;
@@ -613,55 +580,19 @@ void PoseGraph::updatePath() {
                      << Q.w() << std::endl;
       loop_path_file.close();
     }
-    // draw local connection
-    if (SHOW_S_EDGE) {
-      std::list<Keyframe*>::reverse_iterator rit = keyframelist.rbegin();
-      std::list<Keyframe*>::reverse_iterator lrit;
-      for (; rit != keyframelist.rend(); rit++) {
-        if ((*rit)->index == (*it)->index) {
-          lrit = rit;
-          lrit++;
-          for (int i = 0; i < 4; i++) {
-            if (lrit == keyframelist.rend()) break;
-            if ((*lrit)->sequence == (*it)->sequence) {
-              Eigen::Vector3d conncected_P;
-              Eigen::Matrix3d connected_R;
-              (*lrit)->getPose(conncected_P, connected_R);
-              posegraph_visualization->add_edge(P, conncected_P);
-            }
-            lrit++;
-          }
-          break;
-        }
-      }
-    }
-    if (SHOW_L_EDGE) {
-      if ((*it)->has_loop && (*it)->sequence == sequence_cnt) {
-        Keyframe* connected_KF = getKFPtr((*it)->loop_index);
-        Eigen::Vector3d connected_P;
-        Eigen::Matrix3d connected_R;
-        connected_KF->getPose(connected_P, connected_R);
-        (*it)->getPose(P, R);
-        if ((*it)->sequence > 0) {
-          posegraph_visualization->add_loopedge(P, connected_P);
-        }
-      }
+
+    if ((*it)->has_loop) {
+      Keyframe* connected_KF = getKFPtr((*it)->loop_index);
+      Eigen::Vector3d connected_P;
+      Eigen::Matrix3d connected_R;
+      connected_KF->getPose(connected_P, connected_R);
+      (*it)->getPose(P, R);
+      loop_closure_edges.push_back({P, connected_P});
     }
   }
 
   CHECK(loop_closure_callback_);
-  loop_closure_callback_(loop_closure_path);
-}
-
-void PoseGraph::publish() {
-  for (int i = 1; i <= sequence_cnt; i++) {
-    if (i == base_sequence) {
-      pubPoseGraphPath.publish(path[i]);
-      pubPath[i].publish(path[i]);
-      posegraph_visualization->publish_by(pubPoseGraph, path[sequence_cnt].header);
-    }
-  }
-  pubBasePath.publish(base_path);
+  loop_closure_callback_(loop_closure_path, loop_closure_edges);
 }
 
 void PoseGraph::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop_info) {
@@ -698,14 +629,14 @@ void PoseGraph::updateKeyFrameLoop(int index, Eigen::Matrix<double, 8, 1>& _loop
   }
 }
 
-void PoseGraph::registerLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
+void PoseGraph::setLoopClosureOptimizationCallback(const EventCallback& optimization_finish_callback) {
   loop_closure_optimization_callback_ = optimization_finish_callback;
 }
 
-void PoseGraph::setKeyframePoseCallback(const PoseCallback& keyframe_pose_callback) {
+void PoseGraph::setKeyframePoseCallback(const KeframeWithLoopClosureCallback& keyframe_pose_callback) {
   keyframe_pose_callback_ = keyframe_pose_callback;
 }
 
-void PoseGraph::setLoopClosureCallback(const PathCallback& loop_closure_callback) {
+void PoseGraph::setLoopClosureCallback(const PathWithLoopClosureCallback& loop_closure_callback) {
   loop_closure_callback_ = loop_closure_callback;
 }

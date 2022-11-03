@@ -33,8 +33,12 @@ class CameraPoseVisualization {
   // void add_image(const Eigen::Vector3d& T, const Eigen::Matrix3d& R, const cv::Mat &src);
   void publish_image_by(ros::Publisher& pub, const std_msgs::Header& header);  // NOLINT
 
+  void clearCameraPoseMarkers();
+
  private:
-  std::vector<visualization_msgs::Marker> m_markers;
+  std::vector<visualization_msgs::Marker> camera_pose_markers;
+  std::vector<visualization_msgs::Marker> loop_edge_markers;
+
   std_msgs::ColorRGBA m_image_boundary_color;
   std_msgs::ColorRGBA m_optical_center_connector_color;
   double m_scale;
@@ -52,4 +56,3 @@ class CameraPoseVisualization {
   static const Eigen::Vector3d lt1;
   static const Eigen::Vector3d lt2;
 };
-

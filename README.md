@@ -58,7 +58,13 @@ You will need to install the following dependencies,
         cd ~/svin_ws/src
         git clone --branch v0.1 https://github.com/AutonomousFieldRoboticsLab/SVIn.git
         git clone https://github.com/AutonomousFieldRoboticsLab/imagenex831l.git
+        
+        # For Ubuntu 20.04 (ROS Noetic)
+        git clone --branch ros-noetic git@github.com:AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
+        
+        #For Ubuntu 18.04/16.04
         git clone git@github.com:AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
+        
         cd ..
         catkin_make
 

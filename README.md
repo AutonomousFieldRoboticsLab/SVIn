@@ -58,6 +58,7 @@ You will need to install the following dependencies,
         cd ~/svin_ws/src
         git clone https://github.com/AutonomousFieldRoboticsLab/SVIn.git
         git clone https://github.com/AutonomousFieldRoboticsLab/imagenex831l.git
+        git clone git@github.com:AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
         cd ..
         catkin_make
 

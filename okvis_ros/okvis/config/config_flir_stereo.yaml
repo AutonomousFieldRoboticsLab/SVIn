@@ -1,35 +1,35 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [-0.999951484924370, -0.007271683630496, -0.006644577844233,  0.095860371617174,
-         0.007454284822327, -0.999583407112654, -0.027882716202835, -0.002288837387091,
-        -0.006439055469378, -0.027930894046525,  0.999589117448978, -0.023754113917685,
-         0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295], 
-       distortion_type: radialtangential,
-       focal_length: [1156.5188534683703, 1156.5772666173266], 
-       principal_point: [763.2083316463371, 617.2779853849335]} 
-
-    - {T_SC:
-        [-0.999982297266498, -0.005818312404541, -0.001245951195096, -0.043066851727302,
-          0.005847412971625, -0.999675635403190, -0.024787733715850, -6.630840216796008e-4,
-         -0.001101324274080, -0.024794580496386,  0.999691960487255, -0.023978804210993,
+       [ 0.0135852,   0.00289628,  0.99990352,  0.08129607,
+         0.99984969,  0.01073337, -0.01361556,  0.04478996,
+        -0.01077177,  0.9999382,  -0.00275003,  0.00302547,
           0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.173831269260396, 0.10747272137157605, 0.004231076633773206, -0.0026692219494915187], 
+       image_dimension: [1600, 1100],
+       distortion_coefficients: [0.1462139249855356, 0.3775304191882089, 0.007835564538475424, 0.002760598455182088],
        distortion_type: radialtangential,
-       focal_length: [1158.625855755729, 1156.0604864187183], 
-       principal_point: [765.5609812846063, 588.6683184401453]}  
+       focal_length: [1159.2905564436558, 1157.0215864700963], 
+       principal_point: [804.4293114224579, 561.884540048856]} 
+    - {T_SC:
+       [ 0.0303923,  -0.00234773,  0.99953529,  0.08039185,
+         0.99941217,  0.01594106, -0.03035111, -0.06368291,
+        -0.0158624,   0.99987018,  0.00283084,  0.00470852,
+         0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1100],
+       distortion_coefficients: [0.15369547519155982, 0.340182231006338, 0.009963444523504303, -0.0027052356327500835],
+       distortion_type: radialtangential,
+       focal_length: [1155.8539673842838, 1155.4754872259887], 
+       principal_point: [794.2244374878869, 574.2082960760906]} 
 
 
 camera_params:
-    camera_rate: 15 # just to manage the expectations of when there should be frames arriving
+    camera_rate: 20 # just to manage the expectations of when there should be frames arriving
     sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
     sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
     sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
     # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
+
 
 
 
@@ -48,19 +48,12 @@ imu_params:
     imu_rate: 100
     # tranform Body-Sensor (IMU)
     T_BS:
-        [0.0000, 0.0000, 1.0000, -0.018,
-         1.0000, 0.0000, 0.0000, -0.016,
+        [1.0000, 0.0000, 0.0000, 0.0,
          0.0000, 1.0000, 0.0000, 0.0,
+         0.0000, 0.0000, 1.0000, 0.0,
          0.0000, 0.0000, 0.0000, 1.0000]
 
-sonar_params:
-    T_SSo:
-        [0.0000, 1.0000, 0.0000, 0.015995,
-         -1.0000, 0.0000, 0.0000, 0.125,
-         0.0000, 0.0000, 1.0000, 0.128,
-         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
-#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window

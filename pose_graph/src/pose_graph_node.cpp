@@ -1,9 +1,97 @@
-#include <future>
+#include <ros/package.h>
+
+#include <boost/filesystem.hpp>
 
 #include "pose_graph/LoopClosure.h"
 #include "pose_graph/Parameters.h"
 #include "pose_graph/Publisher.h"
 #include "pose_graph/Subscriber.h"
+
+void setupOutputLogDirectories() {
+  std::string pacakge_path = ros::package::getPath("pose_graph");
+
+  std::string output_dir = pacakge_path + "/output_logs/loop_candidates/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/descriptor_matched/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/pnp_verified/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/loop_closure/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  output_dir = pacakge_path + "/output_logs/geometric_verification/";
+  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
+    boost::filesystem::create_directory(output_dir);
+  }
+  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
+    boost::filesystem::remove_all(entry.path());
+  }
+
+  std::string loop_closure_file = pacakge_path + "/output_logs/loop_closure.txt";
+  if (boost::filesystem::exists(loop_closure_file)) {
+    boost::filesystem::remove(loop_closure_file);
+  }
+  std::ofstream loop_path_file(loop_closure_file, std::ios::out);
+  loop_path_file << "cur_kf_id"
+                 << " "
+                 << "cur_kf_ts"
+                 << " "
+                 << "matched_kf_id"
+                 << " "
+                 << "matched_kf_ts"
+                 << " "
+                 << "relative_tx"
+                 << " "
+                 << "relative_ty"
+                 << " "
+                 << "relative_tz"
+                 << " "
+                 << "relative_qx"
+                 << " "
+                 << "relative_qy"
+                 << " "
+                 << "relative_qz"
+                 << " "
+                 << "relative_qw" << std::endl;
+  loop_path_file.close();
+
+  std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
+  if (boost::filesystem::exists(switch_info_file)) {
+    boost::filesystem::remove(switch_info_file);
+  }
+  std::ofstream switch_info_file_stream(switch_info_file, std::ios::out);
+  switch_info_file_stream << "type"
+                          << " "
+                          << "vio_stamp"
+                          << " "
+                          << "prim_stamp"
+                          << " "
+                          << "uber_stamp" << std::endl;
+  switch_info_file_stream.close();
+}
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "pose_graph");
@@ -24,11 +112,14 @@ int main(int argc, char** argv) {
 
   std::shared_ptr<Parameters> params = std::make_shared<Parameters>();
   params->loadParameters(config_file);
+  setupOutputLogDirectories();
 
   auto subscriber = std::make_unique<Subscriber>(nh, params);
   auto loop_closure = std::make_unique<LoopClosure>(params);
   auto publisher = std::make_unique<Publisher>(nh);
 
+  publisher->setGlobalPointCloudFunction(
+      std::bind(&LoopClosure::getGlobalMap, loop_closure.get(), std::placeholders::_1));
   loop_closure->setKeyframePoseCallback(
       std::bind(&Publisher::publishKeyframePath, publisher.get(), std::placeholders::_1, std::placeholders::_2));
   loop_closure->setLoopClosureCallback(
@@ -42,6 +133,9 @@ int main(int argc, char** argv) {
 
   ros::Time last_print_time = ros::Time::now();
 
+  ros::Timer timer = nh.createTimer(ros::Duration(5), &Publisher::updatePublishGlobalMap, publisher.get());
+  ros::ServiceServer pointcloud_service =
+      nh.advertiseService("save_pointcloud", &Publisher::savePointCloud, publisher.get());
   while (ros::ok()) {
     ros::spinOnce();
     if (ros::Time::now() - last_print_time > ros::Duration(10.0)) {

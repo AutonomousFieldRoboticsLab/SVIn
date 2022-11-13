@@ -2,6 +2,12 @@
 
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <pcl/io/ply_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <ros/package.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <vector>
@@ -105,4 +111,32 @@ void Publisher::publishLoopClosurePath(
   }
 
   camera_pose_visualizer_->publish_by(pub_visualization_, loop_closure_path_.header);
+}
+
+void Publisher::setGlobalPointCloudFunction(const PointCloudCallback& global_pointcloud_callback) {
+  pointcloud_callback_ = global_pointcloud_callback;
+}
+
+void Publisher::updatePublishGlobalMap(const ros::TimerEvent& event) {
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr global_map_pcl(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pointcloud_callback_(global_map_pcl);
+  sensor_msgs::PointCloud2 pcl_msg;
+  pcl::toROSMsg(*global_map_pcl, pcl_msg);
+  pcl_msg.header.frame_id = "world";
+  pcl_msg.header.stamp = ros::Time::now();
+  publishGlobalMap(pcl_msg);
+}
+
+bool Publisher::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
+  ROS_INFO_STREAM("!! Saving Point Cloud !!");
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pointcloud_callback_(pointcloud);
+
+  std::string pkg_path = ros::package::getPath("pose_graph");
+  std::string pointcloud_file = pkg_path + "/reconstruction_results/pointcloud.ply";
+
+  pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
+  response.success = true;
+  response.message = "Saving Point Cloud ";
+  return true;
 }

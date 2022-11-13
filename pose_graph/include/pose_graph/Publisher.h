@@ -6,11 +6,13 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_srvs/Trigger.h>
 
 #include <Eigen/Core>
 #include <memory>
 #include <vector>
 
+#include "common/Definitions.h"
 #include "pose_graph/Parameters.h"
 #include "utils/CameraPoseVisualization.h"
 
@@ -31,6 +33,10 @@ class Publisher {
                            const std::pair<Eigen::Vector3d, Eigen::Vector3d>& loop_closure_edge);
   void publishLoopClosurePath(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>& loop_closure_poses,
                               const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& loop_closure_edges);
+  void updatePublishGlobalMap(const ros::TimerEvent& event);
+
+  void setGlobalPointCloudFunction(const PointCloudCallback& global_pointcloud_callback);
+  bool savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);  // NOLINT
 
  private:
   ros::Publisher pub_matched_points_;  // Publish keyframe matched points
@@ -46,4 +52,6 @@ class Publisher {
 
   nav_msgs::Path loop_closure_path_;
   std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
+
+  PointCloudCallback pointcloud_callback_;
 };

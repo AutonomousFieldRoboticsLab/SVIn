@@ -29,10 +29,9 @@ class LoopClosure {
 
   void run();
 
-  void updatePublishGlobalMap(const ros::TimerEvent& event);
+  void getGlobalMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud);
   void updateGlobalMap();
   void getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud);  // NOLINT (already pointer)
-  bool savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);  // NOLINT
   void addPointsToGlobalMap(const int64_t keyframe_index,
                             const cv::Mat& color_image,
                             const Eigen::Matrix3d& camera_orientation,
@@ -59,7 +58,7 @@ class LoopClosure {
 
  private:
   void setup();
-  static constexpr int64_t kBufferLengthNs = 3000000000;  // 3 seconds
+  static constexpr int64_t kBufferLengthNs = 2000000000;  // 2 seconds
   ros::NodeHandle nh_private_;
 
   std::shared_ptr<Parameters> params_;
@@ -95,7 +94,6 @@ class LoopClosure {
   double prim_traj_length_;
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
-  void setupOutputLogDirectories();
   bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, boost::optional<std::string> error_msg);  // NOLINT
 
   ThreadsafeQueue<std::unique_ptr<KeyframeInfo>> keyframe_tracking_queue_;

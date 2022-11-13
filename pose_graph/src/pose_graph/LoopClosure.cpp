@@ -1,12 +1,7 @@
 #include "pose_graph/LoopClosure.h"
 
-#include <pcl/io/ply_io.h>
-#include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <ros/package.h>
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <std_srvs/Trigger.h>
 
 #include <Eigen/SVD>
 #include <algorithm>
@@ -78,12 +73,6 @@ void LoopClosure::setup() {
   db.setVocabulary(*voc_, false, 0);
   LOG(INFO) << "Vocabulary loaded!";
   pose_graph_->setBriefVocAndDB(voc_, db);
-
-  // timer_ = nh_private_.createTimer(ros::Duration(3), &LoopClosure::updatePublishGlobalMap, this);
-
-  if (params_->debug_image_) {
-    setupOutputLogDirectories();
-  }
 }
 
 void LoopClosure::run() {
@@ -121,7 +110,7 @@ void LoopClosure::run() {
       pose_graph_->addKFToPoseGraph(keyframe, 1);
 
       cv::Mat original_color_image;
-      if (!raw_image_buffer_.getValueAtTime(keyframe_info->timestamp_.toNSec(), &original_color_image)) {
+      if (!raw_image_buffer_.getNearestValueToTime(keyframe_info->timestamp_.toNSec(), &original_color_image)) {
         LOG(WARNING) << "Could not find color image for keyframe with timestamp " << keyframe_info->timestamp_.toNSec();
       } else {
         if (params_->resize_factor_ != 0) {
@@ -149,19 +138,11 @@ void LoopClosure::run() {
   }
 }
 
-void LoopClosure::updatePublishGlobalMap(const ros::TimerEvent& event) {
+void LoopClosure::getGlobalMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
   // only update the global map if the pose graph optimization is finished after loop closure
 
   if (global_map_->loop_closure_optimization_finished_) updateGlobalMap();
-
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr global_map_pcl(new pcl::PointCloud<pcl::PointXYZRGB>);
-  getGlobalPointCloud(global_map_pcl);
-  sensor_msgs::PointCloud2 pcl_msg;
-  pcl::toROSMsg(*global_map_pcl, pcl_msg);
-  pcl_msg.header.frame_id = "world";
-  pcl_msg.header.stamp = ros::Time::now();
-
-  // publisher.publishGlobalMap(pcl_msg);
+  getGlobalPointCloud(pointcloud);
 }
 
 void LoopClosure::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
@@ -197,6 +178,12 @@ void LoopClosure::addPointsToGlobalMap(const int64_t keyframe_index,
     if (quality < params_->min_landmark_quality_) continue;
     Eigen::Vector3d global_point_position(keyframe_points[i].x, keyframe_points[i].y, keyframe_points[i].z);
     Eigen::Vector3d point_cam_frame = camera_rotation.transpose() * (global_point_position - camera_translation);
+
+    Keyframe* kf = kfMapper_.find(keyframe_index)->second;
+    Eigen::Matrix3d R_w_kf;
+    Eigen::Vector3d T_w_kf;
+    kf->getPose(T_w_kf, R_w_kf);
+    global_point_position = R_w_kf * point_cam_frame + T_w_kf;
 
     cv::KeyPoint image_point = cv_keypoints[i];
     cv::Vec3b color =
@@ -250,20 +237,6 @@ void LoopClosure::updateGlobalMap() {
     global_map_->updateLandmark(landmark_id, point_3d, quality, color);
   }
   global_map_->loop_closure_optimization_finished_ = false;
-}
-
-bool LoopClosure::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
-  ROS_INFO_STREAM("!! Saving Point Cloud !!");
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-  getGlobalPointCloud(pointcloud);
-
-  std::string pkg_path = ros::package::getPath("pose_graph");
-  std::string pointcloud_file = pkg_path + "/reconstruction_results/pointcloud.ply";
-
-  pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
-  response.success = true;
-  response.message = "Saving Point Cloud ";
-  return true;
 }
 
 void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
@@ -337,92 +310,6 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, b
   }
 
   return true;
-}
-
-void LoopClosure::setupOutputLogDirectories() {
-  std::string pacakge_path = ros::package::getPath("pose_graph");
-
-  std::string output_dir = pacakge_path + "/output_logs/loop_candidates/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
-  }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
-  }
-
-  output_dir = pacakge_path + "/output_logs/descriptor_matched/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
-  }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
-  }
-
-  output_dir = pacakge_path + "/output_logs/pnp_verified/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
-  }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
-  }
-
-  output_dir = pacakge_path + "/output_logs/loop_closure/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
-  }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
-  }
-
-  output_dir = pacakge_path + "/output_logs/geometric_verification/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
-  }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
-  }
-
-  std::string loop_closure_file = pacakge_path + "/output_logs/loop_closure.txt";
-  if (boost::filesystem::exists(loop_closure_file)) {
-    boost::filesystem::remove(loop_closure_file);
-  }
-  std::ofstream loop_path_file(loop_closure_file, std::ios::out);
-  loop_path_file << "cur_kf_id"
-                 << " "
-                 << "cur_kf_ts"
-                 << " "
-                 << "matched_kf_id"
-                 << " "
-                 << "matched_kf_ts"
-                 << " "
-                 << "relative_tx"
-                 << " "
-                 << "relative_ty"
-                 << " "
-                 << "relative_tz"
-                 << " "
-                 << "relative_qx"
-                 << " "
-                 << "relative_qy"
-                 << " "
-                 << "relative_qz"
-                 << " "
-                 << "relative_qw" << std::endl;
-  loop_path_file.close();
-
-  std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
-  if (boost::filesystem::exists(switch_info_file)) {
-    boost::filesystem::remove(switch_info_file);
-  }
-  std::ofstream switch_info_file_stream(switch_info_file, std::ios::out);
-  switch_info_file_stream << "type"
-                          << " "
-                          << "vio_stamp"
-                          << " "
-                          << "prim_stamp"
-                          << " "
-                          << "uber_stamp" << std::endl;
-  switch_info_file_stream.close();
 }
 
 void LoopClosure::shutdown() {

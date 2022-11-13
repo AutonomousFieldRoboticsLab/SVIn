@@ -24,7 +24,7 @@ Parameters::Parameters() {
   loop_closure_params_.pnp_reprojection_thresh = 20.0;
   loop_closure_params_.pnp_ransac_iterations = 100;
 
-  min_landmark_quality_ = 0.001;
+  min_landmark_quality_ = 0.01;
 }
 
 void Parameters::loadParameters(const std::string& config_file) {
@@ -66,6 +66,16 @@ void Parameters::loadParameters(const std::string& config_file) {
           static_cast<int>(fsSettings["loop_closure_params"]["pnp_ransac_iterations"]);
       LOG(INFO) << "PnP ransac iterations: " << loop_closure_params_.pnp_ransac_iterations;
     }
+  }
+
+  if (fsSettings["debug_image"].isInt()) {
+    debug_image_ = static_cast<int>(fsSettings["debug_image"]);
+    LOG(INFO) << "debug_image: " << debug_image_;
+  }
+
+  if (fsSettings["landmark_quality"].isInt() || fsSettings["landmark_quality"].isReal()) {
+    min_landmark_quality_ = static_cast<float>(fsSettings["landmark_quality"]);
+    LOG(INFO) << "min landmark quality: " << min_landmark_quality_;
   }
 
   fast_relocalization_ = fsSettings["fast_relocalization"];

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
 #include <Eigen/Core>
 #include <iostream>
 #include <opencv2/core.hpp>
@@ -107,3 +110,4 @@ typedef std::function<void(const std::pair<ros::Time, Eigen::Matrix4d>&,
 typedef std::function<void(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>&,
                            const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&)>
     PathWithLoopClosureCallback;
+typedef std::function<void(pcl::PointCloud<pcl::PointXYZRGB>::Ptr&)> PointCloudCallback;

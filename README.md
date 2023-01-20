@@ -75,12 +75,12 @@ Running it on our publicly available datasets: <https://afrl.cse.sc.edu/afrl/res
 Run the launch file for Cave:
 
         source ~/svin_ws/devel/setup.bash
-        roslaunch okvis_ros svin_node_stereoRig2_water.launch
+        roslaunch okvis_ros svin_stereorig_v2.launch
 
 Or, run the launch file for Bus:
 
         source ~/svin_ws/devel/setup.bash
-        roslaunch okvis_ros svin_node_stereo_rig_water.launch
+        roslaunch okvis_ros svin_stereorig_v1.launch
 
 In different terminal, run the bag file
 

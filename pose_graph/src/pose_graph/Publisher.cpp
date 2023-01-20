@@ -69,10 +69,10 @@ void Publisher::publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>&
   pose_stamped.pose.orientation.z = quat.z();
   pose_stamped.pose.orientation.w = quat.w();
 
-  loop_closure_path_.poses.push_back(pose_stamped);
-  loop_closure_path_.header = pose_stamped.header;
+  loop_closure_traj_.poses.push_back(pose_stamped);
+  loop_closure_traj_.header = pose_stamped.header;
 
-  publishPath(loop_closure_path_, pub_loop_closure_path_);
+  publishPath(loop_closure_traj_, pub_loop_closure_path_);
 
   camera_pose_visualizer_->clearCameraPoseMarkers();
   camera_pose_visualizer_->add_pose(trans, quat);
@@ -85,7 +85,7 @@ void Publisher::publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>&
 void Publisher::publishLoopClosurePath(
     const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>& loop_closure_poses,
     const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& loop_closure_edges) {
-  loop_closure_path_.poses.clear();
+  loop_closure_traj_.poses.clear();
   camera_pose_visualizer_->reset();
   for (auto kf_pose : loop_closure_poses) {
     Eigen::Matrix3d rot = kf_pose.second.block<3, 3>(0, 0);
@@ -102,15 +102,15 @@ void Publisher::publishLoopClosurePath(
     pose_stamped.pose.orientation.z = quat.z();
     pose_stamped.pose.orientation.w = quat.w();
 
-    loop_closure_path_.poses.push_back(pose_stamped);
-    loop_closure_path_.header = pose_stamped.header;
+    loop_closure_traj_.poses.push_back(pose_stamped);
+    loop_closure_traj_.header = pose_stamped.header;
   }
 
   for (auto loop_closure_edge : loop_closure_edges) {
     camera_pose_visualizer_->add_loopedge(loop_closure_edge.first, loop_closure_edge.second);
   }
 
-  camera_pose_visualizer_->publish_by(pub_visualization_, loop_closure_path_.header);
+  camera_pose_visualizer_->publish_by(pub_visualization_, loop_closure_traj_.header);
 }
 
 void Publisher::setGlobalPointCloudFunction(const PointCloudCallback& global_pointcloud_callback) {
@@ -139,4 +139,18 @@ bool Publisher::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::Trig
   response.success = true;
   response.message = "Saving Point Cloud ";
   return true;
+}
+
+void Publisher::saveTrajectory(const std::string& filename) const {
+  std::ofstream loop_path_file(filename, std::ios::out);
+  loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
+  loop_path_file.precision(9);
+  loop_path_file << "#timestamp tx ty tz qx qy qz qw" << std::endl;
+  for (geometry_msgs::PoseStamped keyframe_pose : loop_closure_traj_.poses) {
+    geometry_msgs::Quaternion quat = keyframe_pose.pose.orientation;
+    geometry_msgs::Point pos = keyframe_pose.pose.position;
+    loop_path_file << keyframe_pose.header.stamp << " " << pos.x << " " << pos.y << " " << pos.z << " " << quat.x << " "
+                   << quat.y << " " << quat.z << " " << quat.w << std::endl;
+  }
+  loop_path_file.close();
 }

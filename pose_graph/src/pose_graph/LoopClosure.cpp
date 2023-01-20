@@ -17,10 +17,9 @@
 #include "utils/Statistics.h"
 #include "utils/UtilsOpenCV.h"
 
-LoopClosure::LoopClosure(std::shared_ptr<Parameters> params)
+LoopClosure::LoopClosure(Parameters& params)
     : params_(params),
       pose_graph_(nullptr),
-      camera_pose_visualizer_(nullptr),
       global_map_(nullptr),
       keyframe_tracking_queue_("keyframe_queue"),
       raw_image_buffer_(kBufferLengthNs) {
@@ -54,21 +53,19 @@ LoopClosure::LoopClosure(std::shared_ptr<Parameters> params)
 }
 
 void LoopClosure::setup() {
-  global_map_ = std::unique_ptr<GlobalMap>(new GlobalMap());
   pose_graph_ = std::unique_ptr<PoseGraph>(new PoseGraph());
 
-  pose_graph_->set_svin_results_file(params_->svin_w_loop_path_);
-  pose_graph_->set_fast_relocalization(params_->fast_relocalization_);
-  pose_graph_->setLoopClosureOptimizationCallback(
-      std::bind(&GlobalMap::loopClosureOptimizationFinishCallback, global_map_.get(), std::placeholders::_1));
+  pose_graph_->set_fast_relocalization(params_.fast_relocalization_);
+
+  if (params_.global_mapping_params_.enabled) {
+    global_map_ = std::unique_ptr<GlobalMap>(new GlobalMap());
+    pose_graph_->setLoopClosureOptimizationCallback(
+        std::bind(&GlobalMap::loopClosureOptimizationFinishCallback, global_map_.get(), std::placeholders::_1));
+  }
   pose_graph_->startOptimizationThread();
 
-  camera_pose_visualizer_ = std::unique_ptr<CameraPoseVisualization>(new CameraPoseVisualization(1, 0, 0, 1));
-  camera_pose_visualizer_->setScale(params_->camera_visual_size_);
-  camera_pose_visualizer_->setLineWidth(params_->camera_visual_size_ / 10.0);
-
   // Loading vocabulary
-  voc_ = new BriefVocabulary(params_->vocabulary_file_);
+  voc_ = new BriefVocabulary(params_.vocabulary_file_);
   BriefDatabase db;
   db.setVocabulary(*voc_, false, 0);
   LOG(INFO) << "Vocabulary loaded!";
@@ -105,32 +102,35 @@ void LoopClosure::run() {
                                         KFcounter,
                                         sequence_,
                                         voc_,
-                                        *params_);
+                                        params_);
       kfMapper_.insert(std::make_pair(keyframe_info->keyframe_index_, keyframe));
       pose_graph_->addKFToPoseGraph(keyframe, 1);
 
-      cv::Mat original_color_image;
-      if (!raw_image_buffer_.getNearestValueToTime(keyframe_info->timestamp_.toNSec(), &original_color_image)) {
-        LOG(WARNING) << "Could not find color image for keyframe with timestamp " << keyframe_info->timestamp_.toNSec();
-      } else {
-        if (params_->resize_factor_ != 0) {
-          cv::resize(original_color_image,
-                     original_color_image,
-                     cv::Size(params_->image_width_, params_->image_height_),
-                     cv::INTER_LINEAR);
-        }
-        if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
-          addPointsToGlobalMap(keyframe_info->keyframe_index_,
-                               original_color_image,
-                               keyframe_info->rotation_,
-                               keyframe_info->translation_,
-                               keyframe_info->keyfame_points_,
-                               keyframe_info->tracking_info_.points_quality_,
-                               keyframe_info->keypoint_ids_,
-
-                               keyframe_info->cv_keypoints_);
+      if (params_.global_mapping_params_.enabled) {
+        cv::Mat original_color_image;
+        if (!raw_image_buffer_.getNearestValueToTime(keyframe_info->timestamp_.toNSec(), &original_color_image)) {
+          LOG(WARNING) << "Could not find color image for keyframe with timestamp "
+                       << keyframe_info->timestamp_.toNSec();
         } else {
-          LOG(WARNING) << "Keyframe not found";
+          if (params_.resize_factor_ != 0) {
+            cv::resize(original_color_image,
+                       original_color_image,
+                       cv::Size(params_.image_width_, params_.image_height_),
+                       cv::INTER_LINEAR);
+          }
+          if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
+            addPointsToGlobalMap(keyframe_info->keyframe_index_,
+                                 original_color_image,
+                                 keyframe_info->rotation_,
+                                 keyframe_info->translation_,
+                                 keyframe_info->keyfame_points_,
+                                 keyframe_info->tracking_info_.points_quality_,
+                                 keyframe_info->keypoint_ids_,
+
+                                 keyframe_info->cv_keypoints_);
+          } else {
+            LOG(WARNING) << "Keyframe not found";
+          }
         }
       }
     }
@@ -140,7 +140,6 @@ void LoopClosure::run() {
 
 void LoopClosure::getGlobalMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
   // only update the global map if the pose graph optimization is finished after loop closure
-
   if (global_map_->loop_closure_optimization_finished_) updateGlobalMap();
   getGlobalPointCloud(pointcloud);
 }
@@ -152,7 +151,7 @@ void LoopClosure::getGlobalPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& po
     Eigen::Vector3d color = point_landmark.color_;
     double quality = point_landmark.quality_;
 
-    if (quality > params_->min_landmark_quality_) {
+    if (quality > params_.global_mapping_params_.min_lmk_quality) {
       pcl::PointXYZRGB point;
       point.x = global_pos(0);
       point.y = global_pos(1);
@@ -175,7 +174,7 @@ void LoopClosure::addPointsToGlobalMap(const int64_t keyframe_index,
                                        const std::vector<cv::KeyPoint>& cv_keypoints) {
   for (size_t i = 0; i < keyframe_points.size(); ++i) {
     float quality = point_qualities[i];
-    if (quality < params_->min_landmark_quality_) continue;
+    if (quality < params_.global_mapping_params_.min_lmk_quality) continue;
     Eigen::Vector3d global_point_position(keyframe_points[i].x, keyframe_points[i].y, keyframe_points[i].z);
     Eigen::Vector3d point_cam_frame = camera_rotation.transpose() * (global_point_position - camera_translation);
 
@@ -244,8 +243,8 @@ void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConst
   pose_stamped.header = pose_msg->header;
   pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
   pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
-                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_->T_body_imu_ *
-                                               params_->T_imu_cam0_);
+                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_.T_body_imu_ *
+                                               params_.T_imu_cam0_);
   primitive_estimator_poses_.push_back(pose_stamped);
 }
 
@@ -253,7 +252,7 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, b
   std::stringstream ss;
   std::setprecision(5);
 
-  HealthParams health_params = params_->health_params_;
+  HealthParams health_params = params_.health_params_;
   uint32_t total_triangulated_keypoints = health_msg->numTrackedKps;
 
   if (total_triangulated_keypoints < health_params.min_tracked_keypoints) {

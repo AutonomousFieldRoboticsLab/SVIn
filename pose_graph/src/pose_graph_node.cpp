@@ -69,13 +69,11 @@ void setupOutputLogDirectories() {
                  << " "
                  << "relative_tz"
                  << " "
-                 << "relative_qx"
+                 << "relative_yaw"
                  << " "
-                 << "relative_qy"
+                 << "relative_pitch"
                  << " "
-                 << "relative_qz"
-                 << " "
-                 << "relative_qw" << std::endl;
+                 << "relative_roll" << std::endl;
   loop_path_file.close();
 
   std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
@@ -110,16 +108,14 @@ int main(int argc, char** argv) {
   std::string config_file;
   nh.getParam("config_file", config_file);
 
-  std::shared_ptr<Parameters> params = std::make_shared<Parameters>();
-  params->loadParameters(config_file);
+  Parameters params;
+  params.loadParameters(config_file);
   setupOutputLogDirectories();
 
   auto subscriber = std::make_unique<Subscriber>(nh, params);
   auto loop_closure = std::make_unique<LoopClosure>(params);
   auto publisher = std::make_unique<Publisher>(nh);
 
-  publisher->setGlobalPointCloudFunction(
-      std::bind(&LoopClosure::getGlobalMap, loop_closure.get(), std::placeholders::_1));
   loop_closure->setKeyframePoseCallback(
       std::bind(&Publisher::publishKeyframePath, publisher.get(), std::placeholders::_1, std::placeholders::_2));
   loop_closure->setLoopClosureCallback(
@@ -127,15 +123,23 @@ int main(int argc, char** argv) {
 
   subscriber->registerKeyframeCallback(
       std::bind(&LoopClosure::fillKeyframeTrackingQueue, loop_closure.get(), std::placeholders::_1));
-  subscriber->registerImageCallback(std::bind(&LoopClosure::fillImageQueue, loop_closure.get(), std::placeholders::_1));
+
+  ros::Timer timer;
+  ros::ServiceServer pointcloud_service;
+
+  if (params.global_mapping_params_.enabled) {
+    publisher->setGlobalPointCloudFunction(
+        std::bind(&LoopClosure::getGlobalMap, loop_closure.get(), std::placeholders::_1));
+    subscriber->registerImageCallback(
+        std::bind(&LoopClosure::fillImageQueue, loop_closure.get(), std::placeholders::_1));
+    timer = nh.createTimer(ros::Duration(5), &Publisher::updatePublishGlobalMap, publisher.get());
+    pointcloud_service = nh.advertiseService("save_pointcloud", &Publisher::savePointCloud, publisher.get());
+  }
 
   auto process_thread = std::thread(&LoopClosure::run, loop_closure.get());
 
   ros::Time last_print_time = ros::Time::now();
 
-  ros::Timer timer = nh.createTimer(ros::Duration(5), &Publisher::updatePublishGlobalMap, publisher.get());
-  ros::ServiceServer pointcloud_service =
-      nh.advertiseService("save_pointcloud", &Publisher::savePointCloud, publisher.get());
   while (ros::ok()) {
     ros::spinOnce();
     if (ros::Time::now() - last_print_time > ros::Duration(10.0)) {
@@ -144,6 +148,7 @@ int main(int argc, char** argv) {
     }
   }
 
+  publisher->saveTrajectory(params.svin_w_loop_path_);
   LOG(INFO) << "Shutting down threads...";
   loop_closure->shutdown();
 

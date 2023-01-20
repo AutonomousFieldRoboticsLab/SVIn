@@ -38,6 +38,8 @@ class Publisher {
   void setGlobalPointCloudFunction(const PointCloudCallback& global_pointcloud_callback);
   bool savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);  // NOLINT
 
+  void saveTrajectory(const std::string& filename) const;
+
  private:
   ros::Publisher pub_matched_points_;  // Publish keyframe matched points
   ros::Publisher pub_gloal_map_;       // Publishes sparse global map deformed after loop closure
@@ -50,7 +52,7 @@ class Publisher {
   ros::Publisher pub_kf_connections_;      // Publisher keyframe connections
   ros::Publisher pub_visualization_;       // Publishes visualization markers for rviz
 
-  nav_msgs::Path loop_closure_path_;
+  nav_msgs::Path loop_closure_traj_;
   std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
 
   PointCloudCallback pointcloud_callback_;

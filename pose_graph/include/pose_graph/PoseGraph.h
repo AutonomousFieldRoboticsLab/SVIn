@@ -28,8 +28,6 @@
 #include "utils/CameraPoseVisualization.h"
 #include "utils/Utils.h"
 
-#define SAVE_LOOP_PATH true
-
 class PoseGraph {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -60,7 +58,6 @@ class PoseGraph {
 
  private:
   int detectLoop(Keyframe* keyframe, int frame_index);
-  void addKeyFrameIntoVoc(Keyframe* keyframe);
   void optimize4DoFPoseGraph();
   void optimize6DoFPoseGraph();
   void updatePath();
@@ -82,11 +79,9 @@ class PoseGraph {
   BriefDatabase db;
   BriefVocabulary* voc;
 
-  std::string svin_output_file_;
   bool is_fast_localization_;
 
  public:
-  void set_svin_results_file(const std::string& svin_output_file);
   void set_fast_relocalization(const bool localization_flag);
   void startOptimizationThread(bool is_vio_optimization = true);
 };

@@ -16,7 +16,6 @@
 #include "pose_graph/Keyframe.h"
 #include "pose_graph/Parameters.h"
 #include "pose_graph/PoseGraph.h"
-#include "utils/CameraPoseVisualization.h"
 #include "utils/ThreadSafeQueue.h"
 #include "utils/ThreadsafeTemporalBuffer.h"
 
@@ -24,7 +23,7 @@ class LoopClosure {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  LoopClosure(std::shared_ptr<Parameters> params);
+  LoopClosure(Parameters& params);
   ~LoopClosure() = default;
 
   void run();
@@ -59,11 +58,9 @@ class LoopClosure {
  private:
   void setup();
   static constexpr int64_t kBufferLengthNs = 2000000000;  // 2 seconds
-  ros::NodeHandle nh_private_;
 
-  std::shared_ptr<Parameters> params_;
+  Parameters params_;
   std::unique_ptr<PoseGraph> pose_graph_;
-  std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
   std::unique_ptr<GlobalMap> global_map_;
   std::map<int, Keyframe*> kfMapper_;  // Mapping between kf_index and Keyframe*; to make KFcounter
 

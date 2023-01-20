@@ -18,11 +18,11 @@ PoseGraph::PoseGraph() {
   sequence_cnt = 0;
   sequence_loop.push_back(0);
   base_sequence = 1;
+  is_fast_localization_ = true;
 }
 
 PoseGraph::~PoseGraph() { t_optimization.join(); }
 
-void PoseGraph::set_svin_results_file(const std::string& svin_output_file) { svin_output_file_ = svin_output_file; }
 void PoseGraph::set_fast_relocalization(const bool fast_relocalization) { is_fast_localization_ = fast_relocalization; }
 
 void PoseGraph::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase database) {
@@ -67,7 +67,7 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
   if (flag_detect_loop) {  // at least 20 KF has been passed
     loop_index = detectLoop(cur_kf, cur_kf->index);
   } else {
-    addKeyFrameIntoVoc(cur_kf);
+    db.add(cur_kf->brief_descriptors);
   }
 
   if (loop_index != -1) {
@@ -216,11 +216,6 @@ int PoseGraph::detectLoop(Keyframe* keyframe, int frame_index) {
   } else {
     return -1;
   }
-}
-
-void PoseGraph::addKeyFrameIntoVoc(Keyframe* keyframe) {
-  cv::Mat compressed_image;
-  db.add(keyframe->brief_descriptors);
 }
 
 void PoseGraph::optimize4DoFPoseGraph() {
@@ -374,9 +369,6 @@ void PoseGraph::optimize4DoFPoseGraph() {
       updatePath();
       if (loop_closure_optimization_callback_) loop_closure_optimization_callback_(ros::Time::now().toNSec());
     }
-
-    std::chrono::milliseconds dura(100);
-    std::this_thread::sleep_for(dura);
   }
 }
 
@@ -537,11 +529,8 @@ void PoseGraph::optimize6DoFPoseGraph() {
       }
       updatePath();
 
-      loop_closure_optimization_callback_(ros::Time::now().toNSec());
+      if (loop_closure_optimization_callback_) loop_closure_optimization_callback_(ros::Time::now().toNSec());
     }
-
-    std::chrono::milliseconds dura(100);
-    std::this_thread::sleep_for(dura);
   }
 }
 
@@ -549,11 +538,6 @@ void PoseGraph::updatePath() {
   std::lock_guard<std::mutex> l(kflistMutex_);
 
   std::list<Keyframe*>::iterator it;
-
-  if (SAVE_LOOP_PATH) {
-    std::ofstream loop_path_file_tmp(svin_output_file_, std::ios::out);
-    loop_path_file_tmp.close();
-  }
 
   std::vector<std::pair<ros::Time, Eigen::Matrix4d>> loop_closure_path;
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> loop_closure_edges;
@@ -569,17 +553,6 @@ void PoseGraph::updatePath() {
     pose.second.block<3, 3>(0, 0) = R;
     pose.second.block<3, 1>(0, 3) = P;
     loop_closure_path.push_back(pose);
-
-    if (SAVE_LOOP_PATH) {
-      std::ofstream loop_path_file(svin_output_file_, std::ios::app);
-      loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
-
-      loop_path_file.precision(9);
-      loop_path_file << (*it)->time_stamp << " ";
-      loop_path_file << P.x() << " " << P.y() << " " << P.z() << " " << Q.x() << " " << Q.y() << " " << Q.z() << " "
-                     << Q.w() << std::endl;
-      loop_path_file.close();
-    }
 
     if ((*it)->has_loop) {
       Keyframe* connected_KF = getKFPtr((*it)->loop_index);

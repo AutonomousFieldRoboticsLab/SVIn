@@ -10,7 +10,7 @@
 #include "utils/Timer.h"
 #include "utils/UtilsOpenCV.h"
 
-Subscriber::Subscriber(ros::NodeHandle& nh, std::shared_ptr<Parameters> params) : params_(params) {
+Subscriber::Subscriber(ros::NodeHandle& nh, Parameters& params) : params_(params) {
   // TODO(bjoshi): pass as params from roslaunch file
   kf_image_topic_ = "/okvis_node/keyframe_imageL";
   kf_pose_topic_ = "/okvis_node/keyframe_pose";
@@ -43,10 +43,11 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
       svin_health_subscriber_);
   sync_keyframe_->registerCallback(boost::bind(&Subscriber::keyframeCallback, this, _1, _2, _3, _4));
 
-  sub_orig_image_ =
-      it_->subscribe(raw_image_topic_, 100, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
-
-  if (params_->health_params_.health_monitoring_enabled) {
+  if (params_.global_mapping_params_.enabled) {
+    sub_orig_image_ =
+        it_->subscribe(raw_image_topic_, 100, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
+  }
+  if (params_.health_params_.enabled) {
     sub_primitive_estimator_ =
         nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
   }

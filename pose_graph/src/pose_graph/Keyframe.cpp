@@ -491,7 +491,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
 
     relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());
 
-    if (abs(relative_yaw) < 30.0 && relative_t.norm() < 20.0) {
+    if (abs(relative_yaw) < 25.0 && relative_t.norm() < 15.0) {
       if (params_.debug_image_) {
         cv::Mat loop_image =
             UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
@@ -523,10 +523,8 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
         Eigen::Vector3d relative_ypr = Utility::R2ypr(relative_q.toRotationMatrix());
         loop_closure_file.precision(9);
         loop_closure_file << index << " " << time_stamp << " " << old_kf->index << " " << old_kf->time_stamp << " "
-                          << relative_ypr.transpose() << " "
-                          << " " << relative_t.x() << " " << relative_t.y() << " " << relative_t.z() << " "
-                          << relative_q.x() << " " << relative_q.y() << " " << relative_q.z() << " " << relative_q.w()
-                          << std::endl;
+                          << relative_t.x() << " " << relative_t.y() << " " << relative_t.z() << " "
+                          << relative_ypr.transpose() << std::endl;
         loop_closure_file.close();
       }
       has_loop = true;

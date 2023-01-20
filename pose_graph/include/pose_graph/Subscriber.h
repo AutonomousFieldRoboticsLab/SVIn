@@ -20,7 +20,7 @@
 class Subscriber {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Subscriber(ros::NodeHandle& nh, std::shared_ptr<Parameters> params);  // NOLINT
+  Subscriber(ros::NodeHandle& nh, Parameters& params);  // NOLINT
   Subscriber() {}
 
   ~Subscriber() = default;
@@ -36,7 +36,7 @@ class Subscriber {
   ros::NodeHandle* nh_;  // The node handle of the node that will subscribe to the topic.
   std::unique_ptr<image_transport::ImageTransport> it_;  // The image transport.
 
-  std::shared_ptr<Parameters> params_;  // The parameters of the node.
+  Parameters params_;  // The parameters of the node.
 
   // Subscriber to the keyframe points, image, pose and svin health.
   typedef image_transport::SubscriberFilter ImageSubscriber;

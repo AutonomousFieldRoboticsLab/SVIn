@@ -19,12 +19,11 @@ Parameters::Parameters() {
   debug_image_ = false;
   image_delay_ = 0.0;
 
-  loop_closure_params_.loop_closure_enabled = true;
+  // Enable loop closure by default
+  loop_closure_params_.enabled = true;
   loop_closure_params_.min_correspondences = 25;
   loop_closure_params_.pnp_reprojection_thresh = 20.0;
   loop_closure_params_.pnp_ransac_iterations = 100;
-
-  min_landmark_quality_ = 0.01;
 }
 
 void Parameters::loadParameters(const std::string& config_file) {
@@ -43,8 +42,8 @@ void Parameters::loadParameters(const std::string& config_file) {
   brief_pattern_file_ = pkg_path + "/Vocabulary/brief_pattern.yml";
 
   if (fsSettings["loop_closure_params"]["enable"].isInt()) {
-    loop_closure_params_.loop_closure_enabled = static_cast<int>(fsSettings["loop_closure_params"]["enable"]);
-    LOG(INFO) << "loop_closure_params.enable: " << loop_closure_params_.loop_closure_enabled;
+    loop_closure_params_.enabled = static_cast<int>(fsSettings["loop_closure_params"]["enable"]);
+    LOG(INFO) << "loop_closure_params.enable: " << loop_closure_params_.enabled;
 
     if (fsSettings["loop_closure_params"]["min_correspondences"].isInt() ||
         fsSettings["loop_closure_params"]["min_correspondences"].isReal()) {
@@ -73,9 +72,16 @@ void Parameters::loadParameters(const std::string& config_file) {
     LOG(INFO) << "debug_image: " << debug_image_;
   }
 
-  if (fsSettings["landmark_quality"].isInt() || fsSettings["landmark_quality"].isReal()) {
-    min_landmark_quality_ = static_cast<float>(fsSettings["landmark_quality"]);
-    LOG(INFO) << "min landmark quality: " << min_landmark_quality_;
+  if (fsSettings["global_map_params"]["enable"].isInt()) {
+    global_mapping_params_.enabled = static_cast<int>(fsSettings["global_map_params"]["enable"]);
+    LOG(INFO) << "global_map.enable: " << global_mapping_params_.enabled;
+
+    if (fsSettings["global_map_params"]["min_landmark_quality"].isInt() ||
+        fsSettings["global_map_params"]["min_landmark_quality"].isReal()) {
+      global_mapping_params_.min_lmk_quality =
+          static_cast<double>(fsSettings["global_map_params"]["min_landmark_quality"]);
+      LOG(INFO) << "Minimum landmark quality to add to global map:" << global_mapping_params_.min_lmk_quality;
+    }
   }
 
   fast_relocalization_ = fsSettings["fast_relocalization"];
@@ -83,8 +89,6 @@ void Parameters::loadParameters(const std::string& config_file) {
   svin_w_loop_path_ = pkg_path + "/svin_results/svin_" + Utility::getTimeStr() + ".txt";
 
   std::cout << "SVIN Result path: " << svin_w_loop_path_ << std::endl;
-  std::ofstream fout(svin_w_loop_path_, std::ios::out);
-  fout.close();
 
   // Read config file parameters
   resize_factor_ = static_cast<double>(fsSettings["resizeFactor"]);
@@ -130,8 +134,6 @@ void Parameters::loadParameters(const std::string& config_file) {
   cv::Size image_size(image_width_, image_height_);
   LOG(INFO) << "distortion_coefficients: " << distortion_coeffs_;
   LOG(INFO) << "camera_matrix : \n" << K;
-  cv::initUndistortRectifyMap(
-      K, distortion_coeffs_, cv::Mat(), K, image_size, CV_32FC1, cam0_undistort_map_x_, cam0_undistort_map_y_);
 
   cv::FileNode t_s_c_node = fsSettings["T_S_C"];
   T_imu_cam0_ = Eigen::Matrix4d::Identity();

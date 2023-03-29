@@ -12,7 +12,7 @@ set(OKVIS_VERSION
 option (USE_SYSTEM_BRISK
         "Use brisk via find_package rather than downloading it as part of okvis" ON) 
 option (USE_SYSTEM_CERES
-        "Use ceres via find_package rather than downloading it as part of okvis" ON) 
+        "Use ceres via find_package rather than downloading it as part of okvis" OFF) 
 option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON) 
 option (BUILD_TESTS
@@ -146,7 +146,7 @@ if(${USE_SYSTEM_CERES})
   message(STATUS "Using system Ceres.")
 else()
   set(CERES_VERSION 1.14.0)
-  set(CERES_TAG facb199f3eda902360f9e1d5271372b7e54febe1) #version 1.14
+  set(CERES_TAG aeebc66bd8ff5db65b852dac0cbac28f618ac5d8) #version 1.14
   ExternalProject_Add(ceres_external
     GIT_REPOSITORY https://ceres-solver.googlesource.com/ceres-solver
     GIT_TAG ${CERES_TAG}

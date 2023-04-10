@@ -31,7 +31,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(OpenCV)
 find_package(PCL  REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)
-find_package(opengv REQUIRED)
+# find_package(opengv REQUIRED)
 find_package(Glog REQUIRED)
 
 # brisk
@@ -64,6 +64,7 @@ add_library(${PROJECT_NAME}
     src/pose_graph/PoseGraph.cpp
     src/pose_graph/Publisher.cpp
     src/pose_graph/Subscriber.cpp
+    # src/pose_graph/SwitchingEstimator.cpp
     src/utils/CameraPoseVisualization.cpp
     src/utils/UtilsOpenCV.cpp
     src/utils/Utils.cpp

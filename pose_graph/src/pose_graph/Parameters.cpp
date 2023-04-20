@@ -16,7 +16,7 @@ Parameters::Parameters() {
   health_params_.min_tracked_keypoints = 8;
   health_params_.kf_wait_time = 0.5;
   health_params_.consecutive_keyframes = 5;
-  debug_image_ = false;
+  debug_mode_ = false;
   image_delay_ = 0.0;
 
   // Enable loop closure by default
@@ -67,9 +67,16 @@ void Parameters::loadParameters(const std::string& config_file) {
     }
   }
 
-  if (fsSettings["debug_image"].isInt()) {
-    debug_image_ = static_cast<int>(fsSettings["debug_image"]);
-    LOG(INFO) << "debug_image: " << debug_image_;
+  if (fsSettings["debug"]["enable"].isInt()) {
+    debug_mode_ = static_cast<int>(fsSettings["debug"]["enable"]);
+    if (fsSettings["debug"]["output_dir"].isString()) {
+      debug_output_path_ = static_cast<std::string>(fsSettings["debug"]["output_dir"]);
+      LOG(INFO) << "Debug output folder: " << debug_output_path_;
+    } else {
+      LOG(WARNING) << "Could not found output folder for debug images.";
+      LOG(WARNING) << "setting debug mode to false";
+      debug_mode_ = false;
+    }
   }
 
   if (fsSettings["global_map_params"]["enable"].isInt()) {
@@ -81,6 +88,32 @@ void Parameters::loadParameters(const std::string& config_file) {
       global_mapping_params_.min_lmk_quality =
           static_cast<double>(fsSettings["global_map_params"]["min_landmark_quality"]);
       LOG(INFO) << "Minimum landmark quality to add to global map:" << global_mapping_params_.min_lmk_quality;
+    }
+  }
+
+  if (fsSettings["health"]["enable"].isInt()) {
+    health_params_.enabled = static_cast<int>(fsSettings["health"]["enable"]);
+    LOG(INFO) << "health_params_.enable: " << health_params_.enabled;
+
+    if (fsSettings["health"]["min_keypoints"].isInt() || fsSettings["health"]["min_keypoints"].isReal()) {
+      health_params_.min_tracked_keypoints = static_cast<int>(fsSettings["health"]["min_keypoints"]);
+      LOG(INFO) << "health_params_.min_tracked_keypoints :" << health_params_.min_tracked_keypoints;
+    }
+
+    if (fsSettings["health"]["consecutive_keyframes"].isReal() ||
+        fsSettings["health"]["consecutive_keyframes"].isInt()) {
+      health_params_.consecutive_keyframes = static_cast<double>(fsSettings["health"]["consecutive_keyframes"]);
+      LOG(INFO) << "health_params_.consecutive keyframes check " << health_params_.consecutive_keyframes;
+    }
+
+    if (fsSettings["health"]["keyframe_wait_time"].isInt() || fsSettings["health"]["keyframe_wait_time"].isReal()) {
+      health_params_.kf_wait_time = static_cast<float>(fsSettings["health"]["keyframe_wait_time"]);
+      LOG(INFO) << "health_params_.keyframe wait time: " << health_params_.kf_wait_time;
+    }
+
+    if (fsSettings["health"]["kps_per_quadrant"].isInt() || fsSettings["health"]["kps_per_quadrant"].isReal()) {
+      health_params_.kps_per_quadrant = static_cast<int>(fsSettings["health"]["kps_per_quadrant"]);
+      LOG(INFO) << "health_params_.keypoints_per_quadrant: " << health_params_.kps_per_quadrant;
     }
   }
 
@@ -135,7 +168,7 @@ void Parameters::loadParameters(const std::string& config_file) {
   LOG(INFO) << "distortion_coefficients: " << distortion_coeffs_;
   LOG(INFO) << "camera_matrix : \n" << K;
 
-  cv::FileNode t_s_c_node = fsSettings["T_S_C"];
+  cv::FileNode t_s_c_node = fsSettings["T_SC"];
   T_imu_cam0_ = Eigen::Matrix4d::Identity();
   if (t_s_c_node.isSeq()) {
     T_imu_cam0_(0, 0) = static_cast<double>(t_s_c_node[0]);
@@ -152,7 +185,26 @@ void Parameters::loadParameters(const std::string& config_file) {
     T_imu_cam0_(2, 3) = static_cast<double>(t_s_c_node[11]);
   }
 
-  LOG(INFO) << "T_imu_cam0: " << T_imu_cam0_;
+  LOG(INFO) << "T_imu_cam0: \n" << T_imu_cam0_;
+
+  cv::FileNode t_bs_node = fsSettings["T_BS"];
+  T_body_imu_ = Eigen::Matrix4d::Identity();
+  if (t_bs_node.isSeq()) {
+    T_body_imu_(0, 0) = static_cast<double>(t_bs_node[0]);
+    T_body_imu_(0, 1) = static_cast<double>(t_bs_node[1]);
+    T_body_imu_(0, 2) = static_cast<double>(t_bs_node[2]);
+    T_body_imu_(0, 3) = static_cast<double>(t_bs_node[3]);
+    T_body_imu_(1, 0) = static_cast<double>(t_bs_node[4]);
+    T_body_imu_(1, 1) = static_cast<double>(t_bs_node[5]);
+    T_body_imu_(1, 2) = static_cast<double>(t_bs_node[6]);
+    T_body_imu_(1, 3) = static_cast<double>(t_bs_node[7]);
+    T_body_imu_(2, 0) = static_cast<double>(t_bs_node[8]);
+    T_body_imu_(2, 1) = static_cast<double>(t_bs_node[9]);
+    T_body_imu_(2, 2) = static_cast<double>(t_bs_node[10]);
+    T_body_imu_(2, 3) = static_cast<double>(t_bs_node[11]);
+  }
+
+  LOG(INFO) << "T_BS: \n" << T_body_imu_;
 
   fsSettings.release();
 }

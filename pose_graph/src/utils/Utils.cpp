@@ -70,3 +70,9 @@ std::string Utility::healthMsgToString(const okvis_ros::SvinHealthConstPtr& heal
 
   return ss.str();
 }
+
+ros::Time Utility::toRosTime(const Timestamp t) {
+  uint32_t nsec_part = t % 1000000000UL;
+  uint32_t sec_part = static_cast<uint64_t>(t) / 1000000000UL;
+  return ros::Time(sec_part, nsec_part);
+}

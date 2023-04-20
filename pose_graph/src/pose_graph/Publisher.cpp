@@ -12,6 +12,8 @@
 
 #include <vector>
 
+#include "utils/Utils.h"
+
 Publisher::Publisher(ros::NodeHandle& nh) {
   // Publishers
   pub_matched_points_ = nh.advertise<sensor_msgs::PointCloud>("match_points", 100);
@@ -52,14 +54,14 @@ void Publisher::publishOdometry(const nav_msgs::Odometry& odom, const ros::Publi
   publisher.publish(odom);
 }
 
-void Publisher::publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>& kf_pose,
+void Publisher::publishKeyframePath(const std::pair<Timestamp, Eigen::Matrix4d>& kf_pose,
                                     const std::pair<Eigen::Vector3d, Eigen::Vector3d>& loop_closure_edge) {
   Eigen::Matrix3d rot = kf_pose.second.block<3, 3>(0, 0);
   Eigen::Quaterniond quat(rot);
   Eigen::Vector3d trans = kf_pose.second.block<3, 1>(0, 3);
 
   geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.header.stamp = kf_pose.first;
+  pose_stamped.header.stamp = Utility::toRosTime(kf_pose.first);
   pose_stamped.header.frame_id = "world";
   pose_stamped.pose.position.x = trans.x();
   pose_stamped.pose.position.y = trans.y();
@@ -83,7 +85,7 @@ void Publisher::publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>&
 }
 
 void Publisher::publishLoopClosurePath(
-    const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>& loop_closure_poses,
+    const std::vector<std::pair<Timestamp, Eigen::Matrix4d>>& loop_closure_poses,
     const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& loop_closure_edges) {
   loop_closure_traj_.poses.clear();
   camera_pose_visualizer_->reset();
@@ -92,7 +94,7 @@ void Publisher::publishLoopClosurePath(
     Eigen::Quaterniond quat(rot);
     Eigen::Vector3d trans = kf_pose.second.block<3, 1>(0, 3);
     geometry_msgs::PoseStamped pose_stamped;
-    pose_stamped.header.stamp = kf_pose.first;
+    pose_stamped.header.stamp = Utility::toRosTime(kf_pose.first);
     pose_stamped.header.frame_id = "world";
     pose_stamped.pose.position.x = trans.x();
     pose_stamped.pose.position.y = trans.y();

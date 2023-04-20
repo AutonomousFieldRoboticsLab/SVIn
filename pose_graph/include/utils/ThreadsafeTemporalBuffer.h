@@ -85,6 +85,7 @@ class ThreadsafeTemporalBuffer {
 
   bool getOldestValue(ValueType* value) const;
   bool getNewestValue(ValueType* value) const;
+  bool getNewestValue(ValueType* value, Timestamp* timestamp_ns) const;
 
   // These functions return False if there is no valid time.
   bool getValueAtOrBeforeTime(Timestamp timestamp_ns, Timestamp* timestamp_ns_of_value, ValueType* value) const;

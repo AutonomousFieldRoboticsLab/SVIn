@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glog/logging.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <std_srvs/Trigger.h>
@@ -16,6 +17,7 @@
 #include "pose_graph/Keyframe.h"
 #include "pose_graph/Parameters.h"
 #include "pose_graph/PoseGraph.h"
+#include "pose_graph/SwitchingEstimator.h"
 #include "utils/ThreadSafeQueue.h"
 #include "utils/ThreadsafeTemporalBuffer.h"
 
@@ -45,9 +47,14 @@ class LoopClosure {
     keyframe_tracking_queue_.push(std::move(keyframe_info));
   }
 
-  inline void fillImageQueue(std::unique_ptr<std::pair<ros::Time, cv::Mat>> original_image_with_timestamp) {
+  inline void fillImageQueue(std::unique_ptr<std::pair<Timestamp, cv::Mat>> original_image_with_timestamp) {
     CHECK(original_image_with_timestamp);
-    raw_image_buffer_.addValue(original_image_with_timestamp->first.toNSec(), original_image_with_timestamp->second);
+    raw_image_buffer_.addValue(original_image_with_timestamp->first, original_image_with_timestamp->second);
+  }
+
+  inline void fillPrimitiveEstimatorBuffer(std::unique_ptr<std::pair<Timestamp, cv::Mat>> primitive_estimator_pose) {
+    DLOG(INFO) << "Filling primitive estimator buffer";
+    primitive_estimator_poses_buffer_.addValue(primitive_estimator_pose->first, primitive_estimator_pose->second);
   }
 
   void shutdown();
@@ -62,6 +69,8 @@ class LoopClosure {
   Parameters params_;
   std::unique_ptr<PoseGraph> pose_graph_;
   std::unique_ptr<GlobalMap> global_map_;
+  std::unique_ptr<SwitchingEstimator> switching_estimator_;
+
   std::map<int, Keyframe*> kfMapper_;  // Mapping between kf_index and Keyframe*; to make KFcounter
 
   int frame_index_;
@@ -82,8 +91,8 @@ class LoopClosure {
   Eigen::Matrix4d init_t_w_prim_, init_t_w_svin_;
   Eigen::Matrix4d switch_svin_pose_, switch_prim_pose_, switch_uber_pose_, last_scaled_prim_pose_;
 
-  std::vector<geometry_msgs::PoseStamped> primitive_estimator_poses_;
-  std::vector<geometry_msgs::PoseStamped> uber_estimator_poses_;
+  std::vector<std::pair<Timestamp, Eigen::Matrix4d>> primitive_estimator_poses_;
+  std::vector<std::pair<Timestamp, Eigen::Matrix4d>> robust_estimator_poses_;
 
   TrackingStatus tracking_status_;
   uint32_t prim_estimator_keyframes_;
@@ -91,10 +100,13 @@ class LoopClosure {
   double prim_traj_length_;
 
   void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
-  bool healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, boost::optional<std::string> error_msg);  // NOLINT
+  bool healthCheck(const TrackingInfo& tracking_info, boost::optional<std::string> error_message);
 
   ThreadsafeQueue<std::unique_ptr<KeyframeInfo>> keyframe_tracking_queue_;
   utils::ThreadsafeTemporalBuffer<cv::Mat> raw_image_buffer_;
+
+  // TODO(bjoshi): I had issues with using pointers to Eigen::Matrix4d. So using cv::Mat for now
+  utils::ThreadsafeTemporalBuffer<cv::Mat> primitive_estimator_poses_buffer_;
 
   bool shutdown_;
 };

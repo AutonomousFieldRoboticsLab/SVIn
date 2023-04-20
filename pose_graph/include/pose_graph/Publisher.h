@@ -29,9 +29,9 @@ class Publisher {
   void publishPath(const nav_msgs::Path& path, const ros::Publisher& pub) const;
   void publishOdometry(const nav_msgs::Odometry& odometry, const ros::Publisher& pub) const;
 
-  void publishKeyframePath(const std::pair<ros::Time, Eigen::Matrix4d>& keyframe_pose,
+  void publishKeyframePath(const std::pair<Timestamp, Eigen::Matrix4d>& keyframe_pose,
                            const std::pair<Eigen::Vector3d, Eigen::Vector3d>& loop_closure_edge);
-  void publishLoopClosurePath(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>& loop_closure_poses,
+  void publishLoopClosurePath(const std::vector<std::pair<Timestamp, Eigen::Matrix4d>>& loop_closure_poses,
                               const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& loop_closure_edges);
   void updatePublishGlobalMap(const ros::TimerEvent& event);
 

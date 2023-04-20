@@ -61,8 +61,8 @@ void GlobalMap::updateLandmark(uint64_t landmark_id,
   }
 }
 
-void GlobalMap::loopClosureOptimizationFinishCallback(const uint64_t& optimization_finish_time) {
+void GlobalMap::loopClosureOptimizationFinishCallback(const Timestamp optimization_finish_time) {
   last_loop_closure_optimization_time_ = optimization_finish_time;
   loop_closure_optimization_finished_ = true;
-  // ROS_WARN_STREAM("Loop Closure Optimization finished at: " << optimization_finish_time);
+  // LOG(WARN) << "Loop Closure Optimization finished at: " << optimization_finish_time);
 }

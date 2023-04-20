@@ -1,8 +1,5 @@
 #include "pose_graph/LoopClosure.h"
 
-#include <ros/package.h>
-#include <ros/ros.h>
-
 #include <Eigen/SVD>
 #include <algorithm>
 #include <boost/filesystem.hpp>
@@ -10,6 +7,7 @@
 #include <boost/thread.hpp>
 #include <map>
 #include <memory>
+#include <opencv2/core/eigen.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,33 +20,12 @@ LoopClosure::LoopClosure(Parameters& params)
       pose_graph_(nullptr),
       global_map_(nullptr),
       keyframe_tracking_queue_("keyframe_queue"),
-      raw_image_buffer_(kBufferLengthNs) {
+      raw_image_buffer_(kBufferLengthNs),
+      primitive_estimator_poses_buffer_(kBufferLengthNs) {
   frame_index_ = 0;
-  sequence_ = 1;
-
   last_translation_ = Eigen::Vector3d(-100, -100, -100);
 
   setup();
-  consecutive_tracking_failures_ = 0;
-  last_keyframe_time_ = 0;
-  last_primitive_estmator_time_ = 0.0;
-  tracking_status_ = TrackingStatus::NOT_INITIALIZED;
-
-  init_t_w_prim_.setIdentity();
-  init_t_w_svin_.setIdentity();
-
-  switch_prim_pose_.setIdentity();
-  switch_svin_pose_.setIdentity();
-  switch_uber_pose_.setIdentity();
-
-  last_t_w_prim_.setIdentity();
-  last_t_w_svin_.setIdentity();
-  last_scaled_prim_pose_.setZero();
-
-  prim_estimator_keyframes_ = 0;
-  vio_traj_length_ = 0.0;
-  prim_traj_length_ = 0.0;
-  scale_between_vio_prim_ = 0.0;
   shutdown_ = false;
 }
 
@@ -62,6 +39,11 @@ void LoopClosure::setup() {
     pose_graph_->setLoopClosureOptimizationCallback(
         std::bind(&GlobalMap::loopClosureOptimizationFinishCallback, global_map_.get(), std::placeholders::_1));
   }
+
+  if (params_.health_params_.enabled) {
+    switching_estimator_ = std::unique_ptr<SwitchingEstimator>(new SwitchingEstimator(params_));
+  }
+
   pose_graph_->startOptimizationThread();
 
   // Loading vocabulary
@@ -78,11 +60,15 @@ void LoopClosure::run() {
     bool queue_state = keyframe_tracking_queue_.popBlocking(keyframe_info);
     if (queue_state) {
       CHECK(keyframe_info);
+
+      switching_estimator_->addKeyframeInfo(*keyframe_info.get());
+
       std::map<Keyframe*, int> KFcounter;
 
       for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
         double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
         for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
+          observed_kf_index += prim_estimator_keyframes_;
           if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
             Keyframe* observed_kf =
                 kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
@@ -91,7 +77,7 @@ void LoopClosure::run() {
         }
       }
 
-      Keyframe* keyframe = new Keyframe(keyframe_info->timestamp_,
+      Keyframe* keyframe = new Keyframe(keyframe_info->timestamp_.toNSec(),
                                         keyframe_info->keypoint_ids_,
                                         keyframe_info->keyframe_index_,
                                         keyframe_info->translation_,
@@ -140,7 +126,10 @@ void LoopClosure::run() {
 
 void LoopClosure::getGlobalMap(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& pointcloud) {
   // only update the global map if the pose graph optimization is finished after loop closure
-  if (global_map_->loop_closure_optimization_finished_) updateGlobalMap();
+  if (global_map_->loop_closure_optimization_finished_) {
+    updateGlobalMap();
+    global_map_->loop_closure_optimization_finished_ = false;
+  }
   getGlobalPointCloud(pointcloud);
 }
 
@@ -235,7 +224,6 @@ void LoopClosure::updateGlobalMap() {
 
     global_map_->updateLandmark(landmark_id, point_3d, quality, color);
   }
-  global_map_->loop_closure_optimization_finished_ = false;
 }
 
 void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
@@ -245,25 +233,21 @@ void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConst
   pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
                                                Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_.T_body_imu_ *
                                                params_.T_imu_cam0_);
-  primitive_estimator_poses_.push_back(pose_stamped);
+  // primitive_estimator_poses_.push_back(pose_stamped);
 }
 
-bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, boost::optional<std::string> error_msg) {
+bool LoopClosure::healthCheck(const TrackingInfo& tracking_info, boost::optional<std::string> error_message) {
   std::stringstream ss;
   std::setprecision(5);
 
   HealthParams health_params = params_.health_params_;
-  uint32_t total_triangulated_keypoints = health_msg->numTrackedKps;
-
-  if (total_triangulated_keypoints < health_params.min_tracked_keypoints) {
-    if (error_msg) {
-      ss << "Not enough triangulated keypoints: " << total_triangulated_keypoints << std::endl;
-      error_msg = ss.str();
-    }
+  if (tracking_info.num_tracked_keypoints_ < health_params.min_tracked_keypoints) {
+    ss << "Not enough triangulated keypoints: " << tracking_info.num_tracked_keypoints_ << std::endl;
+    error_message = ss.str();
     return false;
   }
 
-  std::vector<int> keypoints_per_quadrant = health_msg->kpsPerQuadrant;
+  std::vector<int> keypoints_per_quadrant = tracking_info.keypoints_per_quadrant_;
 
   bool quadrant_check = std::all_of(keypoints_per_quadrant.begin(), keypoints_per_quadrant.end(), [&](int kp_count) {
     return kp_count >= health_params.kps_per_quadrant;
@@ -271,41 +255,39 @@ bool LoopClosure::healthCheck(const okvis_ros::SvinHealthConstPtr& health_msg, b
 
   if (!quadrant_check && *std::max_element(keypoints_per_quadrant.begin(), keypoints_per_quadrant.end()) <=
                              10.0 * health_params.kps_per_quadrant) {
-    if (error_msg) {
-      ss << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", " << keypoints_per_quadrant[1]
-         << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3] << "]" << std::endl;
-      error_msg = ss.str();
-    }
+    ss << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", " << keypoints_per_quadrant[1]
+       << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3] << "]" << std::endl;
+    error_message = ss.str();
     return false;
   }
 
-  uint32_t new_detected_keypoints_kf = health_msg->newKps;
   float new_detected_keypoints_ratio =
-      static_cast<float>(new_detected_keypoints_kf) / static_cast<float>(total_triangulated_keypoints);
+      static_cast<float>(tracking_info.num_new_keypoints_) / static_cast<float>(tracking_info.num_tracked_keypoints_);
 
   if (new_detected_keypoints_ratio >= 0.75) {
-    if (error_msg) {
+    if (error_message) {
       ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
-      error_msg = ss.str();
+      error_message = ss.str();
+      return false;
     }
-    return false;
   }
 
-  double average_response =
-      std::accumulate(health_msg->responseStrengths.begin(), health_msg->responseStrengths.end(), double(0.0)) /
-      static_cast<double>(health_msg->responseStrengths.size());
+  double average_response = std::accumulate(tracking_info.keypoints_response_strengths_.begin(),
+                                            tracking_info.keypoints_response_strengths_.end(),
+                                            double(0.0)) /
+                            static_cast<double>(tracking_info.keypoints_response_strengths_.size());
   float fraction_with_low_detector_response =
-      std::count_if(health_msg->responseStrengths.begin(),
-                    health_msg->responseStrengths.end(),
+      std::count_if(tracking_info.keypoints_response_strengths_.begin(),
+                    tracking_info.keypoints_response_strengths_.end(),
                     [&](double response) { return response < average_response; }) /
-      static_cast<float>(health_msg->responseStrengths.size());
+      static_cast<float>(tracking_info.keypoints_response_strengths_.size());
 
   if (fraction_with_low_detector_response >= 0.85) {
-    if (error_msg) {
+    if (error_message) {
       ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
-      error_msg = ss.str();
+      error_message = ss.str();
+      return false;
     }
-    return false;
   }
 
   return true;

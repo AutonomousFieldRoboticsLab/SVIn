@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <utility>
 
+#include "common/Definitions.h"
+
 struct Observation {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -84,7 +86,6 @@ class GlobalMap {
 
   LandmarkMap getMapPoints() const { return map_points_; }
 
-  void loopClosureOptimizationFinishCallback(const uint64_t& time);
+  void loopClosureOptimizationFinishCallback(const Timestamp time);
   bool loop_closure_optimization_finished_;  // this flag is set to true when loop closure optimization is done
 };
-

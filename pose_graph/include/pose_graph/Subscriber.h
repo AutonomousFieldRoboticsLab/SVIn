@@ -79,12 +79,15 @@ class Subscriber {
   double last_image_time_;                // The time of the last image.
   double last_primitive_estimator_time_;  // The time of the last primitive estimator odometry.
 
-  KeyframeCallback keyframe_callback_;         // The callback function for the keyframe.
-  PoseCallback primitive_estimator_callback_;  // The callback function for the pose.
-  ImageCallback raw_image_callback_;           // The callback function for the original_image.
+  KeyframeCallback keyframe_callback_;          // The callback function for the keyframe.
+  CVMatCallback primitive_estimator_callback_;  // The callback function for the pose.
+  CVMatCallback raw_image_callback_;            // The callback function for the original_image.
 
  public:
   inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }
   inline void registerKeyframeCallback(const KeyframeCallback& callback) { keyframe_callback_ = callback; }
-  inline void registerImageCallback(const ImageCallback& callback) { raw_image_callback_ = callback; }
+  inline void registerImageCallback(const CVMatCallback& callback) { raw_image_callback_ = callback; }
+  inline void registerPrimitiveEstimatorCallback(const CVMatCallback& callback) {
+    primitive_estimator_callback_ = callback;
+  }  // NOLINT
 };

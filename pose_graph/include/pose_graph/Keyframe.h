@@ -32,7 +32,7 @@ class BriefExtractor {
 class Keyframe {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Keyframe(ros::Time _time_stamp,
+  Keyframe(int64_t _time_stamp,
            std::vector<Eigen::Vector3i>& _point_ids,  // NOLINT
            int _index,
            Eigen::Vector3d& _svin_T_w_i,             // NOLINT
@@ -46,7 +46,7 @@ class Keyframe {
            const Parameters& params,
            const bool vio_keyframe = true);
 
-  Keyframe(ros::Time _time_stamp,
+  Keyframe(int64_t _time_stamp,
            int _index,
            Eigen::Vector3d& _svin_T_w_i,         // NOLINT
            Eigen::Matrix3d& _svin_R_w_i,         // NOLINT
@@ -109,7 +109,7 @@ class Keyframe {
   cv::Mat brisk_descriptors;
   cv::Mat window_brisk_descriptors;
 
-  ros::Time time_stamp;
+  int64_t time_stamp;
   int index;
   int local_index;
   Eigen::Vector3d svin_T_w_i;
@@ -157,7 +157,6 @@ class Keyframe {
   static const double briskMatchingThreshold_;            ///< The set BRISK matching threshold.
 
   Parameters params_;
-  // ros::Publisher pubMatchedPoints;
 
   typedef std::function<void(const sensor_msgs::PointCloud& pointcloud)> PointCloudCallback;
 

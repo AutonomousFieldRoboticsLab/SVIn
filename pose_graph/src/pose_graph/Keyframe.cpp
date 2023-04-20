@@ -1,6 +1,5 @@
 #include "pose_graph/Keyframe.h"
 
-#include <ros/package.h>
 #include <sensor_msgs/PointCloud.h>
 
 #include <map>
@@ -10,7 +9,6 @@
 #include <vector>
 
 #include "pose_graph/Parameters.h"
-// #include "utils/LoopClosureUtils.h"
 #include "utils/UtilsOpenCV.h"
 
 const int Keyframe::TH_HIGH = 100;
@@ -31,7 +29,7 @@ static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  
   v.resize(j);
 }
 
-Keyframe::Keyframe(ros::Time _time_stamp,
+Keyframe::Keyframe(int64_t _time_stamp,
                    std::vector<Eigen::Vector3i>& _point_ids,
                    int _index,
                    Eigen::Vector3d& _svin_T_w_i,
@@ -76,10 +74,10 @@ Keyframe::Keyframe(ros::Time _time_stamp,
 
   computeBRIEFPoint();
 
-  if (!params.debug_image_) image.release();
+  if (!params.debug_mode_) image.release();
 }
 
-Keyframe::Keyframe(ros::Time _time_stamp,
+Keyframe::Keyframe(int64_t _time_stamp,
                    int _index,
                    Eigen::Vector3d& _svin_T_w_i,
                    Eigen::Matrix3d& _svin_R_w_i,
@@ -373,8 +371,6 @@ void Keyframe::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
 bool Keyframe::findConnection(Keyframe* old_kf) {
   if (!old_kf->is_vio_keyframe_) return false;
 
-  std::string pkg_path = ros::package::getPath("pose_graph");
-
   std::vector<cv::KeyPoint> matched_2d_cur;
   std::vector<cv::Point2f> matched_2d_old;
   std::vector<cv::Point2f> matched_2d_old_norm;
@@ -386,10 +382,10 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
   matched_2d_cur = point_2d_uv;
   matched_ids = point_ids_;
 
-  if (params_.debug_image_) {
+  if (params_.debug_mode_) {
     cv::Mat old_img = UtilsOpenCV::DrawCircles(old_kf->image, old_kf->keypoints);
     cv::Mat cur_image = UtilsOpenCV::DrawCircles(image, point_2d_uv);
-    std::string loop_candidate_directory = pkg_path + "/output_logs/loop_candidates/";
+    std::string loop_candidate_directory = params_.debug_output_path_ + "/loop_candidates/";
     std::string filename = loop_candidate_directory + "loop_candidate_" + std::to_string(index) + "_" +
                            std::to_string(old_kf->index) + ".png";
     UtilsOpenCV::showImagesSideBySide(cur_image, old_img, "loop closing candidates", false, true, filename);
@@ -408,10 +404,10 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
   reduceVector(matched_ids, status);
   status.clear();
 
-  if (params_.debug_image_) {
+  if (params_.debug_mode_) {
     cv::Mat corners_match_image =
         UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
-    std::string dscriptor_match_dir = pkg_path + "/output_logs/descriptor_matched/";
+    std::string dscriptor_match_dir = params_.debug_output_path_ + "/descriptor_matched/";
     std::string filename = dscriptor_match_dir + "descriptor_match_" + std::to_string(index) + "_" +
                            std::to_string(old_kf->index) + ".png";
     cv::imwrite(filename, corners_match_image);
@@ -456,7 +452,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
     reduceVector(matched_ids, status);
     status.clear();
 
-    if (params_.debug_image_) {
+    if (params_.debug_mode_) {
       cv::Mat pnp_verified_image =
           UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
       cv::Mat notation(50, pnp_verified_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
@@ -476,7 +472,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
               cv::Scalar(255),
               3);
       cv::vconcat(notation, pnp_verified_image, pnp_verified_image);
-      std::string pnp_verified_dir = pkg_path + "/output_logs/pnp_verified/";
+      std::string pnp_verified_dir = params_.debug_output_path_ + "/pnp_verified/";
       std::string filename =
           pnp_verified_dir + "pnp_verified_" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
       cv::imwrite(filename, pnp_verified_image);
@@ -492,7 +488,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
     relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());
 
     if (abs(relative_yaw) < 25.0 && relative_t.norm() < 15.0) {
-      if (params_.debug_image_) {
+      if (params_.debug_mode_) {
         cv::Mat loop_image =
             UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
         cv::Mat notation(50, loop_image.cols, CV_8UC3, cv::Scalar(255, 255, 255));
@@ -513,11 +509,11 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
             cv::Scalar(255),
             3);
         cv::vconcat(notation, loop_image, loop_image);
-        std::string pnp_verified_dir = pkg_path + "/output_logs/loop_closure/";
+        std::string pnp_verified_dir = params_.debug_output_path_ + "/loop_closure/";
         std::string filename =
             pnp_verified_dir + "loop_closure_" + std::to_string(index) + "_" + std::to_string(old_kf->index) + ".png";
         cv::imwrite(filename, loop_image);
-        std::string loop_closure_stats = pkg_path + "/output_logs/loop_closure.txt";
+        std::string loop_closure_stats = params_.debug_output_path_ + "/loop_closure.txt";
         std::ofstream loop_closure_file(loop_closure_stats, std::ios::app);
         loop_closure_file.setf(std::ios::fixed, std::ios::floatfield);
         Eigen::Vector3d relative_ypr = Utility::R2ypr(relative_q.toRotationMatrix());
@@ -531,38 +527,6 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
       loop_index = old_kf->index;
       loop_info << relative_t.x(), relative_t.y(), relative_t.z(), relative_q.w(), relative_q.x(), relative_q.y(),
           relative_q.z(), relative_yaw;
-
-      // std::cout << index << " has Loop with: " << loop_index << std::endl;
-      if (params_.fast_relocalization_) {
-        sensor_msgs::PointCloud msg_match_points;
-        msg_match_points.header.stamp = time_stamp;
-
-        // Note that this PointCloud msg is not for visualization
-        for (int i = 0; i < static_cast<int>(matched_ids.size()); i++) {
-          // landmarkId, mfId/poseId, keypointIdx for Every Matched 3d points in Current frame
-          geometry_msgs::Point32 p;
-          p.x = matched_ids[i].x();
-          p.y = matched_ids[i].y();
-          p.z = matched_ids[i].z();
-          msg_match_points.points.push_back(p);
-        }
-        // T, R in Old frame
-        Eigen::Vector3d T = old_kf->T_w_i;
-        Eigen::Matrix3d R = old_kf->R_w_i;
-        Eigen::Quaterniond Q(R);
-        sensor_msgs::ChannelFloat32 t_q_index;
-        t_q_index.values.push_back(T.x());
-        t_q_index.values.push_back(T.y());
-        t_q_index.values.push_back(T.z());
-        t_q_index.values.push_back(Q.w());
-        t_q_index.values.push_back(Q.x());
-        t_q_index.values.push_back(Q.y());
-        t_q_index.values.push_back(Q.z());
-
-        msg_match_points.channels.push_back(t_q_index);
-        if (relocalization_pcl_callback_) relocalization_pcl_callback_(msg_match_points);
-        // pubMatchedPoints.publish(msg_match_points);
-      }
       return true;
     }
   }

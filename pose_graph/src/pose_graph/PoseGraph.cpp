@@ -142,7 +142,7 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
 
     keyframelist.push_back(cur_kf);
 
-    std::pair<ros::Time, Eigen::Matrix4d> pose;
+    std::pair<Timestamp, Eigen::Matrix4d> pose;
     pose.first = cur_kf->time_stamp;
     pose.second.block<3, 3>(0, 0) = R;
     pose.second.block<3, 1>(0, 3) = P;
@@ -367,7 +367,10 @@ void PoseGraph::optimize4DoFPoseGraph() {
         }
       }
       updatePath();
-      if (loop_closure_optimization_callback_) loop_closure_optimization_callback_(ros::Time::now().toNSec());
+      if (loop_closure_optimization_callback_) {
+        Keyframe* last_kf = keyframelist.back();
+        loop_closure_optimization_callback_(last_kf->time_stamp);
+      }
     }
   }
 }
@@ -528,8 +531,10 @@ void PoseGraph::optimize6DoFPoseGraph() {
         }
       }
       updatePath();
-
-      if (loop_closure_optimization_callback_) loop_closure_optimization_callback_(ros::Time::now().toNSec());
+      if (loop_closure_optimization_callback_) {
+        Keyframe* last_kf = keyframelist.back();
+        loop_closure_optimization_callback_(last_kf->time_stamp);
+      }
     }
   }
 }
@@ -539,7 +544,7 @@ void PoseGraph::updatePath() {
 
   std::list<Keyframe*>::iterator it;
 
-  std::vector<std::pair<ros::Time, Eigen::Matrix4d>> loop_closure_path;
+  std::vector<std::pair<Timestamp, Eigen::Matrix4d>> loop_closure_path;
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> loop_closure_edges;
 
   for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
@@ -548,7 +553,7 @@ void PoseGraph::updatePath() {
     (*it)->getPose(P, R);
     Eigen::Quaterniond Q{R};
 
-    std::pair<ros::Time, Eigen::Matrix4d> pose;
+    std::pair<Timestamp, Eigen::Matrix4d> pose;
     pose.first = (*it)->time_stamp;
     pose.second.block<3, 3>(0, 0) = R;
     pose.second.block<3, 1>(0, 3) = P;

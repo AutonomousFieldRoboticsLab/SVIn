@@ -24,8 +24,8 @@ struct HealthParams {
   float kf_wait_time;
 };
 
-struct GlobalMappingParams{
-  bool enabled = false; // by default global mapping is disabled
+struct GlobalMappingParams {
+  bool enabled = false;  // by default global mapping is disabled
   double min_lmk_quality = 0.001;
 };
 
@@ -63,7 +63,9 @@ class Parameters {
   Eigen::Matrix4d T_imu_cam0_;
   Eigen::Matrix4d T_body_imu_;
 
-  bool debug_image_;
+  bool debug_mode_;
+  std::string debug_output_path_;
+
   double image_delay_;
 
   // loop closure parameters

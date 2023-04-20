@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include <ros/package.h>
 
 #include <boost/filesystem.hpp>
@@ -7,50 +8,48 @@
 #include "pose_graph/Publisher.h"
 #include "pose_graph/Subscriber.h"
 
-void setupOutputLogDirectories() {
-  std::string pacakge_path = ros::package::getPath("pose_graph");
-
-  std::string output_dir = pacakge_path + "/output_logs/loop_candidates/";
+void setupOutputLogDirectories(const std::string base_path) {
+  std::string output_dir = base_path + "/loop_candidates/";
   if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
+    boost::filesystem::create_directories(output_dir);
   }
   for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  output_dir = pacakge_path + "/output_logs/descriptor_matched/";
+  output_dir = base_path + "/descriptor_matched/";
   if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
+    boost::filesystem::create_directories(output_dir);
   }
   for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  output_dir = pacakge_path + "/output_logs/pnp_verified/";
+  output_dir = base_path + "/pnp_verified/";
   if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
+    boost::filesystem::create_directories(output_dir);
   }
   for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  output_dir = pacakge_path + "/output_logs/loop_closure/";
+  output_dir = base_path + "/loop_closure/";
   if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
+    boost::filesystem::create_directories(output_dir);
   }
   for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  output_dir = pacakge_path + "/output_logs/geometric_verification/";
+  output_dir = base_path + "/geometric_verification/";
   if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directory(output_dir);
+    boost::filesystem::create_directories(output_dir);
   }
   for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
     boost::filesystem::remove_all(entry.path());
   }
 
-  std::string loop_closure_file = pacakge_path + "/output_logs/loop_closure.txt";
+  std::string loop_closure_file = base_path + "/loop_closure.txt";
   if (boost::filesystem::exists(loop_closure_file)) {
     boost::filesystem::remove(loop_closure_file);
   }
@@ -76,7 +75,7 @@ void setupOutputLogDirectories() {
                  << "relative_roll" << std::endl;
   loop_path_file.close();
 
-  std::string switch_info_file = pacakge_path + "/output_logs/switch_info.txt";
+  std::string switch_info_file = base_path + "/switch_info.txt";
   if (boost::filesystem::exists(switch_info_file)) {
     boost::filesystem::remove(switch_info_file);
   }
@@ -102,7 +101,7 @@ int main(int argc, char** argv) {
 
   FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
   FLAGS_colorlogtostderr = 1;
-  FLAGS_log_prefix = false;
+  // FLAGS_log_prefix = true;
 
   // read parameters
   std::string config_file;
@@ -110,7 +109,10 @@ int main(int argc, char** argv) {
 
   Parameters params;
   params.loadParameters(config_file);
-  setupOutputLogDirectories();
+
+  if (params.debug_mode_) {
+    setupOutputLogDirectories(params.debug_output_path_);
+  }
 
   auto subscriber = std::make_unique<Subscriber>(nh, params);
   auto loop_closure = std::make_unique<LoopClosure>(params);
@@ -123,6 +125,11 @@ int main(int argc, char** argv) {
 
   subscriber->registerKeyframeCallback(
       std::bind(&LoopClosure::fillKeyframeTrackingQueue, loop_closure.get(), std::placeholders::_1));
+
+  if (params.health_params_.enabled) {
+    subscriber->registerPrimitiveEstimatorCallback(
+        std::bind(&LoopClosure::fillPrimitiveEstimatorBuffer, loop_closure.get(), std::placeholders::_1));
+  }
 
   ros::Timer timer;
   ros::ServiceServer pointcloud_service;

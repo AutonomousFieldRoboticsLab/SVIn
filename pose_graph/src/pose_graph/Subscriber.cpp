@@ -3,11 +3,13 @@
 #include <ros/console.h>
 
 #include <memory>
+#include <opencv2/core/eigen.hpp>
 #include <utility>
 #include <vector>
 
 #include "utils/Statistics.h"
 #include "utils/Timer.h"
+#include "utils/Utils.h"
 #include "utils/UtilsOpenCV.h"
 
 Subscriber::Subscriber(ros::NodeHandle& nh, Parameters& params) : params_(params) {
@@ -49,20 +51,27 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
   }
   if (params_.health_params_.enabled) {
     sub_primitive_estimator_ =
-        nh_->subscribe(primitive_estimator_topic_, 500, &Subscriber::primitiveEstimatorCallback, this);
+        nh_->subscribe(primitive_estimator_topic_, 100, &Subscriber::primitiveEstimatorCallback, this);
   }
 }
 
 void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg) {
-  std::lock_guard<std::mutex> l(measurement_mutex_);
-  prim_estimator_odom_buffer_.push(msg);
-  last_primitive_estimator_time_ = msg->header.stamp.toSec();
+  if (!primitive_estimator_callback_ && params_.health_params_.enabled) {
+    LOG_EVERY_N(ERROR, 100) << "Primitive estimator callback not set";
+  } else if (primitive_estimator_callback_) {
+    Eigen::Matrix4d pose = Utility::rosPoseToMatrix(msg->pose.pose);
+    cv::Mat cv_pose;
+    cv::eigen2cv(pose, cv_pose);
+    auto pose_with_timestamp =
+        std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(msg->header.stamp.toNSec(), cv_pose));
+    primitive_estimator_callback_(std::move(pose_with_timestamp));
+  }
 }
 
 void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& image_msg) {
   cv::Mat image = UtilsOpenCV::readRosImage(image_msg, false);
   auto image_with_timestamp =
-      std::make_unique<std::pair<ros::Time, cv::Mat>>(std::make_pair(image_msg->header.stamp, image));
+      std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(image_msg->header.stamp.toNSec(), image));
   // raw image callback is not compulsory
   if (raw_image_callback_) {
     raw_image_callback_(std::move(image_with_timestamp));
@@ -165,15 +174,19 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
     kf_covisibilities.push_back(covisible_kfs);
   }
 
-  std::unique_ptr<KeyframeInfo> keyframe_info = std::make_unique<KeyframeInfo>(keyframe_index,
-                                                                               kf_image,
-                                                                               translation,
-                                                                               rotation,
-                                                                               tracking_info,
-                                                                               keyframe_points,
-                                                                               keypoint_observations,
-                                                                               point_ids,
-                                                                               kf_covisibilities);
+  if (keyframe_index != -1) {
+    std::unique_ptr<KeyframeInfo> keyframe_info = std::make_unique<KeyframeInfo>(keyframe_index,
+                                                                                 kf_image,
+                                                                                 translation,
+                                                                                 rotation,
+                                                                                 tracking_info,
+                                                                                 keyframe_points,
+                                                                                 keypoint_observations,
+                                                                                 point_ids,
+                                                                                 kf_covisibilities);
 
-  keyframe_callback_(std::move(keyframe_info));
+    keyframe_callback_(std::move(keyframe_info));
+  } else {
+    LOG(WARNING) << "Skipping keyframe. Does not contain any triangulated points.";
+  }
 }

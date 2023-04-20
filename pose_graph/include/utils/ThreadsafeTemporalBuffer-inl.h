@@ -108,6 +108,19 @@ bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNewestValue(ValueTyp
 }
 
 template <typename ValueType, typename AllocatorType>
+bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getNewestValue(ValueType* value,
+                                                                        Timestamp* timestamp_ns) const {
+  CHECK_NOTNULL(value);
+  std::lock_guard<std::recursive_mutex> lock(mutex_);
+  if (empty()) {
+    return false;
+  }
+  *value = values_.rbegin()->second;
+  *timestamp_ns = values_.rbegin()->first;
+  return true;
+}
+
+template <typename ValueType, typename AllocatorType>
 bool ThreadsafeTemporalBuffer<ValueType, AllocatorType>::getValueAtTime(Timestamp timestamp, ValueType* value) const {
   CHECK_NOTNULL(value);
   std::lock_guard<std::recursive_mutex> lock(mutex_);

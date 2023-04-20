@@ -6,7 +6,6 @@
 #include <geometry_msgs/PointStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
-#include <ros/ros.h>
 #include <stdio.h>
 
 #include <eigen3/Eigen/Dense>

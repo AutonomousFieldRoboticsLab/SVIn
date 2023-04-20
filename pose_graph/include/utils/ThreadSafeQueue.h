@@ -30,7 +30,6 @@
 template <typename T>
 class ThreadsafeQueueBase {
  public:
-
   typedef std::queue<std::shared_ptr<T>> InternalQueue;
   explicit ThreadsafeQueueBase(const std::string& queue_id);
   virtual ~ThreadsafeQueueBase() = default;
@@ -60,6 +59,14 @@ class ThreadsafeQueueBase {
    * @return false if the queue has been shutdown
    */
   virtual bool pushBlockingIfFull(T new_value, size_t max_queue_size = 10u) = 0;
+
+  /** * @brief pushOverflowIfFull pushes a value into the queue.
+   * @param new_value new value to add to the queue
+   * @param max_queue_size if the queue is filled with more than max_queue_size
+   * messages, it will pop from front of the queue until the queue size is equal to max_queue_size.
+   * @return false if the queue has been shutdown
+   */
+  virtual bool pushOverflowIfFull(T new_value, size_t max_queue_size = 10u) = 0;
 
   /** \brief Pop value. Waits for data to be available in the queue.
    * Returns false if the queue has been shutdown.
@@ -173,6 +180,14 @@ class ThreadsafeQueue : public ThreadsafeQueueBase<T> {
    */
   bool pushBlockingIfFull(T new_value, size_t max_queue_size = 10u) override;
 
+  /** * @brief pushOverflowIfFull pushes a value into the queue.
+   * @param new_value new value to add to the queue
+   * @param max_queue_size if the queue is filled with more than max_queue_size
+   * messages, it will pop from front of the queue until the queue size is equal to max_queue_size.
+   * @return false if the queue has been shutdown
+   */
+  bool pushOverflowIfFull(T value, size_t max_queue_size = 10u) override;
+
   /** \brief Pop value. Waits for data to be available in the queue.
    * Returns false if the queue has been shutdown.
    */
@@ -238,6 +253,7 @@ class ThreadsafeNullQueue : public ThreadsafeQueue<T> {
   // virtual bool push(const T& new_value) override { return true; }
   virtual bool push(T) override { return true; }
   virtual bool pushBlockingIfFull(T, size_t) { return true; };
+  virtual bool pushOverflowIfFull(T, size_t) { return true; };
   virtual bool popBlocking(T&) override { return true; }
   virtual std::shared_ptr<T> popBlocking() override { return nullptr; }
   virtual bool pop(T&) override { return true; }
@@ -278,6 +294,25 @@ bool ThreadsafeQueue<T>::pushBlockingIfFull(T new_value, size_t max_queue_size) 
   if (shutdown_) return false;
   data_queue_.push(data);
   size_t queue_size = data_queue_.size();
+  lk.unlock();  // Unlock before notify.
+  data_cond_.notify_one();
+  // Thread-safe so doesn't need external mutex.
+  if (queue_size_stats_) queue_size_stats_->AddSample(queue_size);
+  VLOG_IF(1, queue_size > 1u) << "Queue with id: " << queue_id_ << " is getting full, size: " << queue_size;
+  return true;
+}
+
+template <typename T>
+bool ThreadsafeQueue<T>::pushOverflowIfFull(T new_value, size_t max_queue_size) {
+  if (shutdown_) return false;  // atomic, no lock needed.
+  std::shared_ptr<T> data(std::make_shared<T>(std::move(new_value)));
+  std::unique_lock<std::mutex> lk(mutex_);
+  data_queue_.push(data);
+  while (data_queue_.size() > max_queue_size) {
+    data_queue_.pop();
+  }
+  size_t queue_size = data_queue_.size();
+
   lk.unlock();  // Unlock before notify.
   data_cond_.notify_one();
   // Thread-safe so doesn't need external mutex.

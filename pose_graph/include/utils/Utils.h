@@ -10,6 +10,8 @@
 #include <eigen3/Eigen/Dense>
 #include <string>
 
+#include "common/Definitions.h"
+
 class Utility {
  public:
   template <typename Derived>
@@ -137,5 +139,5 @@ class Utility {
   static std::string To_string_with_precision(const double a_value, const int n);
 
   static std::string healthMsgToString(const okvis_ros::SvinHealthConstPtr& health);
+  static ros::Time toRosTime(const Timestamp t);
 };
-

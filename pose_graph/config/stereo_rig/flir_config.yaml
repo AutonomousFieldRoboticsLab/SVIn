@@ -18,8 +18,8 @@ fast_relocalization: 1
 #also give the camera calibration file same as feature_tracker node
 loop_closure_params:
     enable: 1  
-    min_correspondences: 35
-    pnp_reprojection_threshold: 12.0
+    min_correspondences: 25
+    pnp_reprojection_threshold: 8.0
     pnp_ransac_iterations: 100 
 
 health:
@@ -29,6 +29,10 @@ health:
     keyframe_wait_time: 2.0
     kps_per_quadrant: 1
 
+global_map_params:
+    enable: 1
+    min_landmark_quality: 0.01
+
 debug_image: 1
 
 image_height: 1100
@@ -36,4 +40,3 @@ image_width: 1600
 distortion_coefficients: [0.1462139249855356, 0.3775304191882089, 0.007835564538475424, 0.002760598455182088]
 focal_length: [1159.2905564436558, 1157.0215864700963]
 principal_point: [804.4293114224579, 561.884540048856]
-landmark_quality: 0.01

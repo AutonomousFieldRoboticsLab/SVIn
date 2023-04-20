@@ -5,7 +5,7 @@ model_type: PINHOLE
 camera_name: cam_fl
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
-resizeFactor: 0.5
+resizeFactor: 1.0
 
 #optimization parameters
 max_solver_time: 0.04  # max solver itration time (ms), to guarantee real time
@@ -19,20 +19,36 @@ fast_relocalization: 1
 #also give the camera calibration file same as feature_tracker node
 loop_closure_params:
     enable: 1  
-    min_correspondences: 25
+    min_correspondences: 20
     pnp_reprojection_threshold: 10.0 
 
 health:
-    enable: 0
+    enable: 1
     min_keypoints: 15
     consecutive_keyframes: 3
     keyframe_wait_time: 2.0
     kps_per_quadrant: 1
 
-debug_image: 0
+global_map_params:
+    enable: 1
+    min_landmark_quality: 0.001
 
-image_height: 1200
-image_width: 1600
+debug:
+    enable: 1
+    output_dir: /home/bjoshi/ros_workspaces/svin_ws/src/SVIn/pose_graph/debug_output
+
+image_height: 600
+image_width: 800
 focal_length: [1138.83276975408, 1139.594698074792]
-principal_point: [708.1729373830466, 617.1289738266081]
+principal_point: [308.1729373830466, 317.1289738266081]
 distortion_coefficients: [-0.16289394362063583, 0.08351833356682732, 0.012276483503048642, 0.0006858966792660155]
+
+# To transform pose between uber and okvis coordinate systems
+T_SC: [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
+        0.99825455, -0.02099889, 0.05519876, -0.04791664,
+        -0.009273, 0.86732768, 0.49765118, -0.02872042,
+        0.0, 0.0, 0.0, 1.0]
+T_BS: [1.0, 0.0, 0.0, 0.0,
+      0.0, -1.0, 0.0, 0.0,
+      0.0, 0.0, -1.0, 0.0,
+      0.0, 0.0, 0.0, 1.0]

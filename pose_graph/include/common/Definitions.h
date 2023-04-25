@@ -15,7 +15,7 @@ struct TrackingInfo {
   TrackingInfo() = default;
   ~TrackingInfo() = default;
 
-  TrackingInfo(const ros::Time timestamp,
+  TrackingInfo(const Timestamp timestamp,
                const uint32_t num_tracked_keypoints,
                const uint32_t num_new_keypoints,
                const std::vector<int>& keypoints_per_quadrant,
@@ -30,7 +30,7 @@ struct TrackingInfo {
         keypoints_response_strengths_(keypoints_response_strengths),
         points_quality_(points_quality){};
 
-  ros::Time timestamp_;
+  Timestamp timestamp_;
   uint32_t num_tracked_keypoints_;
   uint32_t num_new_keypoints_;
   std::vector<int> keypoints_per_quadrant_;
@@ -65,7 +65,7 @@ struct KeyframeInfo {
     timestamp_ = tracking_info_.timestamp_;
   };
 
-  KeyframeInfo(const ros::Time& timestamp,
+  KeyframeInfo(const Timestamp& timestamp,
                const int64_t& keyframe_index,
                const cv::Mat& image,
                const Eigen::Vector3d& translation,
@@ -85,7 +85,7 @@ struct KeyframeInfo {
         point_covisibilities_(points_observations){};
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  ros::Time timestamp_;
+  Timestamp timestamp_;
   int64_t keyframe_index_;
   cv::Mat keyframe_image_;
   Eigen::Vector3d translation_;

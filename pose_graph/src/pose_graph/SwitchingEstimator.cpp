@@ -21,11 +21,11 @@ SwitchingEstimator::SwitchingEstimator(Parameters& params) {
 
 void SwitchingEstimator::addKeyframeInfo(KeyframeInfo& keyframe_info) {
   std::string message;
-  bool vio_health_ok = performHealthCheck(keyframe_info.tracking_info_, message);
-  updateVIOKeyframePose(keyframe_info.timestamp_.toNSec(), keyframe_info.translation_, keyframe_info.rotation_);
+  performHealthCheck(keyframe_info.tracking_info_, message);
+  updateVIOKeyframePose(keyframe_info.timestamp_, keyframe_info.translation_, keyframe_info.rotation_);
 }
 
-bool SwitchingEstimator::performHealthCheck(TrackingInfo& tracking_info, std::string& status_message) {
+void SwitchingEstimator::performHealthCheck(TrackingInfo& tracking_info, std::string& status_message) {
   bool tracking_info_check = checkTrackingInfo(tracking_info, status_message);
   if (!tracking_info_check) {
     consecutive_tracking_failures_ += 1;
@@ -34,7 +34,6 @@ bool SwitchingEstimator::performHealthCheck(TrackingInfo& tracking_info, std::st
     consecutive_tracking_successes_ += 1;
     consecutive_tracking_failures_ = 0;
   }
-  return tracking_info_check;
 }
 
 bool SwitchingEstimator::checkTrackingInfo(TrackingInfo& tracking_info, std::string& error_message) {
@@ -94,42 +93,54 @@ void SwitchingEstimator::addPrimitiveEstimatorPose(Timestamp timestamp, Eigen::M
   // The primitive estimator is at water depth from origin with arbitrary yaw
   // Needs to be in the body frame same as the VIO
 
-  if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) {
-    init_t_w_prim_ = primitive_estimator_pose;
-    switch_t_w_prim_ = primitive_estimator_pose;
+  if (last_primitive_estimator_time_ == -1) {
+    if (tracking_status_ == TrackingStatus::TRACKING_VIO) {
+      init_t_w_prim_ = primitive_estimator_pose;
+      switch_t_w_prim_ = primitive_estimator_pose;
+    }
     current_primitive_pose_ = init_t_w_vio_ * init_t_w_prim_.inverse() * primitive_estimator_pose;
     last_primitive_estimator_time_ = timestamp;
+    update_primitive_estimator_pose_ = true;
   } else if (timestamp > last_primitive_estimator_time_) {
     current_primitive_pose_ = init_t_w_vio_ * init_t_w_prim_.inverse() * primitive_estimator_pose;
     last_primitive_estimator_time_ = timestamp;
+    update_primitive_estimator_pose_ = true;
   }
+  // primitive_estimator_poses_.push_back({timestamp, current_primitive_pose_});
 }
 
 void SwitchingEstimator::updateVIOKeyframePose(Timestamp timestamp,
                                                Eigen::Vector3d& translation,
                                                Eigen::Matrix3d& rotation) {
-  if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) {
-    Eigen::Matrix4d t_w_vio_cam = Eigen::Matrix4d::Identity();
-    t_w_vio_cam.block<3, 3>(0, 0) = rotation;
-    t_w_vio_cam.block<3, 1>(0, 3) = translation;
+  Eigen::Matrix4d t_w_vio_cam = Eigen::Matrix4d::Identity();
+  t_w_vio_cam.block<3, 3>(0, 0) = rotation;
+  t_w_vio_cam.block<3, 1>(0, 3) = translation;
 
-    // Pose of body frame in World frame using VIO
-    Eigen::Matrix4d t_w_vio_body = t_w_vio_cam * T_imu_cam0_.inverse() * T_body_imu_.inverse();
-    init_t_w_vio_ = t_w_vio_body;
-    switch_t_w_vio_ = t_w_vio_body;
-    switch_t_w_robust_ = t_w_vio_body;  // Initially using VIO as robust estimator
-    current_vio_pose_ = t_w_vio_body;
-    current_robust_pose_ = t_w_vio_body;
-    last_vio_keyframe_time_ = timestamp;
+  // Pose of body frame in World frame using VIO
+  current_vio_pose_ = t_w_vio_cam * T_imu_cam0_.inverse() * T_body_imu_.inverse();
+
+  if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) {
+    init_t_w_vio_ = current_vio_pose_;
+    switch_t_w_vio_ = current_vio_pose_;
+    switch_t_w_robust_ = current_vio_pose_;  // Initially using VIO as robust estimator
+    current_robust_pose_ = current_vio_pose_;
     tracking_status_ = TrackingStatus::TRACKING_VIO;
-  } else {
   }
+  last_vio_keyframe_time_ = timestamp;
 }
 
-bool SwitchingEstimator::getRobustPose(Timestamp time, Eigen::Matrix4d& robust_pose) {
+bool SwitchingEstimator::getRobustPose(Timestamp& stamp,
+                                       Eigen::Vector3d& translation,
+                                       Eigen::Matrix3d& rotation,
+                                       bool& is_vio_keyframe) {
   // If OKVIS do not produce keyframe for a while, switch to
   // primitive estimator
-  if (static_cast<float>(time - last_vio_keyframe_time_) * 1e-9 > health_params_.kf_wait_time &&
+
+  if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) return false;
+  if (!update_vio_keyframe_pose_ && !update_primitive_estimator_pose_) return false;
+
+  if (static_cast<double>(last_primitive_estimator_time_ - last_vio_keyframe_time_) * 1e-9 >
+          health_params_.kf_wait_time &&
       tracking_status_ != TrackingStatus::NOT_INITIALIZED) {
     if (tracking_status_ == TrackingStatus::TRACKING_VIO) {
       switch_t_w_vio_ = current_vio_pose_;
@@ -137,14 +148,67 @@ bool SwitchingEstimator::getRobustPose(Timestamp time, Eigen::Matrix4d& robust_p
       switch_t_w_robust_ = current_robust_pose_;
 
       tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
+      primitive_estimator_kfs_++;
+      LOG(INFO) << "Did not got VIO keyframe for: "
+                << static_cast<float>(last_primitive_estimator_time_ - last_vio_keyframe_time_) * 1e-9;
       LOG(INFO) << "!!!!!!!!Switching to Primitive Estimator !!!!!!!!!!";
+      is_vio_keyframe = false;
     }
 
     current_robust_pose_ = switch_t_w_robust_ * switch_t_w_prim_.inverse() * current_primitive_pose_;
+    stamp = last_primitive_estimator_time_;
+
+  } else if (tracking_status_ == TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR) {
+    if (consecutive_tracking_successes_ < health_params_.consecutive_keyframes) {
+      current_robust_pose_ = switch_t_w_robust_ * switch_t_w_prim_.inverse() * current_primitive_pose_;
+      stamp = last_primitive_estimator_time_;
+      primitive_estimator_kfs_++;
+      is_vio_keyframe = false;
+
+    } else {
+      current_robust_pose_ = switch_t_w_robust_ * switch_t_w_vio_.inverse() * current_vio_pose_;
+      switch_t_w_vio_ = current_vio_pose_;
+      switch_t_w_prim_ = current_primitive_pose_;
+      switch_t_w_robust_ = current_robust_pose_;
+      tracking_status_ = TrackingStatus::TRACKING_VIO;
+      LOG(INFO) << "!!!!!!!!Switching to VIO !!!!!!!!!!";
+      stamp = last_vio_keyframe_time_;
+      is_vio_keyframe = true;
+    }
+  } else if (tracking_status_ == TrackingStatus::TRACKING_VIO &&
+             consecutive_tracking_failures_ >= (health_params_.consecutive_keyframes + 3U) &&
+             last_primitive_estimator_time_ != -1) {
+    switch_t_w_robust_ = current_robust_pose_;
+    switch_t_w_vio_ = current_vio_pose_;
+    switch_t_w_prim_ = current_primitive_pose_;
+    tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
+    ROS_INFO_STREAM(
+        "Switching to Primitive Estimator. Consecutive Tracking failures: " << consecutive_tracking_failures_);
+    is_vio_keyframe = false;
+
   } else {
+    LOG(INFO) << "Tracking VIO";
+    current_robust_pose_ = switch_t_w_robust_ * switch_t_w_vio_.inverse() * current_vio_pose_;
+    is_vio_keyframe = true;
+    stamp = last_vio_keyframe_time_;
   }
 
-  robust_pose = current_robust_pose_ * T_body_imu_ * T_imu_cam0_;
+  update_vio_keyframe_pose_ = false;
+  update_primitive_estimator_pose_ = false;
+  Eigen::Matrix4d robust_pose = current_robust_pose_ * T_body_imu_ * T_imu_cam0_;
+  translation = robust_pose.block<3, 1>(0, 3);
+  rotation = robust_pose.block<3, 3>(0, 0);
 
   return true;
 }
+
+bool SwitchingEstimator::getLatestPrimitiveEstimatorPose(std::pair<Timestamp, Eigen::Matrix4d>& primitive_pose) {
+  if (last_primitive_estimator_time_ != -1) {
+    primitive_pose.first = last_primitive_estimator_time_;
+    primitive_pose.second = current_primitive_pose_;
+    return true;
+  }
+  return false;
+}
+
+uint64_t SwitchingEstimator::getPrimitiveKFsCount() { return primitive_estimator_kfs_; }

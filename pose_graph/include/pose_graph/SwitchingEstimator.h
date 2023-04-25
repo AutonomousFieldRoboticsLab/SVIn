@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <deque>
 
 #include "common/Definitions.h"
 #include "pose_graph/Parameters.h"
@@ -32,8 +33,14 @@ class SwitchingEstimator {
   Eigen::Matrix4d current_vio_pose_;
   Eigen::Matrix4d current_robust_pose_;
 
-  Timestamp last_vio_keyframe_time_;
-  Timestamp last_primitive_estimator_time_;
+  Timestamp last_vio_keyframe_time_ = -1;
+  Timestamp last_primitive_estimator_time_ = -1;
+  uint64_t primitive_estimator_kfs_ = 0;
+
+  bool update_vio_keyframe_pose_ = false;
+  bool update_primitive_estimator_pose_ = false;
+
+  std::deque<std::pair<Timestamp, Eigen::Matrix4d>> primitive_estimator_poses_;
 
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -43,11 +50,13 @@ class SwitchingEstimator {
 
   void addKeyframeInfo(KeyframeInfo& keyframe_info);
 
-  bool performHealthCheck(TrackingInfo& tracking_info, std::string& status_message);
+  void performHealthCheck(TrackingInfo& tracking_info, std::string& status_message);
   bool checkTrackingInfo(TrackingInfo& tracking_info, std::string& status_message);
 
   void updateVIOKeyframePose(Timestamp time, Eigen::Vector3d& translation, Eigen::Matrix3d& rotation);
   void addPrimitiveEstimatorPose(Timestamp timestamp, Eigen::Matrix4d& primitive_estimator_pose);
 
-  bool getRobustPose(Timestamp time, Eigen::Matrix4d& robust_pose);
+  bool getRobustPose(Timestamp& stamp, Eigen::Vector3d& translation, Eigen::Matrix3d& rotation, bool& is_vio_keyframe);
+  bool getLatestPrimitiveEstimatorPose(std::pair<Timestamp, Eigen::Matrix4d>& primitive_pose);
+  uint64_t getPrimitiveKFsCount();
 };

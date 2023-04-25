@@ -20,7 +20,8 @@ class Publisher {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Publisher(ros::NodeHandle& nh_private);
+  Publisher(ros::NodeHandle& nh_private, bool debug_mode);
+
   ~Publisher() = default;
 
   void kfMatchedPointCloudCallback(const sensor_msgs::PointCloud& pointcloud);
@@ -39,20 +40,25 @@ class Publisher {
   bool savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response);  // NOLINT
 
   void saveTrajectory(const std::string& filename) const;
+  void publishPrimitiveEstimator(const std::pair<Timestamp, Eigen::Matrix4d>& primitive_estimator_pose);
 
  private:
+  bool debug_mode_;                    // If true, publish additional topics for debugging
   ros::Publisher pub_matched_points_;  // Publish keyframe matched points
   ros::Publisher pub_gloal_map_;       // Publishes sparse global map deformed after loop closure
 
   ros::Publisher pub_primitive_estimator_path_;  // Publishes the path of the primitive estimator (debugging)
-  ros::Publisher pub_robust_path_;      // Publishes the path of the robust estimator without loop closure (debugging)
-  ros::Publisher pub_robust_odometry_;  // Publishes robust switching odometry (debugging)
-  ros::Publisher pub_primitive_odometry_;  // Publishes primitive estimator odometry (debugging)
-  ros::Publisher pub_loop_closure_path_;   // Publishes loop closure path
-  ros::Publisher pub_kf_connections_;      // Publisher keyframe connections
-  ros::Publisher pub_visualization_;       // Publishes visualization markers for rviz
+  ros::Publisher pub_primitive_odometry_;        // Publishes primitive estimator odometry (debugging)
 
-  nav_msgs::Path loop_closure_traj_;
+  ros::Publisher pub_robust_path_;        // Publishes the path of the robust estimator without loop closure (debugging)
+  ros::Publisher pub_robust_odometry_;    // Publishes robust switching odometry (debugging)
+  ros::Publisher pub_loop_closure_path_;  // Publishes loop closure path
+  ros::Publisher pub_kf_connections_;     // Publisher keyframe connections
+  ros::Publisher pub_visualization_;      // Publishes visualization markers for rviz
+
+  nav_msgs::Path loop_closure_traj_;         // Stores the loop closure path
+  nav_msgs::Path primitive_estimator_traj_;  // Stores the primitive estimator path
+
   std::unique_ptr<CameraPoseVisualization> camera_pose_visualizer_;
 
   PointCloudCallback pointcloud_callback_;

@@ -44,7 +44,7 @@ class LoopClosure {
 
   inline void fillKeyframeTrackingQueue(std::unique_ptr<KeyframeInfo> keyframe_info) {
     CHECK(keyframe_info);
-    keyframe_tracking_queue_.push(std::move(keyframe_info));
+    keyframe_tracking_queue_.pushOverflowIfFull(std::move(keyframe_info), 5U);
   }
 
   inline void fillImageQueue(std::unique_ptr<std::pair<Timestamp, cv::Mat>> original_image_with_timestamp) {
@@ -61,6 +61,10 @@ class LoopClosure {
 
   void setKeyframePoseCallback(const KeframeWithLoopClosureCallback& keyframe_pose_callback);
   void setLoopClosureCallback(const PathWithLoopClosureCallback& loop_closure_callback);
+  inline void setPrimitivePublishCallback(const PoseCallback& primitive_publish_callback) {
+    primitive_publish_callback_ = primitive_publish_callback;
+    DLOG(INFO) << "Primitive publish callback set";
+  }
 
  private:
   void setup();
@@ -83,14 +87,6 @@ class LoopClosure {
 
   BriefVocabulary* voc_;
 
-  uint64_t last_keyframe_time_;
-  double last_primitive_estmator_time_;
-  double scale_between_vio_prim_;
-  uint64_t consecutive_tracking_failures_, consecutive_tracking_successes_;
-  Eigen::Matrix4d last_t_w_svin_, last_t_w_prim_;
-  Eigen::Matrix4d init_t_w_prim_, init_t_w_svin_;
-  Eigen::Matrix4d switch_svin_pose_, switch_prim_pose_, switch_uber_pose_, last_scaled_prim_pose_;
-
   std::vector<std::pair<Timestamp, Eigen::Matrix4d>> primitive_estimator_poses_;
   std::vector<std::pair<Timestamp, Eigen::Matrix4d>> robust_estimator_poses_;
 
@@ -109,4 +105,6 @@ class LoopClosure {
   utils::ThreadsafeTemporalBuffer<cv::Mat> primitive_estimator_poses_buffer_;
 
   bool shutdown_;
+
+  PoseCallback primitive_publish_callback_;
 };

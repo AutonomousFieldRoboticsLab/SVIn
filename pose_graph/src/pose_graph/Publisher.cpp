@@ -14,15 +14,18 @@
 
 #include "utils/Utils.h"
 
-Publisher::Publisher(ros::NodeHandle& nh) {
+Publisher::Publisher(ros::NodeHandle& nh, bool debug_mode) : debug_mode_(debug_mode) {
   // Publishers
   pub_matched_points_ = nh.advertise<sensor_msgs::PointCloud>("match_points", 100);
   pub_gloal_map_ = nh.advertise<sensor_msgs::PointCloud2>("global_map", 2);
 
-  pub_primitive_estimator_path_ = nh.advertise<nav_msgs::Path>("primitive_estimator_path", 2);
   pub_robust_path_ = nh.advertise<nav_msgs::Path>("uber_path", 2);
   pub_robust_odometry_ = nh.advertise<nav_msgs::Odometry>("uber_odometry", 2);
-  pub_primitive_odometry_ = nh.advertise<nav_msgs::Odometry>("prim_odometry", 2);
+
+  if (debug_mode_) {
+    pub_primitive_estimator_path_ = nh.advertise<nav_msgs::Path>("primitive_estimator_path", 2);
+    pub_primitive_odometry_ = nh.advertise<nav_msgs::Odometry>("prim_odometry", 2);
+  }
 
   pub_loop_closure_path_ = nh.advertise<nav_msgs::Path>("loop_closure_path", 100);
   pub_kf_connections_ = nh.advertise<visualization_msgs::MarkerArray>("kf_connections", 1000);
@@ -155,4 +158,32 @@ void Publisher::saveTrajectory(const std::string& filename) const {
                    << quat.y << " " << quat.z << " " << quat.w << std::endl;
   }
   loop_path_file.close();
+}
+
+void Publisher::publishPrimitiveEstimator(const std::pair<Timestamp, Eigen::Matrix4d>& primitive_estimator_pose) {
+  Eigen::Matrix3d rot = primitive_estimator_pose.second.block<3, 3>(0, 0);
+  Eigen::Quaterniond quat(rot);
+  Eigen::Vector3d trans = primitive_estimator_pose.second.block<3, 1>(0, 3);
+
+  geometry_msgs::PoseStamped pose_stamped;
+  geometry_msgs::Pose pose;
+  pose_stamped.header.stamp = Utility::toRosTime(primitive_estimator_pose.first);
+  pose_stamped.header.frame_id = "world";
+  pose.position.x = trans.x();
+  pose.position.y = trans.y();
+  pose.position.z = trans.z();
+  pose.orientation.x = quat.x();
+  pose.orientation.y = quat.y();
+  pose.orientation.z = quat.z();
+  pose.orientation.w = quat.w();
+  pose_stamped.pose = pose;
+
+  primitive_estimator_traj_.poses.push_back(pose_stamped);
+  primitive_estimator_traj_.header = pose_stamped.header;
+
+  publishPath(primitive_estimator_traj_, pub_primitive_estimator_path_);
+  nav_msgs::Odometry prim_odom;
+  prim_odom.header = pose_stamped.header;
+  prim_odom.pose.pose = pose;
+  publishOdometry(prim_odom, pub_primitive_odometry_);
 }

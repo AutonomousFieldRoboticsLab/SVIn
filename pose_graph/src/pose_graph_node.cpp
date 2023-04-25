@@ -116,12 +116,17 @@ int main(int argc, char** argv) {
 
   auto subscriber = std::make_unique<Subscriber>(nh, params);
   auto loop_closure = std::make_unique<LoopClosure>(params);
-  auto publisher = std::make_unique<Publisher>(nh);
+  auto publisher = std::make_unique<Publisher>(nh, params.debug_mode_);
 
   loop_closure->setKeyframePoseCallback(
       std::bind(&Publisher::publishKeyframePath, publisher.get(), std::placeholders::_1, std::placeholders::_2));
   loop_closure->setLoopClosureCallback(
       std::bind(&Publisher::publishLoopClosurePath, publisher.get(), std::placeholders::_1, std::placeholders::_2));
+
+  if (params.debug_mode_) {
+    loop_closure->setPrimitivePublishCallback(
+        std::bind(&Publisher::publishPrimitiveEstimator, publisher.get(), std::placeholders::_1 ));
+  }
 
   subscriber->registerKeyframeCallback(
       std::bind(&LoopClosure::fillKeyframeTrackingQueue, loop_closure.get(), std::placeholders::_1));

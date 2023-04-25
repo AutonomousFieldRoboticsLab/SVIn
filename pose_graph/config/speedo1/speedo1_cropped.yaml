@@ -35,7 +35,7 @@ global_map_params:
 
 debug:
     enable: 1
-    output_dir: /home/bjoshi/ros_workspaces/svin_ws/src/SVIn/pose_graph/debug_output
+    output_dir: /home/bjoshi/ros_workspaces/svin_ws/src/SVIn/pose_graph/output_logs
 
 image_height: 600
 image_width: 800

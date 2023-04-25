@@ -116,7 +116,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
                                   const nav_msgs::OdometryConstPtr& kf_odom,
                                   const sensor_msgs::PointCloudConstPtr& kf_points,
                                   const okvis_ros::SvinHealthConstPtr& svin_health) {
-  TrackingInfo tracking_info(kf_odom->header.stamp,
+  TrackingInfo tracking_info(kf_odom->header.stamp.toNSec(),
                              svin_health->numTrackedKps,
                              svin_health->newKps,
                              svin_health->kpsPerQuadrant,

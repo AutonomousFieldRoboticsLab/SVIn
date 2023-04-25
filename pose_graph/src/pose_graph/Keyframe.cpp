@@ -29,7 +29,7 @@ static void reduceVector(std::vector<Derived>& v, std::vector<uchar> status) {  
   v.resize(j);
 }
 
-Keyframe::Keyframe(int64_t _time_stamp,
+Keyframe::Keyframe(Timestamp _time_stamp,
                    std::vector<Eigen::Vector3i>& _point_ids,
                    int _index,
                    Eigen::Vector3d& _svin_T_w_i,

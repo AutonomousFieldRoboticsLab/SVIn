@@ -57,70 +57,113 @@ void LoopClosure::setup() {
 void LoopClosure::run() {
   while (!shutdown_) {
     std::unique_ptr<KeyframeInfo> keyframe_info = nullptr;
-    bool queue_state = keyframe_tracking_queue_.popBlocking(keyframe_info);
-    if (queue_state) {
+    bool new_vio_keyframe_available = keyframe_tracking_queue_.pop(keyframe_info);
+    if (new_vio_keyframe_available) {
       CHECK(keyframe_info);
-
-      switching_estimator_->addKeyframeInfo(*keyframe_info.get());
-
-      std::map<Keyframe*, int> KFcounter;
-
-      for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
-        double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
-        for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
-          observed_kf_index += prim_estimator_keyframes_;
-          if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
-            Keyframe* observed_kf =
-                kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
-            KFcounter[observed_kf]++;
-          }
-        }
-      }
-
-      Keyframe* keyframe = new Keyframe(keyframe_info->timestamp_.toNSec(),
-                                        keyframe_info->keypoint_ids_,
-                                        keyframe_info->keyframe_index_,
-                                        keyframe_info->translation_,
-                                        keyframe_info->rotation_,
-                                        keyframe_info->keyframe_image_,
-                                        keyframe_info->keyfame_points_,
-                                        keyframe_info->cv_keypoints_,
-                                        KFcounter,
-                                        sequence_,
-                                        voc_,
-                                        params_);
-      kfMapper_.insert(std::make_pair(keyframe_info->keyframe_index_, keyframe));
-      pose_graph_->addKFToPoseGraph(keyframe, 1);
-
-      if (params_.global_mapping_params_.enabled) {
-        cv::Mat original_color_image;
-        if (!raw_image_buffer_.getNearestValueToTime(keyframe_info->timestamp_.toNSec(), &original_color_image)) {
-          LOG(WARNING) << "Could not find color image for keyframe with timestamp "
-                       << keyframe_info->timestamp_.toNSec();
-        } else {
-          if (params_.resize_factor_ != 0) {
-            cv::resize(original_color_image,
-                       original_color_image,
-                       cv::Size(params_.image_width_, params_.image_height_),
-                       cv::INTER_LINEAR);
-          }
-          if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
-            addPointsToGlobalMap(keyframe_info->keyframe_index_,
-                                 original_color_image,
-                                 keyframe_info->rotation_,
-                                 keyframe_info->translation_,
-                                 keyframe_info->keyfame_points_,
-                                 keyframe_info->tracking_info_.points_quality_,
-                                 keyframe_info->keypoint_ids_,
-
-                                 keyframe_info->cv_keypoints_);
-          } else {
-            LOG(WARNING) << "Keyframe not found";
-          }
-        }
+      if (params_.health_params_.enabled) {
+        switching_estimator_->addKeyframeInfo(*keyframe_info.get());
       }
     }
-    frame_index_++;
+
+    Timestamp prim_stamp;
+    cv::Mat primitive_estimator_pose;
+
+    if (params_.health_params_.enabled) {
+      bool got_primitive_pose = false;
+      primitive_estimator_poses_buffer_.getNewestValue(&primitive_estimator_pose, &prim_stamp);
+      if (got_primitive_pose) {
+        Eigen::Matrix4d primitive_estimator_pose_eigen;
+        cv::cv2eigen(primitive_estimator_pose, primitive_estimator_pose_eigen);
+        switching_estimator_->addPrimitiveEstimatorPose(prim_stamp, primitive_estimator_pose_eigen);
+      }
+    }
+
+    // if (params_.debug_mode_ && primitive_publish_callback_) {
+    //   std::pair<Timestamp, Eigen::Matrix4d> latest_primitive_estimator_pose;
+    //   bool robust_estimator_initialized =
+    //       switching_estimator_->getLatestPrimitiveEstimatorPose(latest_primitive_estimator_pose);
+    //   if (robust_estimator_initialized) {
+    //     primitive_publish_callback_(latest_primitive_estimator_pose);
+    //   }
+    // }
+
+    Timestamp stamp;
+    Eigen::Matrix3d rotation;
+    Eigen::Vector3d translation;
+    bool got_keyframe = false, is_vio_keyframe = true;
+    uint64_t primititve_keyframes = 0;
+    if (params_.health_params_.enabled) {
+      got_keyframe = switching_estimator_->getRobustPose(stamp, translation, rotation, is_vio_keyframe);
+      prim_estimator_keyframes_ = switching_estimator_->getPrimitiveKFsCount();
+    } else if (new_vio_keyframe_available) {
+      rotation = keyframe_info->rotation_;
+      translation = keyframe_info->translation_;
+      stamp = keyframe_info->timestamp_;
+      got_keyframe = true;
+    }
+
+    if (got_keyframe) {
+      int combined_kf_index = keyframe_info->keyframe_index_ + primititve_keyframes;
+      if (is_vio_keyframe) {
+        std::map<Keyframe*, int> KFcounter;
+
+        for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
+          double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
+          for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
+            observed_kf_index += primititve_keyframes;
+            if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
+              Keyframe* observed_kf =
+                  kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
+              KFcounter[observed_kf]++;
+            }
+          }
+        }
+
+        Keyframe* keyframe = new Keyframe(stamp,
+                                          keyframe_info->keypoint_ids_,
+                                          combined_kf_index,
+                                          translation,
+                                          rotation,
+                                          keyframe_info->keyframe_image_,
+                                          keyframe_info->keyfame_points_,
+                                          keyframe_info->cv_keypoints_,
+                                          KFcounter,
+                                          sequence_,
+                                          voc_,
+                                          params_,
+                                          true);
+
+        kfMapper_.insert(std::make_pair(combined_kf_index, keyframe));
+        pose_graph_->addKFToPoseGraph(keyframe, params_.loop_closure_params_.enabled);
+
+        // if (params_.global_mapping_params_.enabled) {
+        //   cv::Mat original_color_image;
+        //   if (!raw_image_buffer_.getNearestValueToTime(stamp, &original_color_image)) {
+        //     LOG(WARNING) << "Could not find color image for keyframe with timestamp " << stamp;
+        //   } else {
+        //     if (params_.resize_factor_ != 0) {
+        //       cv::resize(original_color_image,
+        //                  original_color_image,
+        //                  cv::Size(params_.image_width_, params_.image_height_),
+        //                  cv::INTER_LINEAR);
+        //     }
+        //     if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
+        //       addPointsToGlobalMap(combined_kf_index,
+        //                            original_color_image,
+        //                            rotation,
+        //                            translation,
+        //                            keyframe_info->keyfame_points_,
+        //                            keyframe_info->tracking_info_.points_quality_,
+        //                            keyframe_info->keypoint_ids_,
+        //                            keyframe_info->cv_keypoints_);
+        //     } else {
+        //       LOG(WARNING) << "Keyframe not found";
+        //     }
+        //   }
+        // }
+      } else {
+      }
+    }
   }
 }
 
@@ -227,12 +270,12 @@ void LoopClosure::updateGlobalMap() {
 }
 
 void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
-  geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.header = pose_msg->header;
-  pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
-  pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
-                                               Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_.T_body_imu_ *
-                                               params_.T_imu_cam0_);
+  // geometry_msgs::PoseStamped pose_stamped;
+  // pose_stamped.header = pose_msg->header;
+  // pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
+  // pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
+  //                                              Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_.T_body_imu_ *
+  //                                              params_.T_imu_cam0_);
   // primitive_estimator_poses_.push_back(pose_stamped);
 }
 

@@ -1,3 +1,4 @@
+
 #include <glog/logging.h>
 #include <ros/package.h>
 
@@ -101,6 +102,7 @@ int main(int argc, char** argv) {
 
   FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
   FLAGS_colorlogtostderr = 1;
+
   // FLAGS_log_prefix = true;
 
   // read parameters
@@ -112,6 +114,7 @@ int main(int argc, char** argv) {
 
   if (params.debug_mode_) {
     setupOutputLogDirectories(params.debug_output_path_);
+    FLAGS_v = 10;
   }
 
   auto subscriber = std::make_unique<Subscriber>(nh, params);
@@ -125,7 +128,7 @@ int main(int argc, char** argv) {
 
   if (params.debug_mode_) {
     loop_closure->setPrimitivePublishCallback(
-        std::bind(&Publisher::publishPrimitiveEstimator, publisher.get(), std::placeholders::_1 ));
+        std::bind(&Publisher::publishPrimitiveEstimator, publisher.get(), std::placeholders::_1));
   }
 
   subscriber->registerKeyframeCallback(

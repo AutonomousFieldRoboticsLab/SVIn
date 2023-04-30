@@ -60,57 +60,51 @@ void LoopClosure::run() {
     bool new_vio_keyframe_available = keyframe_tracking_queue_.pop(keyframe_info);
     if (new_vio_keyframe_available) {
       CHECK(keyframe_info);
+      Timestamp stamp;
+      Eigen::Matrix3d rotation;
+      Eigen::Vector3d translation;
+      uint32_t primitive_keyframes = 0;
+      bool got_keyframe = false;
+
       if (params_.health_params_.enabled) {
         switching_estimator_->addKeyframeInfo(*keyframe_info.get());
+        Timestamp prim_stamp;
+        cv::Mat primitive_estimator_pose;
+        bool got_primitive_pose = false;
+        got_primitive_pose = primitive_estimator_poses_buffer_.getNearestValueToTime(
+            keyframe_info->timestamp_, 50000000UL, &primitive_estimator_pose, &prim_stamp);
+        if (got_primitive_pose) {
+          Eigen::Matrix4d primitive_estimator_pose_eigen;
+          cv::cv2eigen(primitive_estimator_pose, primitive_estimator_pose_eigen);
+          switching_estimator_->addPrimitiveEstimatorPose(prim_stamp, primitive_estimator_pose_eigen);
+        }
+
+        if (params_.debug_mode_ && primitive_publish_callback_) {
+          std::pair<Timestamp, Eigen::Matrix4d> latest_primitive_estimator_pose;
+          bool robust_estimator_initialized =
+              switching_estimator_->getLatestPrimitiveEstimatorPose(latest_primitive_estimator_pose);
+          if (robust_estimator_initialized) {
+            primitive_publish_callback_(latest_primitive_estimator_pose);
+          }
+        }
+
+        got_keyframe = switching_estimator_->getRobustPose(stamp, translation, rotation);
+        primitive_keyframes = switching_estimator_->getPrimitiveKFCount();
+
+      } else {
+        rotation = keyframe_info->rotation_;
+        translation = keyframe_info->translation_;
+        stamp = keyframe_info->timestamp_;
+        got_keyframe = true;
       }
-    }
-
-    Timestamp prim_stamp;
-    cv::Mat primitive_estimator_pose;
-
-    if (params_.health_params_.enabled) {
-      bool got_primitive_pose = false;
-      primitive_estimator_poses_buffer_.getNewestValue(&primitive_estimator_pose, &prim_stamp);
-      if (got_primitive_pose) {
-        Eigen::Matrix4d primitive_estimator_pose_eigen;
-        cv::cv2eigen(primitive_estimator_pose, primitive_estimator_pose_eigen);
-        switching_estimator_->addPrimitiveEstimatorPose(prim_stamp, primitive_estimator_pose_eigen);
-      }
-    }
-
-    // if (params_.debug_mode_ && primitive_publish_callback_) {
-    //   std::pair<Timestamp, Eigen::Matrix4d> latest_primitive_estimator_pose;
-    //   bool robust_estimator_initialized =
-    //       switching_estimator_->getLatestPrimitiveEstimatorPose(latest_primitive_estimator_pose);
-    //   if (robust_estimator_initialized) {
-    //     primitive_publish_callback_(latest_primitive_estimator_pose);
-    //   }
-    // }
-
-    Timestamp stamp;
-    Eigen::Matrix3d rotation;
-    Eigen::Vector3d translation;
-    bool got_keyframe = false, is_vio_keyframe = true;
-    uint64_t primititve_keyframes = 0;
-    if (params_.health_params_.enabled) {
-      got_keyframe = switching_estimator_->getRobustPose(stamp, translation, rotation, is_vio_keyframe);
-      prim_estimator_keyframes_ = switching_estimator_->getPrimitiveKFsCount();
-    } else if (new_vio_keyframe_available) {
-      rotation = keyframe_info->rotation_;
-      translation = keyframe_info->translation_;
-      stamp = keyframe_info->timestamp_;
-      got_keyframe = true;
-    }
-
-    if (got_keyframe) {
-      int combined_kf_index = keyframe_info->keyframe_index_ + primititve_keyframes;
-      if (is_vio_keyframe) {
+      if (got_keyframe) {
+        VLOG(10) << "VIO keyframe at: " << stamp;
+        uint32_t combined_kf_index = keyframe_info->keyframe_index_ + primitive_keyframes;
         std::map<Keyframe*, int> KFcounter;
-
         for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
           double quality = static_cast<double>(keyframe_info->tracking_info_.points_quality_[i]);
           for (auto observed_kf_index : keyframe_info->point_covisibilities_[i]) {
-            observed_kf_index += primititve_keyframes;
+            observed_kf_index += primitive_keyframes;
             if (kfMapper_.find(observed_kf_index) != kfMapper_.end()) {
               Keyframe* observed_kf =
                   kfMapper_.find(observed_kf_index)->second;  // Keyframe where this point_3d has been observed
@@ -161,8 +155,10 @@ void LoopClosure::run() {
         //     }
         //   }
         // }
-      } else {
       }
+    } else {
+      // std::vector<std::pair<Timestamp, Eigen::Matrix4d>> poses;
+      // switching_estimator_->getPrimitiveEstimatorPoses(poses);
     }
   }
 }
@@ -274,8 +270,8 @@ void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConst
   // pose_stamped.header = pose_msg->header;
   // pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
   // pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
-  //                                              Utility::rosPoseToMatrix(pose_msg->pose.pose) * params_.T_body_imu_ *
-  //                                              params_.T_imu_cam0_);
+  //                                              Utility::rosPoseToMatrix(pose_msg->pose.pose) *
+  //                                              params_.T_body_imu_ * params_.T_imu_cam0_);
   // primitive_estimator_poses_.push_back(pose_stamped);
 }
 

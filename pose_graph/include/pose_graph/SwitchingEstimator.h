@@ -35,7 +35,8 @@ class SwitchingEstimator {
 
   Timestamp last_vio_keyframe_time_ = -1;
   Timestamp last_primitive_estimator_time_ = -1;
-  uint64_t primitive_estimator_kfs_ = 0;
+  uint32_t primitive_estimator_kfs_ = 0;
+  uint32_t latest_kf_index = 0;
 
   bool update_vio_keyframe_pose_ = false;
   bool update_primitive_estimator_pose_ = false;
@@ -56,7 +57,9 @@ class SwitchingEstimator {
   void updateVIOKeyframePose(Timestamp time, Eigen::Vector3d& translation, Eigen::Matrix3d& rotation);
   void addPrimitiveEstimatorPose(Timestamp timestamp, Eigen::Matrix4d& primitive_estimator_pose);
 
-  bool getRobustPose(Timestamp& stamp, Eigen::Vector3d& translation, Eigen::Matrix3d& rotation, bool& is_vio_keyframe);
+  bool getRobustPose(Timestamp& stamp, Eigen::Vector3d& translation, Eigen::Matrix3d& rotation);
   bool getLatestPrimitiveEstimatorPose(std::pair<Timestamp, Eigen::Matrix4d>& primitive_pose);
-  uint64_t getPrimitiveKFsCount();
+  uint32_t getPrimitiveKFCount();
+
+  void getPrimitiveEstimatorPoses(std::vector<std::pair<Timestamp, Eigen::Matrix4d>>& primitive_poses);
 };

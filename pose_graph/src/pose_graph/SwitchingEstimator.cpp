@@ -23,6 +23,7 @@ void SwitchingEstimator::addKeyframeInfo(KeyframeInfo& keyframe_info) {
   std::string message;
   performHealthCheck(keyframe_info.tracking_info_, message);
   updateVIOKeyframePose(keyframe_info.timestamp_, keyframe_info.translation_, keyframe_info.rotation_);
+  latest_kf_index = keyframe_info.keyframe_index_;
 }
 
 void SwitchingEstimator::performHealthCheck(TrackingInfo& tracking_info, std::string& status_message) {
@@ -43,6 +44,8 @@ bool SwitchingEstimator::checkTrackingInfo(TrackingInfo& tracking_info, std::str
   if (tracking_info.num_tracked_keypoints_ < health_params_.min_tracked_keypoints) {
     ss << "Not enough triangulated keypoints: " << tracking_info.num_tracked_keypoints_ << std::endl;
     error_message = ss.str();
+
+    VLOG(10) << "Not enough triangulated keypoints: " << tracking_info.num_tracked_keypoints_ << std::endl;
     return false;
   }
 
@@ -56,6 +59,9 @@ bool SwitchingEstimator::checkTrackingInfo(TrackingInfo& tracking_info, std::str
                              10.0 * health_params_.kps_per_quadrant) {
     ss << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", " << keypoints_per_quadrant[1]
        << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3] << "]" << std::endl;
+    VLOG(10) << "Not enough keypoints per quadrant:  [" << keypoints_per_quadrant[0] << ", "
+             << keypoints_per_quadrant[1] << ", " << keypoints_per_quadrant[2] << ", " << keypoints_per_quadrant[3]
+             << "]" << std::endl;
     error_message = ss.str();
     return false;
   }
@@ -65,6 +71,7 @@ bool SwitchingEstimator::checkTrackingInfo(TrackingInfo& tracking_info, std::str
 
   if (new_detected_keypoints_ratio >= 0.75) {
     ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
+    VLOG(10) << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
     error_message = ss.str();
     return false;
   }
@@ -81,6 +88,7 @@ bool SwitchingEstimator::checkTrackingInfo(TrackingInfo& tracking_info, std::str
 
   if (fraction_with_low_detector_response >= 0.85) {
     ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
+    VLOG(10) << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
     error_message = ss.str();
     return false;
   }
@@ -100,13 +108,11 @@ void SwitchingEstimator::addPrimitiveEstimatorPose(Timestamp timestamp, Eigen::M
     }
     current_primitive_pose_ = init_t_w_vio_ * init_t_w_prim_.inverse() * primitive_estimator_pose;
     last_primitive_estimator_time_ = timestamp;
-    update_primitive_estimator_pose_ = true;
   } else if (timestamp > last_primitive_estimator_time_) {
     current_primitive_pose_ = init_t_w_vio_ * init_t_w_prim_.inverse() * primitive_estimator_pose;
     last_primitive_estimator_time_ = timestamp;
-    update_primitive_estimator_pose_ = true;
   }
-  // primitive_estimator_poses_.push_back({timestamp, current_primitive_pose_});
+  primitive_estimator_poses_.push_front({timestamp, current_primitive_pose_});
 }
 
 void SwitchingEstimator::updateVIOKeyframePose(Timestamp timestamp,
@@ -127,44 +133,23 @@ void SwitchingEstimator::updateVIOKeyframePose(Timestamp timestamp,
     tracking_status_ = TrackingStatus::TRACKING_VIO;
   }
   last_vio_keyframe_time_ = timestamp;
+
+  while (!primitive_estimator_poses_.empty() && primitive_estimator_poses_.back().first < timestamp) {
+    primitive_estimator_poses_.pop_back();
+  }
 }
 
-bool SwitchingEstimator::getRobustPose(Timestamp& stamp,
-                                       Eigen::Vector3d& translation,
-                                       Eigen::Matrix3d& rotation,
-                                       bool& is_vio_keyframe) {
+bool SwitchingEstimator::getRobustPose(Timestamp& stamp, Eigen::Vector3d& translation, Eigen::Matrix3d& rotation) {
   // If OKVIS do not produce keyframe for a while, switch to
   // primitive estimator
 
   if (tracking_status_ == TrackingStatus::NOT_INITIALIZED) return false;
-  if (!update_vio_keyframe_pose_ && !update_primitive_estimator_pose_) return false;
 
-  if (static_cast<double>(last_primitive_estimator_time_ - last_vio_keyframe_time_) * 1e-9 >
-          health_params_.kf_wait_time &&
-      tracking_status_ != TrackingStatus::NOT_INITIALIZED) {
-    if (tracking_status_ == TrackingStatus::TRACKING_VIO) {
-      switch_t_w_vio_ = current_vio_pose_;
-      switch_t_w_prim_ = current_primitive_pose_;
-      switch_t_w_robust_ = current_robust_pose_;
-
-      tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
-      primitive_estimator_kfs_++;
-      LOG(INFO) << "Did not got VIO keyframe for: "
-                << static_cast<float>(last_primitive_estimator_time_ - last_vio_keyframe_time_) * 1e-9;
-      LOG(INFO) << "!!!!!!!!Switching to Primitive Estimator !!!!!!!!!!";
-      is_vio_keyframe = false;
-    }
-
-    current_robust_pose_ = switch_t_w_robust_ * switch_t_w_prim_.inverse() * current_primitive_pose_;
-    stamp = last_primitive_estimator_time_;
-
-  } else if (tracking_status_ == TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR) {
+  if (tracking_status_ == TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR) {
     if (consecutive_tracking_successes_ < health_params_.consecutive_keyframes) {
       current_robust_pose_ = switch_t_w_robust_ * switch_t_w_prim_.inverse() * current_primitive_pose_;
       stamp = last_primitive_estimator_time_;
       primitive_estimator_kfs_++;
-      is_vio_keyframe = false;
-
     } else {
       current_robust_pose_ = switch_t_w_robust_ * switch_t_w_vio_.inverse() * current_vio_pose_;
       switch_t_w_vio_ = current_vio_pose_;
@@ -173,7 +158,6 @@ bool SwitchingEstimator::getRobustPose(Timestamp& stamp,
       tracking_status_ = TrackingStatus::TRACKING_VIO;
       LOG(INFO) << "!!!!!!!!Switching to VIO !!!!!!!!!!";
       stamp = last_vio_keyframe_time_;
-      is_vio_keyframe = true;
     }
   } else if (tracking_status_ == TrackingStatus::TRACKING_VIO &&
              consecutive_tracking_failures_ >= (health_params_.consecutive_keyframes + 3U) &&
@@ -184,17 +168,12 @@ bool SwitchingEstimator::getRobustPose(Timestamp& stamp,
     tracking_status_ = TrackingStatus::TRACKING_PRIMITIVE_ESTIMATOR;
     ROS_INFO_STREAM(
         "Switching to Primitive Estimator. Consecutive Tracking failures: " << consecutive_tracking_failures_);
-    is_vio_keyframe = false;
 
   } else {
-    LOG(INFO) << "Tracking VIO";
     current_robust_pose_ = switch_t_w_robust_ * switch_t_w_vio_.inverse() * current_vio_pose_;
-    is_vio_keyframe = true;
     stamp = last_vio_keyframe_time_;
   }
 
-  update_vio_keyframe_pose_ = false;
-  update_primitive_estimator_pose_ = false;
   Eigen::Matrix4d robust_pose = current_robust_pose_ * T_body_imu_ * T_imu_cam0_;
   translation = robust_pose.block<3, 1>(0, 3);
   rotation = robust_pose.block<3, 3>(0, 0);
@@ -211,4 +190,4 @@ bool SwitchingEstimator::getLatestPrimitiveEstimatorPose(std::pair<Timestamp, Ei
   return false;
 }
 
-uint64_t SwitchingEstimator::getPrimitiveKFsCount() { return primitive_estimator_kfs_; }
+uint32_t SwitchingEstimator::getPrimitiveKFCount() { return primitive_estimator_kfs_; }

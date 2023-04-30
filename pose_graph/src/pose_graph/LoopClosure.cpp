@@ -98,7 +98,7 @@ void LoopClosure::run() {
         got_keyframe = true;
       }
       if (got_keyframe) {
-        VLOG(10) << "VIO keyframe at: " << stamp;
+        // VLOG(10) << "VIO keyframe at: " << stamp;
         uint32_t combined_kf_index = keyframe_info->keyframe_index_ + primitive_keyframes;
         std::map<Keyframe*, int> KFcounter;
         for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {
@@ -155,10 +155,33 @@ void LoopClosure::run() {
         //     }
         //   }
         // }
+        last_keyframe_index_ = keyframe_info->keyframe_index_;
       }
-    } else {
-      // std::vector<std::pair<Timestamp, Eigen::Matrix4d>> poses;
-      // switching_estimator_->getPrimitiveEstimatorPoses(poses);
+    } else if (params_.health_params_.enabled) {
+      Timestamp prim_stamp;
+      cv::Mat primitive_estimator_pose;
+      bool got_primitive_pose = false;
+      got_primitive_pose = primitive_estimator_poses_buffer_.getNewestValue(&primitive_estimator_pose, &prim_stamp);
+      if (got_primitive_pose) {
+        Eigen::Matrix4d primitive_estimator_pose_eigen;
+        cv::cv2eigen(primitive_estimator_pose, primitive_estimator_pose_eigen);
+        switching_estimator_->addPrimitiveEstimatorPose(prim_stamp, primitive_estimator_pose_eigen);
+      }
+      std::vector<std::pair<Timestamp, Eigen::Matrix4d>> poses;
+      switching_estimator_->getPrimitiveEstimatorPoses(poses);
+      if (!poses.empty()) {
+        auto primitive_estimator_kfs = switching_estimator_->getPrimitiveKFCount();
+        int kf_index = last_keyframe_index_ + primitive_estimator_kfs - poses.size();
+        for (auto kf_pose : poses) {
+          kf_index++;
+          std::map<Keyframe*, int> kf_counter;
+          Eigen::Vector3d T = kf_pose.second.block<3, 1>(0, 3);
+          Eigen::Matrix3d R = kf_pose.second.block<3, 3>(0, 0);
+          Keyframe* keyframe = new Keyframe(kf_pose.first, kf_index, T, R, kf_counter, sequence_, params_, false);
+          kfMapper_.insert(std::make_pair(kf_index, keyframe));
+          pose_graph_->addKFToPoseGraph(keyframe, false);
+        }
+      }
     }
   }
 }

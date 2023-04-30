@@ -187,6 +187,6 @@ void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg
 
     keyframe_callback_(std::move(keyframe_info));
   } else {
-    LOG(WARNING) << "Skipping keyframe. Does not contain any triangulated points.";
+    // LOG(WARNING) << "Skipping keyframe. Does not contain any triangulated points.";
   }
 }

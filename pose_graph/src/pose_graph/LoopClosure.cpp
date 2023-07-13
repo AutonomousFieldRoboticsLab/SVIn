@@ -61,8 +61,6 @@ void LoopClosure::run() {
     if (queue_state) {
       CHECK(keyframe_info);
 
-      switching_estimator_->addKeyframeInfo(*keyframe_info.get());
-
       std::map<Keyframe*, int> KFcounter;
 
       for (size_t i = 0; i < keyframe_info->keyfame_points_.size(); ++i) {

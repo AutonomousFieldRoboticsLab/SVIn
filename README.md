@@ -56,7 +56,7 @@ You will need to install the following dependencies,
 
         mkdir -p ~/svin_ws/src
         cd ~/svin_ws/src
-        git clone --branch v0.1 https://github.com/AutonomousFieldRoboticsLab/SVIn.git
+        git clone --branch 0.2 https://github.com/AutonomousFieldRoboticsLab/SVIn.git
         git clone https://github.com/AutonomousFieldRoboticsLab/imagenex831l.git
         
         # For Ubuntu 18.04/20.04 (ROS Noetic)

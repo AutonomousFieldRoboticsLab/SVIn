@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 #include <ros/package.h>
 
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <opencv2/calib3d.hpp>
 #include <string>
@@ -119,7 +120,11 @@ void Parameters::loadParameters(const std::string& config_file) {
 
   fast_relocalization_ = fsSettings["fast_relocalization"];
 
-  svin_w_loop_path_ = pkg_path + "/svin_results/svin_" + Utility::getTimeStr() + ".txt";
+  std::string results_path = pkg_path + "/svin_results/";
+  if (!boost::filesystem::exists(results_path)) {
+    boost::filesystem::create_directory(results_path);
+  }
+  svin_w_loop_path_ = results_path + "svin_" + Utility::getTimeStr() + ".txt ";
 
   std::cout << "SVIN Result path: " << svin_w_loop_path_ << std::endl;
 

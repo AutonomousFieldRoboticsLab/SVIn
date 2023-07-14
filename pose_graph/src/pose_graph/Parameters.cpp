@@ -124,7 +124,7 @@ void Parameters::loadParameters(const std::string& config_file) {
   if (!boost::filesystem::exists(results_path)) {
     boost::filesystem::create_directory(results_path);
   }
-  svin_w_loop_path_ = results_path + "svin_" + Utility::getTimeStr() + ".txt ";
+  svin_w_loop_path_ = results_path + "svin_" + Utility::getTimeStr() + ".txt";
 
   std::cout << "SVIN Result path: " << svin_w_loop_path_ << std::endl;
 

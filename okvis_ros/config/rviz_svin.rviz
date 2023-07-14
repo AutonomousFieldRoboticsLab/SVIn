@@ -3,8 +3,7 @@ Panels:
     Help Height: 85
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /PointCloud21
+      Expanded: ~
       Splitter Ratio: 0.7843869924545288
     Tree Height: 416
   - Class: rviz/Selection
@@ -75,7 +74,7 @@ Visualization Manager:
       Buffer Length: 1000
       Class: rviz/Path
       Color: 255; 255; 0
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -94,7 +93,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /okvis_node/relocalization_path
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -279,7 +278,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 10.288756370544434
+      Distance: 67.28030395507812
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -295,9 +294,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 0.12479681521654129
       Target Frame: fcu
-      Yaw: 5.662045478820801
+      Yaw: 0.05064176395535469
     Saved: ~
 Window Geometry:
   Displays:
@@ -319,5 +318,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1848
-  X: 1992
+  X: 72
   Y: 0

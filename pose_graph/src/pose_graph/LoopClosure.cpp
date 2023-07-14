@@ -204,6 +204,8 @@ void LoopClosure::updateGlobalMap() {
         continue;
       }
 
+      // The keyframe poses are already updated in PoseGraph Optimization as
+      // pointers are passed
       Keyframe* kf = kfMapper_.find(kf_id)->second;
       Eigen::Matrix3d R_kf_w;
       Eigen::Vector3d T_kf_w;

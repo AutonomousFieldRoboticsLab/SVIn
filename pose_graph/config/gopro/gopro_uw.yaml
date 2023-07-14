@@ -29,9 +29,9 @@ health:
     keyframe_wait_time: 2.0
     kps_per_quadrant: 1
 
-# global_map_params:
-#     enable: 1
-#     min_landmark_quality: 0.001
+global_map_params:
+    enable: 1
+    min_landmark_quality: 0.001
 
 # Added by Bharat
 # Parameters for color mapping as we need to subscribe to original color image

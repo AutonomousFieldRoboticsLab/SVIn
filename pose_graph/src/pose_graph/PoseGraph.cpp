@@ -348,6 +348,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
 
       Eigen::Vector3d cur_t, svin_t;
       Eigen::Matrix3d cur_r, svin_r;
+      Timestamp current_stamp = cur_kf->time_stamp;
       cur_kf->getPose(cur_t, cur_r);
       cur_kf->getSVInPose(svin_t, svin_r);
 
@@ -368,6 +369,9 @@ void PoseGraph::optimize4DoFPoseGraph() {
       }
       kflistMutex_.unlock();
       updatePath();
+      if (loop_closure_optimization_callback_) {
+        loop_closure_optimization_callback_(current_stamp);
+      }
     }
     std::chrono::milliseconds dura(10);
     std::this_thread::sleep_for(dura);

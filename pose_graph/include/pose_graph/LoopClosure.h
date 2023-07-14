@@ -44,7 +44,7 @@ class LoopClosure {
 
   inline void fillKeyframeTrackingQueue(std::unique_ptr<KeyframeInfo> keyframe_info) {
     CHECK(keyframe_info);
-    keyframe_tracking_queue_.pushOverflowIfFull(std::move(keyframe_info), 10);
+    keyframe_tracking_queue_.pushOverflowIfFull(std::move(keyframe_info), 5);
   }
 
   inline void fillImageQueue(std::unique_ptr<std::pair<Timestamp, cv::Mat>> original_image_with_timestamp) {

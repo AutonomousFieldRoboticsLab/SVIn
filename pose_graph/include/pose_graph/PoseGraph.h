@@ -58,7 +58,6 @@ class PoseGraph {
  private:
   int detectLoop(Keyframe* keyframe, int frame_index);
   void optimize4DoFPoseGraph();
-  void optimize6DoFPoseGraph();
   void updatePath();
   std::list<Keyframe*> keyframelist;
   std::mutex kflistMutex_;

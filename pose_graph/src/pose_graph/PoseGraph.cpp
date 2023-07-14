@@ -31,11 +31,7 @@ void PoseGraph::setBriefVocAndDB(BriefVocabulary* vocabulary, BriefDatabase data
 }
 
 void PoseGraph::startOptimizationThread(bool vio_only_optimization) {
-  if (vio_only_optimization) {
-    t_optimization = std::thread(&PoseGraph::optimize4DoFPoseGraph, this);
-  } else {
-    t_optimization = std::thread(&PoseGraph::optimize6DoFPoseGraph, this);
-  }
+  t_optimization = std::thread(&PoseGraph::optimize4DoFPoseGraph, this);
 }
 
 void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
@@ -48,11 +44,10 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
     w_t_svin = Eigen::Vector3d(0, 0, 0);
     w_r_svin = Eigen::Matrix3d::Identity();
 
-    {
-      std::lock_guard<std::mutex> l(driftMutex_);
-      t_drift = Eigen::Vector3d(0, 0, 0);
-      r_drift = Eigen::Matrix3d::Identity();
-    }
+    driftMutex_.lock();
+    t_drift = Eigen::Vector3d(0, 0, 0);
+    r_drift = Eigen::Matrix3d::Identity();
+    driftMutex_.unlock();
   }
 
   cur_kf->getSVInPose(svin_P_cur, svin_R_cur);
@@ -74,7 +69,7 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
     Keyframe* old_kf = getKFPtr(loop_index);
     if (cur_kf->findConnection(old_kf)) {
       if (earliest_loop_index > loop_index || earliest_loop_index == -1) earliest_loop_index = loop_index;
-
+      VLOG(1) << "Found Loop  with keyframe: " << loop_index << " and " << cur_kf->index;
       Eigen::Vector3d w_P_old, w_P_cur, svin_P_cur;
       Eigen::Matrix3d w_R_old, w_R_cur, svin_R_cur;
       old_kf->getSVInPose(w_P_old, w_R_old);  // old_kf replaced by min_loop_kf
@@ -112,43 +107,45 @@ void PoseGraph::addKFToPoseGraph(Keyframe* cur_kf, bool flag_detect_loop) {
         }
         sequence_loop[cur_kf->sequence] = 1;
       }
-      std::lock_guard<std::mutex> l(optimizationMutex_);
+
+      optimizationMutex_.lock();
       optimizationBuffer_.push(cur_kf->index);
+      optimizationMutex_.unlock();
     }
   }
 
-  {
-    std::lock_guard<std::mutex> l(kflistMutex_);
-    Eigen::Vector3d P;
-    Eigen::Matrix3d R;
-    cur_kf->getSVInPose(P, R);
-    P = r_drift * P + t_drift;
-    R = r_drift * R;
-    cur_kf->updatePose(P, R);
-    Eigen::Quaterniond Q{R};
+  Eigen::Vector3d P;
+  Eigen::Matrix3d R;
+  std::pair<Eigen::Vector3d, Eigen::Vector3d> loop_info;
+  loop_info.first = Eigen::Vector3d::Zero();
+  loop_info.second = Eigen::Vector3d::Zero();
 
-    std::pair<Eigen::Vector3d, Eigen::Vector3d> loop_info;
-    loop_info.first = Eigen::Vector3d::Zero();
-    loop_info.second = Eigen::Vector3d::Zero();
+  kflistMutex_.lock();
+  std::pair<Timestamp, Eigen::Matrix4d> pose;
+  cur_kf->getSVInPose(P, R);
+  P = r_drift * P + t_drift;
+  R = r_drift * R;
+  cur_kf->updatePose(P, R);
+  Eigen::Quaterniond Q{R};
 
-    if (cur_kf->has_loop) {
-      Keyframe* connected_KF = getKFPtr(cur_kf->loop_index);
-      Eigen::Vector3d connected_P, P0;
-      Eigen::Matrix3d connected_R, R0;
-      connected_KF->getPose(connected_P, connected_R);
-      cur_kf->getPose(P0, R0);
-      loop_info = {P0, connected_P};
-    }
-
-    keyframelist.push_back(cur_kf);
-
-    std::pair<Timestamp, Eigen::Matrix4d> pose;
-    pose.first = cur_kf->time_stamp;
-    pose.second.block<3, 3>(0, 0) = R;
-    pose.second.block<3, 1>(0, 3) = P;
-    CHECK(keyframe_pose_callback_);
-    keyframe_pose_callback_(pose, loop_info);
+  if (cur_kf->has_loop) {
+    Keyframe* connected_KF = getKFPtr(cur_kf->loop_index);
+    Eigen::Vector3d connected_P, P0;
+    Eigen::Matrix3d connected_R, R0;
+    connected_KF->getPose(connected_P, connected_R);
+    cur_kf->getPose(P0, R0);
+    loop_info = {P0, connected_P};
   }
+
+  keyframelist.push_back(cur_kf);
+  pose.first = cur_kf->time_stamp;
+  kflistMutex_.unlock();
+
+  pose.second.block<3, 3>(0, 0) = R;
+  pose.second.block<3, 1>(0, 3) = P;
+  CHECK(keyframe_pose_callback_);
+  keyframe_pose_callback_(pose, loop_info);
+  VLOG(10) << "Called Keyframe Callback";
 }
 
 Keyframe* PoseGraph::getKFPtr(int index) {
@@ -223,14 +220,14 @@ void PoseGraph::optimize4DoFPoseGraph() {
     int cur_index = -1;
     int first_looped_index = -1;
 
-    {
-      std::lock_guard<std::mutex> l(optimizationMutex_);
-      while (!optimizationBuffer_.empty()) {
-        cur_index = optimizationBuffer_.front();
-        first_looped_index = earliest_loop_index;
-        optimizationBuffer_.pop();
-      }
+    optimizationMutex_.lock();
+    while (!optimizationBuffer_.empty()) {
+      cur_index = optimizationBuffer_.front();
+      first_looped_index = earliest_loop_index;
+      optimizationBuffer_.pop();
     }
+    optimizationMutex_.unlock();
+
     if (cur_index != -1) {
       ceres::Problem problem;
       ceres::Solver::Options options;
@@ -242,6 +239,10 @@ void PoseGraph::optimize4DoFPoseGraph() {
 
       kflistMutex_.lock();
       Keyframe* cur_kf = getKFPtr(cur_index);
+
+      if (cur_kf == NULL) {
+        LOG(ERROR) << "Current Keyframe is NULL";
+      }
 
       int max_length = cur_index + 1;
 
@@ -278,7 +279,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
         problem.AddParameterBlock(euler_array[i], 1, angle_local_parameterization);
         problem.AddParameterBlock(t_array[i], 3);
 
-        if ((*it)->index == first_looped_index || (*it)->sequence == 0) {
+        if ((*it)->index == first_looped_index) {
           problem.SetParameterBlockConstant(euler_array[i]);
           problem.SetParameterBlockConstant(t_array[i]);
         }
@@ -330,217 +331,51 @@ void PoseGraph::optimize4DoFPoseGraph() {
 
       ceres::Solve(options, &problem, &summary);
 
-      {
-        std::lock_guard<std::mutex> l(kflistMutex_);
-        i = 0;
-        for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
-          if ((*it)->index < first_looped_index) continue;
-          Eigen::Quaterniond tmp_q;
-          tmp_q = Utility::ypr2R(Eigen::Vector3d(euler_array[i][0], euler_array[i][1], euler_array[i][2]));
-          Eigen::Vector3d tmp_t = Eigen::Vector3d(t_array[i][0], t_array[i][1], t_array[i][2]);
-          Eigen::Matrix3d tmp_r = tmp_q.toRotationMatrix();
-          (*it)->updatePose(tmp_t, tmp_r);
-
-          if ((*it)->index == cur_index) break;
-          i++;
-        }
-
-        Eigen::Vector3d cur_t, svin_t;
-        Eigen::Matrix3d cur_r, svin_r;
-        cur_kf->getPose(cur_t, cur_r);
-        cur_kf->getSVInPose(svin_t, svin_r);
-        {
-          std::lock_guard<std::mutex> l(driftMutex_);
-          yaw_drift = Utility::R2ypr(cur_r).x() - Utility::R2ypr(svin_r).x();
-          r_drift = Utility::ypr2R(Eigen::Vector3d(yaw_drift, 0, 0));
-          t_drift = cur_t - r_drift * svin_t;
-        }
-
-        it++;
-        for (; it != keyframelist.end(); it++) {
-          Eigen::Vector3d P;
-          Eigen::Matrix3d R;
-          (*it)->getSVInPose(P, R);
-          P = r_drift * P + t_drift;
-          R = r_drift * R;
-          (*it)->updatePose(P, R);
-        }
-      }
-      updatePath();
-      if (loop_closure_optimization_callback_) {
-        Keyframe* last_kf = keyframelist.back();
-        loop_closure_optimization_callback_(last_kf->time_stamp);
-      }
-    }
-  }
-}
-
-void PoseGraph::optimize6DoFPoseGraph() {
-  while (true) {
-    int cur_index = -1;
-    int first_looped_index = -1;
-
-    {
-      std::lock_guard<std::mutex> l(optimizationMutex_);
-      while (!optimizationBuffer_.empty()) {
-        cur_index = optimizationBuffer_.front();
-        first_looped_index = earliest_loop_index;
-        optimizationBuffer_.pop();
-      }
-    }
-    if (cur_index != -1) {
-      // clang-format off
-      Eigen::Matrix<double, 6, 6> relative_pose_sqrt_information, loop_closure_sqrt_information;
-      relative_pose_sqrt_information << 20.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                        0.0, 20.0, 0.0, 0.0, 0.0, 0.0,
-                                        0.0, 0.0, 20.0, 0.0, 0.0, 0.0,
-                                        0.0, 0.0, 0.0, 100.0, 0.0, 0.0,
-                                        0.0, 0.0, 0.0, 0.0, 100.0, 0.0,
-                                        0.0, 0.0, 0.0, 0.0, 0.0, 57.3;
-
-      loop_closure_sqrt_information << 20.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                       0.0, 20.0, 0.0, 0.0, 0.0, 0.0,
-                                       0.0, 0.0, 20.0, 0.0, 0.0, 0.0,
-                                       0.0, 0.0, 0.0, 100.0, 0.0, 0.0,
-                                       0.0, 0.0, 0.0, 0.0, 100.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 100.0;
-      // clang-format on
-
-      ceres::Problem problem;
-      ceres::Solver::Options options;
-      options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
-      options.max_num_iterations = 5;
-      ceres::Solver::Summary summary;
-      ceres::LossFunction* loss_function = new ceres::HuberLoss(0.1);
-
       kflistMutex_.lock();
-      Keyframe* cur_kf = getKFPtr(cur_index);
 
-      int kMaxLength = cur_index + 1;
-
-      Eigen::Vector3d t_array[kMaxLength];
-      Eigen::Quaterniond q_array[kMaxLength];  // NOLINT
-      double sequence_array[kMaxLength];       // NOLINT
-
-      ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
-
-      std::list<Keyframe*>::iterator it;
-
-      int i = 0;
+      i = 0;
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
         if ((*it)->index < first_looped_index) continue;
-        (*it)->local_index = i;
         Eigen::Quaterniond tmp_q;
-        Eigen::Matrix3d tmp_r;
-        Eigen::Vector3d tmp_t;
-        (*it)->getSVInPose(tmp_t, tmp_r);
-        tmp_q = tmp_r;
-        t_array[i] = tmp_t;
-        q_array[i] = tmp_q;
-        sequence_array[i] = (*it)->sequence;
-
-        problem.AddParameterBlock(q_array[i].coeffs().data(), 4, quaternion_local_parameterization);
-        problem.AddParameterBlock(t_array[i].data(), 3);
-
-        if ((*it)->index == first_looped_index || (*it)->sequence == 0) {
-          problem.SetParameterBlockConstant(t_array[i].data());
-          problem.SetParameterBlockConstant(q_array[i].coeffs().data());
-        }
-
-        // add edge
-        // adding sequential egde. Fixed sized window of length 4 serves as covisibility
-        for (int j = 1; j < 5; j++) {
-          if (i - j >= 0 && sequence_array[i] == sequence_array[i - j]) {
-            Eigen::Quaterniond relative_q = q_array[i - j].inverse() * q_array[i];
-            Eigen::Vector3d relative_t = q_array[i - j].inverse() * (t_array[i] - t_array[i - j]);
-            ceres::Pose3d relative_pose(relative_t, relative_q);
-            ceres::CostFunction* cost_function =
-                ceres::PoseGraph3dErrorTerm::Create(relative_pose, relative_pose_sqrt_information);
-
-            problem.AddResidualBlock(cost_function,
-                                     NULL,
-                                     t_array[i - j].data(),
-                                     q_array[i - j].coeffs().data(),
-                                     t_array[i].data(),
-                                     q_array[i].coeffs().data());
-
-            // problem.SetParameterization(q_array[i - j].coeffs().data(), quaternion_local_parameterization);
-            // problem.SetParameterization(q_array[i].coeffs().data(), quaternion_local_parameterization);
-          }
-        }
-
-        // add loop edge
-
-        if ((*it)->has_loop) {
-          assert((*it)->loop_index >= first_looped_index);
-          Eigen::Vector3d relative_t = (*it)->getLoopRelativeT();
-          Eigen::Quaterniond relative_q = (*it)->getLoopRelativeQ();
-          ceres::Pose3d relative_pose(relative_t, relative_q);
-          ceres::CostFunction* cost_function =
-              ceres::PoseGraph3dErrorTerm::Create(relative_pose, loop_closure_sqrt_information);
-
-          int connected_index = getKFPtr((*it)->loop_index)->local_index;
-          problem.AddResidualBlock(cost_function,
-                                   loss_function,
-                                   t_array[connected_index].data(),
-                                   q_array[connected_index].coeffs().data(),
-                                   t_array[i].data(),
-                                   q_array[i].coeffs().data());
-
-          // problem.SetParameterization(q_array[connected_index].coeffs().data(), quaternion_local_parameterization);
-          // problem.SetParameterization(q_array[i].coeffs().data(), quaternion_local_parameterization);
-        }
+        tmp_q = Utility::ypr2R(Eigen::Vector3d(euler_array[i][0], euler_array[i][1], euler_array[i][2]));
+        Eigen::Vector3d tmp_t = Eigen::Vector3d(t_array[i][0], t_array[i][1], t_array[i][2]);
+        Eigen::Matrix3d tmp_r = tmp_q.toRotationMatrix();
+        (*it)->updatePose(tmp_t, tmp_r);
 
         if ((*it)->index == cur_index) break;
         i++;
       }
+
+      Eigen::Vector3d cur_t, svin_t;
+      Eigen::Matrix3d cur_r, svin_r;
+      cur_kf->getPose(cur_t, cur_r);
+      cur_kf->getSVInPose(svin_t, svin_r);
+
+      driftMutex_.lock();
+      yaw_drift = Utility::R2ypr(cur_r).x() - Utility::R2ypr(svin_r).x();
+      r_drift = Utility::ypr2R(Eigen::Vector3d(yaw_drift, 0, 0));
+      t_drift = cur_t - r_drift * svin_t;
+      driftMutex_.unlock();
+
+      it++;
+      for (; it != keyframelist.end(); it++) {
+        Eigen::Vector3d P;
+        Eigen::Matrix3d R;
+        (*it)->getSVInPose(P, R);
+        P = r_drift * P + t_drift;
+        R = r_drift * R;
+        (*it)->updatePose(P, R);
+      }
       kflistMutex_.unlock();
-
-      ceres::Solve(options, &problem, &summary);
-
-      {
-        std::lock_guard<std::mutex> l(kflistMutex_);
-        i = 0;
-        for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
-          if ((*it)->index < first_looped_index) continue;
-          (*it)->updatePose(t_array[i], q_array[i].toRotationMatrix());
-
-          if ((*it)->index == cur_index) break;
-          i++;
-        }
-
-        Eigen::Vector3d cur_t, svin_t;
-        Eigen::Matrix3d cur_r, svin_r;
-        cur_kf->getPose(cur_t, cur_r);
-        cur_kf->getSVInPose(svin_t, svin_r);
-        {
-          std::lock_guard<std::mutex> l(driftMutex_);
-          r_drift = cur_r.transpose() * svin_r;
-          yaw_drift = Utility::R2ypr(r_drift).x();
-          t_drift = cur_t - r_drift * svin_t;
-        }
-
-        it++;
-        for (; it != keyframelist.end(); it++) {
-          Eigen::Vector3d P;
-          Eigen::Matrix3d R;
-          (*it)->getSVInPose(P, R);
-          P = r_drift * P + t_drift;
-          R = r_drift * R;
-          (*it)->updatePose(P, R);
-        }
-      }
       updatePath();
-      if (loop_closure_optimization_callback_) {
-        Keyframe* last_kf = keyframelist.back();
-        loop_closure_optimization_callback_(last_kf->time_stamp);
-      }
     }
+    std::chrono::milliseconds dura(10);
+    std::this_thread::sleep_for(dura);
   }
 }
 
 void PoseGraph::updatePath() {
-  std::lock_guard<std::mutex> l(kflistMutex_);
+  kflistMutex_.lock();
 
   std::list<Keyframe*>::iterator it;
 
@@ -568,6 +403,8 @@ void PoseGraph::updatePath() {
       loop_closure_edges.push_back({P, connected_P});
     }
   }
+
+  kflistMutex_.unlock();
 
   CHECK(loop_closure_callback_);
   loop_closure_callback_(loop_closure_path, loop_closure_edges);

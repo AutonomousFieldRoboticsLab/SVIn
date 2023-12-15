@@ -58,9 +58,9 @@ if(APPLE)
   # The clang compiler (on osx) is somehow much more strict
   # than the compilers on ubuntu and so this does not seem
   # possible on OSX just yet.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++14 -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++17 -fPIC")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++14 -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++17 -fPIC")
 endif()
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm*")
@@ -141,12 +141,12 @@ find_package(SuiteSparse REQUIRED QUIET) #will be needed in any case...
 find_package(CXSparse QUIET) #optional
 if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-  find_package( Ceres 1.14 REQUIRED )
+  find_package( Ceres 2.1.0 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
   message(STATUS "Using system Ceres.")
 else()
-  set(CERES_VERSION 1.14.0)
-  set(CERES_TAG aeebc66bd8ff5db65b852dac0cbac28f618ac5d8) #version 1.14
+  set(CERES_VERSION 2.1.0)
+  set(CERES_TAG 783637a6ed285abc6c57b16ccd968c594a91b35f) #version 1.14
   ExternalProject_Add(ceres_external
     GIT_REPOSITORY https://ceres-solver.googlesource.com/ceres-solver
     GIT_TAG ${CERES_TAG}
@@ -158,6 +158,7 @@ else()
       -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
       -DBUILD_EXAMPLES:BOOL=OFF
       -DBUILD_TESTING:BOOL=OFF
+      -DCUDA:BOOL=OFF
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ceres
     BUILD_IN_SOURCE 0
     BUILD_COMMAND make -j${N_CORES}
@@ -186,16 +187,7 @@ else()
     set_property(TARGET ceres PROPERTY IMPORTED_LOCATION
                ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres.a )
   endif ()
-   
-  find_package(OpenMP QUIET)
-  if (OPENMP_FOUND OR OpenMP_FOUND)
-    message(STATUS "OpenMP found")
-    add_definitions(-DUSE_OPENMP)
-    set(CERES_LIBRARIES ceres gomp ${SUITESPARSE_LIBRARIES} ${CXSPARSE_LIBRARIES} ${Eigen_LIBS} ${GLOG_LIBRARY}) #ceres won't export these
-  else ()
-    message(STATUS "OpenMP NOT found")
-    set(CERES_LIBRARIES ceres ${SUITESPARSE_LIBRARIES} ${CXSPARSE_LIBRARIES}  ${Eigen_LIBS} ${GLOG_LIBRARY}) #ceres won't export these
-  endif ()
+  set(CERES_LIBRARIES ceres ${SUITESPARSE_LIBRARIES} ${CXSPARSE_LIBRARIES}  ${Eigen_LIBS} ${GLOG_LIBRARY}) #ceres won't export these
   add_dependencies(${CERES_LIBRARIES} ceres_external)
 
   # install it once built

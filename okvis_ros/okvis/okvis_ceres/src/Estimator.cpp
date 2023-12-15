@@ -944,16 +944,7 @@ bool Estimator::initPoseFromImu(const okvis::ImuMeasurementDeque& imuMeasurement
 }
 
 // Start ceres optimization.
-#ifdef USE_OPENMP
-void Estimator::optimize(size_t numIter, size_t numThreads, bool verbose)
-#else
-void Estimator::optimize(size_t numIter,
-                         size_t /*numThreads*/,
-                         bool verbose)  // avoid warning since numThreads unused
-#warning openmp not detected, your system may be slower than expected
-#endif
-
-{
+void Estimator::optimize(size_t numIter, size_t numThreads, bool verbose) {
   // assemble options
   mapPtr_->options.linear_solver_type = ::ceres::SPARSE_SCHUR;
   // mapPtr_->options.initial_trust_region_radius = 1.0e4;
@@ -966,9 +957,7 @@ void Estimator::optimize(size_t numIter,
   // mapPtr_->options.function_tolerance = 1e-12;
   // mapPtr_->options.gradient_tolerance = 1e-12;
   // mapPtr_->options.jacobi_scaling = false;
-#ifdef USE_OPENMP
   mapPtr_->options.num_threads = numThreads;
-#endif
   mapPtr_->options.max_num_iterations = numIter;
 
   if (verbose) {

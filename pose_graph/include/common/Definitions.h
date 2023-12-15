@@ -112,3 +112,23 @@ typedef std::function<void(const std::vector<std::pair<Timestamp, Eigen::Matrix4
                            const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>&)>
     PathWithLoopClosureCallback;
 typedef std::function<void(pcl::PointCloud<pcl::PointXYZRGB>::Ptr&)> PointCloudCallback;
+
+struct CameraCalibration {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  Eigen::Matrix<double, 4, 4> T_imu_cam0_;  ///< Transformation from camera to sensor (IMU) frame.
+  Eigen::Vector2i image_dimension_;         ///< Image dimension. [pixels]
+  cv::Mat distortion_coefficients_;         ///< Distortion Coefficients.
+  Eigen::Vector2d focal_length_;            ///< Focal length.
+  Eigen::Vector2d principal_point_;         ///< Principal point.
+  std::string distortion_type_;             ///< Distortion type. ('radialtangential' 'plumb_bob' 'equidistant')
+
+  void print() {
+    std::cout << "CameraCalibration: " << std::endl;
+    std::cout << "T_IMU_Cam0: \n" << T_imu_cam0_ << std::endl;
+    std::cout << "Image dimension: " << image_dimension_.transpose() << std::endl;
+    std::cout << "Distortion Coefficients: \n" << distortion_coefficients_ << std::endl;
+    std::cout << "Focal length: " << focal_length_.transpose() << std::endl;
+    std::cout << "Principal point: " << principal_point_.transpose() << std::endl;
+    std::cout << "Distortion type: " << distortion_type_ << std::endl;
+  }
+};

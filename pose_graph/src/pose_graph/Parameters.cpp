@@ -3,8 +3,8 @@
 #include <glog/logging.h>
 #include <ros/package.h>
 
+#include <boost/filesystem.hpp>
 #include <fstream>
-#include <opencv2/calib3d.hpp>
 #include <string>
 
 #include "utils/Utils.h"
@@ -24,10 +24,12 @@ Parameters::Parameters() {
   loop_closure_params_.min_correspondences = 25;
   loop_closure_params_.pnp_reprojection_thresh = 20.0;
   loop_closure_params_.pnp_ransac_iterations = 100;
+  resize_factor_ = 1.0;
 }
 
 void Parameters::loadParameters(const std::string& config_file) {
   cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+
   if (!fsSettings.isOpened()) {
     LOG(FATAL) << "ERROR: Wrong path to settings" << std::endl;
   }
@@ -119,92 +121,82 @@ void Parameters::loadParameters(const std::string& config_file) {
 
   fast_relocalization_ = fsSettings["fast_relocalization"];
 
-  svin_w_loop_path_ = pkg_path + "/svin_results/svin_" + Utility::getTimeStr() + ".txt";
+  std::string results_path = pkg_path + "/svin_results/";
+  if (!boost::filesystem::exists(results_path)) {
+    boost::filesystem::create_directory(results_path);
+  }
+  svin_w_loop_path_ = results_path + "svin_" + Utils::getTimeStr() + ".txt";
 
   std::cout << "SVIN Result path: " << svin_w_loop_path_ << std::endl;
 
   // Read config file parameters
-  resize_factor_ = static_cast<double>(fsSettings["resizeFactor"]);
-
-  cv::FileNode fnode = fsSettings["focal_length"];
-  p_fx_ = static_cast<double>(fnode[0]);
-  p_fy_ = static_cast<double>(fnode[1]);
-
-  fnode = fsSettings["principal_point"];
-  p_cx_ = static_cast<double>(fnode[0]);
-  p_cy_ = static_cast<double>(fnode[1]);
-
-  image_height_ = static_cast<int>(fsSettings["image_height"]);
-  image_width_ = static_cast<int>(fsSettings["image_width"]);
-
-  std::cout << "focal_length: " << p_fx_ << " " << p_fy_ << std::endl;
-  std::cout << "principal points: " << p_cx_ << " " << p_cy_ << std::endl;
-
-  if (resize_factor_ != 1.0) {
-    p_fx_ *= resize_factor_;
-    p_fy_ *= resize_factor_;
-    p_cx_ *= resize_factor_;
-    p_cy_ *= resize_factor_;
-    image_height_ = static_cast<int>(static_cast<double>(image_height_) * resize_factor_);
-    image_width_ = static_cast<int>(static_cast<double>(image_width_) * resize_factor_);
+  if (fsSettings["resizeFactor"].isReal() || fsSettings["resizeFactor"].isInt()) {
+    resize_factor_ = static_cast<double>(fsSettings["resizeFactor"]);
   }
 
-  cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
-  K.at<double>(0, 0) = p_fx_;
-  K.at<double>(1, 1) = p_fy_;
-  K.at<double>(0, 2) = p_cx_;
-  K.at<double>(1, 2) = p_cy_;
-
-  cv::FileNode dnode = fsSettings["distortion_coefficients"];
-  distortion_coeffs_ = cv::Mat::zeros(4, 1, CV_64F);
-  if (dnode.isSeq()) {
-    distortion_coeffs_.at<double>(0, 0) = static_cast<double>(dnode[0]);
-    distortion_coeffs_.at<double>(1, 0) = static_cast<double>(dnode[1]);
-    distortion_coeffs_.at<double>(2, 0) = static_cast<double>(dnode[2]);
-    distortion_coeffs_.at<double>(3, 0) = static_cast<double>(dnode[3]);
+  bool calibration_valid = getCalibrationViaConfig(camera_calibration_, fsSettings["cameras"]);
+  if (!calibration_valid) {
+    LOG(FATAL) << "Calibration not found in config file. Please provide calibration in config file.";
   }
-
-  cv::Size image_size(image_width_, image_height_);
-  LOG(INFO) << "distortion_coefficients: " << distortion_coeffs_;
-  LOG(INFO) << "camera_matrix : \n" << K;
-
-  cv::FileNode t_s_c_node = fsSettings["T_SC"];
-  T_imu_cam0_ = Eigen::Matrix4d::Identity();
-  if (t_s_c_node.isSeq()) {
-    T_imu_cam0_(0, 0) = static_cast<double>(t_s_c_node[0]);
-    T_imu_cam0_(0, 1) = static_cast<double>(t_s_c_node[1]);
-    T_imu_cam0_(0, 2) = static_cast<double>(t_s_c_node[2]);
-    T_imu_cam0_(0, 3) = static_cast<double>(t_s_c_node[3]);
-    T_imu_cam0_(1, 0) = static_cast<double>(t_s_c_node[4]);
-    T_imu_cam0_(1, 1) = static_cast<double>(t_s_c_node[5]);
-    T_imu_cam0_(1, 2) = static_cast<double>(t_s_c_node[6]);
-    T_imu_cam0_(1, 3) = static_cast<double>(t_s_c_node[7]);
-    T_imu_cam0_(2, 0) = static_cast<double>(t_s_c_node[8]);
-    T_imu_cam0_(2, 1) = static_cast<double>(t_s_c_node[9]);
-    T_imu_cam0_(2, 2) = static_cast<double>(t_s_c_node[10]);
-    T_imu_cam0_(2, 3) = static_cast<double>(t_s_c_node[11]);
-  }
-
-  LOG(INFO) << "T_imu_cam0: \n" << T_imu_cam0_;
-
-  cv::FileNode t_bs_node = fsSettings["T_BS"];
-  T_body_imu_ = Eigen::Matrix4d::Identity();
-  if (t_bs_node.isSeq()) {
-    T_body_imu_(0, 0) = static_cast<double>(t_bs_node[0]);
-    T_body_imu_(0, 1) = static_cast<double>(t_bs_node[1]);
-    T_body_imu_(0, 2) = static_cast<double>(t_bs_node[2]);
-    T_body_imu_(0, 3) = static_cast<double>(t_bs_node[3]);
-    T_body_imu_(1, 0) = static_cast<double>(t_bs_node[4]);
-    T_body_imu_(1, 1) = static_cast<double>(t_bs_node[5]);
-    T_body_imu_(1, 2) = static_cast<double>(t_bs_node[6]);
-    T_body_imu_(1, 3) = static_cast<double>(t_bs_node[7]);
-    T_body_imu_(2, 0) = static_cast<double>(t_bs_node[8]);
-    T_body_imu_(2, 1) = static_cast<double>(t_bs_node[9]);
-    T_body_imu_(2, 2) = static_cast<double>(t_bs_node[10]);
-    T_body_imu_(2, 3) = static_cast<double>(t_bs_node[11]);
-  }
-
-  LOG(INFO) << "T_BS: \n" << T_body_imu_;
-
+  camera_calibration_.print();
   fsSettings.release();
+}
+
+// Get the camera calibration via the configuration file.
+bool Parameters::getCalibrationViaConfig(CameraCalibration& calib, cv::FileNode camera_node) {
+  bool got_calibration = false;
+  // first check if calibration is available in config file
+  if (camera_node.isSeq() && camera_node.size() > 0) {
+    size_t cam_idx = 0;
+    cv::FileNodeIterator it = camera_node.begin();
+    if ((*it).isMap() && (*it)["T_SC"].isSeq() && (*it)["image_dimension"].isSeq() &&
+        (*it)["image_dimension"].size() == 2 && (*it)["distortion_coefficients"].isSeq() &&
+        (*it)["distortion_coefficients"].size() >= 4 && (*it)["distortion_type"].isString() &&
+        (*it)["focal_length"].isSeq() && (*it)["focal_length"].size() == 2 && (*it)["principal_point"].isSeq() &&
+        (*it)["principal_point"].size() == 2) {
+      LOG(INFO) << "Found calibration in configuration file for camera " << cam_idx;
+      got_calibration = true;
+    } else {
+      LOG(WARNING) << "Found incomplete calibration in configuration file for camera " << cam_idx
+                   << ". Will not use the calibration from the configuration file.";
+      return false;
+    }
+  } else {
+    LOG(INFO) << "Did not find a calibration in the configuration file.";
+  }
+  if (got_calibration) {
+    cv::FileNodeIterator it = camera_node.begin();
+
+    cv::FileNode T_SC_node = (*it)["T_SC"];
+    cv::FileNode image_dimension_node = (*it)["image_dimension"];
+    cv::FileNode distortion_coefficient_node = (*it)["distortion_coefficients"];
+    cv::FileNode focal_length_node = (*it)["focal_length"];
+    cv::FileNode principal_point_node = (*it)["principal_point"];
+
+    // extrinsics
+    calib.T_imu_cam0_ << T_SC_node[0], T_SC_node[1], T_SC_node[2], T_SC_node[3], T_SC_node[4], T_SC_node[5],
+        T_SC_node[6], T_SC_node[7], T_SC_node[8], T_SC_node[9], T_SC_node[10], T_SC_node[11], T_SC_node[12],
+        T_SC_node[13], T_SC_node[14], T_SC_node[15];
+
+    calib.image_dimension_ << image_dimension_node[0], image_dimension_node[1];
+    calib.image_dimension_(0) = static_cast<int>(static_cast<double>(calib.image_dimension_(0)) * resize_factor_);
+    calib.image_dimension_(1) = static_cast<int>(static_cast<double>(calib.image_dimension_(1)) * resize_factor_);
+    LOG(WARNING) << "Resize Factor: " << resize_factor_;
+    LOG(WARNING) << calib.image_dimension_;
+
+    calib.distortion_coefficients_ = cv::Mat::zeros(distortion_coefficient_node.size(), 1, CV_64F);
+    for (size_t i = 0; i < distortion_coefficient_node.size(); ++i) {
+      calib.distortion_coefficients_.at<double>(i, 0) = distortion_coefficient_node[i];
+    }
+
+    // Changing focal_length and principal_point accord to image resizeFactor
+    calib.focal_length_ << focal_length_node[0], focal_length_node[1];
+    calib.focal_length_ = calib.focal_length_ * resize_factor_;
+
+    calib.principal_point_ << principal_point_node[0], principal_point_node[1];
+    calib.principal_point_ = calib.principal_point_ * resize_factor_;
+
+    calib.distortion_type_ = (std::string)((*it)["distortion_type"]);
+  }
+  return got_calibration;
 }

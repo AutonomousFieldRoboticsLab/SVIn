@@ -1,8 +1,10 @@
 #pragma once
 
 #include <assert.h>
-#include <ceres/ceres.h>
-#include <ceres/rotation.h>
+#include <ceres/autodiff_cost_function.h>
+#include <ceres/autodiff_local_parameterization.h>
+#include <ceres/cost_function.h>
+#include <ceres/local_parameterization.h>
 #include <geometry_msgs/PointStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>

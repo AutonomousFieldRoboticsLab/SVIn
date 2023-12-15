@@ -183,13 +183,13 @@ void Keyframe::computeWindowBRIEFPoint() {
 }
 
 void Keyframe::project_normal(Eigen::Vector2d kp, Eigen::Vector3d& point3d) const {
-  const float invfx = 1.0f / params_.p_fx_;
-  const float invfy = 1.0f / params_.p_fy_;
+  const float invfx = 1.0f / params_.camera_calibration_.focal_length_.x();
+  const float invfy = 1.0f / params_.camera_calibration_.focal_length_.y();
 
   const float u = kp[0];
   const float v = kp[1];
-  point3d[0] = (u - params_.p_cx_) * invfx;
-  point3d[1] = (v - params_.p_cy_) * invfy;
+  point3d[0] = (u - params_.camera_calibration_.principal_point_.x()) * invfx;
+  point3d[1] = (v - params_.camera_calibration_.principal_point_.y()) * invfy;
   point3d[2] = 1.0;
 }
 
@@ -313,7 +313,19 @@ void Keyframe::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
                          Eigen::Vector3d& PnP_T_old,
                          Eigen::Matrix3d& PnP_R_old) {
   cv::Mat r, rvec, t, tmp_r;
-  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.p_fx_, 0, params_.p_cx_, 0, params_.p_fy_, params_.p_cy_, 0, 0, 1.0);
+  cv::Mat K = (cv::Mat_<double>(3, 3) << params_.camera_calibration_.focal_length_.x(),
+               0,
+               params_.camera_calibration_.principal_point_.x(),
+               0,
+               params_.camera_calibration_.focal_length_.y(),
+               params_.camera_calibration_.principal_point_.y(),
+               0,
+               0,
+               1.0);
+
+  // std::cout << "Camera Matrix: " << K << std::endl;
+  // std::cout << "distortion coeffs: " << params_.camera_calibration_.distortion_coefficients_ << std::endl;
+
   Eigen::Matrix3d R_inital;
   Eigen::Vector3d P_inital;
 
@@ -332,11 +344,12 @@ void Keyframe::PnPRANSAC(const std::vector<cv::Point2f>& matched_2d_old,
   // bjoshi
   // Temporary fix for https://github.com/opencv/opencv/issues/17799
   // This is a bug in opencv. The bug is fixed in opencv master branch.
+
   try {
     solvePnPRansac(matched_3d,
                    matched_2d_old,
                    K,
-                   params_.distortion_coeffs_,
+                   params_.camera_calibration_.distortion_coefficients_,
                    rvec,
                    t,
                    false,
@@ -485,7 +498,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
     relative_t = PnP_R_old.transpose() * (origin_svin_T - PnP_T_old);
     relative_q = PnP_R_old.transpose() * origin_svin_R;
 
-    relative_yaw = Utility::normalizeAngle(Utility::R2ypr(origin_svin_R).x() - Utility::R2ypr(PnP_R_old).x());
+    relative_yaw = Utils::normalizeAngle(Utils::R2ypr(origin_svin_R).x() - Utils::R2ypr(PnP_R_old).x());
 
     if (abs(relative_yaw) < 25.0 && relative_t.norm() < 15.0) {
       if (params_.debug_mode_) {
@@ -516,7 +529,7 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
         std::string loop_closure_stats = params_.debug_output_path_ + "/loop_closure.txt";
         std::ofstream loop_closure_file(loop_closure_stats, std::ios::app);
         loop_closure_file.setf(std::ios::fixed, std::ios::floatfield);
-        Eigen::Vector3d relative_ypr = Utility::R2ypr(relative_q.toRotationMatrix());
+        Eigen::Vector3d relative_ypr = Utils::R2ypr(relative_q.toRotationMatrix());
         loop_closure_file.precision(9);
         loop_closure_file << index << " " << time_stamp << " " << old_kf->index << " " << old_kf->time_stamp << " "
                           << relative_t.x() << " " << relative_t.y() << " " << relative_t.z() << " "

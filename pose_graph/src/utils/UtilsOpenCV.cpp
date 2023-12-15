@@ -82,7 +82,7 @@ void UtilsOpenCV::DrawTextInPlace(cv::Mat& img,
   for (size_t i = 0; i < imagePoints.size(); i++) {
     if (imagePoints.size() == textDoubles.size())  // write text
       cv::putText(img,
-                  Utility::To_string_with_precision(textDoubles.at(i), 3),
+                  Utils::To_string_with_precision(textDoubles.at(i), 3),
                   imagePoints[i] + textOffset,
                   cv::FONT_HERSHEY_COMPLEX,
                   msize,

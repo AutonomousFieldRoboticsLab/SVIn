@@ -1,26 +1,27 @@
 <launch>
 
   <!-- Arguments -->
-  <arg name="config_path" default="$(find pose_graph)/config/stereo_rig/stereo_rig_v2_config.yaml" />
+  <arg name="config_path" default="$(find okvis_ros)/../config/config_stereorig_v2.yaml" />
 
   <param name="/use_sim_time" value="true" />
 
 
   <!-- To un-compress image topics -->
-  <node name="republish1" type="republish" pkg="image_transport" output="screen"
-    args="compressed in:=/slave1/image_raw raw out:=/cam0/image_raw" />
-  <node name="republish2" type="republish" pkg="image_transport" output="screen"
-    args="compressed in:=/slave2/image_raw raw out:=/cam1/image_raw" />
+  <node name="stereo_sync" type="stereo_sync" pkg="okvis_ros" output="screen">
+    <param name="left_img_topic" value="/slave1/image_raw" />
+    <param name="right_img_topic" value="/slave2/image_raw" />
+    <param name="compressed" value="true" />
+  </node>
 
   <!-- Run pose_graph node-->
-  <node name="pose_graph_node" pkg="pose_graph" type="pose_graph_node" output="screen">
-    <param name=" config_file" type="string" value="$(arg config_path)" />
+  <node name="pose_graph_node" pkg="pose_graph" type="pose_graph_node">
+    <param name="config_file" type="string" value="$(arg config_path)" />
   </node>
 
 
   <node name="okvis_node" pkg="okvis_ros" type="okvis_node">
 
-    <param name="config_filename" value="$(find okvis_ros)/okvis/config/config_stereorig_v2.yaml" />
+    <param name="config_filename" value="$(arg config_path)" />
     <param name="mesh_file" value="firefly.dae" />
 
 
@@ -32,6 +33,5 @@
   </node>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_svin.rviz" />
-
 
 </launch>

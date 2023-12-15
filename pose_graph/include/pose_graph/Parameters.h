@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "common/Definitions.h"
+
 struct LoopClosureParams {
   bool enabled;
   double pnp_reprojection_thresh;
@@ -45,23 +47,16 @@ class Parameters {
 
   int fast_relocalization_;
 
-  // projection matrix
-  double p_fx_;
-  double p_fy_;
-  double p_cx_;
-  double p_cy_;
-
   std::string vocabulary_file_;
 
   // for visulization
   double camera_visual_size_;
 
-  cv::Mat distortion_coeffs_;
-  uint16_t image_width_;
-  uint16_t image_height_;
   double resize_factor_;
-  Eigen::Matrix4d T_imu_cam0_;
   Eigen::Matrix4d T_body_imu_;
+
+  // The first camera in the camera is used as refrence
+  CameraCalibration camera_calibration_;
 
   bool debug_mode_;
   std::string debug_output_path_;
@@ -79,4 +74,5 @@ class Parameters {
 
  public:
   void loadParameters(const std::string& config_file);
+  bool getCalibrationViaConfig(CameraCalibration& calibration, cv::FileNode camera_node);
 };

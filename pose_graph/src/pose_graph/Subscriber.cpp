@@ -59,7 +59,7 @@ void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& ms
   if (!primitive_estimator_callback_ && params_.health_params_.enabled) {
     LOG_EVERY_N(ERROR, 100) << "Primitive estimator callback not set";
   } else if (primitive_estimator_callback_) {
-    Eigen::Matrix4d pose = Utility::rosPoseToMatrix(msg->pose.pose);
+    Eigen::Matrix4d pose = Utils::rosPoseToMatrix(msg->pose.pose);
     cv::Mat cv_pose;
     cv::eigen2cv(pose, cv_pose);
     auto pose_with_timestamp =

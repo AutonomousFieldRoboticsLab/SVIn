@@ -58,6 +58,8 @@ catkin_package(
                    message_runtime
                    std_srvs
                    nav_msgs
+                   cv_bridge
+                   message_filters
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
 )
@@ -99,8 +101,8 @@ include_directories(
 #removed -g flag which produces debubugging information 
 #-g is not needed for release builds
 
-add_definitions(-fPIC -march=native -Wextra -Winit-self -Woverloaded-virtual
-                -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -std=c++14)
+add_definitions(-fPIC -march=native -O3 -Wextra -Winit-self -Woverloaded-virtual
+                -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -std=c++17)
 
 add_library(${PROJECT_NAME} STATIC src/Subscriber.cpp
                                src/Publisher.cpp
@@ -155,3 +157,5 @@ target_link_libraries(okvis_node ${PROJECT_NAME} )
 add_executable(dataset_convertor src/dataset_convertor.cpp)
 target_link_libraries(dataset_convertor ${PROJECT_NAME} )
 
+add_executable(stereo_sync src/stereo_sync.cpp)
+target_link_libraries(stereo_sync ${catkin_LIBRARIES} ${PROJECT_NAME})

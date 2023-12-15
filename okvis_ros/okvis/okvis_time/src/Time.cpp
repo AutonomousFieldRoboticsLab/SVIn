@@ -94,9 +94,6 @@ const Time TIME_MIN(0, 1);
  * (i.e. not exposed to users of the time classes)
  */
 void okvis_walltime(uint32_t& sec, uint32_t& nsec)  // NOLINT
-#ifndef WIN32
-    throw(NoHighPerformanceTimersException)
-#endif
 {
 #ifndef WIN32
 #if HAS_CLOCK_GETTIME

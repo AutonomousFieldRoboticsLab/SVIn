@@ -8,7 +8,7 @@
 SwitchingEstimator::SwitchingEstimator(Parameters& params) {
   health_params_ = params.health_params_;
   T_body_imu_ = params.T_body_imu_;
-  T_imu_cam0_ = params.T_imu_cam0_;
+  T_imu_cam0_ = params.camera_calibration_.T_imu_cam0_;
 
   init_t_w_prim_ = Eigen::Matrix4d::Zero();
   switch_t_w_prim_ = Eigen::Matrix4d::Zero();

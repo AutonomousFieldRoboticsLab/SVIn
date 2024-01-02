@@ -52,10 +52,6 @@
 #include <string>
 #include <vector>
 
-#ifdef HAVE_LIBVISENSOR
-#include <visensor/visensor_api.hpp>
-#endif
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -504,22 +500,6 @@ bool VioParametersReader::getCameraCalibration(
     cv::FileStorage& configurationFile) {
   bool success = getCalibrationViaConfig(calibrations, configurationFile["cameras"]);
 
-#ifdef HAVE_LIBVISENSOR
-  if (useDriver && !success) {
-    // start up sensor
-    viSensor = std::shared_ptr<void>(new visensor::ViSensorDriver());
-    try {
-      // use autodiscovery to find sensor. TODO: specify IP in config?
-      std::static_pointer_cast<visensor::ViSensorDriver>(viSensor)->init();
-    } catch (Exception const& ex) {
-      LOG(ERROR) << ex.what();
-      exit(1);
-    }
-
-    success = getCalibrationViaVisensorAPI(calibrations);
-  }
-#endif
-
   return success;
 }
 
@@ -593,56 +573,6 @@ bool VioParametersReader::getCalibrationViaConfig(
     }
   }
   return gotCalibration;
-}
-
-// Get the camera calibrations via the visensor API.
-bool VioParametersReader::getCalibrationViaVisensorAPI(
-    std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const {
-#ifdef HAVE_LIBVISENSOR
-  if (viSensor == nullptr) {
-    LOG(ERROR) << "Tried to get calibration from the sensor. But the sensor is not set up.";
-    return false;
-  }
-
-  calibrations.clear();
-
-  std::vector<visensor::SensorId::SensorId> listOfCameraIds =
-      std::static_pointer_cast<visensor::ViSensorDriver>(viSensor)->getListOfCameraIDs();
-
-  for (auto it = listOfCameraIds.begin(); it != listOfCameraIds.end(); ++it) {
-    visensor::ViCameraCalibration calibrationFromAPI;
-    okvis::VioParametersReader::CameraCalibration calibration;
-    if (!std::static_pointer_cast<visensor::ViSensorDriver>(viSensor)->getCameraCalibration(*it, calibrationFromAPI)) {
-      LOG(ERROR) << "Reading the calibration via the sensor API failed.";
-      calibrations.clear();
-      return false;
-    }
-    LOG(INFO) << "Reading the calbration for camera " << size_t(*it) << " via API successful";
-    double* R = calibrationFromAPI.R;
-    double* t = calibrationFromAPI.t;
-    // getCameraCalibration apparently gives T_CI back.
-    // (Confirmed by comparing it to output of service)
-    Eigen::Matrix4d T_CI;
-    T_CI << R[0], R[1], R[2], t[0], R[3], R[4], R[5], t[1], R[6], R[7], R[8], t[2], 0, 0, 0, 1;
-    okvis::kinematics::Transformation T_CI_okvis(T_CI);
-    calibration.T_SC = T_CI_okvis.inverse();
-
-    calibration.focalLength << calibrationFromAPI.focal_point[0], calibrationFromAPI.focal_point[1];
-    calibration.principalPoint << calibrationFromAPI.principal_point[0], calibrationFromAPI.principal_point[1];
-    calibration.distortionCoefficients.resize(4);  // FIXME: 8 coeff support?
-    calibration.distortionCoefficients << calibrationFromAPI.dist_coeff[0], calibrationFromAPI.dist_coeff[1],
-        calibrationFromAPI.dist_coeff[2], calibrationFromAPI.dist_coeff[3];
-    calibration.imageDimension << 752, 480;
-    calibration.distortionType = "plumb_bob";
-    calibrations.push_back(calibration);
-  }
-
-  return calibrations.empty() == false;
-#else
-  static_cast<void>(calibrations);  // unused
-  LOG(ERROR) << "Tried to get calibration directly from the sensor. However libvisensor was not found.";
-  return false;
-#endif
 }
 
 }  // namespace okvis

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.8.11)
 
 project(okvis)
 # The version number.
@@ -12,7 +12,7 @@ set(OKVIS_VERSION
 option (USE_SYSTEM_BRISK
         "Use brisk via find_package rather than downloading it as part of okvis" ON) 
 option (USE_SYSTEM_CERES
-        "Use ceres via find_package rather than downloading it as part of okvis" OFF) 
+        "Use ceres via find_package rather than downloading it as part of okvis" ON) 
 option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON) 
 option (BUILD_TESTS
@@ -83,20 +83,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 find_package( Eigen REQUIRED )
 include_directories(${EIGEN_INCLUDE_DIR}) 
 
-# libvisensor
-find_package(VISensor)
 
-if(VISENSORDRIVER_FOUND)
-  add_definitions(-DHAVE_LIBVISENSOR)
-  set(LIBVISENSOR TRUE)
-  message(STATUS "Found libvisensor. Setting HAVE_LIBVISENSOR flag.")
-  include_directories(${VISensorDriver_INCLUDE_DIR})
-  # install find script
-  install(FILES ${PROJECT_SOURCE_DIR}/cmake/FindVISensor.cmake
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/CMake)
-else()
-  message(STATUS "libvisensor not found")
-endif()
 
 
 
@@ -323,9 +310,7 @@ if(BUILD_APPS)
     pthread 
     ${Boost_LIBRARIES}
   )
-  if(${VISENSORDRIVER_FOUND})
-    target_link_libraries(okvis_app_synchronous ${VISensorDriver_LIBRARY})
-  endif()
+
   install(TARGETS okvis_app_synchronous
     # IMPORTANT: Add the executable to the "export-set"
     EXPORT okvisTargets

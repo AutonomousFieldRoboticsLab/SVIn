@@ -41,7 +41,7 @@
 #include <okvis/ceres/HomogeneousPointError.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/kinematics/Transformation.hpp>
@@ -83,7 +83,7 @@ TEST(okvisTestSuite, ReprojectionError) {
 
   // let's use our own local quaternion perturbation
   std::cout << "setting local parameterization for pose... " << std::flush;
-  ::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseLocalParameterization;
+  ::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseManifold;
 
   problem.SetParameterization(poseParameterBlock.parameters(), poseLocalParameterization);
   problem.SetParameterization(extrinsicsParameterBlock.parameters(), poseLocalParameterization);

@@ -64,89 +64,13 @@ bool RosParametersReader::getCameraCalibration(
   bool success = getCalibrationViaConfig(calibrations, configurationFile["cameras"]);
 
   if (!useDriver && !success) {
-    success = getCalibrationViaRosService(calibrations);
-  }
-
-  if (!useDriver && !success) {
     LOG(INFO) << "Could not get calibration via visensor node service.";
     success = getCalibrationViaRosTopic(calibrations);
   }
 
   if (!useDriver && !success) LOG(INFO) << "Could not get calibration via ros topic.";
 
-#ifdef HAVE_LIBVISENSOR
-  if (useDriver && !success) {
-    // start up sensor
-    viSensor = std::shared_ptr<visensor::ViSensorDriver>(new visensor::ViSensorDriver());
-    try {
-      // use autodiscovery to find sensor. TODO: specify IP in config?
-      std::static_pointer_cast<visensor::ViSensorDriver>(viSensor)->init();
-    } catch (Exception const& ex) {
-      LOG(ERROR) << ex.what();
-      exit(1);
-    }
-
-    success = getCalibrationViaVisensorAPI(calibrations);
-  }
-#endif
-
   return success;
-}
-
-// Get the camera calibration via the ROS service advertised by the visensor node.
-bool RosParametersReader::getCalibrationViaRosService(
-    std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const {
-#ifdef HAVE_VISENSOR
-  calibrations.clear();
-  ros::NodeHandle nh;
-  ros::ServiceClient client = nh.serviceClient<visensor_msgs::visensor_calibration_service>("/get_camera_calibration");
-  visensor_msgs::visensor_calibration_service srv;
-  const double serviceTimeout = 1.0;  // seconds
-  if (client.waitForExistence(ros::Duration(serviceTimeout))) {
-    if (client.call(srv)) {
-      LOG(INFO) << "Received calibrations for " << srv.response.calibration.size() << " cameras via service.";
-      for (size_t i = 0; i < srv.response.calibration.size(); ++i) {
-        if (srv.response.calibration[i].dist_coeff.size() < 4 ||
-            srv.response.calibration[i].principal_point.size() < 2 ||
-            srv.response.calibration[i].focal_length.size() < 2) {
-          LOG(WARNING) << "Invalid calibration from service.";
-          // remove the already received calibrations and return.
-          calibrations.clear();
-          return false;
-        } else {
-          calibrations.push_back(okvis::VioParametersReader::CameraCalibration());
-#ifdef USE_VISENSORNODE_V1_1  // TODO(test): remove this as soon as the public visensor_node gets updated!
-          geometry_msgs::Pose& T_IC = srv.response.calibration[i].T_IC;
-          Eigen::Vector3d t(T_IC.position.x, T_IC.position.y, T_IC.position.z);
-          Eigen::Quaterniond q(T_IC.orientation.w, -T_IC.orientation.x, -T_IC.orientation.y, -T_IC.orientation.z);
-          calibrations[i].T_SC = okvis::kinematics::Transformation(t, q);
-          calibrations[i].imageDimension << 752, 480;
-#else
-          geometry_msgs::Pose& T_CI = srv.response.calibration[i].T_CI;
-          Eigen::Vector3d t(T_CI.position.x, T_CI.position.y, T_CI.position.z);
-          Eigen::Quaterniond q(T_CI.orientation.w, -T_CI.orientation.x, -T_CI.orientation.y, -T_CI.orientation.z);
-          okvis::kinematics::Transformation T_CI_okvis(t, q);
-          calibrations[i].T_SC = T_CI_okvis.inverse();
-          calibrations[i].imageDimension << srv.response.calibration[i].image_width,
-              srv.response.calibration[i].image_height;
-#endif
-          calibrations[i].distortionCoefficients << srv.response.calibration[i].dist_coeff[0],
-              srv.response.calibration[i].dist_coeff[1], srv.response.calibration[i].dist_coeff[2],
-              srv.response.calibration[i].dist_coeff[3];
-          calibrations[i].focalLength << srv.response.calibration[i].focal_length[0],
-              srv.response.calibration[i].focal_length[1];
-          calibrations[i].principalPoint << srv.response.calibration[i].principal_point[0],
-              srv.response.calibration[i].principal_point[1];
-          calibrations[i].distortionType = srv.response.calibration[i].dist_model;
-        }
-      }
-    }
-  }
-  return calibrations.empty() == false;
-#else
-  static_cast<void>(calibrations);  // unused
-  return false;
-#endif  // HAVE_VISENSOR
 }
 
 // Get the camera calibration via the ROS topic /calibrationX.

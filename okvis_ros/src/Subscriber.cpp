@@ -63,24 +63,9 @@ Subscriber::Subscriber(ros::NodeHandle& nh,
   tfListener_.reset(new tf2_ros::TransformListener(*tfBuffer_));
   param_reader.getParameters(vioParameters_);
   imgTransport_ = 0;
-  if (param_reader.useDriver) {
-#ifdef HAVE_LIBVISENSOR
-    if (param_reader.viSensor != nullptr)
-      sensor_ = std::static_pointer_cast<visensor::ViSensorDriver>(param_reader.viSensor);
-    initialiseDriverCallbacks();
-    std::vector<unsigned int> camRate(vioParameters_.nCameraSystem.numCameras(),
-                                      vioParameters_.sensors_information.cameraRate);
-    startSensors(camRate, vioParameters_.imu.rate);
-    // init dynamic reconfigure
-    cameraConfigReconfigureService_.setCallback(boost::bind(&Subscriber::configCallback, this, _1, _2));
-#else
-    LOG(ERROR) << "Configuration specified to directly access the driver. "
-               << "However the visensor library was not found. Trying to set up ROS nodehandle instead";
-    setNodeHandle(nh);
-#endif
-  } else {
-    setNodeHandle(nh);
-  }
+
+  setNodeHandle(nh);
+
   imgLeftCounter = 0;   // @Sharmin
   imgRightCounter = 0;  // @Sharmin
   // Added by Sharmin
@@ -234,27 +219,27 @@ void Subscriber::relocCallback(const sensor_msgs::PointCloudConstPtr& relo_msg) 
 // * /
 
 // @Sharmin
-void Subscriber::sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg) {
-  double rangeResolution = msg->max_range / msg->intensity.size();
-  int max = 0;
-  int maxIndex = 0;
+// void Subscriber::sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg) {
+//   double rangeResolution = msg->max_range / msg->intensity.size();
+//   int max = 0;
+//   int maxIndex = 0;
 
-  // @Sharmin: discarding as range was set higher (which introduced some noisy data) during data collection
-  for (unsigned int i = 0; i < msg->intensity.size() - 100; i++) {
-    if (msg->intensity[i] > max) {
-      max = msg->intensity[i];
-      maxIndex = i;
-    }
-  }
+//   // @Sharmin: discarding as range was set higher (which introduced some noisy data) during data collection
+//   for (unsigned int i = 0; i < msg->intensity.size() - 100; i++) {
+//     if (msg->intensity[i] > max) {
+//       max = msg->intensity[i];
+//       maxIndex = i;
+//     }
+//   }
 
-  double range = (maxIndex + 1) * rangeResolution;
-  double heading = (msg->head_position * M_PI) / 180;
+//   double range = (maxIndex + 1) * rangeResolution;
+//   double heading = (msg->head_position * M_PI) / 180;
 
-  // No magic no!! within 4.5 meter
-  if (range < 4.5 && max > 10) {
-    vioInterface_->addSonarMeasurement(okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec), range, heading);
-  }
-}
+//   // No magic no!! within 4.5 meter
+//   if (range < 4.5 && max > 10) {
+//     vioInterface_->addSonarMeasurement(okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec), range, heading);
+//   }
+// }
 
 const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const {
   CHECK(img_msg);
@@ -285,222 +270,5 @@ const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg
     return img_const;
   }
 }
-
-#ifdef HAVE_LIBVISENSOR
-void Subscriber::initialiseDriverCallbacks() {
-  // mostly copied from https://github.com/ethz-asl/visensor_node_devel
-  if (sensor_ == nullptr) {
-    sensor_ = std::unique_ptr<visensor::ViSensorDriver>(new visensor::ViSensorDriver());
-
-    try {
-      // use autodiscovery to find sensor. TODO: specify IP in config?
-      sensor_->init();
-    } catch (Exception const& ex) {
-      LOG(ERROR) << ex.what();
-      exit(1);
-    }
-  }
-
-  try {
-    sensor_->setCameraCallback(
-        std::bind(&Subscriber::directFrameCallback, this, std::placeholders::_1, std::placeholders::_2));
-    sensor_->setImuCallback(
-        std::bind(&Subscriber::directImuCallback, this, std::placeholders::_1, std::placeholders::_2));
-    sensor_->setFramesCornersCallback(
-        std::bind(&Subscriber::directFrameCornerCallback, this, std::placeholders::_1, std::placeholders::_2));
-    sensor_->setCameraCalibrationSlot(0);  // 0 is factory calibration
-  } catch (Exception const& ex) {
-    LOG(ERROR) << ex.what();
-  }
-}
-#endif
-
-#ifdef HAVE_LIBVISENSOR
-void Subscriber::startSensors(const std::vector<unsigned int>& camRate, const unsigned int imuRate) {
-  // mostly copied from https://github.com/ethz-asl/visensor_node_devel
-  OKVIS_ASSERT_TRUE_DBG(Exception, sensor_ != nullptr, "Sensor pointer not yet initialised.");
-
-  std::vector<visensor::SensorId::SensorId> listOfCameraIds = sensor_->getListOfCameraIDs();
-
-  OKVIS_ASSERT_TRUE_DBG(Exception, listOfCameraIds.size() == camRate.size(), "Number of cameras don't match up.");
-
-  for (uint i = 0; i < listOfCameraIds.size(); i++) {
-    if (camRate[i] > 0) sensor_->startSensor(listOfCameraIds[i], camRate[i]);
-  }
-
-  sensor_->startAllCorners();
-  sensor_->startSensor(visensor::SensorId::IMU0, imuRate);
-  // /*if (sensor_->isSensorPresent(visensor::SensorId::LED_FLASHER0))
-  // sensor_->startSensor(visensor::SensorId::LED_FLASHER0);*/ // apparently experimental...
-}
-#endif
-
-#ifdef HAVE_LIBVISENSOR
-void Subscriber::directImuCallback(boost::shared_ptr<visensor::ViImuMsg> imu_ptr, visensor::ViErrorCode error) {
-  if (error == visensor::ViErrorCodes::MEASUREMENT_DROPPED) {
-    LOG(WARNING) << "dropped imu measurement on sensor " << imu_ptr->imu_id << " (check network bandwidth/sensor rate)";
-    return;
-  }
-
-  okvis::Time timestamp;
-  timestamp.fromNSec(imu_ptr->timestamp);
-
-  vioInterface_->addImuMeasurement(timestamp,
-                                   Eigen::Vector3d(imu_ptr->acc[0], imu_ptr->acc[1], imu_ptr->acc[2]),
-                                   Eigen::Vector3d(imu_ptr->gyro[0], imu_ptr->gyro[1], imu_ptr->gyro[2]));
-}
-#endif
-
-#ifdef HAVE_LIBVISENSOR
-void Subscriber::directFrameCallback(visensor::ViFrame::Ptr frame_ptr, visensor::ViErrorCode error) {
-  if (error == visensor::ViErrorCodes::MEASUREMENT_DROPPED) {
-    LOG(WARNING) << "dropped camera image on sensor " << frame_ptr->camera_id
-                 << " (check network bandwidth/sensor rate)";
-    return;
-  }
-
-  int image_height = frame_ptr->height;
-  int image_width = frame_ptr->width;
-
-  okvis::Time timestamp;
-  timestamp.fromNSec(frame_ptr->timestamp);
-
-  // check if transmission is delayed
-  const double frame_delay = (okvis::Time::now() - timestamp).toSec();
-  if (frame_delay > THRESHOLD_DATA_DELAY_WARNING)
-    LOG(WARNING) << "Data arrived later than expected [ms]: " << frame_delay * 1000.0;
-
-  cv::Mat raw;
-  if (frame_ptr->image_type == visensor::MONO8) {
-    raw = cv::Mat(image_height, image_width, CV_8UC1);
-    memcpy(raw.data, frame_ptr->getImageRawPtr(), image_width * image_height);
-  } else if (frame_ptr->image_type == visensor::MONO16) {
-    raw = cv::Mat(image_height, image_width, CV_16UC1);
-    memcpy(raw.data, frame_ptr->getImageRawPtr(), (image_width)*image_height * 2);
-  } else {
-    LOG(WARNING) << "[VI_SENSOR] - unknown image type!";
-    return;
-  }
-
-  cv::Mat filtered;
-  if (vioParameters_.optimization.useMedianFilter) {
-    cv::medianBlur(raw, filtered, 3);
-  } else {
-    filtered = raw.clone();
-  }
-
-  // adapt timestamp
-  timestamp -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
-
-  if (!vioInterface_->addImage(timestamp, frame_ptr->camera_id, filtered))
-    LOG(WARNING) << "Frame delayed at time " << timestamp;
-}
-#endif
-
-#ifdef HAVE_LIBVISENSOR
-void Subscriber::directFrameCornerCallback(visensor::ViFrame::Ptr /*frame_ptr*/,
-                                           visensor::ViCorner::Ptr /*corners_ptr*/) {
-  LOG(INFO) << "directframecornercallback";
-}
-#endif
-
-#ifdef HAVE_LIBVISENSOR
-void Subscriber::configCallback(okvis_ros::CameraConfig& config, uint32_t level) {
-  if (sensor_ == nullptr) {
-    return;  // not yet set up -- do nothing...
-  }
-
-  std::vector<visensor::SensorId::SensorId> listOfCameraIds = sensor_->getListOfCameraIDs();
-
-  // adopted from visensor_node, see https://github.com/ethz-asl/visensor_node.git
-  // configure MPU 9150 IMU (if available)
-  if (std::count(listOfCameraIds.begin(), listOfCameraIds.end(), visensor::SensorId::IMU_CAM0) > 0)
-    sensor_->setSensorConfigParam(visensor::SensorId::IMU_CAM0, "digital_low_pass_filter_config", 0);
-
-  if (std::count(listOfCameraIds.begin(), listOfCameraIds.end(), visensor::SensorId::IMU_CAM1) > 0)
-    sensor_->setSensorConfigParam(visensor::SensorId::IMU_CAM1, "digital_low_pass_filter_config", 0);
-
-  // ========================= CAMERA 0 ==========================
-  if (std::count(listOfCameraIds.begin(), listOfCameraIds.end(), visensor::SensorId::CAM0) > 0) {
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "agc_enable", config.cam0_agc_enable);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "max_analog_gain", config.cam0_max_analog_gain);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "global_analog_gain", config.cam0_global_analog_gain);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM0, "global_analog_gain_attenuation", config.cam0_global_analog_gain_attenuation);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "aec_enable", config.cam0_aec_enable);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM0, "min_coarse_shutter_width", config.cam0_min_coarse_shutter_width);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM0, "max_coarse_shutter_width", config.cam0_max_coarse_shutter_width);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "coarse_shutter_width", config.cam0_coarse_shutter_width);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "fine_shutter_width", config.cam0_fine_shutter_width);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM0, "adc_mode", config.cam0_adc_mode);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM0, "vref_adc_voltage_level", config.cam0_vref_adc_voltage_level);
-  }
-
-  // ========================= CAMERA 1 ==========================
-  if (std::count(listOfCameraIds.begin(), listOfCameraIds.end(), visensor::SensorId::CAM1) > 0) {
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM1, "agc_enable", config.cam1_agc_enable);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM1, "max_analog_gain", config.cam1_max_analog_gain);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM1, "global_analog_gain", config.cam1_global_analog_gain);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM1, "global_analog_gain_attenuation", config.cam1_global_analog_gain_attenuation);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM1, "aec_enable", config.cam1_aec_enable);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM1, "min_coarse_shutter_width", config.cam1_min_coarse_shutter_width);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM1, "max_coarse_shutter_width", config.cam1_max_coarse_shutter_width);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM1, "coarse_shutter_width", config.cam1_coarse_shutter_width);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM1, "adc_mode", config.cam1_adc_mode);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM1, "vref_adc_voltage_level", config.cam1_vref_adc_voltage_level);
-  }
-
-  // ========================= CAMERA 2 ==========================
-  if (std::count(listOfCameraIds.begin(), listOfCameraIds.end(), visensor::SensorId::CAM2) > 0) {
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM2, "agc_enable", config.cam2_agc_enable);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM2, "max_analog_gain", config.cam2_max_analog_gain);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM2, "global_analog_gain", config.cam2_global_analog_gain);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM2, "global_analog_gain_attenuation", config.cam2_global_analog_gain_attenuation);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM2, "aec_enable", config.cam2_aec_enable);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM2, "min_coarse_shutter_width", config.cam2_min_coarse_shutter_width);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM2, "max_coarse_shutter_width", config.cam2_max_coarse_shutter_width);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM2, "coarse_shutter_width", config.cam2_coarse_shutter_width);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM2, "adc_mode", config.cam2_adc_mode);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM2, "vref_adc_voltage_level", config.cam2_vref_adc_voltage_level);
-  }
-
-  // ========================= CAMERA 3 ==========================
-  if (std::count(listOfCameraIds.begin(), listOfCameraIds.end(), visensor::SensorId::CAM3) > 0) {
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM3, "agc_enable", config.cam3_agc_enable);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM3, "max_analog_gain", config.cam3_max_analog_gain);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM3, "global_analog_gain", config.cam3_global_analog_gain);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM3, "global_analog_gain_attenuation", config.cam3_global_analog_gain_attenuation);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM3, "aec_enable", config.cam3_aec_enable);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM3, "min_coarse_shutter_width", config.cam3_min_coarse_shutter_width);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM3, "max_coarse_shutter_width", config.cam3_max_coarse_shutter_width);
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM3, "coarse_shutter_width", config.cam3_coarse_shutter_width);
-
-    sensor_->setSensorConfigParam(visensor::SensorId::CAM3, "adc_mode", config.cam3_adc_mode);
-    sensor_->setSensorConfigParam(
-        visensor::SensorId::CAM3, "vref_adc_voltage_level", config.cam3_vref_adc_voltage_level);
-  }
-}
-#endif
 
 }  // namespace okvis

@@ -4,7 +4,7 @@
 
 #include "okvis/Measurements.hpp"
 #include "okvis/assert_macros.hpp"
-#include "okvis/ceres/PoseLocalParameterization.hpp"
+#include "okvis/ceres/PoseManifold.hpp"
 #include "okvis/ceres/ode/ode.hpp"
 
 namespace okvis {
@@ -483,7 +483,7 @@ bool MagneticSyncPreintegrationError::EvaluateWithMinimalJacobians(double const*
     if (jacobians[0] != nullptr) {
       Eigen::MatrixXd J0 = Eigen::MatrixXd::Zero(n_residuals_terms, 7);
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J0_lift;
-      PoseLocalParameterization::liftJacobian(parameters[0], J0_lift.data());
+      PoseManifold::liftJacobian(parameters[0], J0_lift.data());
 
       for (size_t k = 0; k < n_residuals; ++k) {
         J0.block<3, 7>(3 * k, 0) = J0_minimal_vec[k] * J0_lift;
@@ -527,7 +527,7 @@ bool MagneticSyncPreintegrationError::EvaluateWithMinimalJacobians(double const*
     if (jacobians[2] != nullptr) {
       Eigen::MatrixXd J2 = Eigen::MatrixXd::Zero(n_residuals_terms, 7);
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J2_lift;
-      PoseLocalParameterization::liftJacobian(parameters[2], J2_lift.data());
+      PoseManifold::liftJacobian(parameters[2], J2_lift.data());
 
       for (size_t k = 0; k < n_residuals; ++k) {
         J2.block<3, 7>(3 * k, 0) = J2_minimal_vec[k] * J2_lift;

@@ -42,7 +42,7 @@
 #include <Eigen/Core>
 #include <okvis/Time.hpp>
 #include <okvis/ceres/ParameterBlockSized.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <string>
 
@@ -96,15 +96,13 @@ class PoseParameterBlock : public ParameterBlockSized<7, 6, okvis::kinematics::T
   /// @param[in] Delta_Chi Perturbation.
   /// @param[out] x0_plus_Delta Perturbed x.
   virtual void plus(const double* x0, const double* Delta_Chi, double* x0_plus_Delta) const {
-    PoseLocalParameterization::plus(x0, Delta_Chi, x0_plus_Delta);
+    PoseManifold::plus(x0, Delta_Chi, x0_plus_Delta);
   }
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x0 Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual void plusJacobian(const double* x0, double* jacobian) const {
-    PoseLocalParameterization::plusJacobian(x0, jacobian);
-  }
+  virtual void plusJacobian(const double* x0, double* jacobian) const { PoseManifold::plusJacobian(x0, jacobian); }
 
   // Delta_Chi=x0_plus_Delta[-]x0
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
@@ -113,16 +111,14 @@ class PoseParameterBlock : public ParameterBlockSized<7, 6, okvis::kinematics::T
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
   virtual void minus(const double* x0, const double* x0_plus_Delta, double* Delta_Chi) const {
-    PoseLocalParameterization::minus(x0, x0_plus_Delta, Delta_Chi);
+    PoseManifold::minus(x0, x0_plus_Delta, Delta_Chi);
   }
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x0 Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
   /// \return True on success.
-  virtual void liftJacobian(const double* x0, double* jacobian) const {
-    PoseLocalParameterization::liftJacobian(x0, jacobian);
-  }
+  virtual void liftJacobian(const double* x0, double* jacobian) const { PoseManifold::liftJacobian(x0, jacobian); }
 
   /// @brief Return parameter block type as string
   virtual std::string typeInfo() const { return "PoseParameterBlock"; }

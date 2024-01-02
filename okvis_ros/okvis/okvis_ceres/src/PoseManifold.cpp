@@ -31,13 +31,13 @@
  *********************************************************************************/
 
 /**
- * @file PoseLocalParameterization.cpp
- * @brief Source file for the PoseLocalParameterization class.
+ * @file PoseManifold.cpp
+ * @brief Source file for the PoseManifold class.
  * @author Stefan Leutenegger
  */
 
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/kinematics/operators.hpp>
 
@@ -49,14 +49,14 @@ namespace ceres {
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization::Plus(const double* x, const double* delta, double* x_plus_delta) const {
+bool PoseManifold::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   return plus(x, delta, x_plus_delta);
 }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization::plus(const double* x, const double* delta, double* x_plus_delta) {
+bool PoseManifold::plus(const double* x, const double* delta, double* x_plus_delta) {
   Eigen::Map<const Eigen::Matrix<double, 6, 1> > delta_(delta);
 
   // transform to okvis::kinematics framework
@@ -82,17 +82,15 @@ bool PoseLocalParameterization::plus(const double* x, const double* delta, doubl
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+bool PoseManifold::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   return minus(x, x_plus_delta, delta);
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization::ComputeLiftJacobian(const double* x, double* jacobian) const {
-  return liftJacobian(x, jacobian);
-}
+bool PoseManifold::ComputeLiftJacobian(const double* x, double* jacobian) const { return liftJacobian(x, jacobian); }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization::minus(const double* x, const double* x_plus_delta, double* delta) {
+bool PoseManifold::minus(const double* x, const double* x_plus_delta, double* delta) {
   delta[0] = x_plus_delta[0] - x[0];
   delta[1] = x_plus_delta[1] - x[1];
   delta[2] = x_plus_delta[2] - x[2];
@@ -104,7 +102,7 @@ bool PoseLocalParameterization::minus(const double* x, const double* x_plus_delt
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization::plusJacobian(const double* x, double* jacobian) {
+bool PoseManifold::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jp(jacobian);
   okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
   T.oplusJacobian(Jp);
@@ -113,7 +111,7 @@ bool PoseLocalParameterization::plusJacobian(const double* x, double* jacobian) 
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization::liftJacobian(const double* x, double* jacobian) {
+bool PoseManifold::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 6, 7, Eigen::RowMajor> > J_lift(jacobian);
   const Eigen::Quaterniond q_inv(x[6], -x[3], -x[4], -x[5]);
   J_lift.setZero();
@@ -128,11 +126,9 @@ bool PoseLocalParameterization::liftJacobian(const double* x, double* jacobian) 
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization::ComputeJacobian(const double* x, double* jacobian) const {
-  return plusJacobian(x, jacobian);
-}
+bool PoseManifold::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
-bool PoseLocalParameterization::VerifyJacobianNumDiff(const double* x, double* jacobian, double* jacobianNumDiff) {
+bool PoseManifold::VerifyJacobianNumDiff(const double* x, double* jacobian, double* jacobianNumDiff) {
   plusJacobian(x, jacobian);
   Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jp(jacobian);
   Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jpn(jacobianNumDiff);
@@ -157,7 +153,7 @@ bool PoseLocalParameterization::VerifyJacobianNumDiff(const double* x, double* j
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization3d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
+bool PoseManifold3d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   Eigen::Matrix<double, 6, 1> delta_;
   delta_.setZero();
   delta_[3] = delta[0];
@@ -185,7 +181,7 @@ bool PoseLocalParameterization3d::Plus(const double* x, const double* delta, dou
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization3d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+bool PoseManifold3d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3], x_plus_delta[4], x_plus_delta[5]);
   const Eigen::Quaterniond q_(x[6], x[3], x[4], x[5]);
   Eigen::Vector3d delta_q_;
@@ -199,12 +195,10 @@ bool PoseLocalParameterization3d::Minus(const double* x, const double* x_plus_de
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization3d::ComputeLiftJacobian(const double* x, double* jacobian) const {
-  return liftJacobian(x, jacobian);
-}
+bool PoseManifold3d::ComputeLiftJacobian(const double* x, double* jacobian) const { return liftJacobian(x, jacobian); }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization3d::plusJacobian(const double* x, double* jacobian) {
+bool PoseManifold3d::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 3, Eigen::RowMajor> > Jp(jacobian);
   Jp.setZero();
 
@@ -219,7 +213,7 @@ bool PoseLocalParameterization3d::plusJacobian(const double* x, double* jacobian
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization3d::liftJacobian(const double* x, double* jacobian) {
+bool PoseManifold3d::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 3, 7, Eigen::RowMajor> > J_lift(jacobian);
   J_lift.setZero();
 
@@ -236,14 +230,12 @@ bool PoseLocalParameterization3d::liftJacobian(const double* x, double* jacobian
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization3d::ComputeJacobian(const double* x, double* jacobian) const {
-  return plusJacobian(x, jacobian);
-}
+bool PoseManifold3d::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization4d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
+bool PoseManifold4d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   Eigen::Matrix<double, 6, 1> delta_;
   delta_.setZero();
   delta_[0] = delta[0];
@@ -272,7 +264,7 @@ bool PoseLocalParameterization4d::Plus(const double* x, const double* delta, dou
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization4d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+bool PoseManifold4d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   delta[0] = x_plus_delta[0] - x[0];
   delta[1] = x_plus_delta[1] - x[1];
   delta[2] = x_plus_delta[2] - x[2];
@@ -284,12 +276,10 @@ bool PoseLocalParameterization4d::Minus(const double* x, const double* x_plus_de
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization4d::ComputeLiftJacobian(const double* x, double* jacobian) const {
-  return liftJacobian(x, jacobian);
-}
+bool PoseManifold4d::ComputeLiftJacobian(const double* x, double* jacobian) const { return liftJacobian(x, jacobian); }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization4d::plusJacobian(const double* x, double* jacobian) {
+bool PoseManifold4d::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 4, Eigen::RowMajor> > Jp(jacobian);
   Eigen::Matrix<double, 7, 6, Eigen::RowMajor> Jp_full;
   okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
@@ -300,7 +290,7 @@ bool PoseLocalParameterization4d::plusJacobian(const double* x, double* jacobian
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization4d::liftJacobian(const double* x, double* jacobian) {
+bool PoseManifold4d::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 4, 7, Eigen::RowMajor> > J_lift(jacobian);
   const Eigen::Quaterniond q_inv(x[6], -x[3], -x[4], -x[5]);
   J_lift.setZero();
@@ -315,14 +305,12 @@ bool PoseLocalParameterization4d::liftJacobian(const double* x, double* jacobian
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization4d::ComputeJacobian(const double* x, double* jacobian) const {
-  return plusJacobian(x, jacobian);
-}
+bool PoseManifold4d::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool PoseLocalParameterization2d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
+bool PoseManifold2d::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   Eigen::Matrix<double, 6, 1> delta_;
   delta_.setZero();
   delta_[3] = delta[0];
@@ -349,7 +337,7 @@ bool PoseLocalParameterization2d::Plus(const double* x, const double* delta, dou
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseLocalParameterization2d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+bool PoseManifold2d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   const Eigen::Quaterniond q_plus_delta_(x_plus_delta[6], x_plus_delta[3], x_plus_delta[4], x_plus_delta[5]);
   const Eigen::Quaterniond q_(x[6], x[3], x[4], x[5]);
   Eigen::Vector3d delta_q_;
@@ -362,12 +350,10 @@ bool PoseLocalParameterization2d::Minus(const double* x, const double* x_plus_de
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization2d::ComputeLiftJacobian(const double* x, double* jacobian) const {
-  return liftJacobian(x, jacobian);
-}
+bool PoseManifold2d::ComputeLiftJacobian(const double* x, double* jacobian) const { return liftJacobian(x, jacobian); }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization2d::plusJacobian(const double* x, double* jacobian) {
+bool PoseManifold2d::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 2, Eigen::RowMajor> > Jp(jacobian);
   Jp.setZero();
 
@@ -382,7 +368,7 @@ bool PoseLocalParameterization2d::plusJacobian(const double* x, double* jacobian
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool PoseLocalParameterization2d::liftJacobian(const double* x, double* jacobian) {
+bool PoseManifold2d::liftJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J_lift(jacobian);
   J_lift.setZero();
 
@@ -398,9 +384,7 @@ bool PoseLocalParameterization2d::liftJacobian(const double* x, double* jacobian
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseLocalParameterization2d::ComputeJacobian(const double* x, double* jacobian) const {
-  return plusJacobian(x, jacobian);
-}
+bool PoseManifold2d::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 }  // namespace ceres
 }  // namespace okvis

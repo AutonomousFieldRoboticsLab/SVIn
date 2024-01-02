@@ -5,23 +5,23 @@
  *      Author: sleutene
  */
 
-#include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include <okvis/ceres/ManifoldAdditionalInterfaces.hpp>
 
 namespace okvis {
 namespace ceres {
 
 // Verifies the correctness of a inplementation.
-bool LocalParamizationAdditionalInterfaces::verify(const double* x_raw, double purturbation_magnitude) const {
+bool ManifoldAdditionalInterfaces::verify(const double* x_raw, double purturbation_magnitude) const {
   const ::ceres::LocalParameterization* casted = dynamic_cast<const ::ceres::LocalParameterization*>(this);
   if (!casted) {
     return false;
   }
   // verify plus/minus
-  Eigen::VectorXd x(casted->GlobalSize());
-  memcpy(x.data(), x_raw, sizeof(double) * casted->GlobalSize());
-  Eigen::VectorXd delta_x(casted->LocalSize());
-  Eigen::VectorXd x_plus_delta(casted->GlobalSize());
-  Eigen::VectorXd delta_x2(casted->LocalSize());
+  Eigen::VectorXd x(casted->AmbientSize());
+  memcpy(x.data(), x_raw, sizeof(double) * casted->AmbientSize());
+  Eigen::VectorXd delta_x(casted->TangientSize());
+  Eigen::VectorXd x_plus_delta(casted->AmbientSize());
+  Eigen::VectorXd delta_x2(casted->TangientSize());
   delta_x.setRandom();
   delta_x *= purturbation_magnitude;
   casted->Plus(x.data(), delta_x.data(), x_plus_delta.data());
@@ -31,32 +31,32 @@ bool LocalParamizationAdditionalInterfaces::verify(const double* x_raw, double p
   }
 
   // plusJacobian numDiff
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus_num_diff(casted->GlobalSize(), casted->LocalSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus_num_diff(casted->AmbientSize(), casted->TangientSize());
   const double dx = 1.0e-9;
-  for (int i = 0; i < casted->LocalSize(); ++i) {
-    Eigen::VectorXd delta_p(casted->LocalSize());
+  for (int i = 0; i < casted->TangientSize(); ++i) {
+    Eigen::VectorXd delta_p(casted->TangientSize());
     delta_p.setZero();
     delta_p[i] = dx;
-    Eigen::VectorXd delta_m(casted->LocalSize());
+    Eigen::VectorXd delta_m(casted->TangientSize());
     delta_m.setZero();
     delta_m[i] = -dx;
 
     // reset
-    Eigen::VectorXd x_p(casted->GlobalSize());
-    Eigen::VectorXd x_m(casted->GlobalSize());
-    memcpy(x_p.data(), x_raw, sizeof(double) * casted->GlobalSize());
-    memcpy(x_m.data(), x_raw, sizeof(double) * casted->GlobalSize());
+    Eigen::VectorXd x_p(casted->AmbientSize());
+    Eigen::VectorXd x_m(casted->AmbientSize());
+    memcpy(x_p.data(), x_raw, sizeof(double) * casted->AmbientSize());
+    memcpy(x_m.data(), x_raw, sizeof(double) * casted->AmbientSize());
     casted->Plus(x.data(), delta_p.data(), x_p.data());
     casted->Plus(x.data(), delta_m.data(), x_m.data());
     J_plus_num_diff.col(i) = (x_p - x_m) / (2 * dx);
   }
 
   // verify lift
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus(casted->GlobalSize(), casted->LocalSize());
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_lift(casted->LocalSize(), casted->GlobalSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus(casted->AmbientSize(), casted->TangientSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_lift(casted->TangientSize(), casted->AmbientSize());
   casted->ComputeJacobian(x_raw, J_plus.data());
   ComputeLiftJacobian(x_raw, J_lift.data());
-  Eigen::MatrixXd identity(casted->LocalSize(), casted->LocalSize());
+  Eigen::MatrixXd identity(casted->TangientSize(), casted->TangientSize());
   identity.setIdentity();
   if (((J_lift * J_plus) - identity).norm() > 1.0e-6) {
     return false;

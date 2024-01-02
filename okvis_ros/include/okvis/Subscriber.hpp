@@ -50,18 +50,15 @@
 #include <vector>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#include <dynamic_reconfigure/server.h>
 #include <image_geometry/pinhole_camera_model.h>
-#include <okvis_ros/CameraConfig.h>  // generated
 #include <ros/ros.h>
 #pragma GCC diagnostic pop
 #include <image_transport/image_transport.h>
-
-#include "sensor_msgs/Imu.h"
-#include "sensor_msgs/PointCloud2.h"
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/PointCloud2.h>
 
 // @Sharmin
-#include <imagenex831l/ProcessedRange.h>
+// #include <imagenex831l/ProcessedRange.h>
 #include <ros/time.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -69,9 +66,8 @@
 // #include <aquacore/StateMsg.h> // Aqua depth
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/PointCloud.h>  // for subscribing /pose_graph/match_points
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
-#include "sensor_msgs/PointCloud.h"  // for subscribing /pose_graph/match_points
 // end @Sharmin
 
 #include <pcl/point_types.h>
@@ -81,11 +77,6 @@
 #include <opencv2/opencv.hpp>
 #pragma GCC diagnostic pop
 #include <Eigen/Core>
-
-#ifdef HAVE_LIBVISENSOR
-#include <visensor/visensor_api.hpp>
-#endif
-
 #include <okvis/Publisher.hpp>
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/Time.hpp>
@@ -154,31 +145,6 @@ class Subscriber {
   boost::shared_ptr<tf2_ros::TransformListener> tfListener_;
   void sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg);
 
-  /// @}
-  /// @name Direct (no ROS) callbacks and other sensor related methods.
-  /// @{
-
-#ifdef HAVE_LIBVISENSOR
-  /// @brief Initialise callbacks. Called in constructor.
-  void initialiseDriverCallbacks();
-  /// @brief Start up sensor.
-  /// @warning Call initialiseDriverCallbacks() first to initialise sensor API.
-  void startSensors(const std::vector<unsigned int>& camRate, const unsigned int imuRate);
-  /// @brief The IMU callback.
-  void directImuCallback(boost::shared_ptr<visensor::ViImuMsg> imu_ptr, visensor::ViErrorCode error);
-  /// @brief The image callback.
-  void directFrameCallback(visensor::ViFrame::Ptr frame_ptr, visensor::ViErrorCode error);
-  /// @brief The callback for images including detected corners.
-  /// @warning Not implemented.
-  void directFrameCornerCallback(visensor::ViFrame::Ptr frame_ptr, visensor::ViCorner::Ptr corners_ptr);
-  /// \brief Dynamic reconfigure callback
-  void configCallback(okvis_ros::CameraConfig& config, uint32_t level);  // NOLINT
-#endif
-
-  /// @}
-  /// @name Node and subscriber related
-  /// @{
-
   ros::NodeHandle* nh_;                                        ///< The node handle.
   image_transport::ImageTransport* imgTransport_;              ///< The image transporter.
   std::vector<image_transport::Subscriber> imageSubscribers_;  ///< The image message subscriber.
@@ -190,12 +156,6 @@ class Subscriber {
   ros::Subscriber subReloPoints_;  ///< The Relocalization Points Subscriber from pose_graph @Sharmin
   cv::Ptr<cv::CLAHE> clahe;        /// Sharmin
   /// @}
-
-#ifdef HAVE_LIBVISENSOR
-  std::shared_ptr<visensor::ViSensorDriver> sensor_;  ///< The sensor API.
-  dynamic_reconfigure::Server<okvis_ros::CameraConfig>
-      cameraConfigReconfigureService_;  ///< dynamic reconfigure service.
-#endif
 
   okvis::VioInterface* vioInterface_;   ///< The VioInterface. (E.g. ThreadedKFVio)
   okvis::VioParameters vioParameters_;  ///< The parameters and settings.

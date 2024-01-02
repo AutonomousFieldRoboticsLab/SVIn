@@ -316,7 +316,7 @@ bool Map::addParameterBlock(std::shared_ptr<okvis::ceres::ParameterBlock> parame
       dynamic_cast<const okvis::ceres::LocalParamizationAdditionalInterfaces*>(
       parameterBlock->localParameterizationPtr());
   if(ptr)
-    std::cout<<"verify local size "<< parameterBlock->localParameterizationPtr()->LocalSize() << " = "<<
+    std::cout<<"verify local size "<< parameterBlock->localParameterizationPtr()->TangientSize() << " = "<<
             int(ptr->verify(parameterBlock->parameters()))<<
             std::endl;*/
 

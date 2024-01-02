@@ -321,8 +321,8 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
           isLandmark(isLandmark) {
       dimension = parameterBlockPtr->dimension();
       minimalDimension = parameterBlockPtr->minimalDimension();
-      if (parameterBlockPtr->localParameterizationPtr()) {
-        localDimension = parameterBlockPtr->localParameterizationPtr()->LocalSize();
+      if (parameterBlockPtr->manifoldPtr()) {
+        localDimension = parameterBlockPtr->manifoldPtr()->TangientSize();
       } else {
         localDimension = minimalDimension;
       }

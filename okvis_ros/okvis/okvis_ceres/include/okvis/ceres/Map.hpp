@@ -49,7 +49,7 @@
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
 #include <okvis/ceres/ParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/SonarLocalParameterization.hpp>  // @Sharmin
 #include <unordered_map>
 
@@ -98,10 +98,10 @@ class Map {
   enum Parameterization {
     HomogeneousPoint,  ///< Use okvis::ceres::HomogeneousPointLocalParameterization.
     Sonar,             ///< Use okvis::ceres::SonarLocalParameterization. @Sharmin
-    Pose6d,            ///< Use okvis::ceres::PoseLocalParameterization.
-    Pose3d,            ///< Use okvis::ceres::PoseLocalParameterization3d (orientation varying).
-    Pose4d,            ///< Use okvis::ceres::PoseLocalParameterization4d (position and yaw varying).
-    Pose2d,            ///< Use okvis::ceres::PoseLocalParameterization2d (roll/pitch varying).
+    Pose6d,            ///< Use okvis::ceres::PoseManifold.
+    Pose3d,            ///< Use okvis::ceres::PoseManifold3d (orientation varying).
+    Pose4d,            ///< Use okvis::ceres::PoseManifold4d (position and yaw varying).
+    Pose2d,            ///< Use okvis::ceres::PoseManifold2d (roll/pitch varying).
     Trivial            ///< No local parameterisation.
   };
 
@@ -264,20 +264,19 @@ class Map {
   /**
    * @brief Set the (local) parameterisation of a parameter block.
    * @param[in] parameterBlockId The ID of the parameter block in question.
-   * @param[in] local_parameterization Give it an actual local parameterisation object.
+   * @param[in] manifold Give it an actual manifold object.
    * @return True on success.
    */
-  bool setParameterization(uint64_t parameterBlockId, ::ceres::LocalParameterization* local_parameterization);
+  bool setParameterization(uint64_t parameterBlockId, ::ceres::Manifold* manifold);
 
   /**
    * @brief Set the (local) parameterisation of a parameter block.
    * @param[in] parameterBlock The pointer to the parameter block in question.
-   * @param[in] local_parameterization Give it an actual local parameterisation object.
+   * @param[in] manifold Give it an actual manifold object.
    * @return True on success.
    */
-  bool setParameterization(std::shared_ptr<okvis::ceres::ParameterBlock> parameterBlock,
-                           ::ceres::LocalParameterization* local_parameterization) {
-    return setParameterization(parameterBlock->id(), local_parameterization);
+  bool setParameterization(std::shared_ptr<okvis::ceres::ParameterBlock> parameterBlock, ::ceres::Manifold* manifold) {
+    return setParameterization(parameterBlock->id(), manifold);
   }
 
   /// @}
@@ -408,16 +407,16 @@ class Map {
   okvis::ceres::SonarLocalParameterization sonarLocalParameterization_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization poseLocalParameterization_;
+  okvis::ceres::PoseManifold PoseManifold_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization2d poseLocalParameterization2d_;
+  okvis::ceres::PoseManifold2d PoseManifold2d_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization3d poseLocalParameterization3d_;
+  okvis::ceres::PoseManifold3d PoseManifold3d_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization4d poseLocalParameterization4d_;
+  okvis::ceres::PoseManifold4d PoseManifold4d_;
 };
 
 }  // namespace ceres

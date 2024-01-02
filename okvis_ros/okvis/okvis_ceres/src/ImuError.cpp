@@ -43,7 +43,7 @@
 #include <okvis/Parameters.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ImuError.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/ode/ode.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/kinematics/operators.hpp>
@@ -802,7 +802,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const* const* parameters,
 
         // pseudo inverse of the local parametrization Jacobian:
         Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-        PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+        PoseManifold::liftJacobian(parameters[0], J_lift.data());
 
         // hallucinate Jacobian w.r.t. state
         Eigen::Map<Eigen::Matrix<double, 15, 7, Eigen::RowMajor> > J0(jacobians[0]);
@@ -834,7 +834,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const* const* parameters,
 
         // pseudo inverse of the local parametrization Jacobian:
         Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-        PoseLocalParameterization::liftJacobian(parameters[2], J_lift.data());
+        PoseManifold::liftJacobian(parameters[2], J_lift.data());
 
         // hallucinate Jacobian w.r.t. state
         Eigen::Map<Eigen::Matrix<double, 15, 7, Eigen::RowMajor> > J2(jacobians[2]);

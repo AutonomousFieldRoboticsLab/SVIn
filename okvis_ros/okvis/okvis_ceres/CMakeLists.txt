@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.8.11)
 project(okvis_ceres)
 
 # require Eigen
@@ -13,7 +13,7 @@ add_library(${PROJECT_NAME}
   src/HomogeneousPointLocalParameterization.cpp
   src/SonarParameterBlock.cpp  # @Sharmin
   src/SonarLocalParameterization.cpp  # @Sharmin
-  src/PoseLocalParameterization.cpp
+  src/PoseManifold.cpp
   src/ImuError.cpp
   src/PoseError.cpp
   src/RelativePoseError.cpp

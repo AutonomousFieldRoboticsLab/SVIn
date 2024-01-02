@@ -40,7 +40,7 @@
 #define INCLUDE_OKVIS_CERES_SONARLOCALPARAMETERIZATION_HPP_
 
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include <okvis/ceres/ManifoldAdditionalInterfaces.hpp>
 
 #include "ceres/ceres.h"
 
@@ -51,7 +51,7 @@ namespace ceres {
 
 /// \brief Local parameterisation of a homogeneous point [x,y,z,w]^T.
 ///        We use a Euclidean-type perturbation, i.e. only affect the x-y-z-part.
-class SonarLocalParameterization : public ::ceres::LocalParameterization, public LocalParamizationAdditionalInterfaces {
+class SonarLocalParameterization : public ::ceres::Manifold, public ManifoldAdditionalInterfaces {
  public:
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
@@ -113,10 +113,10 @@ class SonarLocalParameterization : public ::ceres::LocalParameterization, public
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const { return 4; }
+  virtual int AmbientSize() const { return 4; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const { return 3; }
+  virtual int TangientSize() const { return 3; }
 };
 
 }  // namespace ceres

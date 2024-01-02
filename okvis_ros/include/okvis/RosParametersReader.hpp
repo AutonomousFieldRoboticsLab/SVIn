@@ -52,20 +52,6 @@
 #pragma GCC diagnostic pop
 #include <ros/callback_queue.h>
 
-#ifdef HAVE_VISENSOR
-#ifdef USE_VISENSORNODE_V1_1  // TODO(test): remove this as soon as the public visensor_node gets updated!
-#include <visensor_node/visensor_calibration.h>
-#include <visensor_node/visensor_calibration_service.h>
-namespace visensor_msgs = visensor_node;
-#else
-#include <visensor_msgs/visensor_calibration.h>
-#include <visensor_msgs/visensor_calibration_service.h>
-#endif
-#endif
-#ifdef HAVE_LIBVISENSOR
-#include <visensor/visensor_api.hpp>
-#endif
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 

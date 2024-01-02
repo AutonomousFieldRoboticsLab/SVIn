@@ -36,7 +36,7 @@
  * @author Sharmin Rahman
  */
 
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/SonarError.hpp>
 #include <vector>
 
@@ -165,7 +165,7 @@ bool SonarError::EvaluateWithMinimalJacobians(double const* const* parameters,
 
       // pseudo inverse of the local parametrization Jacobian:
       // Eigen::Matrix<double, 7, 1, Eigen::RowMajor> J_lift;
-      // PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      // PoseManifold::liftJacobian(parameters[0], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       J0 = J0_minimal;

@@ -39,7 +39,7 @@
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/ceres/PoseError.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
@@ -205,8 +205,8 @@ TEST(okvisTestSuite, ImuError) {
 
   // let's use our own local quaternion perturbation
   std::cout << "setting local parameterization for pose... " << std::flush;
-  ::ceres::LocalParameterization* poseLocalParameterization2d = new okvis::ceres::PoseLocalParameterization2d;
-  ::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseLocalParameterization;
+  ::ceres::LocalParameterization* poseLocalParameterization2d = new okvis::ceres::PoseManifold2d;
+  ::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseManifold;
   problem.SetParameterization(poseParameterBlock_0.parameters(), poseLocalParameterization2d);
   problem.SetParameterization(poseParameterBlock_1.parameters(), poseLocalParameterization);
   std::cout << " [ OK ] " << std::endl;

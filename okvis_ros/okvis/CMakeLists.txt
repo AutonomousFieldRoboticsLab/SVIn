@@ -65,7 +65,7 @@ endif()
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm*")
   message(STATUS "ARM processor detected, will attempt to use NEON.")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpu=neon")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 else()
   message(STATUS "Assuming SSE instructions available.")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mssse3")

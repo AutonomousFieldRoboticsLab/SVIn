@@ -91,3 +91,11 @@ In different terminal, run the bag file
 The pseudo ground truth trajectories obtained using COLMAP are in colmap_groundtruth folder. These trajectories are only accurate up to scale and evaluation should be done after scaling only.
 
 Note: We plan to release the scale accurate trajectory using rig constraints soon.
+
+
+### Dockerfile
+        docker build -t svin .
+
+        BAGS=/path/to/your/bag/files
+
+        docker run -it -e "DISPLAY" -e "QT_X11_NO_MITSHM=1" -v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -v "$BAGS:/data" svin

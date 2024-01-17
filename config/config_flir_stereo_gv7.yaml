@@ -4,26 +4,26 @@
 # Valid from 08/2023 and beyond
 cameras:
     - {T_SC:
-       [ -0.00512319,  0.00302187, -0.99998231, -0.07987192,
-         -0.99973836, -0.02230858,  0.00505452, -0.05322389,
-         -0.02229291,  0.99974657,  0.00313537,  0.01263642,
+       [ 0.01030504,  0.00326659, -0.99994157, -0.03646241,
+        -0.99973207,  0.02076152, -0.01023506,  0.06283929,
+         0.02072687,  0.99977912,  0.00347966,  0.01680684,
          0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1100],
-       distortion_coefficients: [0.15369547519155982, 0.340182231006338, 0.009963444523504303, -0.0027052356327500835],
+       distortion_coefficients: [0.16359430353148227, 0.6463286221097123, 0.0036352132266568014, -0.001565309077001724],
        distortion_type: radialtangential,
-       focal_length: [1155.8539673842838, 1155.4754872259887], 
-       principal_point: [794.2244374878869, 574.2082960760906]} 
+       focal_length: [1198.689866179, 1216.394331519], 
+       principal_point: [798.498094044, 565.370958272]} 
 
     - {T_SC:
-       [ -0.00107823,  0.00460511, -0.99998882, -0.07970363,
-         -0.99984456,  0.01759283,  0.00115909,  0.05397085,
-          0.01759797,  0.99983463,  0.00458542,  0.01285715,
+       [ 0.00541017, -0.00128785, -0.99998454, -0.03518469,
+        -0.99980925, -0.01877401, -0.00538505, -0.04759083,
+        -0.01876679,  0.99982292, -0.00138917,  0.01675327,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1100],
-       distortion_coefficients: [0.1462139249855356, 0.3775304191882089, 0.007835564538475424, 0.002760598455182088],
+       distortion_coefficients: [0.1619446605610256, 0.6895456694944884, 0.0007598512503814833, -0.0021117860843568254],
        distortion_type: radialtangential,
-       focal_length: [1159.2905564436558, 1157.0215864700963], 
-       principal_point: [804.4293114224579, 561.884540048856]}
+       focal_length: [1199.850077763, 1217.116118906], 
+       principal_point: [794.856516231, 551.236737914]}
 
 camera_params:
     camera_rate: 20 # just to manage the expectations of when there should be frames arriving
@@ -41,8 +41,8 @@ useDriver: false
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 5.69024e-05 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
-    sigma_a_c: 3.83854e-04  # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
+    sigma_g_c: 5.69024e-04 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
+    sigma_a_c: 3.83854e-03  # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
     sigma_gw_c: 9.41390e-05 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
@@ -79,12 +79,12 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 15  # never do more than these, even if not converged
+    maxIterations: 10  # never do more than these, even if not converged
     timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
-    threshold: 25.0      # detection threshold. By default the uniformity radius in pixels (20 to 40)
+    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels (20 to 40)
     octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
@@ -119,7 +119,7 @@ publishing_options:
 isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
-histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
+histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
 claheClipLimit: 2.0
 claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
@@ -148,6 +148,6 @@ global_map_params:
     min_landmark_quality: 0.01
 
 debug:
-    enable: 1
+    enable: 0
     # Relative to pose_graph package
     output_dir: debug_output

@@ -48,7 +48,7 @@
 #include <okvis/Variables.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
@@ -322,7 +322,7 @@ class MarginalizationError : public ::ceres::CostFunction, public ErrorInterface
       dimension = parameterBlockPtr->dimension();
       minimalDimension = parameterBlockPtr->minimalDimension();
       if (parameterBlockPtr->manifoldPtr()) {
-        localDimension = parameterBlockPtr->manifoldPtr()->TangientSize();
+        localDimension = parameterBlockPtr->manifoldPtr()->TangentSize();
       } else {
         localDimension = minimalDimension;
       }

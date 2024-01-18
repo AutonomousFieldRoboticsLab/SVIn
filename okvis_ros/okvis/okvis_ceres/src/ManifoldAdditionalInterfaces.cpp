@@ -12,16 +12,16 @@ namespace ceres {
 
 // Verifies the correctness of a inplementation.
 bool ManifoldAdditionalInterfaces::verify(const double* x_raw, double purturbation_magnitude) const {
-  const ::ceres::LocalParameterization* casted = dynamic_cast<const ::ceres::LocalParameterization*>(this);
+  const ::ceres::Manifold* casted = dynamic_cast<const ::ceres::Manifold*>(this);
   if (!casted) {
     return false;
   }
   // verify plus/minus
   Eigen::VectorXd x(casted->AmbientSize());
   memcpy(x.data(), x_raw, sizeof(double) * casted->AmbientSize());
-  Eigen::VectorXd delta_x(casted->TangientSize());
+  Eigen::VectorXd delta_x(casted->TangentSize());
   Eigen::VectorXd x_plus_delta(casted->AmbientSize());
-  Eigen::VectorXd delta_x2(casted->TangientSize());
+  Eigen::VectorXd delta_x2(casted->TangentSize());
   delta_x.setRandom();
   delta_x *= purturbation_magnitude;
   casted->Plus(x.data(), delta_x.data(), x_plus_delta.data());
@@ -31,13 +31,13 @@ bool ManifoldAdditionalInterfaces::verify(const double* x_raw, double purturbati
   }
 
   // plusJacobian numDiff
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus_num_diff(casted->AmbientSize(), casted->TangientSize());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus_num_diff(casted->AmbientSize(), casted->Tangent());
   const double dx = 1.0e-9;
-  for (int i = 0; i < casted->TangientSize(); ++i) {
-    Eigen::VectorXd delta_p(casted->TangientSize());
+  for (int i = 0; i < casted->Tangent(); ++i) {
+    Eigen::VectorXd delta_p(casted->Tangent());
     delta_p.setZero();
     delta_p[i] = dx;
-    Eigen::VectorXd delta_m(casted->TangientSize());
+    Eigen::VectorXd delta_m(casted->Tangent());
     delta_m.setZero();
     delta_m[i] = -dx;
 
@@ -52,11 +52,11 @@ bool ManifoldAdditionalInterfaces::verify(const double* x_raw, double purturbati
   }
 
   // verify lift
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus(casted->AmbientSize(), casted->TangientSize());
-  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_lift(casted->TangientSize(), casted->AmbientSize());
-  casted->ComputeJacobian(x_raw, J_plus.data());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_plus(casted->AmbientSize(), casted->Tangent());
+  Eigen::Matrix<double, -1, -1, Eigen::RowMajor> J_lift(casted->Tangent(), casted->AmbientSize());
+  casted->PlusJacobian(x_raw, J_plus.data());
   ComputeLiftJacobian(x_raw, J_lift.data());
-  Eigen::MatrixXd identity(casted->TangientSize(), casted->TangientSize());
+  Eigen::MatrixXd identity(casted->Tangent(), casted->Tangent());
   identity.setIdentity();
   if (((J_lift * J_plus) - identity).norm() > 1.0e-6) {
     return false;

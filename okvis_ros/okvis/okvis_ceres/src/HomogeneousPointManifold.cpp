@@ -31,13 +31,13 @@
  *********************************************************************************/
 
 /**
- * @file HomogeneousPointLocalParameterization.cpp
- * @brief Source file for the HomogeneousPointLocalParameterization class.
+ * @file HomogeneousPointManifold.cpp
+ * @brief Source file for the HomogeneousPointManifold class.
  * @author Stefan Leutenegger
  */
 
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -47,14 +47,14 @@ namespace ceres {
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool HomogeneousPointLocalParameterization::Plus(const double* x, const double* delta, double* x_plus_delta) const {
+bool HomogeneousPointManifold::Plus(const double* x, const double* delta, double* x_plus_delta) const {
   return plus(x, delta, x_plus_delta);
 }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
 //        with the condition that Plus(x, 0) = x.
-bool HomogeneousPointLocalParameterization::plus(const double* x, const double* delta, double* x_plus_delta) {
+bool HomogeneousPointManifold::plus(const double* x, const double* delta, double* x_plus_delta) {
   Eigen::Map<const Eigen::Vector3d> delta_(delta);
   Eigen::Map<const Eigen::Vector4d> x_(x);
   Eigen::Map<Eigen::Vector4d> x_plus_delta_(x_plus_delta);
@@ -66,16 +66,16 @@ bool HomogeneousPointLocalParameterization::plus(const double* x, const double* 
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool HomogeneousPointLocalParameterization::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+bool HomogeneousPointManifold::Minus(const double* x, const double* x_plus_delta, double* delta) const {
   return minus(x, x_plus_delta, delta);
 }
 
-bool HomogeneousPointLocalParameterization::ComputeLiftJacobian(const double* x, double* jacobian) const {
+bool HomogeneousPointManifold::ComputeLiftJacobian(const double* x, double* jacobian) const {
   return liftJacobian(x, jacobian);
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool HomogeneousPointLocalParameterization::minus(const double* x, const double* x_plus_delta, double* delta) {
+bool HomogeneousPointManifold::minus(const double* x, const double* x_plus_delta, double* delta) {
   Eigen::Map<Eigen::Vector3d> delta_(delta);
   Eigen::Map<const Eigen::Vector4d> x_(x);
   Eigen::Map<const Eigen::Vector4d> x_plus_delta_(x_plus_delta);
@@ -90,12 +90,12 @@ bool HomogeneousPointLocalParameterization::minus(const double* x, const double*
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool HomogeneousPointLocalParameterization::ComputeJacobian(const double* x, double* jacobian) const {
+bool HomogeneousPointManifold::PlusJacobian(const double* x, double* jacobian) const {
   return plusJacobian(x, jacobian);
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool HomogeneousPointLocalParameterization::plusJacobian(const double*, double* jacobian) {
+bool HomogeneousPointManifold::plusJacobian(const double*, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor> > Jp(jacobian);
 
   // Euclidean-style
@@ -106,7 +106,7 @@ bool HomogeneousPointLocalParameterization::plusJacobian(const double*, double* 
 }
 
 // Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
-bool HomogeneousPointLocalParameterization::liftJacobian(const double*, double* jacobian) {
+bool HomogeneousPointManifold::liftJacobian(const double*, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> > Jp(jacobian);
 
   // Euclidean-style

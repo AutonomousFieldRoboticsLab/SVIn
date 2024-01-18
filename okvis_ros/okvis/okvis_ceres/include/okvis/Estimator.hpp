@@ -60,7 +60,7 @@
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
-#include <okvis/ceres/SonarParameterBlock.hpp>  // @Sharmin
+// #include <okvis/ceres/SonarParameterBlock.hpp>  // @Sharmin
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <utility>

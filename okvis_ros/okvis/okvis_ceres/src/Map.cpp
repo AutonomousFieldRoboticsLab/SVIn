@@ -45,7 +45,7 @@
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
-#include <okvis/ceres/SonarParameterBlock.hpp>
+// #include <okvis/ceres/SonarParameterBlock.hpp>
 #include <utility>
 #include <vector>
 
@@ -271,39 +271,34 @@ bool Map::addParameterBlock(std::shared_ptr<okvis::ceres::ParameterBlock> parame
     }
     case Parameterization::HomogeneousPoint: {
       problem_->AddParameterBlock(
-          parameterBlock->parameters(), parameterBlock->dimension(), &homogeneousPointLocalParameterization_);
-      parameterBlock->setLocalParameterizationPtr(&homogeneousPointLocalParameterization_);
+          parameterBlock->parameters(), parameterBlock->dimension(), &homogeneousPointManifold_);
+      parameterBlock->setManifoldPtr(&homogeneousPointManifold_);
       break;
     }
     // @Sharmin
-    case Parameterization::Sonar: {
-      problem_->AddParameterBlock(
-          parameterBlock->parameters(), parameterBlock->dimension(), &sonarLocalParameterization_);
-      parameterBlock->setLocalParameterizationPtr(&sonarLocalParameterization_);
-      break;
-    }
+    // case Parameterization::Sonar: {
+    //   problem_->AddParameterBlock(parameterBlock->parameters(), parameterBlock->dimension(), &sonarManifold_);
+    //   parameterBlock->setManifoldPtr(&sonarManifold_);
+    //   break;
+    // }
     case Parameterization::Pose6d: {
-      problem_->AddParameterBlock(
-          parameterBlock->parameters(), parameterBlock->dimension(), &poseLocalParameterization_);
-      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization_);
+      problem_->AddParameterBlock(parameterBlock->parameters(), parameterBlock->dimension(), &poseManifold_);
+      parameterBlock->setManifoldPtr(&poseManifold_);
       break;
     }
     case Parameterization::Pose3d: {
-      problem_->AddParameterBlock(
-          parameterBlock->parameters(), parameterBlock->dimension(), &poseLocalParameterization3d_);
-      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization3d_);
+      problem_->AddParameterBlock(parameterBlock->parameters(), parameterBlock->dimension(), &poseManifold3d_);
+      parameterBlock->setManifoldPtr(&poseManifold3d_);
       break;
     }
     case Parameterization::Pose4d: {
-      problem_->AddParameterBlock(
-          parameterBlock->parameters(), parameterBlock->dimension(), &poseLocalParameterization4d_);
-      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization4d_);
+      problem_->AddParameterBlock(parameterBlock->parameters(), parameterBlock->dimension(), &poseManifold4d_);
+      parameterBlock->setManifoldPtr(&poseManifold4d_);
       break;
     }
     case Parameterization::Pose2d: {
-      problem_->AddParameterBlock(
-          parameterBlock->parameters(), parameterBlock->dimension(), &poseLocalParameterization2d_);
-      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization2d_);
+      problem_->AddParameterBlock(parameterBlock->parameters(), parameterBlock->dimension(), &poseManifold2d_);
+      parameterBlock->setManifoldPtr(&poseManifold2d_);
       break;
     }
     default: {
@@ -314,9 +309,9 @@ bool Map::addParameterBlock(std::shared_ptr<okvis::ceres::ParameterBlock> parame
 
   /*const okvis::ceres::LocalParamizationAdditionalInterfaces* ptr =
       dynamic_cast<const okvis::ceres::LocalParamizationAdditionalInterfaces*>(
-      parameterBlock->localParameterizationPtr());
+      parameterBlock->ManifoldPtr());
   if(ptr)
-    std::cout<<"verify local size "<< parameterBlock->localParameterizationPtr()->TangientSize() << " = "<<
+    std::cout<<"verify local size "<< parameterBlock->ManifoldPtr()->Tangent() << " = "<<
             int(ptr->verify(parameterBlock->parameters()))<<
             std::endl;*/
 
@@ -548,11 +543,11 @@ bool Map::resetParameterization(uint64_t parameterBlockId, int parameterization)
 }
 
 // Set the (local) parameterisation of a parameter block.
-bool Map::setParameterization(uint64_t parameterBlockId, ::ceres::LocalParameterization* local_parameterization) {
+bool Map::setParameterization(uint64_t parameterBlockId, ::ceres::Manifold* local_parameterization) {
   if (!parameterBlockExists(parameterBlockId)) return false;
   problem_->SetParameterization(id2ParameterBlock_Map_.find(parameterBlockId)->second->parameters(),
                                 local_parameterization);
-  id2ParameterBlock_Map_.find(parameterBlockId)->second->setLocalParameterizationPtr(local_parameterization);
+  id2ParameterBlock_Map_.find(parameterBlockId)->second->setManifoldPtr(local_parameterization);
   return true;
 }
 

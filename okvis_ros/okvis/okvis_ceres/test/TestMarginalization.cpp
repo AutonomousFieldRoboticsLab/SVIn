@@ -41,7 +41,7 @@
 #include <okvis/cameras/NoDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>

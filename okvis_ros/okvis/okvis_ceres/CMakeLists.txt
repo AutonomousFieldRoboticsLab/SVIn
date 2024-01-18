@@ -10,9 +10,9 @@ add_library(${PROJECT_NAME}
   src/PoseParameterBlock.cpp
   src/SpeedAndBiasParameterBlock.cpp
   src/HomogeneousPointParameterBlock.cpp
-  src/HomogeneousPointLocalParameterization.cpp
-  src/SonarParameterBlock.cpp  # @Sharmin
-  src/SonarLocalParameterization.cpp  # @Sharmin
+  src/HomogeneousPointManifold.cpp
+  # src/SonarParameterBlock.cpp  # @Sharmin
+  # src/SonarManifold.cpp  # @Sharmin
   src/PoseManifold.cpp
   src/ImuError.cpp
   src/PoseError.cpp
@@ -25,7 +25,7 @@ add_library(${PROJECT_NAME}
   src/SonarError.cpp  # @Sharmin
   src/DepthError.cpp  # @Sharmin
   src/Estimator.cpp
-  src/LocalParamizationAdditionalInterfaces.cpp
+  src/ManifoldAdditionalInterfaces.cpp
   include/okvis/Estimator.hpp
   include/okvis/ceres/CeresIterationCallback.hpp
 )

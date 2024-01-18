@@ -152,7 +152,7 @@ class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -176,7 +176,7 @@ class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int TangientSize() const { return 3; }
+  virtual int Tangent() const { return 3; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
@@ -204,7 +204,7 @@ class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -228,7 +228,7 @@ class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int TangientSize() const { return 4; }
+  virtual int Tangent() const { return 4; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
@@ -256,7 +256,7 @@ class PoseManifold2d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -279,7 +279,7 @@ class PoseManifold2d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \brief The parameter block dimension.
   virtual int AmbientSize() const { return 7; }
   /// \brief The parameter block local dimension.
-  virtual int TangientSize() const { return 2; }
+  virtual int Tangent() const { return 2; }
 };
 
 }  // namespace ceres

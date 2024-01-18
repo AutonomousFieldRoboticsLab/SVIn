@@ -39,7 +39,7 @@
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/ceres/HomogeneousPointError.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
@@ -83,15 +83,14 @@ TEST(okvisTestSuite, ReprojectionError) {
 
   // let's use our own local quaternion perturbation
   std::cout << "setting local parameterization for pose... " << std::flush;
-  ::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseManifold;
+  ::ceres::Manifold* poseManifold = new okvis::ceres::PoseManifold;
 
-  problem.SetParameterization(poseParameterBlock.parameters(), poseLocalParameterization);
-  problem.SetParameterization(extrinsicsParameterBlock.parameters(), poseLocalParameterization);
+  problem.SetParameterization(poseParameterBlock.parameters(), poseManifold);
+  problem.SetParameterization(extrinsicsParameterBlock.parameters(), poseManifold);
   std::cout << " [ OK ] " << std::endl;
 
   // and the parameterization for points:
-  ::ceres::LocalParameterization* homogeneousPointLocalParameterization =
-      new okvis::ceres::HomogeneousPointLocalParameterization;
+  ::ceres::Manifold* homogeneousPointManifold = new okvis::ceres::HomogeneousPointManifold;
 
   // get some random points and build error terms
   const size_t N = 100;
@@ -120,8 +119,7 @@ TEST(okvisTestSuite, ReprojectionError) {
                              extrinsicsParameterBlock.parameters());
 
     // set the parameterization
-    problem.SetParameterization(homogeneousPointParameterBlock_ptr->parameters(),
-                                homogeneousPointLocalParameterization);
+    problem.SetParameterization(homogeneousPointParameterBlock_ptr->parameters(), homogeneousPointManifold);
   }
   std::cout << " [ OK ] " << std::endl;
 

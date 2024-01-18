@@ -259,7 +259,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
       double euler_array[max_length][3];       // NOLINT
       double sequence_array[max_length];       // NOLINT
 
-      ceres::LocalParameterization* angle_local_parameterization = AngleLocalParameterization::Create();
+      ceres::Manifold* angle_local_parameterization = AngleManifold::Create();
 
       std::list<Keyframe*>::iterator it;
 
@@ -433,7 +433,7 @@ void PoseGraph::optimize6DoFPoseGraph() {
       Eigen::Quaterniond q_array[kMaxLength];  // NOLINT
       double sequence_array[kMaxLength];       // NOLINT
 
-      ceres::LocalParameterization* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
+      ceres::Manifold* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
 
       std::list<Keyframe*>::iterator it;
 

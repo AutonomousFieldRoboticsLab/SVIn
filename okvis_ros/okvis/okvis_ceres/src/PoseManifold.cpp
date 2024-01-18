@@ -126,7 +126,7 @@ bool PoseManifold::liftJacobian(const double* x, double* jacobian) {
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseManifold::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
+bool PoseManifold::PlusJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 bool PoseManifold::VerifyJacobianNumDiff(const double* x, double* jacobian, double* jacobianNumDiff) {
   plusJacobian(x, jacobian);
@@ -230,7 +230,7 @@ bool PoseManifold3d::liftJacobian(const double* x, double* jacobian) {
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseManifold3d::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
+bool PoseManifold3d::PlusJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
@@ -305,7 +305,7 @@ bool PoseManifold4d::liftJacobian(const double* x, double* jacobian) {
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseManifold4d::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
+bool PoseManifold4d::PlusJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 // Generalization of the addition operation,
 //        x_plus_delta = Plus(x, delta)
@@ -384,7 +384,7 @@ bool PoseManifold2d::liftJacobian(const double* x, double* jacobian) {
 }
 
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-bool PoseManifold2d::ComputeJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
+bool PoseManifold2d::PlusJacobian(const double* x, double* jacobian) const { return plusJacobian(x, jacobian); }
 
 }  // namespace ceres
 }  // namespace okvis

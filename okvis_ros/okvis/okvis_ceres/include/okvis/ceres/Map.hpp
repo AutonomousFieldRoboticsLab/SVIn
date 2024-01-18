@@ -47,10 +47,10 @@
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 #include <okvis/ceres/ParameterBlock.hpp>
 #include <okvis/ceres/PoseManifold.hpp>
-#include <okvis/ceres/SonarLocalParameterization.hpp>  // @Sharmin
+// #include <okvis/ceres/SonarManifold.hpp>  // @Sharmin
 #include <unordered_map>
 
 /// \brief okvis Main namespace of this package.
@@ -96,8 +96,8 @@ class Map {
 
   /// @brief The Parameterisation enum
   enum Parameterization {
-    HomogeneousPoint,  ///< Use okvis::ceres::HomogeneousPointLocalParameterization.
-    Sonar,             ///< Use okvis::ceres::SonarLocalParameterization. @Sharmin
+    HomogeneousPoint,  ///< Use okvis::ceres::HomogeneousPointManifold.
+    // Sonar,             ///< Use okvis::ceres::SonarManifold. @Sharmin
     Pose6d,            ///< Use okvis::ceres::PoseManifold.
     Pose3d,            ///< Use okvis::ceres::PoseManifold3d (orientation varying).
     Pose4d,            ///< Use okvis::ceres::PoseManifold4d (position and yaw varying).
@@ -400,11 +400,11 @@ class Map {
   ResidualBlockId2ParameterBlockCollection_Map residualBlockId2ParameterBlockCollection_Map_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::HomogeneousPointLocalParameterization homogeneousPointLocalParameterization_;
+  okvis::ceres::HomogeneousPointManifold homogeneousPointManifold_;
 
   /// @Sharmin
   /// \brief Store parameterisation locally.
-  okvis::ceres::SonarLocalParameterization sonarLocalParameterization_;
+  // okvis::ceres::SonarManifold sonarManifold_;
 
   /// \brief Store parameterisation locally.
   okvis::ceres::PoseManifold PoseManifold_;

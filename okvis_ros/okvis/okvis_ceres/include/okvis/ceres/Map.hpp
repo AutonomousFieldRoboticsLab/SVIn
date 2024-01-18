@@ -98,11 +98,11 @@ class Map {
   enum Parameterization {
     HomogeneousPoint,  ///< Use okvis::ceres::HomogeneousPointManifold.
     // Sonar,             ///< Use okvis::ceres::SonarManifold. @Sharmin
-    Pose6d,            ///< Use okvis::ceres::PoseManifold.
-    Pose3d,            ///< Use okvis::ceres::PoseManifold3d (orientation varying).
-    Pose4d,            ///< Use okvis::ceres::PoseManifold4d (position and yaw varying).
-    Pose2d,            ///< Use okvis::ceres::PoseManifold2d (roll/pitch varying).
-    Trivial            ///< No local parameterisation.
+    Pose6d,  ///< Use okvis::ceres::PoseManifold.
+    Pose3d,  ///< Use okvis::ceres::PoseManifold3d (orientation varying).
+    Pose4d,  ///< Use okvis::ceres::PoseManifold4d (position and yaw varying).
+    Pose2d,  ///< Use okvis::ceres::PoseManifold2d (roll/pitch varying).
+    Trivial  ///< No local parameterisation.
   };
 
   /**
@@ -407,16 +407,16 @@ class Map {
   // okvis::ceres::SonarManifold sonarManifold_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseManifold PoseManifold_;
+  okvis::ceres::PoseManifold poseManifold_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseManifold2d PoseManifold2d_;
+  okvis::ceres::PoseManifold2d poseManifold2d_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseManifold3d PoseManifold3d_;
+  okvis::ceres::PoseManifold3d poseManifold3d_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseManifold4d PoseManifold4d_;
+  okvis::ceres::PoseManifold4d poseManifold4d_;
 };
 
 }  // namespace ceres

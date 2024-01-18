@@ -78,6 +78,14 @@ class HomogeneousPointManifold : public ::ceres::Manifold, public ManifoldAdditi
   /// @param[out] jacobian The Jacobian.
   virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
+  /// \brief // Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  //   (D_1 Minus) (x, x)
+
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
+
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).

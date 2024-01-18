@@ -63,6 +63,13 @@ class PoseManifold : public ::ceres::Manifold, public ManifoldAdditionalInterfac
   /// @param[out] x_plus_delta Perturbed x.
   virtual bool Plus(const double* x, const double* delta, double* x_plus_delta) const;
 
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+
   /// \brief Compute the derivative of Plus(x, delta) w.r.t delta at delta = 0, i.e.
   ///
   /// jacobian is a row-major AmbientSize() x TangentSize() matrix.
@@ -71,17 +78,13 @@ class PoseManifold : public ::ceres::Manifold, public ManifoldAdditionalInterfac
   /// @return Return value indicates whether the operation was successful or not.
   virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
-  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-  /// @param[in] x Variable.
-  /// @param[in] x_plus_delta Perturbed variable.
-  /// @param[out] delta minimal difference.
-  /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
-
-  /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  /// @param[in] x Variable.
-  /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  /// \brief // Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  //   (D_1 Minus) (x, x)
+  //
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -154,6 +157,14 @@ class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// @param[out] jacobian The Jacobian.
   virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
+  /// \brief // Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  //   (D_1 Minus) (x, x)
+  //
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
+
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
@@ -176,7 +187,7 @@ class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int Tangent() const { return 3; }
+  virtual int TangentSize() const { return 3; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
@@ -206,6 +217,14 @@ class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// @param[out] jacobian The Jacobian.
   virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
+  /// \brief // Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  //   (D_1 Minus) (x, x)
+  //
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
+
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
@@ -228,7 +247,7 @@ class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int Tangent() const { return 4; }
+  virtual int TangentSize() const { return 4; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
@@ -258,6 +277,14 @@ class PoseManifold2d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// @param[out] jacobian The Jacobian.
   virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
+  /// \brief // Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  //   (D_1 Minus) (x, x)
+  //
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
+
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
@@ -279,7 +306,7 @@ class PoseManifold2d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \brief The parameter block dimension.
   virtual int AmbientSize() const { return 7; }
   /// \brief The parameter block local dimension.
-  virtual int Tangent() const { return 2; }
+  virtual int TangentSize() const { return 2; }
 };
 
 }  // namespace ceres

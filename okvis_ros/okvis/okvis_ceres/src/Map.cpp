@@ -543,11 +543,10 @@ bool Map::resetParameterization(uint64_t parameterBlockId, int parameterization)
 }
 
 // Set the (local) parameterisation of a parameter block.
-bool Map::setParameterization(uint64_t parameterBlockId, ::ceres::Manifold* local_parameterization) {
+bool Map::setParameterization(uint64_t parameterBlockId, ::ceres::Manifold* manifold) {
   if (!parameterBlockExists(parameterBlockId)) return false;
-  problem_->SetParameterization(id2ParameterBlock_Map_.find(parameterBlockId)->second->parameters(),
-                                local_parameterization);
-  id2ParameterBlock_Map_.find(parameterBlockId)->second->setManifoldPtr(local_parameterization);
+  problem_->SetManifold(id2ParameterBlock_Map_.find(parameterBlockId)->second->parameters(), manifold);
+  id2ParameterBlock_Map_.find(parameterBlockId)->second->setManifoldPtr(manifold);
   return true;
 }
 

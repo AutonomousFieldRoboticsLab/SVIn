@@ -42,7 +42,7 @@
 #include <map>
 #include <memory>
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include <okvis/ceres/ManifoldAdditionalInterfaces.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <utility>
 #include <vector>

@@ -2,9 +2,10 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <ros/console.h>
-#include <sensor_msgs/CompressedImage.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/Imu.h>
+
+#include <sensor_msgs/msg/CompressedImage.hpp>
+#include <sensor_msgs/msg/Image.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_img;
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage, sensor_msgs::CompressedImage>

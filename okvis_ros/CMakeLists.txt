@@ -20,11 +20,11 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
-
-
+find_package(visualization_msgs REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(pcl_conversions REQUIRED)
 # Sharmin: for SvinHealth msg
 rosidl_generate_interfaces(${PROJECT_NAME} "msg/SvinHealth.msg" "srv/OdometryTrigger.srv" DEPENDENCIES std_msgs geometry_msgs nav_msgs)
-ament_export_dependencies(rosidl_default_runtime)
 
 # we really want to use Release here
 set(CMAKE_BUILD_TYPE Release)
@@ -40,13 +40,30 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(okvis)
 
 
-# compile the ROS dependent stuff into a library
-
-#removed -g flag which produces debubugging information 
-#-g is not needed for release builds
-
 add_definitions(-fPIC -march=native -O3 -Wextra -Winit-self -Woverloaded-virtual
                 -Wnon-virtual-dtor -Wsign-promo -Wno-long-long -std=c++17)
+
+list(APPEND ament_libraries 
+      rclcpp
+      rosidl_default_generators 
+      pcl_ros 
+      cv_bridge 
+      sensor_msgs 
+      geometry_msgs 
+      tf2
+      tf2_ros 
+      tf2_sensor_msgs 
+      tf2_geometry_msgs
+      std_msgs 
+      nav_msgs 
+      std_srvs
+      visualization_msgs
+      image_transport
+      pcl_conversions
+      )
+
+ament_export_dependencies(rosidl_default_runtime )
+
 
 add_library(${PROJECT_NAME}_lib STATIC src/Subscriber.cpp
                                src/Publisher.cpp
@@ -54,13 +71,26 @@ add_library(${PROJECT_NAME}_lib STATIC src/Subscriber.cpp
                                include/okvis/Subscriber.hpp
                                include/okvis/Publisher.hpp
                                include/okvis/RosParametersReader.hpp)
-
 add_dependencies(${PROJECT_NAME}_lib okvis_multisensor_processing)
+ament_target_dependencies(${PROJECT_NAME}_lib  ${ament_libraries})
+rosidl_target_interfaces(${PROJECT_NAME}_lib ${PROJECT_NAME} rosidl_typesupport_cpp) 
 
 
+target_include_directories( ${PROJECT_NAME}_lib PUBLIC
+  include
+  okvis/okvis_util/include
+  okvis/okvis_kinematics/include
+  okvis/okvis_time/include
+  okvis/okvis_cv/include
+  okvis/okvis_common/include
+  okvis/okvis_ceres/include
+  okvis/okvis_timing/include
+  okvis/okvis_matcher/include
+  okvis/okvis_frontend/include 
+  okvis/okvis_multisensor_processing/include
+)
 
 target_link_libraries(${PROJECT_NAME}_lib 
-  ${catkin_LIBRARIES}
   okvis_util
   okvis_kinematics
   okvis_time
@@ -74,27 +104,39 @@ target_link_libraries(${PROJECT_NAME}_lib
   pthread
 )
 
-
-include_directories(
-  okvis/okvis_util/include
-  okvis/okvis_kinematics/include
-  okvis/okvis_time/include
-  okvis/okvis_cv/include
-  okvis/okvis_common/include
-  okvis/okvis_ceres/include
-  okvis/okvis_timing/include
-  okvis/okvis_matcher/include
-  okvis/okvis_frontend/include 
-  okvis/okvis_multisensor_processing/include
+install(TARGETS ${PROJECT_NAME}_lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  PUBLIC_HEADER DESTINATION include
 )
+install(DIRECTORY include/
+        DESTINATION include
+        FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME}_lib)
+
 
 # now the actual applications
 add_executable(okvis_node src/okvis_node.cpp )
+ament_target_dependencies(okvis_node ${ament_libraries})
 target_link_libraries(okvis_node ${PROJECT_NAME}_lib )
-add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
-target_link_libraries(okvis_node_synchronous ${PROJECT_NAME}_lib )
-add_executable(dataset_convertor src/dataset_convertor.cpp)
-target_link_libraries(dataset_convertor ${PROJECT_NAME}_lib )
+rosidl_target_interfaces(okvis_node ${PROJECT_NAME} rosidl_typesupport_cpp) 
 
-add_executable(stereo_sync src/stereo_sync.cpp)
-target_link_libraries(stereo_sync ${catkin_LIBRARIES} ${PROJECT_NAME}_lib)
+install(TARGETS okvis_node DESTINATION lib/${PROJECT_NAME})
+# add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
+# ament_target_dependencies(okvis_node ${ament_libraries})
+# target_link_libraries(okvis_node_synchronous ${PROJECT_NAME}_lib )
+# install(TARGETS okvis_node_synchronous DESTINATION lib/${PROJECT_NAME})
+
+# add_executable(dataset_convertor src/dataset_convertor.cpp)
+# target_link_libraries(dataset_convertor ${PROJECT_NAME}_lib )
+# install(TARGETS dataset_convertor DESTINATION lib/${PROJECT_NAME})
+
+# add_executable(stereo_sync src/stereo_sync.cpp)
+# ament_target_dependencies(okvis_node ${ament_libraries})
+# target_link_libraries(stereo_sync ${catkin_LIBRARIES} ${PROJECT_NAME}_lib)
+# install(TARGETS stereo_sync DESTINATION lib/${PROJECT_NAME})
+
+
+ament_package()

@@ -475,8 +475,8 @@ void PoseGraph::optimize6DoFPoseGraph() {
                                      t_array[i].data(),
                                      q_array[i].coeffs().data());
 
-            // problem.SetParameterization(q_array[i - j].coeffs().data(), quaternion_local_parameterization);
-            // problem.SetParameterization(q_array[i].coeffs().data(), quaternion_local_parameterization);
+            // problem.SetManifold(q_array[i - j].coeffs().data(), quaternion_local_parameterization);
+            // problem.SetManifold(q_array[i].coeffs().data(), quaternion_local_parameterization);
           }
         }
 
@@ -498,8 +498,8 @@ void PoseGraph::optimize6DoFPoseGraph() {
                                    t_array[i].data(),
                                    q_array[i].coeffs().data());
 
-          // problem.SetParameterization(q_array[connected_index].coeffs().data(), quaternion_local_parameterization);
-          // problem.SetParameterization(q_array[i].coeffs().data(), quaternion_local_parameterization);
+          // problem.SetManifold(q_array[connected_index].coeffs().data(), quaternion_local_parameterization);
+          // problem.SetManifold(q_array[i].coeffs().data(), quaternion_local_parameterization);
         }
 
         if ((*it)->index == cur_index) break;

@@ -90,7 +90,7 @@ bool PoseManifold::Minus(const double* x, const double* x_plus_delta, double* de
 bool PoseManifold::ComputeLiftJacobian(const double* x, double* jacobian) const { return liftJacobian(x, jacobian); }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseManifold::minus(const double* x, const double* x_plus_delta, double* delta) {
+bool PoseManifold::minus(const double* x_plus_delta, const double* x, double* delta) {
   delta[0] = x_plus_delta[0] - x[0];
   delta[1] = x_plus_delta[1] - x[1];
   delta[2] = x_plus_delta[2] - x[2];
@@ -106,6 +106,13 @@ bool PoseManifold::plusJacobian(const double* x, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jp(jacobian);
   okvis::kinematics::Transformation T(Eigen::Vector3d(x[0], x[1], x[2]), Eigen::Quaterniond(x[6], x[3], x[4], x[5]));
   T.oplusJacobian(Jp);
+
+  return true;
+}
+
+// Compute the derivative of Minus(y, x) w.r.t y at y = x
+bool PoseManifold::minusJacobian(const double* x, double* jacobian) {
+  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor> > Jp(jacobian);
 
   return true;
 }
@@ -264,7 +271,7 @@ bool PoseManifold4d::Plus(const double* x, const double* delta, double* x_plus_d
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool PoseManifold4d::Minus(const double* x, const double* x_plus_delta, double* delta) const {
+bool PoseManifold4d::Minus(const double* x_plus_delta, const double* x, double* delta) const {
   delta[0] = x_plus_delta[0] - x[0];
   delta[1] = x_plus_delta[1] - x[1];
   delta[2] = x_plus_delta[2] - x[2];

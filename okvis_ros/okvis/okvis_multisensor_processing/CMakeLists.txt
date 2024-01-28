@@ -79,8 +79,10 @@ if(BUILD_TESTS)
       test/testSynchronizer.cpp
     )
     target_link_libraries(${PROJECT_TEST_NAME} 
-      ${GTEST_LIBRARY}
-      ${GMOCK_LIBRARY}  
+      gtest
+      gtest_main
+      gmock
+      gmock_main  
       ${PROJECT_NAME}
       ${CERES_LIBRARIES}
       ${OpenCV_LIBRARIES}

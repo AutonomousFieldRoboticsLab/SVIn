@@ -46,11 +46,7 @@
 #include <okvis/assert_macros.hpp>
 #include <string>
 #include <vector>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#include <ros/ros.h>
-#pragma GCC diagnostic pop
-#include <ros/callback_queue.h>
+// #include <ros/callback_queue.h>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

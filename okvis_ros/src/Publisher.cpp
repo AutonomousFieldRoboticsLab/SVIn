@@ -38,31 +38,28 @@
  * @author Andreas Forster
  */
 
-#include <glog/logging.h>
-
-#include <okvis/Publisher.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#include <ros/package.h>
-#pragma GCC diagnostic pop
 #include <cv_bridge/cv_bridge.h>
-#include <okvis_ros/SvinHealth.h>
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/fill_image.h>
-#include <sensor_msgs/image_encodings.h>
+#include <glog/logging.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <algorithm>
 #include <list>
 #include <memory>
 #include <okvis/FrameTypedefs.hpp>
+#include <okvis/Publisher.hpp>
+#include <rclcpp/time.hpp>
+#include <sensor_msgs/fill_image.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
 #include <string>
 #include <vector>
 
+#include "okvis_ros/msg/svin_health.hpp"
 /// \brief okvis Main namespace of this package.
 namespace okvis {
-// Default constructor.
-Publisher::Publisher() : nh_(nullptr), ctr2_(0) {}
 
 Publisher::~Publisher() {
   // close file
@@ -82,33 +79,26 @@ Publisher::~Publisher() {
 }
 
 // Constructor. Calls setNodeHandle().
-Publisher::Publisher(ros::NodeHandle& nh) : Publisher() { setNodeHandle(nh); }
-
-// Set the node handle and advertise topics.
-void Publisher::setNodeHandle(ros::NodeHandle& nh) {
-  nh_ = &nh;
-
-  // advertise
-
+Publisher::Publisher(std::shared_ptr<rclcpp::Node> node) : node_(node), pubTf_(node), image_transport_(node) {
   // pubStereoMatched_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_stereo_matched", 1);   // Sharmin
-  pubKeyframeImageL_ = nh_->advertise<sensor_msgs::Image>("keyframe_imageL", 10);       // Sharmin
-  pubKeyframePose_ = nh_->advertise<nav_msgs::Odometry>("keyframe_pose", 10);           // Sharmin
-  pubKeyframePoints_ = nh_->advertise<sensor_msgs::PointCloud>("keyframe_points", 1);   // Sharmin
-  pubReloRelativePose_ = nh_->advertise<nav_msgs::Odometry>("relo_relative_pose", 10);  // Sharmin
-  pubRelocPath_ = nh_->advertise<nav_msgs::Path>("relocalization_path", 10);            // Sharmin
-  pubRelocPose_ = nh_->advertise<nav_msgs::Odometry>("relocalization_odometry", 10);    // Sharmin
-  pubSvinHealth = nh_->advertise<okvis_ros::SvinHealth>("svin_health", 1);              // Sharmin: SVIN health
+  pubKeyframeImageL_ = node_->create_publisher<sensor_msgs::msg::Image>("keyframe_imageL", 10);       // Sharmin
+  pubKeyframePose_ = node_->create_publisher<nav_msgs::msg::Odometry>("keyframe_pose", 10);           // Sharmin
+  pubKeyframePoints_ = node_->create_publisher<sensor_msgs::msg::PointCloud>("keyframe_points", 1);   // Sharmin
+  pubReloRelativePose_ = node_->create_publisher<nav_msgs::msg::Odometry>("relo_relative_pose", 10);  // Sharmin
+  pubRelocPath_ = node_->create_publisher<nav_msgs::msg::Path>("relocalization_path", 10);            // Sharmin
+  pubRelocPose_ = node_->create_publisher<nav_msgs::msg::Odometry>("relocalization_odometry", 10);    // Sharmin
+  pubSvinHealth = node_->create_publisher<okvis_ros::msg::SvinHealth>("svin_health", 1);  // Sharmin: SVIN health
 
-  pubPointsMatched_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_points_matched", 1);
-  pubPointsUnmatched_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_points_unmatched", 1);
-  pubPointsTransferred_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_points_transferred", 1);
-  pubObometry_ = nh_->advertise<nav_msgs::Odometry>("okvis_odometry", 1);
-  pubPath_ = nh_->advertise<nav_msgs::Path>("okvis_path", 1);
-  pubTransform_ = nh_->advertise<geometry_msgs::TransformStamped>("okvis_transform", 1);
-  pubMesh_ = nh_->advertise<visualization_msgs::Marker>("okvis_mesh", 0);
+  pubPointsMatched_ = node_->create_publisher<sensor_msgs::msg::PointCloud2>("okvis_points_matched", 1);
+  pubPointsUnmatched_ = node_->create_publisher<sensor_msgs::msg::PointCloud2>("okvis_points_unmatched", 1);
+  pubPointsTransferred_ = node_->create_publisher<sensor_msgs::msg::PointCloud2>("okvis_points_transferred", 1);
+  pubObometry_ = node_->create_publisher<nav_msgs::msg::Odometry>("okvis_odometry", 1);
+  pubPath_ = node_->create_publisher<nav_msgs::msg::Path>("okvis_path", 1);
+  pubTransform_ = node_->create_publisher<geometry_msgs::msg::TransformStamped>("okvis_transform", 1);
+  pubMesh_ = node_->create_publisher<visualization_msgs::msg::Marker>("okvis_mesh", 0);
   // where to get the mesh from
   std::string mesh_file;
-  if (nh_->getParam("mesh_file", mesh_file)) {
+  if (node_->get_parameter("mesh_file", mesh_file)) {
     meshMsg_.mesh_resource = "package://okvis_ros/meshes/" + mesh_file;
   } else {
     LOG(INFO) << "no mesh found for visualisation, set ros param mesh_file, if desired";
@@ -168,10 +158,10 @@ void Publisher::publishRelocRelativePoseAsCallback(const okvis::Time& t,
                                                    const Eigen::Quaterniond& relative_q,
                                                    const double& relative_yaw,
                                                    const double& frame_index) {
-  nav_msgs::Odometry odometry;
+  nav_msgs::msg::Odometry odometry;
 
   odometry.header.frame_id = "world";
-  odometry.header.stamp = ros::Time(t.sec, t.nsec);
+  odometry.header.stamp = rclcpp::Time(t.sec, t.nsec);
 
   // Note Sharmin: relative_t and relative_q are w.r.t Ca
 
@@ -187,7 +177,7 @@ void Publisher::publishRelocRelativePoseAsCallback(const okvis::Time& t,
   odometry.twist.twist.linear.x = relative_yaw;
   odometry.twist.twist.linear.y = frame_index;
 
-  pubReloRelativePose_.publish(odometry);
+  pubReloRelativePose_->publish(odometry);
 }
 
 void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
@@ -195,7 +185,7 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
                                           const okvis::kinematics::Transformation& T_WCa,
                                           std::vector<std::list<std::vector<double>>>& keyframePoints) {
   /*sensor_msgs::Image msg;
-  msg.header.stamp = ros::Time::now();
+  msg.header.stamp = rclcpp::Time::now();
   msg.header.frame_id = "slave1";
   sensor_msgs::fillImage(msg, sensor_msgs::image_encodings::MONO8, imageL.rows, imageL.cols, imageL.step.buf[0],
   imageL.data); pubKeyframeImageL_.publish(msg);*/
@@ -204,18 +194,19 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   const okvis::kinematics::Transformation& T_WcCa = T_Wc_W * T_WCa;
 
   // publish keyframe
-  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", imageL).toImageMsg();
-  msg->header.stamp = ros::Time(t.sec, t.nsec);
-  msg->header.frame_id = "slave1";  // FIXME Sharmin: Don't hardcode like this!!!
-  pubKeyframeImageL_.publish(msg);
+  std_msgs::msg::Header img_header;
+  img_header.stamp = rclcpp::Time(t.sec, t.nsec);
+  img_header.frame_id = "okvis_keyframe";
+  sensor_msgs::msg::Image::ConstSharedPtr msg = cv_bridge::CvImage(img_header, "mono8", imageL).toImageMsg();
+  pubKeyframeImageL_->publish(*msg);
 
   // LOG(INFO) << "Keyframe size: " << imageL.rows << ", " << imageL.cols;
 
   // publish keyframe odometry
-  nav_msgs::Odometry odometry;
+  nav_msgs::msg::Odometry odometry;
 
   odometry.header.frame_id = "world";
-  odometry.header.stamp = ros::Time(t.sec, t.nsec);
+  odometry.header.stamp = rclcpp::Time(t.sec, t.nsec);
   // fill orientation
   Eigen::Quaterniond q = T_WcCa.q();
   odometry.pose.pose.orientation.x = q.x();
@@ -227,14 +218,14 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   odometry.pose.pose.position.x = r[0];
   odometry.pose.pose.position.y = r[1];
   odometry.pose.pose.position.z = r[2];
-  pubKeyframePose_.publish(odometry);
+  pubKeyframePose_->publish(odometry);
 
   // std::cout<<"Quat: " << q <<std::endl;
   // std::cout << "Trans: " << r << std::endl;
 
   // SVIN health
-  okvis_ros::SvinHealth svinInfo;
-  svinInfo.header.stamp = ros::Time(t.sec, t.nsec);
+  okvis_ros::msg::SvinHealth svinInfo;
+  svinInfo.header.stamp = rclcpp::Time(t.sec, t.nsec);
   svinInfo.header.frame_id = "world";
   int q00_counter = 0;
   int q01_counter = 0;
@@ -244,9 +235,9 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   int ncols = imageL.cols;
 
   // publish 3d-2d keyframe points
-  sensor_msgs::PointCloud point_cloud;
+  sensor_msgs::msg::PointCloud point_cloud;
   point_cloud.header.frame_id = "world";
-  point_cloud.header.stamp = ros::Time(t.sec, t.nsec);
+  point_cloud.header.stamp = rclcpp::Time(t.sec, t.nsec);
 
   uint32_t new_feature_keypoints = 0;
   for (std::vector<std::list<std::vector<double>>>::iterator it = keyframePoints.begin(); it != keyframePoints.end();
@@ -262,7 +253,7 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
     Eigen::Vector4d pt4d_eigen(pt3d.at(0), pt3d.at(1), pt3d.at(2), 1.0);
     Eigen::Vector4d pt4d_Wc_eigen = T_Wc_W * pt4d_eigen;
 
-    geometry_msgs::Point32 p;  // 3d position of MapPoint in W coordinate
+    geometry_msgs::msg::Point32 p;  // 3d position of MapPoint in W coordinate
     p.x = pt4d_Wc_eigen[0];
     p.y = pt4d_Wc_eigen[1];
     p.z = pt4d_Wc_eigen[2];
@@ -270,9 +261,9 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
     std::advance(lit, 1);  // advancing by 1 after getting the 3d W-coordinate
 
     // SVIN health
-    svinInfo.points3D.push_back(p);
+    svinInfo.points_3d.push_back(p);
 
-    sensor_msgs::ChannelFloat32 p_id_w_uv;
+    sensor_msgs::msg::ChannelFloat32 p_id_w_uv;
     std::vector<double> cvKeypoint_w_id = *lit;
 
     // @Reloc
@@ -329,7 +320,7 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
     // SVIN health
     svinInfo.covisibilities.push_back(covis);
     svinInfo.quality.push_back(cvKeypoint_w_id.at(3));
-    svinInfo.responseStrengths.push_back(cvKeypoint_w_id.at(10));
+    svinInfo.response_strengths.push_back(cvKeypoint_w_id.at(10));
     // This also works fine as above
     /*for (size_t i = 2; i < ptList.size(); i++){
             std::vector<double> kf_id = *lit;
@@ -340,22 +331,22 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
 
     point_cloud.channels.push_back(p_id_w_uv);
   }
-  pubKeyframePoints_.publish(point_cloud);
+  pubKeyframePoints_->publish(point_cloud);
 
   // Sharmin: svin health. No. of minimum match required = 10
   if (pointsMatched_.size() <= 10) {
-    svinInfo.isTrackingOk = false;
+    svinInfo.is_tracking_ok = false;
   } else {
-    svinInfo.isTrackingOk = true;
+    svinInfo.is_tracking_ok = true;
   }
-  svinInfo.numTrackedKps = point_cloud.points.size();
-  svinInfo.kpsPerQuadrant.push_back(q00_counter);
-  svinInfo.kpsPerQuadrant.push_back(q01_counter);
-  svinInfo.kpsPerQuadrant.push_back(q10_counter);
-  svinInfo.kpsPerQuadrant.push_back(q11_counter);
-  svinInfo.newKps = new_feature_keypoints;
+  svinInfo.num_tracked_kps = point_cloud.points.size();
+  svinInfo.kps_per_quadrant.push_back(q00_counter);
+  svinInfo.kps_per_quadrant.push_back(q01_counter);
+  svinInfo.kps_per_quadrant.push_back(q10_counter);
+  svinInfo.kps_per_quadrant.push_back(q11_counter);
+  svinInfo.new_kps = new_feature_keypoints;
 
-  pubSvinHealth.publish(svinInfo);
+  pubSvinHealth->publish(svinInfo);
 }
 // *************** End ***********************//
 
@@ -480,7 +471,7 @@ void Publisher::setPose(const okvis::kinematics::Transformation& T_WS) {
 
   poseMsg_.header.frame_id = "world";
   poseMsg_.header.stamp = _t;
-  if ((ros::Time::now() - _t).toSec() > 10.0) poseMsg_.header.stamp = ros::Time::now();
+  if ((node_->now() - _t).seconds() > 10.0) poseMsg_.header.stamp = node_->now();
 
   // fill orientation
   Eigen::Quaterniond q = T.q();
@@ -505,8 +496,8 @@ void Publisher::setPose(const okvis::kinematics::Transformation& T_WS) {
   }*/
   meshMsg_.header.frame_id = "world";
   meshMsg_.header.stamp = _t;
-  meshMsg_.type = visualization_msgs::Marker::MESH_RESOURCE;
-  if ((ros::Time::now() - _t).toSec() > 10.0) meshMsg_.header.stamp = ros::Time::now();
+  meshMsg_.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+  if ((node_->now() - _t).seconds() > 10.0) meshMsg_.header.stamp = node_->now();
 
   // fill orientation
   meshMsg_.pose.orientation.x = q.x();
@@ -524,7 +515,7 @@ void Publisher::setPose(const okvis::kinematics::Transformation& T_WS) {
   meshMsg_.scale.y = 1.0;
   meshMsg_.scale.z = 1.0;
 
-  meshMsg_.action = visualization_msgs::Marker::ADD;
+  meshMsg_.action = visualization_msgs::msg::Marker::ADD;
   meshMsg_.color.a = 1.0;  // Don't forget to set the alpha!
   meshMsg_.color.r = 1.0;
   meshMsg_.color.g = 1.0;
@@ -593,7 +584,7 @@ void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
   odometryMsg_.pose.pose.position.y = r[1];
   odometryMsg_.pose.pose.position.z = r[2];
 
-  nav_msgs::Odometry odometry;  // Sharmin
+  nav_msgs::msg::Odometry odometry;  // Sharmin
 
   Eigen::Matrix3d C_v;
   Eigen::Matrix3d C_omega;
@@ -654,15 +645,15 @@ void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
 
   odometry.twist = odometryMsg_.twist;
 
-  pubRelocPose_.publish(odometry);
+  pubRelocPose_->publish(odometry);
 
-  geometry_msgs::PoseStamped pose_stamped;
+  geometry_msgs::msg::PoseStamped pose_stamped;
   pose_stamped.pose = odometry.pose.pose;
   relocPath_.header.frame_id = "world";
   relocPath_.header.stamp = _t;
 
   relocPath_.poses.push_back(pose_stamped);
-  pubRelocPath_.publish(relocPath_);
+  pubRelocPath_->publish(relocPath_);
 
   // ******************  End Sharmin: For Reloc Pose **********//
 }
@@ -703,13 +694,9 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
   }
   pointsMatched_.header.frame_id = "world";
 
-#if PCL_VERSION >= PCL_VERSION_CALC(1, 7, 0)
-  std_msgs::Header header;
+  std_msgs::msg::Header header;
   header.stamp = _t;
-  pointsMatched_.header.stamp = pcl_conversions::toPCL(header).stamp;
-#else
-  pointsMatched_.header.stamp = _t;
-#endif
+  pointsMatched_.header.stamp = pcl_conversions::toPCL(_t);
 
   for (size_t i = 0; i < pointsUnmatched.size(); ++i) {
     // check infinity
@@ -728,12 +715,7 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
                parameters_.publishing.maxLandmarkQuality);
   }
   pointsUnmatched_.header.frame_id = "world";
-
-#if PCL_VERSION >= PCL_VERSION_CALC(1, 7, 0)
-  pointsUnmatched_.header.stamp = pcl_conversions::toPCL(header).stamp;
-#else
-  pointsUnmatched_.header.stamp = _t;
-#endif
+  pointsUnmatched_.header.stamp = pcl_conversions::toPCL(_t);
 
   for (size_t i = 0; i < pointsTransferred.size(); ++i) {
     // check infinity
@@ -759,18 +741,15 @@ void Publisher::setPoints(const okvis::MapPointVector& pointsMatched,
   pointsTransferred_.header.frame_id = "world";
   pointsTransferred_.header.seq = ctr2_++;
 
-#if PCL_VERSION >= PCL_VERSION_CALC(1, 7, 0)
-  pointsTransferred_.header.stamp = pcl_conversions::toPCL(header).stamp;
-#else
-  pointsTransferred_.header.stamp = _t;
-#endif
+  pointsTransferred_.header.stamp = pcl_conversions::toPCL(_t);
 }
 
 // Publish the pose.
 void Publisher::publishPose() {
-  if ((_t - lastOdometryTime2_).toSec() < 1.0 / parameters_.publishing.publishRate) return;  // control the publish rate
+  if ((_t - lastOdometryTime2_).seconds() < 1.0 / parameters_.publishing.publishRate)
+    return;  // control the publish rate
   pubTf_.sendTransform(poseMsg_);
-  if (!meshMsg_.mesh_resource.empty()) pubMesh_.publish(meshMsg_);  // publish stamped mesh
+  if (!meshMsg_.mesh_resource.empty()) pubMesh_->publish(meshMsg_);  // publish stamped mesh
 
   publishSensorStaticTf();
   lastOdometryTime2_ = _t;  // remember
@@ -778,32 +757,38 @@ void Publisher::publishPose() {
 
 // Publish the last set odometry.
 void Publisher::publishOdometry() {
-  if ((_t - lastOdometryTime_).toSec() < 1.0 / parameters_.publishing.publishRate) return;  // control the publish rate
-  pubObometry_.publish(odometryMsg_);
+  if ((_t - lastOdometryTime_).seconds() < 1.0 / parameters_.publishing.publishRate)
+    return;  // control the publish rate
+  pubObometry_->publish(odometryMsg_);
 
   /*** Added by Sharmin ****/
-  static tf::TransformBroadcaster br;
-  tf::Transform transform;
-  transform.setOrigin(tf::Vector3(
-      odometryMsg_.pose.pose.position.x, odometryMsg_.pose.pose.position.y, odometryMsg_.pose.pose.position.z));
-  tf::Quaternion quat(odometryMsg_.pose.pose.orientation.x,
-                      odometryMsg_.pose.pose.orientation.y,
-                      odometryMsg_.pose.pose.orientation.z,
-                      odometryMsg_.pose.pose.orientation.w);
-  transform.setRotation(quat);
-  br.sendTransform(tf::StampedTransform(transform, odometryMsg_.header.stamp, "world", "base_link"));
+  static tf2_ros::TransformBroadcaster br(node_);
+  geometry_msgs::msg::TransformStamped transform;
+  transform.header.stamp = odometryMsg_.header.stamp;
+  transform.header.frame_id = "world";
+  transform.child_frame_id = "base_link";
+  transform.transform.translation.x = odometryMsg_.pose.pose.position.x;
+  transform.transform.translation.y = odometryMsg_.pose.pose.position.y;
+  transform.transform.translation.z = odometryMsg_.pose.pose.position.z;
+  transform.transform.rotation.x = odometryMsg_.pose.pose.orientation.x;
+  transform.transform.rotation.y = odometryMsg_.pose.pose.orientation.y;
+  transform.transform.rotation.z = odometryMsg_.pose.pose.orientation.z;
+  transform.transform.rotation.w = odometryMsg_.pose.pose.orientation.w;
+
+  br.sendTransform(transform);
 
   /*** End Added by Sharmin ****/
 
-  if (!meshMsg_.mesh_resource.empty()) pubMesh_.publish(meshMsg_);  // publish stamped mesh
-  lastOdometryTime_ = _t;                                           // remember
+  if (!meshMsg_.mesh_resource.empty()) pubMesh_->publish(meshMsg_);  // publish stamped mesh
+  lastOdometryTime_ = _t;                                            // remember
 }
 
 // Publish the T_WS transform.
 void Publisher::publishTransform() {
-  if ((_t - lastTransfromTime_).toSec() < 1.0 / parameters_.publishing.publishRate) return;  // control the publish rate
-  pubTransform_.publish(poseMsg_);  // publish stamped transform for MSF
-  lastTransfromTime_ = _t;          // remember
+  if ((_t - lastTransfromTime_).seconds() < 1.0 / parameters_.publishing.publishRate)
+    return;                          // control the publish rate
+  pubTransform_->publish(poseMsg_);  // publish stamped transform for MSF
+  lastTransfromTime_ = _t;           // remember
 }
 
 // Set and publish pose.
@@ -910,7 +895,7 @@ void Publisher::publishLandmarksAsCallback(const okvis::Time& /*t*/,
 void Publisher::csvSaveLandmarksAsCallback(const okvis::Time& /*t*/,
                                            const okvis::MapPointVector& actualLandmarks,
                                            const okvis::MapPointVector& transferredLandmarks) {
-  ROS_WARN("Landmarks Callback csv");
+  RCLCPP_WARN(node_->get_logger(), "Landmarks Callback csv");
   okvis::MapPointVector empty;
   setPoints(actualLandmarks, empty, transferredLandmarks);
   if (csvLandmarksFile_) {
@@ -930,9 +915,17 @@ void Publisher::csvSaveLandmarksAsCallback(const okvis::Time& /*t*/,
 
 // Publish the last set points.
 void Publisher::publishPoints() {
-  pubPointsMatched_.publish(pointsMatched_);
-  pubPointsUnmatched_.publish(pointsUnmatched_);
-  pubPointsTransferred_.publish(pointsTransferred_);
+  auto pcl_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
+  pcl::toROSMsg(pointsMatched_, *pcl_msg);
+  pcl_msg->header.frame_id = "world";
+
+  pubPointsMatched_->publish(*pcl_msg);
+  pcl::toROSMsg(pointsUnmatched_, *pcl_msg);
+  pcl_msg->header.frame_id = "world";
+  pubPointsUnmatched_->publish(*pcl_msg);
+  pcl::toROSMsg(pointsTransferred_, *pcl_msg);
+  pcl_msg->header.frame_id = "world";
+  pubPointsTransferred_->publish(*pcl_msg);
 }
 
 // Set the images to be published next.
@@ -947,12 +940,12 @@ void Publisher::setImages(const std::vector<cv::Mat>& images) {
 // maximum is reached, the last pose is copied in a new path message. The rest are deleted.
 void Publisher::setPath(const okvis::kinematics::Transformation& T_WS) {
   if (path_.poses.size() >= parameters_.publishing.maxPathLength) {
-    geometry_msgs::PoseStamped lastPose = path_.poses.back();
+    geometry_msgs::msg::PoseStamped lastPose = path_.poses.back();
     path_.poses.clear();
     path_.poses.reserve(parameters_.publishing.maxPathLength);
     path_.poses.push_back(lastPose);
   }
-  geometry_msgs::PoseStamped pose;
+  geometry_msgs::msg::PoseStamped pose;
   pose.header.stamp = _t;
   pose.header.frame_id = "world";
   okvis::kinematics::Transformation T = parameters_.publishing.T_Wc_W * T_WS;
@@ -990,17 +983,16 @@ void Publisher::publishImages() {
     for (size_t i = 0; i < images_.size(); ++i) {
       std::stringstream drawingNameStream;
       drawingNameStream << "okvis_drawing_" << i;
-      imageTransportVector_.push_back(image_transport::ImageTransport(*nh_));
-      pubImagesVector_.push_back(imageTransportVector_[i].advertise(drawingNameStream.str(), 10));
+      pubImagesVector_.push_back(image_transport_.advertise(drawingNameStream.str(), 10));
     }
   }
 
   // publish:
   for (size_t i = 0; i < images_.size(); ++i) {
-    sensor_msgs::Image msg;
+    sensor_msgs::msg::Image msg;
     std::stringstream cameraNameStream;
     cameraNameStream << "camera_" << i;
-    msg.header.stamp = ros::Time::now();
+    msg.header.stamp = node_->get_clock()->now();
     msg.header.frame_id = cameraNameStream.str();
     sensor_msgs::fillImage(msg,
                            sensor_msgs::image_encodings::MONO8,
@@ -1013,22 +1005,23 @@ void Publisher::publishImages() {
 }
 
 // Publish the last set path.
-void Publisher::publishPath() { pubPath_.publish(path_); }
+void Publisher::publishPath() { pubPath_->publish(path_); }
 
 void Publisher::publishDebugImageAsCallback(const okvis::Time& t, int i, const cv::Mat& image) {
   // publish debug image
-  sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
-  msg->header.stamp = ros::Time(t.sec, t.nsec);
+
+  sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
+  msg->header.stamp = rclcpp::Time(t.sec, t.nsec);
 
   // Expand the number of publishers if needed
   for (int j = pubDebugImage_.size(); j <= i; j++) {
     std::stringstream topic;
     topic << "debug_image_" << j;
-    pubDebugImage_.push_back(nh_->advertise<sensor_msgs::Image>(topic.str(), 10));
+    pubDebugImage_.push_back(node_->create_publisher<sensor_msgs::msg::Image>(topic.str(), 10));
   }
 
   // pubDebugImage_[i].publish(msg);
-  pubDebugImage_[i].publish(msg);
+  pubDebugImage_[i]->publish(*msg);
 }
 
 void Publisher::publishSensorStaticTf() {
@@ -1045,7 +1038,7 @@ void Publisher::publishSensorStaticTf() {
   }
 }
 void Publisher::publishStaticTfCamera(size_t camera_index) {
-  geometry_msgs::Transform pose;
+  geometry_msgs::msg::Transform pose;
   okvis::cameras::NCameraSystem nCameraSystem = parameters_.nCameraSystem;
 
   std::string parent_frame_id;
@@ -1078,7 +1071,7 @@ void Publisher::publishStaticTfCamera(size_t camera_index) {
 }
 
 void Publisher::publishStaticTfSonar() {
-  geometry_msgs::Transform pose;  ///< Pose message.
+  geometry_msgs::msg::Transform pose;  ///< Pose message.
 
   std::string parent_frame_id;
   if (parameters_.publishing.trackedBodyFrame == FrameName::S) {
@@ -1108,16 +1101,17 @@ void Publisher::publishStaticTfSonar() {
   publishStaticTf(pose, parent_frame_id, child_frame_id);
 }
 
-void Publisher::publishStaticTf(const geometry_msgs::Transform& pose,
+void Publisher::publishStaticTf(const geometry_msgs::msg::Transform& pose,
                                 const std::string& parent_frame_id,
                                 const std::string& child_frame_id) {
-  static tf2_ros::StaticTransformBroadcaster static_broadcaster;
-  geometry_msgs::TransformStamped static_transform_stamped;
+  static tf2_ros::StaticTransformBroadcaster static_broadcaster(node_);
+  geometry_msgs::msg::TransformStamped static_transform_stamped;
   static_transform_stamped.header.stamp = _t;
-  if ((ros::Time::now() - _t).toSec() > 10.0) static_transform_stamped.header.stamp = ros::Time::now();
+  if ((node_->get_clock()->now() - _t).seconds() > 10.0)
+    static_transform_stamped.header.stamp = node_->get_clock()->now();
 
-  // TODO(Toni): Warning: using ros::Time::now(), will that bring issues?
-  static_transform_stamped.header.stamp = ros::Time::now();
+  // TODO(Toni): Warning: using rclcpp::Time::now(), will that bring issues?
+  static_transform_stamped.header.stamp = node_->get_clock()->now();
   static_transform_stamped.header.frame_id = parent_frame_id;
   static_transform_stamped.child_frame_id = child_frame_id;
   static_transform_stamped.transform = pose;

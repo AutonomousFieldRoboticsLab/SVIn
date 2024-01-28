@@ -112,6 +112,7 @@ class Estimator : public VioBackendInterface {
    */
   int addImu(const okvis::ImuParameters& imuParameters);
 
+  int addSonar(const SonarParameters& sonarParameters);
   /**
    * @brief Remove all cameras from the configuration
    */
@@ -133,11 +134,10 @@ class Estimator : public VioBackendInterface {
    */
   bool addStates(okvis::MultiFramePtr multiFrame,
                  const okvis::ImuMeasurementDeque& imuMeasurements,
-                 const okvis::VioParameters& params,                    /* @Sharmin */
-                 const okvis::SonarMeasurementDeque& sonarMeasurements, /*Sharmin*/
-                 const okvis::DepthMeasurementDeque& depthMeasurements,
-                 double firstDepth, /*Sharmin*/
-                 bool asKeyframe);
+                 bool asKeyframe,
+                 const okvis::SonarMeasurementDeque& sonarMeasurements = {},
+                 const okvis::DepthMeasurementDeque& depthMeasurements = {},
+                 double firstDepth = 0.0);
 
   /**
    * @brief Prints state information to buffer.
@@ -613,6 +613,8 @@ class Estimator : public VioBackendInterface {
       extrinsicsEstimationParametersVec_;  ///< Extrinsics parameters.
   std::vector<okvis::ImuParameters, Eigen::aligned_allocator<okvis::ImuParameters>>
       imuParametersVec_;  ///< IMU parameters.
+
+  okvis::SonarParameters sonarParameters_;  ///< Sonar parameters.
 
   // loss function for reprojection errors
   std::shared_ptr<::ceres::LossFunction> cauchyLossFunctionPtr_;  ///< Cauchy loss.

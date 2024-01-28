@@ -44,39 +44,28 @@
 /// @Sharmin
 #include <boost/shared_ptr.hpp>
 #include <deque>
+#include <image_transport/image_transport.hpp>
 #include <memory>
 #include <mutex>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <thread>
 #include <vector>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#include <image_geometry/pinhole_camera_model.h>
-#include <ros/ros.h>
-#pragma GCC diagnostic pop
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/PointCloud2.h>
-
 // @Sharmin
 // #include <imagenex831l/ProcessedRange.h>
-#include <ros/time.h>
+// #include <ros/time.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 // #include <depth_node_py/Depth.h> // for stereo rig depth
 // #include <aquacore/StateMsg.h> // Aqua depth
-#include <geometry_msgs/PointStamped.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <sensor_msgs/PointCloud.h>  // for subscribing /pose_graph/match_points
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-// end @Sharmin
-
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#include <opencv2/opencv.hpp>
-#pragma GCC diagnostic pop
+
 #include <Eigen/Core>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <okvis/Publisher.hpp>
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/Time.hpp>
@@ -85,6 +74,9 @@
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <opencv2/opencv.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>  // for subscribing /pose_graph/match_points
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -106,55 +98,53 @@ class Subscriber {
    * @param vioInterfacePtr Pointer to the VioInterface.
    * @param param_reader  Parameter reader.
    */
-  Subscriber(ros::NodeHandle& nh,  // NOLINT
+  Subscriber(std::shared_ptr<rclcpp::Node> node,  // NOLINT
              okvis::VioInterface* vioInterfacePtr,
              const okvis::VioParametersReader& param_reader);
-
-  /// @brief Set the node handle. This sets up the callbacks. This is called in the constructor.
-  void setNodeHandle(ros::NodeHandle& nh);  // NOLINT
 
   /// @brief Set custom world transformation for reloc callback @Hunter
   void setT_Wc_W(okvis::kinematics::Transformation T_Wc_W);
 
  protected:
-  const cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const;
+  const cv::Mat readRosImage(const sensor_msgs::msg::Image::ConstSharedPtr img_msg) const;
 
   /// @name ROS callbacks
   /// @{
 
   /// @brief The image callback.
-  void imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned int cameraIndex);
+  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex);
   /// @brief The depth image callback.
   /// @warning Not implemented.
-  void depthImageCallback(const sensor_msgs::ImageConstPtr&, unsigned int) {
+  void depthImageCallback(const sensor_msgs::msg::Image::SharedPtr, unsigned int) {
     OKVIS_THROW(Exception, "Subscriber::depthImageCallback() is not implemented.");
   }
 
   /// @brief The IMU callback.
-  void imuCallback(const sensor_msgs::ImuConstPtr& msg);
+  void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
 
   /// @brief The Depth callback. @Sharmin
   // void depthCallback(const depth_node_py::Depth::ConstPtr& msg);
   // void depthCallback(const aquacore::StateMsg::ConstPtr& msg); // Aqua Depth
 
   /// @brief The Relocalization callback. @Sharmin
-  void relocCallback(const sensor_msgs::PointCloudConstPtr& points_msg);
+  void relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr points_msg);
 
   /// @brief The Sonar Range callback. @Sharmin
-  boost::shared_ptr<tf2_ros::Buffer> tfBuffer_;
-  boost::shared_ptr<tf2_ros::TransformListener> tfListener_;
-  void sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg);
+  std::shared_ptr<tf2_ros::Buffer> tfBuffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tfListener_;
+  // void sonarCallback(const imagenex831l::msg::ProcessedRange::ConstPtr& msg);
 
-  ros::NodeHandle* nh_;                                        ///< The node handle.
-  image_transport::ImageTransport* imgTransport_;              ///< The image transporter.
-  std::vector<image_transport::Subscriber> imageSubscribers_;  ///< The image message subscriber.
-  unsigned int imgLeftCounter;                                 // @Sharmin
-  unsigned int imgRightCounter;                                // @Sharmin
-  ros::Subscriber subImu_;                                     ///< The IMU message subscriber.
-  ros::Subscriber subSonarRange_;                              ///< The Sonar Range Subscriber @Sharmin
-  ros::Subscriber subDepth_;                                   ///< The Depth Subscriber @Sharmin
-  ros::Subscriber subReloPoints_;  ///< The Relocalization Points Subscriber from pose_graph @Sharmin
-  cv::Ptr<cv::CLAHE> clahe;        /// Sharmin
+  std::shared_ptr<rclcpp::Node> node_;                             ///< The node handle.
+  image_transport::ImageTransport* imgTransport_;                  ///< The image transporter.
+  std::vector<image_transport::Subscriber> imageSubscribers_;      ///< The image message subscriber.
+  unsigned int imgLeftCounter;                                     // @Sharmin
+  unsigned int imgRightCounter;                                    // @Sharmin
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subImu_;  ///< The IMU message subscriber.
+  // ros::Subscriber subSonarRange_;                                ///< The Sonar Range Subscriber @Sharmin
+  // ros::Subscriber subDepth_;                                     ///< The Depth Subscriber @Sharmin
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud>::SharedPtr
+      subReloPoints_;        ///< The Relocalization Points Subscriber from pose_graph @Sharmin
+  cv::Ptr<cv::CLAHE> clahe;  /// Sharmin
   /// @}
 
   okvis::VioInterface* vioInterface_;   ///< The VioInterface. (E.g. ThreadedKFVio)

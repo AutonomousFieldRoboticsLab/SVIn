@@ -57,7 +57,7 @@ namespace ceres {
 // Constructor.
 Map::Map() : residualCounter_(0) {
   ::ceres::Problem::Options problemOptions;
-  problemOptions.local_parameterization_ownership = ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
+  problemOptions.manifold_ownership = ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
   problemOptions.loss_function_ownership = ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
   problemOptions.cost_function_ownership = ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
   // problemOptions.enable_fast_parameter_block_removal = true;

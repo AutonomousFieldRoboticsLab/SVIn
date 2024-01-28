@@ -71,16 +71,15 @@ class HomogeneousPointManifold : public ::ceres::Manifold, public ManifoldAdditi
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+  virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
   virtual bool PlusJacobian(const double* x, double* jacobian) const;
 
-  /// \brief // Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
   //   (D_1 Minus) (x, x)
-
   /// @param[in] x Variable
   /// @param[out] jacobian The Jacobian
   /// @return Return value indicates whether the operation was successful or not.
@@ -106,6 +105,11 @@ class HomogeneousPointManifold : public ::ceres::Manifold, public ManifoldAdditi
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
+
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  static bool minusJacobian(const double* x, double* jacobian);
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.

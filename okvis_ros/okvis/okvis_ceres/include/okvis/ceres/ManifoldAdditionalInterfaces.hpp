@@ -55,13 +55,6 @@ class ManifoldAdditionalInterfaces {
   /// \brief Trivial destructor.
   virtual ~ManifoldAdditionalInterfaces() {}
 
-  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
-  /// @param[in] x Variable.
-  /// @param[in] x_plus_delta Perturbed variable.
-  /// @param[out] delta minimal difference.
-  /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const = 0;
-
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).

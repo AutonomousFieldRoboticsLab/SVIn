@@ -28,7 +28,9 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC okvis_util
   PUBLIC okvis_kinematics 
   PUBLIC okvis_time 
-  PUBLIC okvis_cv)
+  PUBLIC okvis_cv
+  ${OpenCV_LIBS}
+)
 
 # installation if required
 install(TARGETS ${PROJECT_NAME}

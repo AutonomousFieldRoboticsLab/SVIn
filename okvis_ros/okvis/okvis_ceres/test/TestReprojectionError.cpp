@@ -85,8 +85,8 @@ TEST(okvisTestSuite, ReprojectionError) {
   std::cout << "setting local parameterization for pose... " << std::flush;
   ::ceres::Manifold* poseManifold = new okvis::ceres::PoseManifold;
 
-  problem.SetParameterization(poseParameterBlock.parameters(), poseManifold);
-  problem.SetParameterization(extrinsicsParameterBlock.parameters(), poseManifold);
+  problem.SetManifold(poseParameterBlock.parameters(), poseManifold);
+  problem.SetManifold(extrinsicsParameterBlock.parameters(), poseManifold);
   std::cout << " [ OK ] " << std::endl;
 
   // and the parameterization for points:
@@ -119,7 +119,7 @@ TEST(okvisTestSuite, ReprojectionError) {
                              extrinsicsParameterBlock.parameters());
 
     // set the parameterization
-    problem.SetParameterization(homogeneousPointParameterBlock_ptr->parameters(), homogeneousPointManifold);
+    problem.SetManifold(homogeneousPointParameterBlock_ptr->parameters(), homogeneousPointManifold);
   }
   std::cout << " [ OK ] " << std::endl;
 

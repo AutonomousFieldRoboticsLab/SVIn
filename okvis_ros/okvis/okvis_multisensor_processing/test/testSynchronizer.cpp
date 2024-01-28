@@ -33,7 +33,7 @@ TEST(OkvisVioInterfaces, testFrameSync) {
   MockVioBackendInterface dummy;
   EXPECT_CALL(dummy, optimize(_, _, _)).Times(Between(3, 6));
   EXPECT_CALL(dummy, get_T_WS(_, _)).Times(Between(8, 13));
-  EXPECT_CALL(dummy, addStates(_, _, _)).Times(Between(3, 6));
+  EXPECT_CALL(dummy, addStates(_, _, _, _, _, _)).Times(Between(3, 6));
   EXPECT_CALL(dummy, applyMarginalizationStrategy(_, _, _)).Times(Between(3, 6));
   EXPECT_CALL(dummy, setOptimizationTimeLimit(_, _)).Times(1);
   EXPECT_CALL(dummy, addCamera(_)).Times(2);
@@ -44,7 +44,7 @@ TEST(OkvisVioInterfaces, testFrameSync) {
   EXPECT_CALL(dummy, numFrames()).Times(AnyNumber());
 
   ON_CALL(dummy, numFrames()).WillByDefault(Return(1));
-  ON_CALL(dummy, addStates(_, _, _)).WillByDefault(Return(true));
+  ON_CALL(dummy, addStates(_, _, _, _, _, _)).WillByDefault(Return(true));
   // to circumvent segfault
   ON_CALL(dummy, multiFrame(_))
       .WillByDefault(Return(

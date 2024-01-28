@@ -54,17 +54,50 @@ Subscriber::~Subscriber() {
   if (imgTransport_ != 0) delete imgTransport_;
 }
 
-Subscriber::Subscriber(ros::NodeHandle& nh,
+Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
                        okvis::VioInterface* vioInterfacePtr,
                        const okvis::VioParametersReader& param_reader)
-    : vioInterface_(vioInterfacePtr) {
+    : node_(node), vioInterface_(vioInterfacePtr) {
   /// @Sharmin
-  tfBuffer_.reset(new tf2_ros::Buffer());
+
+  imageSubscribers_.resize(vioParameters_.nCameraSystem.numCameras());
+
+  // set up image reception
+  if (imgTransport_ != 0) delete imgTransport_;
+  imgTransport_ = new image_transport::ImageTransport(node);
+
+  // set up callbacks
+  for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
+    imageSubscribers_[i] =
+        imgTransport_->subscribe("camera" + std::to_string(i),
+                                 100 * vioParameters_.nCameraSystem.numCameras(),
+                                 std::bind(&Subscriber::imageCallback, this, std::placeholders::_1, i));
+  }
+
+  subImu_ = node->create_subscription<sensor_msgs::msg::Imu>(
+      "imu", 1000, std::bind(&Subscriber::imuCallback, this, std::placeholders::_1));
+
+  // Sharmin
+  // if (vioParameters_.sensorList.isSonarUsed) {
+  //   subSonarRange_ = nh_->subscribe("/imagenex831l/range", 1000, &Subscriber::sonarCallback, this);
+  // }
+  // Sharmin
+  // if (vioParameters_.sensorList.isDepthUsed){
+  // subDepth_ = nh_->subscribe("/bar30/depth", 1000, &Subscriber::depthCallback, this);
+  // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
+  // }
+
+  // Sharmin
+  if (vioParameters_.relocParameters.isRelocalization) {
+    std::cout << "Subscribing to /pose_graph/match_points topic" << std::endl;
+    subReloPoints_ = node->create_subscription<sensor_msgs::msg::PointCloud>(
+        "/pose_graph/match_points", 1000, std::bind(&Subscriber::relocCallback, this, std::placeholders::_1));
+  }
+
+  tfBuffer_.reset();
   tfListener_.reset(new tf2_ros::TransformListener(*tfBuffer_));
   param_reader.getParameters(vioParameters_);
   imgTransport_ = 0;
-
-  setNodeHandle(nh);
 
   imgLeftCounter = 0;   // @Sharmin
   imgRightCounter = 0;  // @Sharmin
@@ -80,46 +113,10 @@ Subscriber::Subscriber(ros::NodeHandle& nh,
   }
 }
 
-void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
-  nh_ = &nh;
-
-  imageSubscribers_.resize(vioParameters_.nCameraSystem.numCameras());
-
-  // set up image reception
-  if (imgTransport_ != 0) delete imgTransport_;
-  imgTransport_ = new image_transport::ImageTransport(nh);
-
-  // set up callbacks
-  for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
-    imageSubscribers_[i] =
-        imgTransport_->subscribe("/camera" + std::to_string(i),
-                                 100 * vioParameters_.nCameraSystem.numCameras(),
-                                 std::bind(&Subscriber::imageCallback, this, std::placeholders::_1, i));
-  }
-
-  subImu_ = nh_->subscribe("/imu", 1000, &Subscriber::imuCallback, this);
-
-  // Sharmin
-  if (vioParameters_.sensorList.isSonarUsed) {
-    subSonarRange_ = nh_->subscribe("/imagenex831l/range", 1000, &Subscriber::sonarCallback, this);
-  }
-  // Sharmin
-  // if (vioParameters_.sensorList.isDepthUsed){
-  // subDepth_ = nh_->subscribe("/bar30/depth", 1000, &Subscriber::depthCallback, this);
-  // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
-  // }
-
-  // Sharmin
-  if (vioParameters_.relocParameters.isRelocalization) {
-    std::cout << "Subscribing to /pose_graph/match_points topic" << std::endl;
-    subReloPoints_ = nh_->subscribe("/pose_graph/match_points", 1000, &Subscriber::relocCallback, this);
-  }
-}
-
 // Hunter
 void Subscriber::setT_Wc_W(okvis::kinematics::Transformation T_Wc_W) { vioParameters_.publishing.T_Wc_W = T_Wc_W; }
 
-void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned int cameraIndex) {
+void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex) {
   const cv::Mat raw = readRosImage(msg);
 
   // resizing factor( e.g., with a factor = 0.8, an image will convert from 800x600 to 640x480)
@@ -150,7 +147,7 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned i
   // End Added by Sharmin
 
   // adapt timestamp
-  okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nsec);
+  okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nanosec);
   t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
 
   if (!vioInterface_->addImage(t, cameraIndex, histogram_equalized_image)) {
@@ -158,15 +155,15 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& msg, unsigned i
   }
 }
 
-void Subscriber::imuCallback(const sensor_msgs::ImuConstPtr& msg) {
+void Subscriber::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg) {
   vioInterface_->addImuMeasurement(
-      okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
+      okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
       Eigen::Vector3d(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
       Eigen::Vector3d(msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z));
 }
 
 // @Sharmin
-void Subscriber::relocCallback(const sensor_msgs::PointCloudConstPtr& relo_msg) {
+void Subscriber::relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr relo_msg) {
   std::vector<Eigen::Vector3d> matched_ids;
   okvis::kinematics::Transformation T_Wc_W = vioParameters_.publishing.T_Wc_W;
   // double frame_stamp = relo_msg->header.stamp.toSec();
@@ -195,7 +192,7 @@ void Subscriber::relocCallback(const sensor_msgs::PointCloudConstPtr& relo_msg) 
   // estimator.setReloFrame(frame_stamp, frame_index, match_points, relo_t, relo_r);
 
   vioInterface_->addRelocMeasurement(
-      okvis::Time(relo_msg->header.stamp.sec, relo_msg->header.stamp.nsec), matched_ids, pose_W.r(), pose_W.q());
+      okvis::Time(relo_msg->header.stamp.sec, relo_msg->header.stamp.nanosec), matched_ids, pose_W.r(), pose_W.q());
 }
 // @Sharmin
 // /*
@@ -241,15 +238,15 @@ void Subscriber::relocCallback(const sensor_msgs::PointCloudConstPtr& relo_msg) 
 //   }
 // }
 
-const cv::Mat Subscriber::readRosImage(const sensor_msgs::ImageConstPtr& img_msg) const {
+const cv::Mat Subscriber::readRosImage(const sensor_msgs::msg::Image::ConstSharedPtr img_msg) const {
   CHECK(img_msg);
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
     // TODO(Toni): here we should consider using toCvShare...
     cv_ptr = cv_bridge::toCvCopy(img_msg);
   } catch (cv_bridge::Exception& exception) {
-    ROS_FATAL("cv_bridge exception: %s", exception.what());
-    ros::shutdown();
+    RCLCPP_FATAL(node_->get_logger(), "cv_bridge exception: %s", exception.what());
+    rclcpp::shutdown();
   }
 
   CHECK(cv_ptr);

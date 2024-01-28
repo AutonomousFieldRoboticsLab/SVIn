@@ -207,8 +207,8 @@ TEST(okvisTestSuite, ImuError) {
   std::cout << "setting local parameterization for pose... " << std::flush;
   ::ceres::Manifold* poseManifold2d = new okvis::ceres::PoseManifold2d;
   ::ceres::Manifold* poseManifold = new okvis::ceres::PoseManifold;
-  problem.SetParameterization(poseParameterBlock_0.parameters(), poseManifold2d);
-  problem.SetParameterization(poseParameterBlock_1.parameters(), poseManifold);
+  problem.SetManifold(poseParameterBlock_0.parameters(), poseManifold2d);
+  problem.SetManifold(poseParameterBlock_1.parameters(), poseManifold);
   std::cout << " [ OK ] " << std::endl;
 
   // create the Imu error term

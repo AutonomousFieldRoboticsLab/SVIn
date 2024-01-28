@@ -10,7 +10,7 @@
 namespace okvis {
 namespace ceres {
 
-// Verifies the correctness of a inplementation.
+// Verifies the correctness of a implementation.
 bool ManifoldAdditionalInterfaces::verify(const double* x_raw, double purturbation_magnitude) const {
   const ::ceres::Manifold* casted = dynamic_cast<const ::ceres::Manifold*>(this);
   if (!casted) {
@@ -25,7 +25,7 @@ bool ManifoldAdditionalInterfaces::verify(const double* x_raw, double purturbati
   delta_x.setRandom();
   delta_x *= purturbation_magnitude;
   casted->Plus(x.data(), delta_x.data(), x_plus_delta.data());
-  this->Minus(x.data(), x_plus_delta.data(), delta_x2.data());
+  casted->Minus(x_plus_delta.data(), x.data(), delta_x2.data());
   if ((delta_x2 - delta_x).norm() > 1.0e-12) {
     return false;
   }

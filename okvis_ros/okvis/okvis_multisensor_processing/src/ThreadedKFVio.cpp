@@ -899,7 +899,7 @@ void ThreadedKFVio::matchingLoop() {
       okvis::Time t0Matching = okvis::Time::now();
       bool asKeyframe = false;
       // @Sharmin
-      if (estimator_.addStates(frame, imuData, parameters_, sonarData, depthData, firstDepth_, asKeyframe)) {
+      if (estimator_.addStates(frame, imuData, asKeyframe, sonarData, depthData, firstDepth_)) {
         lastAddedStateTimestamp_ = frame->timestamp();
         addStateTimer.stop();
       } else {

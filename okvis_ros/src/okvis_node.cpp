@@ -38,145 +38,29 @@
  * @author Andreas Forster
  */
 
+#include <glog/logging.h>
 #include <stdlib.h>
 
 #include <fstream>
-#include <functional>
+#include <image_transport/image_transport.hpp>
 #include <iostream>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#include <ros/ros.h>
-#pragma GCC diagnostic pop
-#include <glog/logging.h>
-#include <image_transport/image_transport.h>
-
 #include <okvis/Publisher.hpp>
 #include <okvis/RosParametersReader.hpp>
 #include <okvis/Subscriber.hpp>
 #include <okvis/ThreadedKFVio.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <string>
-
-#include "sensor_msgs/Imu.h"
-
-// Hunter
-#include <okvis_ros/OdometryTrigger.h>
-#include <std_srvs/Trigger.h>
-
 bool is_reloc = true;
 
-namespace okvis {
-void initEstimator(ThreadedKFVio* okvis_estimator, Publisher* publisher, VioParameters& parameters) {  // NOLINT
-  /****** Hunter: moved all okvis_estimator initialization here to be resetable ****/
-  publisher->setParameters(parameters);  // pass the specified publishing stuff
-
-  okvis_estimator->setFullStateCallback(std::bind(&okvis::Publisher::publishFullStateAsCallback,
-                                                  publisher,
-                                                  std::placeholders::_1,
-                                                  std::placeholders::_2,
-                                                  std::placeholders::_3,
-                                                  std::placeholders::_4,
-                                                  std::placeholders::_5));
-  okvis_estimator->setLandmarksCallback(std::bind(&okvis::Publisher::publishLandmarksAsCallback,
-                                                  publisher,
-                                                  std::placeholders::_1,
-                                                  std::placeholders::_2,
-                                                  std::placeholders::_3));
-  okvis_estimator->setStateCallback(
-      std::bind(&okvis::Publisher::publishStateAsCallback, publisher, std::placeholders::_1, std::placeholders::_2));
-  // okvis_estimator->setBlocking(true);
-  // Sharmin
-  // okvis_estimator->setStereoMatchCallback(std::bind(&okvis::Publisher::publishSteroPointCloudAsCallback,publisher,std::placeholders::_1,std::placeholders::_2));
-  // Sharmin
-  okvis_estimator->setKeyframeCallback(std::bind(&okvis::Publisher::publishKeyframeAsCallback,
-                                                 publisher,
-                                                 std::placeholders::_1,
-                                                 std::placeholders::_2,
-                                                 std::placeholders::_3,
-                                                 std::placeholders::_4));
-
-  // Hunter
-  if (parameters.visualization.publishDebugImages) {
-    okvis_estimator->setDebugImgCallback(std::bind(&okvis::Publisher::publishDebugImageAsCallback,
-                                                   publisher,
-                                                   std::placeholders::_1,
-                                                   std::placeholders::_2,
-                                                   std::placeholders::_3));
-  }
-
-  if (is_reloc) {
-    okvis_estimator->setRelocRelativePoseCallback(std::bind(&okvis::Publisher::publishRelocRelativePoseAsCallback,
-                                                            publisher,
-                                                            std::placeholders::_1,
-                                                            std::placeholders::_2,
-                                                            std::placeholders::_3,
-                                                            std::placeholders::_4,
-                                                            std::placeholders::_5));
-  }
-
-  // Like okvis_node_synchronous to setup files to be written
-  okvis_estimator->setImuCsvFile("imu_data.csv");
-  for (size_t i = 0; i < 2; ++i) {
-    std::stringstream num;
-    num << i + 1;
-    okvis_estimator->setTracksCsvFile(i, "slave" + num.str() + "_tracks.csv");
-  }
-}
-
-okvis::kinematics::Transformation odometryToTransformation(const nav_msgs::Odometry& msg) {
-  const geometry_msgs::Pose* pose = &msg.pose.pose;
-  Eigen::Vector3d pos(pose->position.x, pose->position.y, pose->position.z);
-  Eigen::Quaterniond quat(pose->orientation.w, pose->orientation.x, pose->orientation.y, pose->orientation.z);
-  return okvis::kinematics::Transformation(pos, quat);
-}
-
-bool reset(ThreadedKFVio* okvis_estimator,
-           Publisher* publisher,
-           Subscriber* subscriber,
-           VioParameters& parameters,  // NOLINT
-           const okvis::kinematics::Transformation& orig_T_Wc_W,
-           okvis_ros::OdometryTrigger::Request& request,      // NOLINT
-           okvis_ros::OdometryTrigger::Response& response) {  // NOLINT
-  okvis_estimator->~ThreadedKFVio();
-  parameters.publishing.T_Wc_W = odometryToTransformation(request.pose) * orig_T_Wc_W;
-  new (okvis_estimator) ThreadedKFVio(parameters);
-  initEstimator(okvis_estimator, publisher, parameters);
-  subscriber->setT_Wc_W(parameters.publishing.T_Wc_W);
-  response.success = true;
-  return response.success;
-}
-bool resetZero(ThreadedKFVio* okvis_estimator,
-               Publisher* publisher,
-               Subscriber* subscriber,
-               VioParameters& parameters,  // NOLINT
-               const okvis::kinematics::Transformation& orig_T_Wc_W,
-               std_srvs::Trigger::Request& request,      // NOLINT
-               std_srvs::Trigger::Response& response) {  // NOLINT
-  okvis_ros::OdometryTrigger::Request odom_request;
-  okvis_ros::OdometryTrigger::Response odom_response;
-  odom_request.pose.pose.pose.orientation.w = 1.0;  // Call reset with identity transformation
-  reset(okvis_estimator, publisher, subscriber, parameters, orig_T_Wc_W, odom_request, odom_response);
-  response.success = odom_response.success;
-  return response.success;
-}
-bool smoothReset(Publisher* publisher,
-                 Subscriber* subscriber,
-                 const okvis::kinematics::Transformation& orig_T_Wc_W,
-                 okvis_ros::OdometryTrigger::Request& request,      // NOLINT
-                 okvis_ros::OdometryTrigger::Response& response) {  // NOLINT
-  okvis::kinematics::Transformation new_T_Wc_W = odometryToTransformation(request.pose) * orig_T_Wc_W;
-  publisher->setT_Wc_W(new_T_Wc_W);
-  subscriber->setT_Wc_W(new_T_Wc_W);
-  response.success = true;
-  return response.success;
-}
-}  // namespace okvis
-
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "okvis_node");
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  options.allow_undeclared_parameters(true);
+  options.automatically_declare_parameters_from_overrides(true);
 
-  // set up the node
-  ros::NodeHandle nh("okvis_node");
+  auto node = std::make_shared<rclcpp::Node>("okvis_node", options);
 
   // initialise logging
   google::InitGoogleLogging(argv[0]);
@@ -184,18 +68,18 @@ int main(int argc, char** argv) {
   FLAGS_colorlogtostderr = 1;
 
   // publisher
-  okvis::Publisher publisher(nh);
+  okvis::Publisher publisher(node);
 
   // read configuration file
   std::string configFilename;
-  if (!nh.getParam("config_filename", configFilename)) {
+  if (node->get_parameter<std::string>("config_filename", configFilename)) {
     LOG(ERROR) << "Please specify filename of configuration!";
     return 1;
   }
+
   okvis::RosParametersReader vio_parameters_reader(configFilename);
   okvis::VioParameters parameters;
   vio_parameters_reader.getParameters(parameters);
-  okvis::kinematics::Transformation orig_T_Wc_W = parameters.publishing.T_Wc_W;
 
   okvis::ThreadedKFVio okvis_estimator(parameters);
 
@@ -203,46 +87,67 @@ int main(int argc, char** argv) {
   publisher.setCsvFile("okvis_estimator_output.csv");
   publisher.setLandmarksCsvFile("okvis_estimator_landmarks.csv");
 
-  okvis::initEstimator(&okvis_estimator,
-                       &publisher,
-                       parameters);  // Hunter moved initialization of okvis_estimator to a function for resetability
+  publisher.setParameters(parameters);  // pass the specified publishing stuff
 
-  // subscriber
-  okvis::Subscriber subscriber(nh, &okvis_estimator, vio_parameters_reader);
+  okvis_estimator.setFullStateCallback(std::bind(&okvis::Publisher::publishFullStateAsCallback,
+                                                 &publisher,
+                                                 std::placeholders::_1,
+                                                 std::placeholders::_2,
+                                                 std::placeholders::_3,
+                                                 std::placeholders::_4,
+                                                 std::placeholders::_5));
+  okvis_estimator.setLandmarksCallback(std::bind(&okvis::Publisher::publishLandmarksAsCallback,
+                                                 &publisher,
+                                                 std::placeholders::_1,
+                                                 std::placeholders::_2,
+                                                 std::placeholders::_3));
+  okvis_estimator.setStateCallback(
+      std::bind(&okvis::Publisher::publishStateAsCallback, &publisher, std::placeholders::_1, std::placeholders::_2));
+  // okvis_estimator->setBlocking(true);
+  // Sharmin
+  // okvis_estimator->setStereoMatchCallback(std::bind(&okvis::Publisher::publishSteroPointCloudAsCallback,publisher,std::placeholders::_1,std::placeholders::_2));
+  // Sharmin
+  okvis_estimator.setKeyframeCallback(std::bind(&okvis::Publisher::publishKeyframeAsCallback,
+                                                &publisher,
+                                                std::placeholders::_1,
+                                                std::placeholders::_2,
+                                                std::placeholders::_3,
+                                                std::placeholders::_4));
 
-  ros::ServiceServer srvReset_, srvResetZero_, srvSmoothReset_;
-  if (parameters.resetableParams.isResetable) {
-    const boost::function<bool(okvis_ros::OdometryTrigger::Request&, okvis_ros::OdometryTrigger::Response&)>
-        resetFunction = std::bind(&okvis::reset,
-                                  &okvis_estimator,
-                                  &publisher,
-                                  &subscriber,
-                                  parameters,
-                                  orig_T_Wc_W,
-                                  std::placeholders::_1,
-                                  std::placeholders::_2);
-
-    const boost::function<bool(std_srvs::Trigger::Request&, std_srvs::Trigger::Response&)> resetZeroFunction =
-        std::bind(&okvis::resetZero,
-                  &okvis_estimator,
-                  &publisher,
-                  &subscriber,
-                  parameters,
-                  orig_T_Wc_W,
-                  std::placeholders::_1,
-                  std::placeholders::_2);
-
-    const boost::function<bool(okvis_ros::OdometryTrigger::Request&, okvis_ros::OdometryTrigger::Response&)>
-        smoothResetFunction = std::bind(
-            &okvis::smoothReset, &publisher, &subscriber, orig_T_Wc_W, std::placeholders::_1, std::placeholders::_2);
-
-    srvReset_ = nh.advertiseService("reset", resetFunction);
-    srvResetZero_ = nh.advertiseService("reset_zero", resetZeroFunction);
-    srvSmoothReset_ = nh.advertiseService("smooth_reset", smoothResetFunction);
+  // Hunter
+  if (parameters.visualization.publishDebugImages) {
+    okvis_estimator.setDebugImgCallback(std::bind(&okvis::Publisher::publishDebugImageAsCallback,
+                                                  &publisher,
+                                                  std::placeholders::_1,
+                                                  std::placeholders::_2,
+                                                  std::placeholders::_3));
   }
 
-  while (ros::ok()) {
-    ros::spinOnce();
+  if (is_reloc) {
+    okvis_estimator.setRelocRelativePoseCallback(std::bind(&okvis::Publisher::publishRelocRelativePoseAsCallback,
+                                                           &publisher,
+                                                           std::placeholders::_1,
+                                                           std::placeholders::_2,
+                                                           std::placeholders::_3,
+                                                           std::placeholders::_4,
+                                                           std::placeholders::_5));
+  }
+
+  // Like okvis_node_synchronous to setup files to be written
+  okvis_estimator.setImuCsvFile("imu_data.csv");
+  for (size_t i = 0; i < 2; ++i) {
+    std::stringstream num;
+    num << i + 1;
+    okvis_estimator.setTracksCsvFile(i, "slave" + num.str() + "_tracks.csv");
+  }
+
+  // subscriber
+  okvis::Subscriber subscriber(node, &okvis_estimator, vio_parameters_reader);
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  while (rclcpp::ok()) {
+    executor.spin_once();
     okvis_estimator.display();
   }
 

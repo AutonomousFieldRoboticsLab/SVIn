@@ -96,6 +96,11 @@ int Estimator::addImu(const ImuParameters& imuParameters) {
   return imuParametersVec_.size() - 1;
 }
 
+int Estimator::addSonar(const SonarParameters& sonarParameters) {
+  sonarParameters_ = sonarParameters;
+  return 0;
+}
+
 // Remove all cameras from the configuration
 void Estimator::clearCameras() { extrinsicsEstimationParametersVec_.clear(); }
 
@@ -105,11 +110,10 @@ void Estimator::clearImus() { imuParametersVec_.clear(); }
 // Add a pose to the state.
 bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
                           const okvis::ImuMeasurementDeque& imuMeasurements,
-                          const okvis::VioParameters& params,                    /* @Sharmin */
+                          bool asKeyframe,
                           const okvis::SonarMeasurementDeque& sonarMeasurements, /* @Sharmin */
                           const okvis::DepthMeasurementDeque& depthMeasurements,
-                          double firstDepth, /* @Sharmin */
-                          bool asKeyframe) {
+                          double firstDepth) {
   // Note Sharmin: this is for imu propagation no matter isScaleRefined_ is true/false.
   // TODO(Sharmin): Start actual optimization when isScaleRefined_ = true.
 
@@ -289,7 +293,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     range = last_sonarMeasurement_it->measurement.range;
     heading = last_sonarMeasurement_it->measurement.heading;
 
-    okvis::kinematics::Transformation T_WSo = T_WS * params.sonar.T_SSo;
+    okvis::kinematics::Transformation T_WSo = T_WS * sonarParameters_.T_SSo;
 
     okvis::kinematics::Transformation sonar_point(Eigen::Vector3d(range * cos(heading), range * sin(heading), 0.0),
                                                   Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
@@ -325,7 +329,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
       double information_sonar = 1.0;  // TODO(sharmin) calculate properly?
 
       std::shared_ptr<ceres::SonarError> sonarError(
-          new ceres::SonarError(params, range, heading, information_sonar, landmarkSubset));
+          new ceres::SonarError(sonarParameters_, range, heading, information_sonar, landmarkSubset));
       mapPtr_->addResidualBlock(sonarError, NULL, poseParameterBlock);
     }
     // End @Sharmin

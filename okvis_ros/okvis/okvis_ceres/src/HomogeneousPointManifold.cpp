@@ -75,7 +75,7 @@ bool HomogeneousPointManifold::ComputeLiftJacobian(const double* x, double* jaco
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool HomogeneousPointManifold::minus(const double* x, const double* x_plus_delta, double* delta) {
+bool HomogeneousPointManifold::minus(const double* x_plus_delta, const double* x, double* delta) {
   Eigen::Map<Eigen::Vector3d> delta_(delta);
   Eigen::Map<const Eigen::Vector4d> x_(x);
   Eigen::Map<const Eigen::Vector4d> x_plus_delta_(x_plus_delta);
@@ -94,8 +94,24 @@ bool HomogeneousPointManifold::PlusJacobian(const double* x, double* jacobian) c
   return plusJacobian(x, jacobian);
 }
 
+// Compute the derivative of Minus(y, x) w.r.t y at y = x.
+bool HomogeneousPointManifold::MinusJacobian(const double* x, double* jacobian) const {
+  return minusJacobian(x, jacobian);
+}
+
 // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
 bool HomogeneousPointManifold::plusJacobian(const double*, double* jacobian) {
+  Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor> > Jp(jacobian);
+
+  // Euclidean-style
+  Jp.setZero();
+  Jp.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity();
+
+  return true;
+}
+
+// Compute the derivative of Minus(y, x) w.r.t y at y = x.
+bool HomogeneousPointManifold::minusJacobian(const double*, double* jacobian) {
   Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor> > Jp(jacobian);
 
   // Euclidean-style

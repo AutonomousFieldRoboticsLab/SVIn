@@ -39,7 +39,10 @@ if(BUILD_TESTS)
   )
   target_link_libraries(${PROJECT_TEST_NAME} 
     ${PROJECT_NAME} 
-    ${GTEST_LIBRARY}  
+      gtest
+      gtest_main
+      gmock
+      gmock_main
     ${GLOG_LIBRARY}
     pthread
   )

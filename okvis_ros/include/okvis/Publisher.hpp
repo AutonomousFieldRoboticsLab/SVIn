@@ -42,35 +42,34 @@
 #define INCLUDE_OKVIS_PUBLISHER_HPP_
 
 #include <cv_bridge/cv_bridge.h>  // Sharmin
-#include <geometry_msgs/PoseStamped.h>
 #include <pcl/point_types.h>
-#include <sensor_msgs/PointCloud.h>  // SHarmin
-#include <sensor_msgs/PointCloud2.h>
-#include <visualization_msgs/Marker.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <fstream>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <list>
 #include <memory>
+#include <opencv2/core/core.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <string>
 #include <vector>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#include <pcl_ros/point_cloud.h>
-#include <ros/ros.h>
-#include <tf/transform_broadcaster.h>
-
-#include <opencv2/core/core.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 // #include <pcl/filters/statistical_outlier_removal.h> // Sharmin: Statisitcal outlier removal
-#pragma GCC diagnostic pop
-#include <geometry_msgs/Transform.h>
-#include <image_transport/image_transport.h>
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
+#include <pcl/point_cloud.h>
 
+#include <geometry_msgs/msg/transform.hpp>
+#include <image_transport/image_transport.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/time.hpp>
+
+#include "okvis_ros/msg/svin_health.hpp"
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -82,24 +81,14 @@ class Publisher {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
  public:
-  /// \brief Default constructor.
-  Publisher();
-  ~Publisher();
-
   /**
    * @brief Constructor. Calls setNodeHandle().
    * @param nh The ROS node handle for publishing.
    */
-  Publisher(ros::NodeHandle& nh);  // NOLINT
-
+  Publisher(std::shared_ptr<rclcpp::Node> node);  // NOLINT
+  ~Publisher();
   /// \name Setters
   /// \{
-
-  /**
-   * @brief Set the node handle and advertise topics.
-   * @param nh The ROS node handle.
-   */
-  void setNodeHandle(ros::NodeHandle& nh);  // NOLINT
 
   /// \brief Set an odometry output CSV file.
   /// \param csvFile The file
@@ -157,7 +146,7 @@ class Publisher {
                  const okvis::MapPointVector& pointsTransferred);
 
   /// @brief Set the time for the next message to be published.
-  void setTime(const okvis::Time& t) { _t = ros::Time(t.sec, t.nsec); }
+  void setTime(const okvis::Time& t) { _t = rclcpp::Time(t.sec, t.nsec); }
 
   /// @brief Set the images to be published next.
   void setImages(const std::vector<cv::Mat>& images);
@@ -188,7 +177,7 @@ class Publisher {
    * @param child_frame_id child frame id
    * @remark enough to publish once at the beginning
    */
-  void publishStaticTf(const geometry_msgs::Transform& static_transform,
+  void publishStaticTf(const geometry_msgs::msg::Transform& static_transform,
                        const std::string& parent_frame_id,
                        const std::string& child_frame_id);
 
@@ -310,29 +299,35 @@ class Publisher {
   /// @name Node and subscriber related
   /// @{
 
-  ros::NodeHandle* nh_;                                      ///< The node handle.
-  tf::TransformBroadcaster pubTf_;                           ///< The transform broadcaster.
-  ros::Publisher pubPointsMatched_;                          ///< The publisher for matched points.
-  ros::Publisher pubPointsUnmatched_;                        ///< The publisher for unmatched points.
-  ros::Publisher pubPointsTransferred_;                      ///< The publisher for transferred/marginalised points.
-  ros::Publisher pubObometry_;                               ///< The publisher for the odometry.
-  ros::Publisher pubPath_;                                   ///< The publisher for the path.
-  ros::Publisher pubTransform_;                              ///< The publisher for the transform.
-  ros::Publisher pubMesh_;                                   ///< The publisher for a robot / camera mesh.
-  std::vector<image_transport::Publisher> pubImagesVector_;  ///< The publisher for the images.
-  std::vector<image_transport::ImageTransport> imageTransportVector_;  ///< The image transporters.
+  std::shared_ptr<rclcpp::Node> node_;                                            ///< The node handle.
+  tf2_ros::TransformBroadcaster pubTf_;                                           ///< The transform broadcaster.
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubPointsMatched_;  ///< The publisher for matched points.
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
+      pubPointsUnmatched_;  ///< The publisher for unmatched points.
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
+      pubPointsTransferred_;  ///< The publisher for transferred/marginalised points.
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubObometry_;  ///< The publisher for the odometry.
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath_;          ///< The publisher for the path.
+  rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr
+      pubTransform_;                                                       ///< The publisher for the transform.
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr pubMesh_;  ///< The publisher for a robot / camera mesh.
+  std::vector<image_transport::Publisher> pubImagesVector_;                ///< The publisher for the images.
+  image_transport::ImageTransport image_transport_;      ///< The image transporters.
 
   // ros::Publisher pubStereoMatched_; ///< Sharmin: The publisher for stereo matched points.
   // image_transport::ImageTransport imageTransportKeyframeImageL_; ///< Sharmin: The image transporter for keyframe
-  ros::Publisher pubKeyframeImageL_;  ///< Sharmin: The publisher for Keyframe image left.
-  ros::Publisher pubKeyframePose_;    ///< Sharmin: The publisher for Keyframe pose.
-  ros::Publisher pubKeyframePoints_;  ///< Sharmin: The publisher for Keyframe 3d-2d points.
-  ros::Publisher
-      pubReloRelativePose_;      ///< Sharmin: The publisher for reloc related msg is there is any for  pose_graph.
-  ros::Publisher pubRelocPath_;  ///< Sharmin: To publish Reloc Path
-  ros::Publisher pubRelocPose_;  ///< Sharmin: To publish Reloc Pose
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr
+      pubKeyframeImageL_;  ///< Sharmin: The publisher for Keyframe image left.
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
+      pubKeyframePose_;  ///< Sharmin: The publisher for Keyframe pose.
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr
+      pubKeyframePoints_;  ///< Sharmin: The publisher for Keyframe 3d-2d points.
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
+      pubReloRelativePose_;  ///< Sharmin: The publisher for reloc related msg is there is any for  pose_graph.
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubRelocPath_;      ///< Sharmin: To publish Reloc Path
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubRelocPose_;  ///< Sharmin: To publish Reloc Pose
 
-  nav_msgs::Path relocPath_;  ///< Sharmin: To publish Reloc Path
+  nav_msgs::msg::Path relocPath_;  ///< Sharmin: To publish Reloc Path
 
   // pcl::PointCloud<pcl::PointXYZRGB>::Ptr stereoPointsMatched_; ///< Sharmin Point cloud for matched points.
   // pcl::PointCloud<pcl::PointXYZRGB> stereoPointsMatchedFiltered_; /// Sharmin: for filtering out outliers  from
@@ -347,22 +342,22 @@ class Publisher {
   /// @name To be published
   /// @{
 
-  ros::Time _t;                                          ///< Header timestamp.
-  geometry_msgs::TransformStamped poseMsg_;              ///< Pose message.
-  nav_msgs::Odometry odometryMsg_;                       ///< Odometry message.
+  rclcpp::Time _t;                                       ///< Header timestamp.
+  geometry_msgs::msg::TransformStamped poseMsg_;         ///< Pose message.
+  nav_msgs::msg::Odometry odometryMsg_;                  ///< Odometry message.
   okvis::MapPointVector pointsMatched2_;                 ///< Matched points vector.
   pcl::PointCloud<pcl::PointXYZRGB> pointsMatched_;      ///< Point cloud for matched points.
   pcl::PointCloud<pcl::PointXYZRGB> pointsUnmatched_;    ///< Point cloud for unmatched points.
   pcl::PointCloud<pcl::PointXYZRGB> pointsTransferred_;  ///< Point cloud for transferred/marginalised points.
   std::vector<cv::Mat> images_;                          ///< The images.
-  nav_msgs::Path path_;                                  ///< The path message.
-  visualization_msgs::Marker meshMsg_;                   ///< Mesh message.
+  nav_msgs::msg::Path path_;                             ///< The path message.
+  visualization_msgs::msg::Marker meshMsg_;              ///< Mesh message.
 
   /// @}
 
-  ros::Time lastOdometryTime_;   ///< Timestamp of the last broadcasted transform. (publishPose())
-  ros::Time lastOdometryTime2_;  ///< Timestamp of the last published odometry message. (publishOdometry())
-  ros::Time lastTransfromTime_;  ///< Timestamp of the last published transform. (publishTransform())
+  rclcpp::Time lastOdometryTime_;   ///< Timestamp of the last broadcasted transform. (publishPose())
+  rclcpp::Time lastOdometryTime2_;  ///< Timestamp of the last published odometry message. (publishOdometry())
+  rclcpp::Time lastTransfromTime_;  ///< Timestamp of the last published transform. (publishTransform())
 
   okvis::VioParameters parameters_;  ///< All the parameters including publishing options.
 
@@ -372,10 +367,10 @@ class Publisher {
   std::shared_ptr<std::fstream> csvLandmarksFile_;  ///< CSV file to save landmarks in.
 
   // FIXME Sharmin: This is an easy hack to use this publisher as an extern
-  ros::Publisher pubSvinHealth;  // Sharmin: To publish SVIn2 health
+  rclcpp::Publisher<okvis_ros::msg::SvinHealth>::SharedPtr pubSvinHealth;  // Sharmin: To publish SVIn2 health
 
   // Hunter
-  std::vector<ros::Publisher> pubDebugImage_;
+  std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> pubDebugImage_;
 
   bool static_tf_published_;  ///< Whether the static transform has been published.
 };

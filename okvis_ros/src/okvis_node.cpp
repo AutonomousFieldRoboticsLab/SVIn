@@ -72,7 +72,8 @@ int main(int argc, char** argv) {
 
   // read configuration file
   std::string configFilename;
-  if (node->get_parameter<std::string>("config_filename", configFilename)) {
+  node->get_parameter<std::string>("config_filename", configFilename);
+  if (configFilename.empty()) {
     LOG(ERROR) << "Please specify filename of configuration!";
     return 1;
   }
@@ -84,8 +85,8 @@ int main(int argc, char** argv) {
   okvis::ThreadedKFVio okvis_estimator(parameters);
 
   // Like okvis_node_synchronous to setup files to be written
-  publisher.setCsvFile("okvis_estimator_output.csv");
-  publisher.setLandmarksCsvFile("okvis_estimator_landmarks.csv");
+  // publisher.setCsvFile("okvis_estimator_output.csv");
+  // publisher.setLandmarksCsvFile("okvis_estimator_landmarks.csv");
 
   publisher.setParameters(parameters);  // pass the specified publishing stuff
 
@@ -94,8 +95,7 @@ int main(int argc, char** argv) {
                                                  std::placeholders::_1,
                                                  std::placeholders::_2,
                                                  std::placeholders::_3,
-                                                 std::placeholders::_4,
-                                                 std::placeholders::_5));
+                                                 std::placeholders::_4));
   okvis_estimator.setLandmarksCallback(std::bind(&okvis::Publisher::publishLandmarksAsCallback,
                                                  &publisher,
                                                  std::placeholders::_1,
@@ -103,10 +103,6 @@ int main(int argc, char** argv) {
                                                  std::placeholders::_3));
   okvis_estimator.setStateCallback(
       std::bind(&okvis::Publisher::publishStateAsCallback, &publisher, std::placeholders::_1, std::placeholders::_2));
-  // okvis_estimator->setBlocking(true);
-  // Sharmin
-  // okvis_estimator->setStereoMatchCallback(std::bind(&okvis::Publisher::publishSteroPointCloudAsCallback,publisher,std::placeholders::_1,std::placeholders::_2));
-  // Sharmin
   okvis_estimator.setKeyframeCallback(std::bind(&okvis::Publisher::publishKeyframeAsCallback,
                                                 &publisher,
                                                 std::placeholders::_1,
@@ -123,23 +119,13 @@ int main(int argc, char** argv) {
                                                   std::placeholders::_3));
   }
 
-  if (is_reloc) {
-    okvis_estimator.setRelocRelativePoseCallback(std::bind(&okvis::Publisher::publishRelocRelativePoseAsCallback,
-                                                           &publisher,
-                                                           std::placeholders::_1,
-                                                           std::placeholders::_2,
-                                                           std::placeholders::_3,
-                                                           std::placeholders::_4,
-                                                           std::placeholders::_5));
-  }
-
   // Like okvis_node_synchronous to setup files to be written
-  okvis_estimator.setImuCsvFile("imu_data.csv");
-  for (size_t i = 0; i < 2; ++i) {
-    std::stringstream num;
-    num << i + 1;
-    okvis_estimator.setTracksCsvFile(i, "slave" + num.str() + "_tracks.csv");
-  }
+  // okvis_estimator.setImuCsvFile("imu_data.csv");
+  // for (size_t i = 0; i < 2; ++i) {
+  //   std::stringstream num;
+  //   num << i + 1;
+  //   okvis_estimator.setTracksCsvFile(i, "slave" + num.str() + "_tracks.csv");
+  // }
 
   // subscriber
   okvis::Subscriber subscriber(node, &okvis_estimator, vio_parameters_reader);
@@ -147,8 +133,8 @@ int main(int argc, char** argv) {
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);
   while (rclcpp::ok()) {
-    executor.spin_once();
     okvis_estimator.display();
+    executor.spin_once();
   }
 
   return 0;

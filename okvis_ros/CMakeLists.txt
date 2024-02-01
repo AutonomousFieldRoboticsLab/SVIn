@@ -122,8 +122,8 @@ add_executable(okvis_node src/okvis_node.cpp )
 ament_target_dependencies(okvis_node ${ament_libraries})
 target_link_libraries(okvis_node ${PROJECT_NAME}_lib )
 rosidl_target_interfaces(okvis_node ${PROJECT_NAME} rosidl_typesupport_cpp) 
-
 install(TARGETS okvis_node DESTINATION lib/${PROJECT_NAME})
+
 # add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
 # ament_target_dependencies(okvis_node ${ament_libraries})
 # target_link_libraries(okvis_node_synchronous ${PROJECT_NAME}_lib )
@@ -138,5 +138,8 @@ install(TARGETS okvis_node DESTINATION lib/${PROJECT_NAME})
 # target_link_libraries(stereo_sync ${catkin_LIBRARIES} ${PROJECT_NAME}_lib)
 # install(TARGETS stereo_sync DESTINATION lib/${PROJECT_NAME})
 
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
+install(DIRECTORY okvis/config/ DESTINATION share/${PROJECT_NAME}/okvis/config/)
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)
 
 ament_package()

@@ -45,11 +45,7 @@
 
 #include <cstdint>
 #include <functional>
-#include <list>
-#include <map>
 #include <memory>
-#include <string>
-#include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -72,13 +68,10 @@ class VioInterface {
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   typedef std::function<void(const okvis::Time&, const okvis::kinematics::Transformation&)> StateCallback;
-
-  // Modified by Sharmin
   typedef std::function<void(const okvis::Time&,
                              const okvis::kinematics::Transformation&,
                              const Eigen::Matrix<double, 9, 1>&,
-                             const Eigen::Matrix<double, 3, 1>&,
-                             const okvis::kinematics::Transformation&)>
+                             const Eigen::Matrix<double, 3, 1>&)>
       FullStateCallback;
   typedef std::function<void(const okvis::Time&,
                              const okvis::kinematics::Transformation&,
@@ -91,19 +84,11 @@ class VioInterface {
   typedef std::function<void(const okvis::Time&, const okvis::MapPointVector&, const okvis::MapPointVector&)>
       LandmarksCallback;
 
-  // Sharmin
-  // typedef std::function<
-  //      void(const okvis::Time &, const std::vector<Eigen::Vector3d> &)> StereoMatchCallback;
-  // TODO(Sharmin): Fix the size of the matrix
   typedef std::function<void(const okvis::Time&,
                              const cv::Mat&,
                              const okvis::kinematics::Transformation&,
                              std::vector<std::list<std::vector<double>>>&)>
       KeyframeCallback;
-
-  typedef std::function<
-      void(const okvis::Time&, const Eigen::Vector3d&, const Eigen::Quaterniond&, const double&, const double&)>
-      RelocRelativePoseCallback;
   // End Sharmin
 
   // Hunter
@@ -199,14 +184,6 @@ class VioInterface {
    */
   /*virtual bool addSonarLandmark(uint64_t landmarkId,
           const Eigen::Vector4d & landmark) = 0;*/
-
-  /// @Sharmin
-  /// \brief          Add an Reloc measurement.
-  /// \param stamp    The measurement timestamp.
-  virtual bool addRelocMeasurement(const okvis::Time& stamp,
-                                   const std::vector<Eigen::Vector3d>& matched_ids,
-                                   const Eigen::Vector3d& relo_t,
-                                   const Eigen::Quaterniond& relo_q) = 0;
 
   /// @Sharmin
   /// \brief          Add an Depth measurement.
@@ -343,11 +320,7 @@ class VioInterface {
   virtual void setLandmarksCallback(const LandmarksCallback& landmarksCallback);
 
   // Sharmin
-  // virtual void setStereoMatchCallback(const StereoMatchCallback & stereoMatchCallback);
-  // Sharmin
   virtual void setKeyframeCallback(const KeyframeCallback& keyframeCallback);
-  // Sharmin
-  virtual void setRelocRelativePoseCallback(const RelocRelativePoseCallback& relocRelativePoseCallback);
 
   // Hunter
   virtual void setDebugImgCallback(const ImageCallback& imageCallback);
@@ -371,12 +344,9 @@ class VioInterface {
   bool writeTracksCsvDescription(size_t cameraId);
 
   // StereoMatchCallback stereoMatchCallback_; // Sharmin: Stereo Match callback function.
-  KeyframeCallback
-      keyframeCallback_;  // Sharmin: keyframe callback function for publishing keyframe pose and 2D-3D points
-  RelocRelativePoseCallback relocRelativePoseCallback_;  // Sharmin: relative pose callback
-
-  StateCallback stateCallback_;                                      ///< State callback function.
-  FullStateCallback fullStateCallback_;                              ///< Full state callback function.
+  KeyframeCallback keyframeCallback_;    // Sharmin: keyframe callback function for publishing keyframe
+  StateCallback stateCallback_;          ///< State callback function.
+  FullStateCallback fullStateCallback_;  ///< Full state callback function.
   FullStateCallbackWithExtrinsics fullStateCallbackWithExtrinsics_;  ///< Full state and extrinsics callback function.
   LandmarksCallback landmarksCallback_;                              ///< Landmarks callback function.
   ImageCallback debugImgCallback_;                                   ///< Status callback function  // Hunter

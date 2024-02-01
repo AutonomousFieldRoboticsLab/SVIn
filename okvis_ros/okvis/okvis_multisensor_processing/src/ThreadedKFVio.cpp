@@ -58,23 +58,6 @@ int nNextId = 0;  // FIXME Sharmin To remove this global variable.
 int numKF = 0;    // Sharmin: Number of keyframe
 
 // Sharmin
-static Eigen::Vector3d R2ypr(const Eigen::Matrix3d& R) {
-  Eigen::Vector3d n = R.col(0);
-  Eigen::Vector3d o = R.col(1);
-  Eigen::Vector3d a = R.col(2);
-
-  Eigen::Vector3d ypr(3);
-  double y = atan2(n(1), n(0));
-  double p = atan2(-n(2), n(0) * cos(y) + n(1) * sin(y));
-  double r = atan2(a(0) * sin(y) - a(1) * cos(y), -o(0) * sin(y) + o(1) * cos(y));
-  ypr(0) = y;
-  ypr(1) = p;
-  ypr(2) = r;
-
-  return ypr / M_PI * 180.0;
-}
-
-// Sharmin
 template <typename Derived>
 static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBase<Derived>& ypr) {
   typedef typename Derived::Scalar Scalar_t;
@@ -103,7 +86,6 @@ uint64_t frameCnt = 0;  // Sharmin
 static const int max_camera_input_queue_size = 10;
 static const okvis::Duration temporal_imu_data_overlap(
     0.02);  // overlap of imu data before and after two consecutive frames [seconds]
-okvis::Duration temporal_relo_data_overlap(0.2);
 
 #ifdef USE_MOCK
 // Constructor for gmock.
@@ -146,9 +128,7 @@ void ThreadedKFVio::init() {
   assert(parameters_.nCameraSystem.numCameras() > 0);
   numCameras_ = parameters_.nCameraSystem.numCameras();
   numCameraPairs_ = 1;
-  kf_index_ = 0;                                               // Sharmin
-  isNewReloMsg_ = false;                                       // Sharmin
-  driftCorrected_T_WS_ = okvis::kinematics::Transformation();  // Sharmin
+  kf_index_ = 0;  // Sharmin
 
   frontend_.setBriskDetectionOctaves(parameters_.optimization.detectionOctaves);
   frontend_.setBriskDetectionThreshold(parameters_.optimization.detectionThreshold);
@@ -202,10 +182,7 @@ void ThreadedKFVio::startThreads() {
   if (parameters_.sensorList.isDepthUsed) {
     depthConsumerThread_ = std::thread(&ThreadedKFVio::depthConsumerLoop, this);  // @Sharmin
   }
-  // Sharmin
-  if (parameters_.relocParameters.isRelocalization) {
-    relocConsumerThread_ = std::thread(&ThreadedKFVio::relocConsumerLoop, this);  // @Sharmin
-  }
+
   positionConsumerThread_ = std::thread(&ThreadedKFVio::positionConsumerLoop, this);
   gpsConsumerThread_ = std::thread(&ThreadedKFVio::gpsConsumerLoop, this);
   magnetometerConsumerThread_ = std::thread(&ThreadedKFVio::magnetometerConsumerLoop, this);
@@ -233,10 +210,7 @@ ThreadedKFVio::~ThreadedKFVio() {
   if (parameters_.sensorList.isDepthUsed) {
     depthMeasurementsReceived_.Shutdown();  // @Sharmin
   }
-  // Sharmin
-  if (parameters_.relocParameters.isRelocalization) {
-    relocMeasurementsReceived_.Shutdown();
-  }
+
   optimizationResults_.Shutdown();
   visualizationData_.Shutdown();
   imuFrameSynchronizer_.shutdown();
@@ -259,9 +233,7 @@ ThreadedKFVio::~ThreadedKFVio() {
     depthConsumerThread_.join();
   }
   // Sharmin
-  if (parameters_.relocParameters.isRelocalization) {
-    relocConsumerThread_.join();
-  }
+
   positionConsumerThread_.join();
   gpsConsumerThread_.join();
   magnetometerConsumerThread_.join();
@@ -368,27 +340,6 @@ bool ThreadedKFVio::addSonarMeasurement(const okvis::Time& stamp, double range, 
     sonarMeasurementsReceived_.PushNonBlockingDroppingIfFull(sonar_measurement,
                                                              maxImuInputQueueSize_);  // Running same rate as imu
     return sonarMeasurementsReceived_.Size() == 1;
-  }
-}
-
-// @Sharmin
-// Add a Reloc measurement.
-bool ThreadedKFVio::addRelocMeasurement(const okvis::Time& stamp,
-                                        const std::vector<Eigen::Vector3d>& matched_ids,
-                                        const Eigen::Vector3d& relo_t,
-                                        const Eigen::Quaterniond& relo_q) {
-  okvis::RelocMeasurement reloc_measurement;
-  reloc_measurement.timeStamp = stamp;
-  reloc_measurement.measurement.matched_ids = matched_ids;
-  reloc_measurement.measurement.relo_t = relo_t;
-  reloc_measurement.measurement.relo_q = relo_q;
-
-  if (blocking_) {
-    relocMeasurementsReceived_.PushBlockingIfFull(reloc_measurement, 1);
-    return true;
-  } else {
-    relocMeasurementsReceived_.PushNonBlockingDroppingIfFull(reloc_measurement, maxRelocInputQueueSize_);
-    return relocMeasurementsReceived_.Size() == 1;
   }
 }
 
@@ -513,102 +464,6 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     }
 
     // @Sharmin
-    // Reloc Measurements
-
-    if (parameters_.relocParameters.isRelocalization) {
-      okvis::Time relocDataEndTime = multiFrame->timestamp();
-      okvis::Time relocDataBeginTime = lastTimestamp;
-
-      // OKVIS_ASSERT_TRUE_DBG(Exception,relocDataBeginTime < relocDataEndTime,"Reloc data end time is smaller than
-      // begin time.");
-      bool skip_relo = false;
-      if (relocDataBeginTime > relocDataEndTime) {
-        skip_relo = true;
-        // std::cout<<"Reloc data end time is smaller than begin time."<<std::endl;
-      }
-
-      if (!skip_relo) {
-        okvis::RelocMeasurementDeque relocData = getRelocMeasurements(relocDataBeginTime, relocDataEndTime);
-
-        // if relocData is empty, either end_time > begin_time or
-        // no measurements in timeframe
-        // Sharmin: so skip the next steps
-
-        // bool no_data = false;
-        if (relocData.size() == 0) {
-          beforeDetectTimer.stop();
-
-          // continue;
-          // no_data = true;
-        } else {
-          isNewReloMsg_ = true;
-          std::cout << "Reloc data Found!!" << std::endl;
-        }
-
-        if (isNewReloMsg_) {
-          if (relocData.front().timeStamp > frame->timeStamp) {
-            LOG(WARNING) << "Frame is newer than oldest Reloc measurement. Dropping it.";
-            std::cout << "Frame is newer than oldest Reloc measurement. Dropping it." << std::endl;
-            beforeDetectTimer.stop();
-            continue;
-          }
-
-          for (okvis::RelocMeasurementDeque::const_iterator cit = relocData.begin(); cit != relocData.end(); ++cit) {
-            size_t camIdx = 0;  // Sharmin: left camera
-
-            std::vector<Eigen::Vector3d> matched_ids = cit->measurement.matched_ids;
-            Eigen::Vector3d old_t_WCa = cit->measurement.relo_t;
-            Eigen::Quaterniond old_q_WCa = cit->measurement.relo_q;
-            okvis::kinematics::Transformation old_T_WCa(old_t_WCa, old_q_WCa);
-
-            // TODO(Sharmin): calculate drift here
-            size_t CamIndexA = 0;
-            okvis::kinematics::Transformation T_WCa = T_WS * (*parameters_.nCameraSystem.T_SC(CamIndexA));
-            okvis::kinematics::Transformation old_T_WS =
-                old_T_WCa * (*parameters_.nCameraSystem.T_SC(CamIndexA)).inverse();
-
-            okvis::Time reloMsgStamp = cit->timeStamp;
-
-            // To publish Reloc path and odometry along with okvis_odometry
-            // Note Sharmin: all transformations are as T_WS
-            double driftCorrectYaw;
-            driftCorrectYaw = R2ypr(old_T_WS.q().toRotationMatrix()).x() - R2ypr(T_WS.q().toRotationMatrix()).x();
-            Eigen::Matrix3d driftCorrectedR = ypr2R(Eigen::Vector3d(driftCorrectYaw, 0, 0));
-            Eigen::Vector3d driftCorrectedP = old_T_WS.r() - driftCorrectedR * T_WS.r();
-            driftCorrected_T_WS_.set(driftCorrectedP, Eigen::Quaterniond(driftCorrectedR));
-            std::cout << "Drift: " << driftCorrectedR << " , " << driftCorrectedP << std::endl;
-
-            // driftCorrected_T_WS_ = old_T_WS.inverse() * T_WS;
-
-            // relocRelativeP = relo_r.transpose() * (Ps[relo_frame_local_index] - relo_t);
-            // relo_relative_q = relo_r.transpose() * Rs[relo_frame_local_index];
-            // relo_relative_yaw = Utility::normalizeAngle(Utility::R2ypr(Rs[relo_frame_local_index]).x() -
-            // Utility::R2ypr(relo_r).x());
-
-            // relocRelativePoseCallback_(...);
-
-            for (size_t num_matches = 0; num_matches < matched_ids.size(); num_matches++) {
-              std::cout << "Size for Matched points for Reloc: " << matched_ids.size() << std::endl;
-              uint64_t landmarkId = (uint64_t)matched_ids[num_matches].x();
-              uint64_t poseId = (uint64_t)matched_ids[num_matches].y();
-              size_t keypointIdx = (size_t)matched_ids[num_matches].z();
-
-              {
-                // TODO(Sharmin): Double check
-                std::lock_guard<std::mutex> l(estimator_mutex_);
-                estimator_
-                    .addRelocObservation<okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>>(
-                        landmarkId, poseId, camIdx, keypointIdx);
-              }
-            }
-          }
-
-          isNewReloMsg_ = false;
-        }
-      }
-    }
-
-    // @Sharmin
     // Depth
     if (parameters_.sensorList.isDepthUsed) {
       okvis::Time depthDataEndTime = multiFrame->timestamp();
@@ -618,9 +473,9 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
           Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
 
       // wait until all relevant depth messages have arrived and check for termination request
-      if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
-        return;
-      }
+      // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+      //   return;
+      // }
       OKVIS_ASSERT_TRUE_DBG(Exception,
                             depthDataEndTime < depthMeasurements_.back().timeStamp,
                             "Waiting for up to date depth data seems to have failed!");
@@ -650,9 +505,9 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
           Exception, sonarDataBeginTime < sonarDataEndTime, "sonar data end time is smaller than begin time.");
 
       // wait until all relevant sonar messages have arrived and check for termination request
-      if (sonarFrameSynchronizer_.waitForUpToDateSonarData(okvis::Time(sonarDataEndTime)) == false) {
-        return;
-      }
+      // if (sonarFrameSynchronizer_.waitForUpToDateSonarData(okvis::Time(sonarDataEndTime)) == false) {
+      //   return;
+      // }
       OKVIS_ASSERT_TRUE_DBG(Exception,
                             sonarDataEndTime < sonarMeasurements_.back().timeStamp,
                             "Waiting for up to date sonar data seems to have failed!");
@@ -689,12 +544,6 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
         okvis::kinematics::Transformation T_WSo_point = T_WSo * sonar_point;
 
         Eigen::Vector3d sonar_landmark = T_WSo_point.r();
-
-        {
-          std::lock_guard<std::mutex> l(estimator_mutex_);
-          estimator_.addSonarLandmark(lmId,
-                                      Eigen::Vector4d(sonar_landmark[0], sonar_landmark[1], sonar_landmark[2], 1.0));
-        }
       }
     }
 
@@ -755,10 +604,6 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     beforeDetectTimer.stop();
     detectTimer.start();
     frontend_.detectAndDescribe(frame->sensorId, multiFrame, T_WC, nullptr);
-
-    // Added by Sharmin
-    // std::cout<<"detection for camera id: "<<frame->sensorId<<std::endl;
-
     detectTimer.stop();
     afterDetectTimer.start();
 
@@ -770,13 +615,11 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
       frameSynchronizer_.detectionEndedForMultiFrame(multiFrame->id());
 
       if (frameSynchronizer_.detectionCompletedForAllCameras(multiFrame->id())) {
-        // LOG(INFO) << "detection completed for multiframe with id "<< multiFrame->id();
-
+        // LOG(INFO) << "detection completed for multiframe with id "<< multi_frame->id();
         push = true;
       }
     }  // unlocking frame synchronizer
     afterDetectTimer.stop();
-
     if (push) {
       // use queue size 1 to propagate a congestion to the _cameraMeasurementsReceived queue
       // and check for termination request
@@ -842,9 +685,9 @@ void ThreadedKFVio::matchingLoop() {
           Exception, sonarDataBeginTime < sonarDataEndTime, "sonar data end time is smaller than begin time.");
 
       // wait until all relevant sonar messages have arrived and check for termination request
-      if (sonarFrameSynchronizer_.waitForUpToDateSonarData(okvis::Time(sonarDataEndTime)) == false) {
-        return;
-      }
+      // if (sonarFrameSynchronizer_.waitForUpToDateSonarData(okvis::Time(sonarDataEndTime)) == false) {
+      //   return;
+      // }
       OKVIS_ASSERT_TRUE_DBG(Exception,
                             sonarDataEndTime < sonarMeasurements_.back().timeStamp,
                             "Waiting for up to date sonar data seems to have failed!");
@@ -867,9 +710,9 @@ void ThreadedKFVio::matchingLoop() {
           Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
 
       // wait until all relevant depth messages have arrived and check for termination request
-      if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
-        return;
-      }
+      // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+      //   return;
+      // }
       OKVIS_ASSERT_TRUE_DBG(Exception,
                             depthDataEndTime < depthMeasurements_.back().timeStamp,
                             "Waiting for up to date depth data seems to have failed!");
@@ -888,8 +731,7 @@ void ThreadedKFVio::matchingLoop() {
     // End @sharmin
 
     // make sure that optimization of last frame is over.
-    // TODO(sharmin) If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be
-    // necessary
+    // TODO If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be necessary
     {
       waitForOptimizationTimer.start();
       std::unique_lock<std::mutex> l(estimator_mutex_);
@@ -953,9 +795,8 @@ void ThreadedKFVio::imuConsumerLoop() {
           T_WS_propagated_ = lastOptimized_T_WS_;
           speedAndBiases_propagated_ = lastOptimizedSpeedAndBiases_;
           repropagationNeeded_ = false;
-        } else {
+        } else
           start = okvis::Time(0, 0);
-        }
         end = &data.timeStamp;
       }
       imuMeasurements_.push_back(data);
@@ -968,7 +809,6 @@ void ThreadedKFVio::imuConsumerLoop() {
       Eigen::Matrix<double, 15, 15> covariance;
       Eigen::Matrix<double, 15, 15> jacobian;
 
-      // TODO(sharmin): check if using sonarMeasurements_ is ok or not? @Sharmin
       frontend_.propagation(imuMeasurements_,
                             imu_params_,
                             T_WS_propagated_,
@@ -989,38 +829,6 @@ void ThreadedKFVio::imuConsumerLoop() {
       optimizationResults_.PushNonBlockingDroppingIfFull(result, 1);
     }
     processImuTimer.stop();
-  }
-}
-
-// @Sharmin
-// Loop to process reloc measurements.
-void ThreadedKFVio::relocConsumerLoop() {
-  okvis::RelocMeasurement data;
-  TimerSwitchable processRelocTimer("0 processRelocMeasurements", true);
-  for (;;) {
-    // get data and check for termination request
-    if (relocMeasurementsReceived_.PopBlocking(&data) == false) return;
-    processRelocTimer.start();
-    okvis::Time start;
-    const okvis::Time* end;  // do not need to copy end timestamp
-    {
-      std::lock_guard<std::mutex> relocLock(relocMeasurements_mutex_);
-      OKVIS_ASSERT_TRUE(Exception,
-                        relocMeasurements_.empty() || relocMeasurements_.back().timeStamp < data.timeStamp,
-                        "Reloc measurement from the past received");
-      if (relocMeasurements_.size() > 0)
-        start = relocMeasurements_.back().timeStamp;
-      else
-        start = okvis::Time(0, 0);
-      end = &data.timeStamp;
-      relocMeasurements_.push_back(data);
-      std::cout << "Read reloc data is ts: " << data.timeStamp << std::endl;
-    }  // unlock relocMeasurements_mutex_
-
-    // notify other threads that reloc data with timeStamp is here.
-    relocFrameSynchronizer_.gotRelocData(data.timeStamp);
-
-    processRelocTimer.stop();
   }
 }
 
@@ -1049,7 +857,7 @@ void ThreadedKFVio::depthConsumerLoop() {
     }  // unlock depthMeasurements_mutex_
 
     // notify other threads that depth data with timeStamp is here.
-    depthFrameSynchronizer_.gotDepthData(data.timeStamp);
+    // depthFrameSynchronizer_.gotDepthData(data.timeStamp);
 
     processDepthTimer.stop();
   }
@@ -1080,7 +888,7 @@ void ThreadedKFVio::sonarConsumerLoop() {
     }  // unlock sonarMeasurements_mutex_
 
     // notify other threads that sonar data with timeStamp is here.
-    sonarFrameSynchronizer_.gotSonarData(data.timeStamp);
+    // sonarFrameSynchronizer_.gotSonarData(data.timeStamp);
 
     processSonarTimer.stop();
   }
@@ -1159,7 +967,7 @@ okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(okvis::Time& imuData
   // get iterator to imu data before previous frame
   okvis::ImuMeasurementDeque::iterator first_imu_package = imuMeasurements_.begin();
   okvis::ImuMeasurementDeque::iterator last_imu_package = imuMeasurements_.end();
-  // TODO(sharmin) go backwards through queue. Is probably faster.
+  // TODO go backwards through queue. Is probably faster.
   for (auto iter = imuMeasurements_.begin(); iter != imuMeasurements_.end(); ++iter) {
     // move first_imu_package iterator back until iter->timeStamp is higher than requested begintime
     if (iter->timeStamp <= imuDataBeginTime) first_imu_package = iter;
@@ -1176,46 +984,6 @@ okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(okvis::Time& imuData
 
   // create copy of imu buffer
   return okvis::ImuMeasurementDeque(first_imu_package, last_imu_package);
-}
-// @Sharmin
-// Get the reloc measurement in-between/nearest to start and end
-okvis::RelocMeasurementDeque ThreadedKFVio::getRelocMeasurements(okvis::Time& beginTime, okvis::Time& endTime) {
-  if (relocMeasurements_.empty())  /// Sharmin
-    return okvis::RelocMeasurementDeque();
-  // Sharmin: Adding an offset
-  beginTime = beginTime - okvis::Duration(0.5);
-  // sanity checks:
-  // if end time is smaller than begin time, return empty queue.
-  // if begin time is larger than newest sonar time, return empty queue.
-  if (endTime < beginTime || beginTime > relocMeasurements_.back().timeStamp) {
-    std::cout << "begin time is larger than relo time" << std::endl;
-    return okvis::RelocMeasurementDeque();
-  }
-
-  std::lock_guard<std::mutex> lock(relocMeasurements_mutex_);
-  // get iterator to reloc data before previous frame
-  okvis::RelocMeasurementDeque::iterator first_reloc_package = relocMeasurements_.begin();
-  okvis::RelocMeasurementDeque::iterator last_reloc_package = relocMeasurements_.end();
-
-  // TODO(sharmin) go backwards through queue. Is probably faster.
-  // TODO(Sharmin) check it
-  for (auto iter = relocMeasurements_.begin(); iter != relocMeasurements_.end(); ++iter) {
-    // move reloc_package iterator back until iter->timeStamp is higher than requested begintime
-    if (iter->timeStamp <= beginTime) first_reloc_package = iter;
-
-    if (iter->timeStamp >= endTime) {
-      last_reloc_package = iter;
-      ++last_reloc_package;
-      break;
-    }
-  }
-
-  okvis::RelocMeasurementDeque copy_buffer = okvis::RelocMeasurementDeque(first_reloc_package, last_reloc_package);
-  // Sharmin: pop reloc data
-  relocMeasurements_.pop_front();
-
-  // create copy of reloc buffer
-  return copy_buffer;
 }
 
 // @Sharmin
@@ -1557,7 +1325,7 @@ void ThreadedKFVio::publisherLoop() {
 
     // Modified by Sharmin
     if (fullStateCallback_ && !result.onlyPublishLandmarks)
-      fullStateCallback_(result.stamp, result.T_WS, result.speedAndBiases, result.omega_S, driftCorrected_T_WS_);
+      fullStateCallback_(result.stamp, result.T_WS, result.speedAndBiases, result.omega_S);
 
     if (fullStateCallbackWithExtrinsics_ && !result.onlyPublishLandmarks)
       fullStateCallbackWithExtrinsics_(

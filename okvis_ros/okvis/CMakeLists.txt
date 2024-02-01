@@ -12,7 +12,7 @@ set(OKVIS_VERSION
 option (USE_SYSTEM_BRISK
         "Use brisk via find_package rather than downloading it as part of okvis" OFF) 
 option (USE_SYSTEM_CERES
-        "Use ceres via find_package rather than downloading it as part of okvis" OFF) 
+        "Use ceres via find_package rather than downloading it as part of okvis" ON) 
 option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON) 
 option (BUILD_TESTS
@@ -128,7 +128,7 @@ find_package(METIS QUIET)
 
 if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-  find_package( Ceres 2.2.0 REQUIRED )
+  find_package( Ceres 2 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
   message(STATUS "Using system Ceres.")
 else()

@@ -43,26 +43,19 @@
 
 #include <atomic>
 #include <condition_variable>
-#include <map>
-#include <memory>
 #include <mutex>
-#include <okvis/DepthFrameSynchronizer.hpp>  // @Sharmin
 #include <okvis/FrameSynchronizer.hpp>
 #include <okvis/Frontend.hpp>
 #include <okvis/ImuFrameSynchronizer.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
-#include <okvis/RelocFrameSynchronizer.hpp>  // @Sharmin
-#include <okvis/SonarFrameSynchronizer.hpp>  // @Sharmin
 #include <okvis/VioVisualizer.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
-#include <okvis/kinematics/Transformation.hpp>
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
 #include <okvis/timing/Timer.hpp>
 #include <thread>
-#include <vector>
 
 #ifdef USE_MOCK
 #include <../test/MockVioBackendInterface.hpp>
@@ -104,9 +97,9 @@ class ThreadedKFVio : public VioInterface {
 #ifdef USE_MOCK
 
   /// \brief constructor for gmock
-  ThreadedKFVio(okvis::VioParameters& parameters,            // NOLINT
-                okvis::MockVioBackendInterface& estimator,   // NOLINT
-                okvis::MockVioFrontendInterface& frontend);  // NOLINT
+  ThreadedKFVio(okvis::VioParameters& parameters,
+                okvis::MockVioBackendInterface& estimator,
+                okvis::MockVioFrontendInterface& frontend);
 
 #else
   /**
@@ -164,13 +157,6 @@ class ThreadedKFVio : public VioInterface {
    * \return Returns true normally. False if the previous one has not been processed yet.
    */
   virtual bool addImuMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& alpha, const Eigen::Vector3d& omega);
-  /// @Sharmin
-  /// \brief          Add an Depth measurement.
-  /// \param stamp    The measurement timestamp.
-  virtual bool addRelocMeasurement(const okvis::Time& stamp,
-                                   const std::vector<Eigen::Vector3d>& matched_ids,
-                                   const Eigen::Vector3d& relo_t,
-                                   const Eigen::Quaterniond& relo_q);
 
   /// @Sharmin
   /// \brief          Add an Depth measurement.
@@ -278,10 +264,6 @@ class ThreadedKFVio : public VioInterface {
   /// \brief Loop to process Depth measurements.
   void depthConsumerLoop();
 
-  /// @Sharmin
-  /// \brief Loop to process Reloc measurements.
-  void relocConsumerLoop();
-
   /// \brief Loop to process position measurements.
   /// \warning Not implemented.
   void positionConsumerLoop();
@@ -310,12 +292,6 @@ class ThreadedKFVio : public VioInterface {
    * @return The IMU Measurement spanning at least the time between start and end.
    */
   okvis::ImuMeasurementDeque getImuMeasurments(okvis::Time& start, okvis::Time& end);  // NOLINT
-
-  /**
-   * @Sharmin
-   * @brief Get the reloc measurement in-between/nearest to start and end.
-   */
-  okvis::RelocMeasurementDeque getRelocMeasurements(okvis::Time& start, okvis::Time& end);  // NOLINT
 
   /**
    * @Sharmin
@@ -385,11 +361,9 @@ class ThreadedKFVio : public VioInterface {
 
   /// @}
 
-  SonarFrameSynchronizer sonarFrameSynchronizer_;  ///< The Sonar frame synchronizer. @Sharmin
+  // SonarFrameSynchronizer sonarFrameSynchronizer_;  ///< The Sonar frame synchronizer. @Sharmin
 
-  DepthFrameSynchronizer depthFrameSynchronizer_;  ///< The Depth frame synchronizer. @Sharmin
-
-  RelocFrameSynchronizer relocFrameSynchronizer_;  ///< The Reloc frame synchronizer. @Sharmin
+  // DepthFrameSynchronizer depthFrameSynchronizer_;  ///< The Depth frame synchronizer. @Sharmin
 
   ImuFrameSynchronizer imuFrameSynchronizer_;  ///< The IMU frame synchronizer.
   /// \brief The frame synchronizer responsible for merging frames into multiframes
@@ -419,10 +393,6 @@ class ThreadedKFVio : public VioInterface {
   /// Depth measurement input queue.
   okvis::threadsafe::ThreadSafeQueue<okvis::DepthMeasurement> depthMeasurementsReceived_;
 
-  /// @Sharmin
-  /// Reloc measurement input queue.
-  okvis::threadsafe::ThreadSafeQueue<okvis::RelocMeasurement> relocMeasurementsReceived_;
-
   /// @}
   /// @name Measurement operation queues.
   /// @{
@@ -438,7 +408,6 @@ class ThreadedKFVio : public VioInterface {
   /// \warning Lock with sonarMeasurements_mutex_.
   okvis::SonarMeasurementDeque sonarMeasurements_;  /// @Sharmin
   okvis::DepthMeasurementDeque depthMeasurements_;  /// @Sharmin
-  okvis::RelocMeasurementDeque relocMeasurements_;  /// @Sharmin
   /// \brief The Position measurements.
   /// \warning Lock with positionMeasurements_mutex_.
   okvis::PositionMeasurementDeque positionMeasurements_;
@@ -455,7 +424,6 @@ class ThreadedKFVio : public VioInterface {
 
   std::mutex sonarMeasurements_mutex_;     ///< Lock when accessing sonarMeasurements_ @Sharmin
   std::mutex depthMeasurements_mutex_;     ///< Lock when accessing depthMeasurements_ @Sharmin
-  std::mutex relocMeasurements_mutex_;     ///< Lock when accessing relocMeasurements_ @Sharmin
   std::mutex imuMeasurements_mutex_;       ///< Lock when accessing imuMeasurements_
   std::mutex positionMeasurements_mutex_;  ///< Lock when accessing imuMeasurements_
   std::mutex frameSynchronizer_mutex_;     ///< Lock when accessing the frameSynchronizer_.
@@ -477,7 +445,6 @@ class ThreadedKFVio : public VioInterface {
   std::thread imuConsumerThread_;                     ///< Thread running imuConsumerLoop().
   std::thread sonarConsumerThread_;                   ///< Thread running sonarConsumerLoop().   @Sharmin
   std::thread depthConsumerThread_;                   ///< Thread running depthConsumerLoop().   @Sharmin
-  std::thread relocConsumerThread_;                   ///< Thread running relocConsumerLoop().   @Sharmin
   std::thread positionConsumerThread_;                ///< Thread running positionConsumerLoop().
   std::thread gpsConsumerThread_;                     ///< Thread running gpsConsumerLoop().
   std::thread magnetometerConsumerThread_;            ///< Thread running magnetometerConsumerLoop().
@@ -499,8 +466,8 @@ class ThreadedKFVio : public VioInterface {
   okvis::MockVioBackendInterface& estimator_;
   okvis::MockVioFrontendInterface& frontend_;
 #else
-  okvis::Estimator estimator_;                               ///< The backend estimator.
-  okvis::Frontend frontend_;                                 ///< The frontend.
+  okvis::Estimator estimator_;  ///< The backend estimator.
+  okvis::Frontend frontend_;    ///< The frontend.
 #endif
 
   /// @}
@@ -517,8 +484,6 @@ class ThreadedKFVio : public VioInterface {
 
   /// @Sharmin
   const size_t maxDepthInputQueueSize_ = 10;
-  /// @Sharmin
-  const size_t maxRelocInputQueueSize_ = 3;
   bool isFirstDepth_ = true;
   double firstDepth_;
 
@@ -530,17 +495,6 @@ class ThreadedKFVio : public VioInterface {
   int kf_index_;                    // Sharmin: keyframe index
   std::map<int, size_t> kf_f_map_;  // Sharmin: for publishing MapPoint observation
   std::mutex kf_f_map_mutex_;
-
-  // Sharmin: for easy access to relocalization related info
-  bool isNewReloMsg_;
-  okvis::kinematics::Transformation driftCorrected_T_WS_;
-  // Eigen::Matrix3d driftCorrectedR_;
-  // Eigen::Vector3d driftCorrectedP_;
-  // Eigen::Vector3d prev_relo_t;
-  // Eigen::Matrix3d prev_relo_r;
-  Eigen::Vector3d relocRelativeP_;
-  Eigen::Quaterniond relocRelativeQ_;
-  double relocRelativeYaw_;
 };
 
 }  // namespace okvis

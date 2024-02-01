@@ -66,8 +66,8 @@ bool HomogeneousPointManifold::plus(const double* x, const double* delta, double
 }
 
 // Computes the minimal difference between a variable x and a perturbed variable x_plus_delta.
-bool HomogeneousPointManifold::Minus(const double* x, const double* x_plus_delta, double* delta) const {
-  return minus(x, x_plus_delta, delta);
+bool HomogeneousPointManifold::Minus(const double* x_plus_delta, const double* x, double* delta) const {
+  return minus(x_plus_delta, x, delta);
 }
 
 bool HomogeneousPointManifold::ComputeLiftJacobian(const double* x, double* jacobian) const {
@@ -112,7 +112,7 @@ bool HomogeneousPointManifold::plusJacobian(const double*, double* jacobian) {
 
 // Compute the derivative of Minus(y, x) w.r.t y at y = x.
 bool HomogeneousPointManifold::minusJacobian(const double*, double* jacobian) {
-  Eigen::Map<Eigen::Matrix<double, 4, 3, Eigen::RowMajor> > Jp(jacobian);
+  Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> > Jp(jacobian);
 
   // Euclidean-style
   Jp.setZero();

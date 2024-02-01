@@ -63,6 +63,7 @@ if(BUILD_TESTS)
     test/TestImuError.cpp
     test/TestMap.cpp
     test/TestMarginalization.cpp
+    test/TestJacobians.cpp
   )
   target_link_libraries(${PROJECT_TEST_NAME} 
     ${PROJECT_NAME} 

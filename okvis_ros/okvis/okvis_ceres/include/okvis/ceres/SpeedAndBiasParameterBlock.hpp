@@ -120,7 +120,7 @@ class SpeedAndBiasParameterBlock : public ParameterBlockSized<9, 9, SpeedAndBias
   /// @param[in] x0_plus_Delta Perturbed variable.
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
-  virtual void minus(const double* x0, const double* x0_plus_Delta, double* Delta_Chi) const {
+  virtual void minus(const double* x0_plus_Delta, const double* x0, double* Delta_Chi) const {
     Eigen::Map<const Eigen::Matrix<double, 9, 1> > x0_(x0);
     Eigen::Map<Eigen::Matrix<double, 9, 1> > Delta_Chi_(Delta_Chi);
     Eigen::Map<const Eigen::Matrix<double, 9, 1> > x0_plus_Delta_(x0_plus_Delta);

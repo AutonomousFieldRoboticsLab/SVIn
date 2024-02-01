@@ -80,7 +80,7 @@ bool HomogeneousPointError::EvaluateWithMinimalJacobians(double const* const* pa
   Eigen::Vector4d hp(parameters[0][0], parameters[0][1], parameters[0][2], parameters[0][3]);
   // delta
   Eigen::Vector3d error;
-  HomogeneousPointManifold::minus(&measurement_[0], &parameters[0][0], &error[0]);
+  HomogeneousPointManifold::minus(&parameters[0][0], &measurement_[0], &error[0]);
 
   // LOG(INFO)<<hp.toHomogeneous().transpose() << " : " << measurement.transpose();
 

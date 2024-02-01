@@ -47,10 +47,10 @@
 #include <okvis/VioInterface.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/eigen.hpp>
-#include <string>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
+
 VioInterface::VioInterface() {}
 VioInterface::~VioInterface() {
   if (csvImuFile_) csvImuFile_->close();
@@ -96,11 +96,6 @@ void VioInterface::setLandmarksCallback(const LandmarksCallback& landmarksCallba
 // Sharmin
 void VioInterface::setKeyframeCallback(const KeyframeCallback& keyframeCallback) {
   keyframeCallback_ = keyframeCallback;
-}
-
-// Sharmin
-void VioInterface::setRelocRelativePoseCallback(const RelocRelativePoseCallback& relocRelativePoseCallback) {
-  relocRelativePoseCallback_ = relocRelativePoseCallback;
 }
 
 // Hunter

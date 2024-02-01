@@ -156,6 +156,13 @@ class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \return True on success.
   virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
 
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
+
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
@@ -178,6 +185,12 @@ class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  static bool minusJacobian(const double* x, double* jacobian);
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -214,6 +227,13 @@ class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// \return True on success.
   virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
 
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
+
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
@@ -237,10 +257,13 @@ class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
 
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
   /// \return True on success.
+  static bool minusJacobian(const double* x, double* jacobian);
+
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
@@ -271,6 +294,13 @@ class PoseManifold2d : public ::ceres::Manifold, public ManifoldAdditionalInterf
   /// @param[out] delta minimal difference.
   /// \return True on success.
   virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
+
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.

@@ -86,7 +86,7 @@ TEST(okvisTestSuite, HomogeneousPointError) {
   }
 
   // Run the solver!
-  map.options.minimizer_progress_to_stdout = false;
+  map.options.minimizer_progress_to_stdout = true;
   std::cout << "run the solver... " << std::endl;
   map.solve();
 

@@ -110,8 +110,8 @@ class PoseParameterBlock : public ParameterBlockSized<7, 6, okvis::kinematics::T
   /// @param[in] x0_plus_Delta Perturbed variable.
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
-  virtual void minus(const double* x0, const double* x0_plus_Delta, double* Delta_Chi) const {
-    PoseManifold::minus(x0, x0_plus_Delta, Delta_Chi);
+  virtual void minus(const double* x0_plus_Delta, const double* x0, double* Delta_Chi) const {
+    PoseManifold::minus(x0_plus_Delta, x0, Delta_Chi);
   }
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.

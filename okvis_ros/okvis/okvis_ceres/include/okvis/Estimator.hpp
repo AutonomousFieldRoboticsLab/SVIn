@@ -155,13 +155,13 @@ class Estimator : public VioBackendInterface {
   bool addLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark);
 
   /// @Sharmin
-  /**
-   * @brief Add a sonar landmark.
-   * @param landmarkId ID of the new sonar landmark.
-   * @param landmark Homogeneous coordinates of landmark in W-frame.
-   * @return True if successful.
-   */
-  bool addSonarLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark);
+  // /**
+  //  * @brief Add a sonar landmark.
+  //  * @param landmarkId ID of the new sonar landmark.
+  //  * @param landmark Homogeneous coordinates of landmark in W-frame.
+  //  * @return True if successful.
+  //  */
+  // bool addSonarLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark);
 
   /**
    * @brief Add an observation to a landmark.

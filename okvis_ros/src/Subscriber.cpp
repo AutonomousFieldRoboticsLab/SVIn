@@ -50,27 +50,24 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-Subscriber::~Subscriber() {
-  if (imgTransport_ != 0) delete imgTransport_;
-}
+Subscriber::~Subscriber() { imgTransport_.release(); }
 
 Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
                        okvis::VioInterface* vioInterfacePtr,
                        const okvis::VioParametersReader& param_reader)
-    : node_(node), vioInterface_(vioInterfacePtr) {
+    : node_(node), vioInterface_(vioInterfacePtr), imgTransport_(nullptr) {
   /// @Sharmin
+  param_reader.getParameters(vioParameters_);
 
   imageSubscribers_.resize(vioParameters_.nCameraSystem.numCameras());
 
-  // set up image reception
-  if (imgTransport_ != 0) delete imgTransport_;
-  imgTransport_ = new image_transport::ImageTransport(node);
+  imgTransport_ = std::make_unique<image_transport::ImageTransport>(node);
 
   // set up callbacks
   for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
     imageSubscribers_[i] =
         imgTransport_->subscribe("camera" + std::to_string(i),
-                                 100 * vioParameters_.nCameraSystem.numCameras(),
+                                 30 * vioParameters_.nCameraSystem.numCameras(),
                                  std::bind(&Subscriber::imageCallback, this, std::placeholders::_1, i));
   }
 
@@ -94,9 +91,8 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
         "/pose_graph/match_points", 1000, std::bind(&Subscriber::relocCallback, this, std::placeholders::_1));
   }
 
-  tfBuffer_.reset();
-  tfListener_.reset(new tf2_ros::TransformListener(*tfBuffer_));
-  param_reader.getParameters(vioParameters_);
+  tfBuffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+  tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
   imgTransport_ = 0;
 
   imgLeftCounter = 0;   // @Sharmin
@@ -191,8 +187,8 @@ void Subscriber::relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr rel
 
   // estimator.setReloFrame(frame_stamp, frame_index, match_points, relo_t, relo_r);
 
-  vioInterface_->addRelocMeasurement(
-      okvis::Time(relo_msg->header.stamp.sec, relo_msg->header.stamp.nanosec), matched_ids, pose_W.r(), pose_W.q());
+  // vioInterface_->addRelocMeasurement(
+  //     okvis::Time(relo_msg->header.stamp.sec, relo_msg->header.stamp.nanosec), matched_ids, pose_W.r(), pose_W.q());
 }
 // @Sharmin
 // /*

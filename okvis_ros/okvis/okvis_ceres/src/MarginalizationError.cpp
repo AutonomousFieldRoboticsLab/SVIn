@@ -234,8 +234,8 @@ bool MarginalizationError::addResidualBlock(::ceres::ResidualBlockId residualBlo
       // switch linearization point - easy to do on the linearized part...
       size_t i = it->second;
       Eigen::VectorXd Delta_Chi_i(parameterBlockInfos_[i].minimalDimension);
-      parameterBlockInfos_[i].parameterBlockPtr->minus(parameterBlockInfos_[i].linearizationPoint.get(),
-                                                       parameterBlockInfos_[i].parameterBlockPtr->parameters(),
+      parameterBlockInfos_[i].parameterBlockPtr->minus(parameterBlockInfos_[i].parameterBlockPtr->parameters(),
+                                                       parameterBlockInfos_[i].linearizationPoint.get(),
                                                        Delta_Chi_i.data());
       b0_ -= H_.block(0, parameterBlockInfos_[i].orderingIdx, H_.rows(), parameterBlockInfos_[i].minimalDimension) *
              Delta_Chi_i;
@@ -764,8 +764,8 @@ bool MarginalizationError::computeDeltaChi(Eigen::VectorXd& DeltaChi) const {
     // stack Delta_Chi vector
     if (!parameterBlockInfos_[i].parameterBlockPtr->fixed()) {
       Eigen::VectorXd Delta_Chi_i(parameterBlockInfos_[i].minimalDimension);
-      parameterBlockInfos_[i].parameterBlockPtr->minus(parameterBlockInfos_[i].linearizationPoint.get(),
-                                                       parameterBlockInfos_[i].parameterBlockPtr->parameters(),
+      parameterBlockInfos_[i].parameterBlockPtr->minus(parameterBlockInfos_[i].parameterBlockPtr->parameters(),
+                                                       parameterBlockInfos_[i].linearizationPoint.get(),
                                                        Delta_Chi_i.data());
       DeltaChi.segment(parameterBlockInfos_[i].orderingIdx, parameterBlockInfos_[i].minimalDimension) = Delta_Chi_i;
     }
@@ -781,7 +781,7 @@ bool MarginalizationError::computeDeltaChi(double const* const* parameters, Eige
     if (!parameterBlockInfos_[i].parameterBlockPtr->fixed()) {
       Eigen::VectorXd Delta_Chi_i(parameterBlockInfos_[i].minimalDimension);
       parameterBlockInfos_[i].parameterBlockPtr->minus(
-          parameterBlockInfos_[i].linearizationPoint.get(), parameters[i], Delta_Chi_i.data());
+          parameters[i], parameterBlockInfos_[i].linearizationPoint.get(), Delta_Chi_i.data());
       DeltaChi.segment(parameterBlockInfos_[i].orderingIdx, parameterBlockInfos_[i].minimalDimension) = Delta_Chi_i;
     }
   }

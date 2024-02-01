@@ -806,10 +806,10 @@ int Frontend::runRansac2d2dToRefineScale(okvis::Estimator& estimator,
 
     Eigen::Vector3d del_p, del_v;
     double del_t;
-    estimator.getImuPreIntegral(idA, del_p, del_v, del_t);
-    imu_interal_deltaP.push_back(del_p);
-    imu_interal_deltaV.push_back(del_v);
-    imu_interal_dt.push_back(del_t);
+    // estimator.getImuPreIntegral(idA, del_p, del_v, del_t);
+    // imu_interal_deltaP.push_back(del_p);
+    // imu_interal_deltaV.push_back(del_v);
+    // imu_interal_dt.push_back(del_t);
 
     // set.
     // TODO(Sharmin)

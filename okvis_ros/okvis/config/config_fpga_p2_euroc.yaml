@@ -78,11 +78,11 @@ useDriver: false
 
 # some options for how and what to publish -- optional in ROS-free version
 publishing_options:
-    publish_rate: 200                  # rate at which odometry updates are published only works properly if imu_rate/publish_rate is an integer!!
-    publishLandmarks: treu             # select, if you want to publish landmarks at all
+    publish_rate: 20                  # rate at which odometry updates are published only works properly if imu_rate/publish_rate is an integer!!
+    publishLandmarks: true             # select, if you want to publish landmarks at all
     landmarkQualityThreshold: 1.0e-2   # landmark with lower quality will not be published
     maximumLandmarkQuality: 0.05       # landmark with higher quality will be published with the maximum colour intensity
-    maxPathLength: 20                  # maximum length of the published path
+    maxPathLength: 1000                  # maximum length of the published path
     publishImuPropagatedState: true    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:

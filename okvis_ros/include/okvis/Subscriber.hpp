@@ -135,7 +135,7 @@ class Subscriber {
   // void sonarCallback(const imagenex831l::msg::ProcessedRange::ConstPtr& msg);
 
   std::shared_ptr<rclcpp::Node> node_;                             ///< The node handle.
-  image_transport::ImageTransport* imgTransport_;                  ///< The image transporter.
+  std::unique_ptr<image_transport::ImageTransport> imgTransport_;  ///< The image transporter.
   std::vector<image_transport::Subscriber> imageSubscribers_;      ///< The image message subscriber.
   unsigned int imgLeftCounter;                                     // @Sharmin
   unsigned int imgRightCounter;                                    // @Sharmin

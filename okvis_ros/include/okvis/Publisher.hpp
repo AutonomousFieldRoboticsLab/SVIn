@@ -124,8 +124,7 @@ class Publisher {
    */
   void setOdometry(const okvis::kinematics::Transformation& T_WS,
                    const okvis::SpeedAndBiases& speedAndBiases,
-                   const Eigen::Vector3d& omega_S,
-                   const okvis::kinematics::Transformation& driftCorrected_T_WS);
+                   const Eigen::Vector3d& omega_S);
 
   /// \brief Set the parameters
   /// @param parameters The parameters.
@@ -206,8 +205,7 @@ class Publisher {
   void publishFullStateAsCallback(const okvis::Time& t,
                                   const okvis::kinematics::Transformation& T_WS,
                                   const Eigen::Matrix<double, 9, 1>& speedAndBiases,
-                                  const Eigen::Matrix<double, 3, 1>& omega_S,
-                                  const okvis::kinematics::Transformation& driftCorrected_T_WS);
+                                  const Eigen::Matrix<double, 3, 1>& omega_S);
 
   /**
    * @brief Set and publish landmarks.
@@ -312,7 +310,7 @@ class Publisher {
       pubTransform_;                                                       ///< The publisher for the transform.
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr pubMesh_;  ///< The publisher for a robot / camera mesh.
   std::vector<image_transport::Publisher> pubImagesVector_;                ///< The publisher for the images.
-  image_transport::ImageTransport image_transport_;      ///< The image transporters.
+  image_transport::ImageTransport image_transport_;                        ///< The image transporters.
 
   // ros::Publisher pubStereoMatched_; ///< Sharmin: The publisher for stereo matched points.
   // image_transport::ImageTransport imageTransportKeyframeImageL_; ///< Sharmin: The image transporter for keyframe
@@ -322,16 +320,6 @@ class Publisher {
       pubKeyframePose_;  ///< Sharmin: The publisher for Keyframe pose.
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr
       pubKeyframePoints_;  ///< Sharmin: The publisher for Keyframe 3d-2d points.
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
-      pubReloRelativePose_;  ///< Sharmin: The publisher for reloc related msg is there is any for  pose_graph.
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubRelocPath_;      ///< Sharmin: To publish Reloc Path
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pubRelocPose_;  ///< Sharmin: To publish Reloc Pose
-
-  nav_msgs::msg::Path relocPath_;  ///< Sharmin: To publish Reloc Path
-
-  // pcl::PointCloud<pcl::PointXYZRGB>::Ptr stereoPointsMatched_; ///< Sharmin Point cloud for matched points.
-  // pcl::PointCloud<pcl::PointXYZRGB> stereoPointsMatchedFiltered_; /// Sharmin: for filtering out outliers  from
-  // stereoPointsMatched_
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       keyframePointsMatched_;  ///< Sharmin Point cloud for matched points in a keyframe.

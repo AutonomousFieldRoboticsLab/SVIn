@@ -40,25 +40,17 @@
 
 #include <glog/logging.h>
 
-#include <limits>
-#include <map>
-#include <memory>
 #include <okvis/Estimator.hpp>
 #include <okvis/IdProvider.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/DepthError.hpp>                      // @Sharmin
-#include <okvis/ceres/HomogeneousPointError.hpp>           // @Sharmin
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>  // @Sharmin
+#include <okvis/ceres/DepthError.hpp>
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/RelativePoseError.hpp>
-#include <okvis/ceres/SonarError.hpp>  // @Sharmin
+#include <okvis/ceres/SonarError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
-#include <utility>
-#include <vector>
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -96,11 +88,6 @@ int Estimator::addImu(const ImuParameters& imuParameters) {
   return imuParametersVec_.size() - 1;
 }
 
-int Estimator::addSonar(const SonarParameters& sonarParameters) {
-  sonarParameters_ = sonarParameters;
-  return 0;
-}
-
 // Remove all cameras from the configuration
 void Estimator::clearCameras() { extrinsicsEstimationParametersVec_.clear(); }
 
@@ -126,10 +113,11 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     if (!success0) return false;
 
     // Sharmin
-    if (multiFrame->numKeypoints() > 15) {
-      std::cout << "Initialized!! As enough keypoints are found" << std::endl;
-      std::cout << "Initial T_WS: " << T_WS.parameters();
+    if (multiFrame->numKeypoints() > 10) {
+      LOG(INFO) << "Initialized!! As enough keypoints are found";
+      LOG(INFO) << "Initial T_WS: " << T_WS.parameters();
     } else {
+      LOG(WARNING) << "Not enought multiframe Points: " << multiFrame->numKeypoints();
       return false;
     }
     // End Sharmin
@@ -138,7 +126,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     speedAndBias.segment<3>(6) = imuParametersVec_.at(0).a0;
   } else {
     // get the previous states
-    uint64_t T_WS_id = statesMap_.rbegin()->second.id;  // n-th state
+    uint64_t T_WS_id = statesMap_.rbegin()->second.id;
     uint64_t speedAndBias_id =
         statesMap_.rbegin()->second.sensors.at(SensorStates::Imu).at(0).at(ImuSensorStates::SpeedAndBias).id;
     OKVIS_ASSERT_TRUE_DBG(
@@ -151,11 +139,6 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
         std::static_pointer_cast<ceres::SpeedAndBiasParameterBlock>(mapPtr_->parameterBlockPtr(speedAndBias_id))
             ->estimate();
 
-    // propagate pose and speedAndBias
-    // @Sharmin: using only imu measurements
-    // Modified to add scale
-    // Eigen::Matrix<double, 15, 15> covariance; // not used
-    // Eigen::Matrix<double, 15, 15> jacobian;  // not used
     Eigen::Vector3d acc_doubleinteg;
     Eigen::Vector3d acc_integ;
     double Del_t;
@@ -187,8 +170,6 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
 
   // Added by Sharmin
   stateCount_ = stateCount_ + 1;
-  // LOG (INFO) << "No. of state created: "<< stateCount_;
-  // LOG (INFO) << "statesMap_ size: "<< statesMap_.size();
 
   // check if id was used before
   OKVIS_ASSERT_TRUE_DBG(
@@ -211,8 +192,6 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     }
   }
 
-  // End @Sharmin
-
   // add to buffer
   statesMap_.insert(std::pair<uint64_t, States>(states.id, states));
   multiFramePtrMap_.insert(std::pair<uint64_t, okvis::MultiFramePtr>(states.id, multiFrame));
@@ -221,6 +200,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
   std::map<uint64_t, States>::reverse_iterator lastElementIterator = statesMap_.rbegin();
   lastElementIterator++;
 
+  // initialize new sensor states
   // cameras:
   for (size_t i = 0; i < extrinsicsEstimationParametersVec_.size(); ++i) {
     SpecificSensorStatesContainer cameraInfos(2);
@@ -280,13 +260,13 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     mapPtr_->addResidualBlock(depthError, NULL, poseParameterBlock);
     std::cout << "Residual block z: " << (*poseParameterBlock->parameters()) + 2 << std::endl;
   }
-  // Sonar
-  std::vector<Eigen::Vector3d> landmarkSubset;
-  Eigen::Vector3d sonar_landmark;
-  double range = 0.0, heading = 0.0;
 
   // @Sharmin
   if (sonarMeasurements.size() != 0) {
+    // Sonar
+    std::vector<Eigen::Vector3d> landmarkSubset;
+    Eigen::Vector3d sonar_landmark;
+    double range = 0.0, heading = 0.0;
     auto last_sonarMeasurement_it = sonarMeasurements.rbegin();
 
     // Taking the nearest range value to the n+1 th frame
@@ -383,8 +363,6 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
       // mapPtr_->isJacobianCorrect(id,1.0e-6);
     }
 
-    // @Sharmin
-    // End @Sharmin
   } else {
     // add IMU error terms
     for (size_t i = 0; i < imuParametersVec_.size(); ++i) {
@@ -426,54 +404,9 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     }
     // only camera. this is slightly inconsistent, since the IMU error term contains both
     // a term for global states as well as for the sensor-internal ones (i.e. biases).
-    // TODO(sharmin): magnetometer, pressure, ...
+    // TODO: magnetometer, pressure, ...
   }
 
-  return true;
-}
-
-// @Sharmin
-// Add a sonar landmark.
-// TODO(sharmin) check whether it's okvis::ceres::Map::Sonar or okvis::ceres::Map::HomogeneousPoint
-bool Estimator::addSonarLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark) {
-  std::shared_ptr<okvis::ceres::HomogeneousPointParameterBlock> pointParameterBlock(
-      new okvis::ceres::HomogeneousPointParameterBlock(landmark, landmarkId));
-  if (!mapPtr_->addParameterBlock(pointParameterBlock, okvis::ceres::Map::HomogeneousPoint)) {
-    return false;
-  }
-
-  /*std::shared_ptr<okvis::ceres::SonarParameterBlock> pointParameterBlock(
-      new okvis::ceres::SonarParameterBlock(landmark, landmarkId));
-  if (!mapPtr_->addParameterBlock(pointParameterBlock,
-                                  okvis::ceres::Map::Sonar)) {
-    return false;
-  }*/
-
-  /*Eigen::Matrix<double,3,3> information = Eigen::Matrix<double,3,3>::Zero();
-          information(0,0) = 1.0; information(1,1) = 1.0; information(2,2) = 1.0;
-  // TODO(Sharmin): check Runtime error, parameterBlockExists = false
-  std::shared_ptr<ceres::SonarError > sonarError(
-                        new ceres::SonarError(landmark, information, landmarkSubset));
-  // add to map
-  mapPtr_->addResidualBlock(sonarError, NULL, pointParameterBlock);*/
-
-  // TODO(Sharmin) check it!!
-  /*std::shared_ptr<okvis::ceres::HomogeneousPointError> homogeneousPointError(
-               new okvis::ceres::HomogeneousPointError(
-                               landmark, 0.01));
-
-  mapPtr_->addResidualBlock(
-               homogeneousPointError, NULL, pointParameterBlock);*/
-
-  // remember
-  double dist = std::numeric_limits<double>::max();
-  if (fabs(landmark[3]) > 1.0e-8) {
-    dist = (landmark / landmark[3]).head<3>().norm();  // euclidean distance
-  }
-  //  (sharmin) check landmarksMap
-  landmarksMap_.insert(std::pair<uint64_t, MapPoint>(landmarkId, MapPoint(landmarkId, landmark, 0.0, dist)));
-  OKVIS_ASSERT_TRUE_DBG(
-      Exception, isLandmarkAdded(landmarkId), "bug adding sonar landmark: inconsistend landmarkdMap_ with mapPtr_.");
   return true;
 }
 
@@ -484,14 +417,6 @@ bool Estimator::addLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark
   if (!mapPtr_->addParameterBlock(pointParameterBlock, okvis::ceres::Map::HomogeneousPoint)) {
     return false;
   }
-
-  // TODO(sharmin) check it!!
-  /* std::shared_ptr<okvis::ceres::HomogeneousPointError> homogeneousPointError(
-          new okvis::ceres::HomogeneousPointError(
-                          landmark, 0.1));
-
-   mapPtr_->addResidualBlock(
-          homogeneousPointError, NULL, pointParameterBlock);*/
 
   // remember
   double dist = std::numeric_limits<double>::max();
@@ -685,7 +610,7 @@ bool Estimator::applyMarginalizationStrategy(size_t numKeyframes,
 
     // schedule removal - but always keep the very first frame.
     // if(it != statesMap_.begin()){
-    if (true) {
+    if (true) {                                              /////DEBUG
       it->second.global[GlobalStates::T_WS].exists = false;  // remember we removed
       paremeterBlocksToBeMarginalized.push_back(it->second.global[GlobalStates::T_WS].id);
       keepParameterBlocks.push_back(false);
@@ -803,7 +728,7 @@ bool Estimator::applyMarginalizationStrategy(size_t numKeyframes,
               residuals.erase(residuals.begin() + r);
               r--;
             } else if (marginalize && vectorContains(allLinearizedFrames, poseId)) {
-              // TODO(sharmin): consider only the sensible ones for marginalization
+              // TODO: consider only the sensible ones for marginalization
               if (obsCount < 2) {  // visibleInFrame.size()
                 removeObservation(residuals[r].residualBlockId);
                 residuals.erase(residuals.begin() + r);
@@ -996,27 +921,6 @@ void Estimator::optimize(size_t numIter, size_t numThreads, bool verbose) {
               ->estimate();
     }
   }
-
-  // @Sharmin: Calculating covariance
-
-  // mapPtr_->options_covar.sparse_linear_algebra_library_type = ::ceres::SUITE_SPARSE;
-  // mapPtr_->options_covar.algorithm_type = ::ceres::SPARSE_QR;
-
-  /*::ceres::Covariance::Options cov_options;
-  ::ceres::Covariance covariance(cov_options);
-
-  std::vector<std::pair<const double*, const double*> > covariance_blocks; // @Sharmin
-
-  // Note: mapPtr_->parameterBlockPtr(this->currentKeyframeId()) is a PoseParameterBlock
-  std::cout<< "Covar Cal Type: " << mapPtr_->parameterBlockPtr(this->currentKeyframeId())->typeInfo()<< std::endl;
-
-  // Note: if this is a ceres::Map::Pose6d then get parameterPtr() from T_WS
-  const double* pose_block = mapPtr_->parameterBlockPtr(this->currentKeyframeId())->parameters();
-  covariance_blocks.push_back(std::make_pair(pose_block, pose_block));
-
-  mapPtr_->computeCovariance(covariance_blocks, pose_block);*/
-
-  // End Calculating covariance
 
   // summary output
   if (verbose) {

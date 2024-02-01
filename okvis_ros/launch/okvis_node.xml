@@ -1,0 +1,15 @@
+<launch>
+
+  <set_parameter name="use_sim_time" value="true" />
+
+  <node name="okvis_node" pkg="okvis_ros" exec="okvis_node">
+    <param name="config_filename" type="str" value="$(find-pkg-share okvis_ros)/okvis/config/config_fpga_p2_euroc.yaml" />
+
+    <param name="mesh_file" value="firefly.dae" />
+    <remap from="/camera0" to="/cam0/image_raw" />
+    <remap from="/camera1" to="/cam1/image_raw" />
+    <remap from="/imu" to="/imu0" />
+  </node>
+
+  <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share okvis_ros)/config/svin.rviz"/>
+</launch>

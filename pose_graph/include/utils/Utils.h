@@ -1,13 +1,13 @@
 #pragma once
 
-#include <geometry_msgs/Pose.h>
-#include <okvis_ros/SvinHealth.h>
-
 #include <cassert>
 #include <chrono>
 #include <cmath>
 #include <cstring>
 #include <eigen3/Eigen/Dense>
+#include <geometry_msgs/msg/pose.hpp>
+#include <okvis_ros/msg/svin_health.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <string>
 
 #include "common/Definitions.h"
@@ -130,14 +130,14 @@ class Utils {
   }
 
   static std::string getTimeStr();
-  static Eigen::Matrix4d rosPoseToMatrix(const geometry_msgs::Pose& pose);
-  static geometry_msgs::Pose matrixToRosPose(const Eigen::Matrix4d& trasform);
+  static Eigen::Matrix4d rosPoseToMatrix(const geometry_msgs::msg::Pose& pose);
+  static geometry_msgs::msg::Pose matrixToRosPose(const Eigen::Matrix4d& trasform);
   static void printPoseAsEulerAngles(const Eigen::Matrix4d& pose);
 
   // Converts doulbe to sting with desired number of digits (total number of
   // digits)
   static std::string To_string_with_precision(const double a_value, const int n);
 
-  static std::string healthMsgToString(const okvis_ros::SvinHealthConstPtr& health);
-  static ros::Time toRosTime(const Timestamp t);
+  static std::string healthMsgToString(const okvis_ros::msg::SvinHealth::ConstSharedPtr health);
+  static rclcpp::Time toRosTime(const Timestamp t);
 };

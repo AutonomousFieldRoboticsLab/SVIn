@@ -1,7 +1,6 @@
 #include "pose_graph/Parameters.h"
 
 #include <glog/logging.h>
-#include <ros/package.h>
 
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -36,7 +35,9 @@ void Parameters::loadParameters(const std::string& config_file) {
 
   camera_visual_size_ = fsSettings["visualize_camera_size"];
 
-  std::string pkg_path = ros::package::getPath("pose_graph");
+  std::string pkg_path;
+
+  // = ros::package::getPath("pose_graph");
 
   vocabulary_file_ = pkg_path + "/Vocabulary/brief_k10L6.bin";
   std::cout << "vocabulary_file" << vocabulary_file_ << std::endl;

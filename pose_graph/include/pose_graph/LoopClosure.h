@@ -3,9 +3,7 @@
 #include <glog/logging.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <std_srvs/Trigger.h>
 
-#include <boost/optional.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -95,8 +93,8 @@ class LoopClosure {
   double vio_traj_length_;
   double prim_traj_length_;
 
-  void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
-  bool healthCheck(const TrackingInfo& tracking_info, boost::optional<std::string> error_message);
+  // void updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& prim_estimator_odom_msg);
+  bool healthCheck(const TrackingInfo& tracking_info, std::string error_message);
 
   ThreadsafeQueue<std::unique_ptr<KeyframeInfo>> keyframe_tracking_queue_;
   utils::ThreadsafeTemporalBuffer<cv::Mat> raw_image_buffer_;

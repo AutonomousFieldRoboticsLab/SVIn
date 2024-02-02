@@ -1,11 +1,6 @@
 #pragma once
 
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/image_encodings.h>
-
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <string>
 #include <vector>
 

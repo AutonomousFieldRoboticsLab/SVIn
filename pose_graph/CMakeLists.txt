@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8.3)
 project(pose_graph)
 include(ExternalProject)
 
@@ -9,40 +9,34 @@ else()
     message(STATUS "Build type not specified, using Release")
     set(CMAKE_BUILD_TYPE Release)
 endif()
-set(CMAKE_CXX_STANDARD 14)
-
-# changed to -march=native. Working in Ubuntu 18.04 and 20.04
-set(CMAKE_CXX_FLAGS "-march=native -fPIC -Wall")
-
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    std_msgs
-    nav_msgs
-    cv_bridge
-    roslib
-    okvis_ros  # For SvinHealth msg
-    pcl_ros
-    pcl_conversions
-    image_transport
-    )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-find_package(OpenCV)
-find_package(PCL  REQUIRED)
-find_package(Boost COMPONENTS filesystem system REQUIRED)
-# find_package(opengv REQUIRED)
-find_package(Glog REQUIRED)
+set(CMAKE_CXX_STANDARD 17)
 
-# brisk
+# changed to -march=native. Working in Ubuntu 18.04 and 20.04
+set(CMAKE_CXX_FLAGS "-march=native -O3 -fPIC -Wall")
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(okvis_ros REQUIRED)
+find_package(std_srvs REQUIRED)
+
+find_package(OpenCV REQUIRED)
+find_package(Glog REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package( brisk 2 REQUIRED )
+find_package(Ceres 2.1 REQUIRED)
 include_directories(BEFORE ${BRISK_INCLUDE_DIRS})
 message(STATUS "Using system brisk. Found at ${BRISK_INCLUDE_DIRS}.")
-
-find_package(Ceres REQUIRED)
-
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(Eigen3)
 
 include_directories(BEFORE  ${GLOG_INCLUDE_DIRS})
 include_directories(include 
@@ -51,12 +45,22 @@ include_directories(include
                     ${CERES_INCLUDE_DIRS}
                     ${EIGEN3_INCLUDE_DIR}
                     ${BRISK_INCLUDE_DIRS}
-                    ${PCL_INCLUDE_DIRS}
                     ${Boost_INCLUDE_DIRS})
 
-catkin_package(CATKIN_DEPENDS okvis_ros pcl_ros pcl_conversions)
+list(APPEND ament_libraries 
+      rclcpp
+      pcl_ros 
+      cv_bridge 
+      sensor_msgs 
+      std_msgs 
+      nav_msgs 
+      pcl_conversions
+      visualization_msgs
+      std_srvs
+      okvis_ros
+      )
 
-add_library(${PROJECT_NAME} 
+add_library(${PROJECT_NAME}_lib 
     src/pose_graph/GlobalMapping.cpp
     src/pose_graph/Keyframe.cpp
     src/pose_graph/LoopClosure.cpp
@@ -81,14 +85,27 @@ add_library(${PROJECT_NAME}
     ThirdParty/VocabularyBinary.cpp
 )
 
-target_link_libraries(${PROJECT_NAME}
-  opengv
-  ${catkin_LIBRARIES}
+target_link_libraries(${PROJECT_NAME}_lib
   ${OpenCV_LIBS}
   ${CERES_LIBRARIES} 
   ${BRISK_LIBRARIES}
   ${PCL_LIBRARIES}
-  ${Boost_LIBRARIES}) 
+  ${Boost_LIBRARIES})
+
+ament_target_dependencies(${PROJECT_NAME}_lib ${ament_libraries})
+install(TARGETS ${PROJECT_NAME}_lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  PUBLIC_HEADER DESTINATION include
+)
+install(DIRECTORY include/
+        DESTINATION include
+        FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME}_lib)
 
 add_executable(${PROJECT_NAME}_node src/pose_graph_node.cpp)
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+ament_target_dependencies(${PROJECT_NAME}_node ${ament_libraries})
+target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME}_lib)
+install(TARGETS ${PROJECT_NAME}_node DESTINATION lib/${PROJECT_NAME})

@@ -21,7 +21,7 @@ std::string Utils::getTimeStr() {
   return s;
 }
 
-Eigen::Matrix4d Utils::rosPoseToMatrix(const geometry_msgs::Pose& pose) {
+Eigen::Matrix4d Utils::rosPoseToMatrix(const geometry_msgs::msg::Pose& pose) {
   Eigen::Matrix4d m;
   m.setIdentity();
   m.block<3, 3>(0, 0) =
@@ -31,8 +31,8 @@ Eigen::Matrix4d Utils::rosPoseToMatrix(const geometry_msgs::Pose& pose) {
   return m;
 }
 
-geometry_msgs::Pose Utils::matrixToRosPose(const Eigen::Matrix4d& trasform) {
-  geometry_msgs::Pose pose;
+geometry_msgs::msg::Pose Utils::matrixToRosPose(const Eigen::Matrix4d& trasform) {
+  geometry_msgs::msg::Pose pose;
   pose.position.x = trasform(0, 3);
   pose.position.y = trasform(1, 3);
   pose.position.z = trasform(2, 3);
@@ -60,19 +60,19 @@ std::string Utils::To_string_with_precision(const double a_value, const int n) {
   return out.str();
 }
 
-std::string Utils::healthMsgToString(const okvis_ros::SvinHealthConstPtr& health) {
+std::string Utils::healthMsgToString(const okvis_ros::msg::SvinHealth::ConstSharedPtr health) {
   std::stringstream ss;
   std::setprecision(5);
-  ss << "#keypoints: " << health->numTrackedKps << ","
-     << "#newkps: " << health->newKps << "\n";
-  ss << "keyframes_per_quartile: " << health->kpsPerQuadrant[0] << "," << health->kpsPerQuadrant[1] << ","
-     << health->kpsPerQuadrant[2] << "," << health->kpsPerQuadrant[3] << ",";
+  ss << "#keypoints: " << health->num_tracked_kps << ","
+     << "#newkps: " << health->new_kps << "\n";
+  ss << "keyframes_per_quartile: " << health->kps_per_quadrant[0] << "," << health->kps_per_quadrant[1] << ","
+     << health->kps_per_quadrant[2] << "," << health->kps_per_quadrant[3] << ",";
 
   return ss.str();
 }
 
-ros::Time Utils::toRosTime(const Timestamp t) {
+rclcpp::Time Utils::toRosTime(const Timestamp t) {
   uint32_t nsec_part = t % 1000000000UL;
   uint32_t sec_part = static_cast<uint64_t>(t) / 1000000000UL;
-  return ros::Time(sec_part, nsec_part);
+  return rclcpp::Time(sec_part, nsec_part);
 }

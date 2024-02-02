@@ -1,8 +1,8 @@
 
 #include <glog/logging.h>
-#include <ros/package.h>
 
 #include <boost/filesystem.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 #include "pose_graph/LoopClosure.h"
 #include "pose_graph/Parameters.h"
@@ -92,8 +92,12 @@ void setupOutputLogDirectories(const std::string base_path) {
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "pose_graph");
-  ros::NodeHandle nh("~");
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  options.allow_undeclared_parameters(true);
+  options.automatically_declare_parameters_from_overrides(true);
+
+  auto node = std::make_shared<rclcpp::Node>("pose_graph_node", options);
 
   // Initialize Google's flags library.
   google::ParseCommandLineFlags(&argc, &argv, true);
@@ -107,7 +111,13 @@ int main(int argc, char** argv) {
 
   // read parameters
   std::string config_file;
-  nh.getParam("config_file", config_file);
+
+  node->get_parameter<std::string>("config_file", config_file);
+
+  if (config_file.empty()) {
+    LOG(ERROR) << "Config file not provided";
+    return EXIT_FAILURE;
+  }
 
   Parameters params;
   params.loadParameters(config_file);
@@ -117,9 +127,9 @@ int main(int argc, char** argv) {
     FLAGS_v = 10;
   }
 
-  auto subscriber = std::make_unique<Subscriber>(nh, params);
+  auto subscriber = std::make_unique<Subscriber>(node, params);
   auto loop_closure = std::make_unique<LoopClosure>(params);
-  auto publisher = std::make_unique<Publisher>(nh, params.debug_mode_);
+  auto publisher = std::make_unique<Publisher>(node, params.debug_mode_);
 
   loop_closure->setKeyframePoseCallback(
       std::bind(&Publisher::publishKeyframePath, publisher.get(), std::placeholders::_1, std::placeholders::_2));
@@ -139,26 +149,34 @@ int main(int argc, char** argv) {
         std::bind(&LoopClosure::fillPrimitiveEstimatorBuffer, loop_closure.get(), std::placeholders::_1));
   }
 
-  ros::Timer timer;
-  ros::ServiceServer pointcloud_service;
+  rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pointcloud_service;
 
   if (params.global_mapping_params_.enabled) {
     publisher->setGlobalPointCloudFunction(
         std::bind(&LoopClosure::getGlobalMap, loop_closure.get(), std::placeholders::_1));
     subscriber->registerImageCallback(
         std::bind(&LoopClosure::fillImageQueue, loop_closure.get(), std::placeholders::_1));
-    timer = nh.createTimer(ros::Duration(5), &Publisher::updatePublishGlobalMap, publisher.get());
-    pointcloud_service = nh.advertiseService("save_pointcloud", &Publisher::savePointCloud, publisher.get());
+    timer = node->create_wall_timer(std::chrono::seconds(5),
+                                    std::bind(&Publisher::updatePublishGlobalMap, publisher.get()));
+    pointcloud_service = node->create_service<std_srvs::srv::Trigger>("save_pointcloud",
+                                                                      std::bind(&Publisher::savePointCloud,
+                                                                                publisher.get(),
+                                                                                std::placeholders::_1,
+                                                                                std::placeholders::_2,
+                                                                                std::placeholders::_3));
   }
 
   auto process_thread = std::thread(&LoopClosure::run, loop_closure.get());
 
-  ros::Time last_print_time = ros::Time::now();
+  rclcpp::Time last_print_time = node->now();
 
-  while (ros::ok()) {
-    ros::spinOnce();
-    if (ros::Time::now() - last_print_time > ros::Duration(10.0)) {
-      last_print_time = ros::Time::now();
+  // rclcpp::executors::MultiThreadedExecutor executor;
+  // executor.add_node(node);
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(node);
+    if ((node->now() - last_print_time).seconds() > 10.0) {
+      last_print_time = node->now();
       LOG(INFO) << utils::Statistics::Print();
     }
   }

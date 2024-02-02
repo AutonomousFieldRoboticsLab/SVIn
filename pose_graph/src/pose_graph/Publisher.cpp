@@ -1,60 +1,63 @@
 #include "pose_graph/Publisher.h"
 
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <ros/package.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <visualization_msgs/MarkerArray.h>
 
+#include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <vector>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include "utils/Utils.h"
 
-Publisher::Publisher(ros::NodeHandle& nh, bool debug_mode) : debug_mode_(debug_mode) {
+Publisher::Publisher(std::shared_ptr<rclcpp::Node> node, bool debug_mode) : node_(node), debug_mode_(debug_mode) {
   // Publishers
-  pub_matched_points_ = nh.advertise<sensor_msgs::PointCloud>("match_points", 100);
-  pub_gloal_map_ = nh.advertise<sensor_msgs::PointCloud2>("global_map", 2);
+  // pub_matched_points_ = node_->create_publisher<sensor_msgs::msg::PointCloud>("match_points", 100);
+  pub_gloal_map_ = node_->create_publisher<sensor_msgs::msg::PointCloud2>("global_map", 2);
 
-  pub_robust_path_ = nh.advertise<nav_msgs::Path>("uber_path", 2);
-  pub_robust_odometry_ = nh.advertise<nav_msgs::Odometry>("uber_odometry", 2);
+  pub_robust_path_ = node_->create_publisher<nav_msgs::msg::Path>("uber_path", 2);
+  pub_robust_odometry_ = node_->create_publisher<nav_msgs::msg::Odometry>("uber_odometry", 2);
 
   if (debug_mode_) {
-    pub_primitive_estimator_path_ = nh.advertise<nav_msgs::Path>("primitive_estimator_path", 2);
-    pub_primitive_odometry_ = nh.advertise<nav_msgs::Odometry>("prim_odometry", 2);
+    pub_primitive_estimator_path_ = node_->create_publisher<nav_msgs::msg::Path>("primitive_estimator_path", 2);
+    pub_primitive_odometry_ = node_->create_publisher<nav_msgs::msg::Odometry>("prim_odometry", 2);
   }
 
-  pub_loop_closure_path_ = nh.advertise<nav_msgs::Path>("loop_closure_path", 100);
-  pub_kf_connections_ = nh.advertise<visualization_msgs::MarkerArray>("kf_connections", 1000);
+  pub_loop_closure_path_ = node_->create_publisher<nav_msgs::msg::Path>("loop_closure_path", 100);
+  // pub_kf_connections_ = nh.advertise<visualization_msgs::msg::MarkerArray>("kf_connections", 1000);
 
   camera_pose_visualizer_ = std::make_unique<CameraPoseVisualization>(1.0, 0.0, 0.0, 1.0);
   camera_pose_visualizer_->setScale(0.4);
   camera_pose_visualizer_->setLineWidth(0.04);
-  pub_visualization_ = nh.advertise<visualization_msgs::MarkerArray>("visualization", 1000);
+  pub_visualization_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>("visualization", 100);
 }
 
-void Publisher::kfMatchedPointCloudCallback(const sensor_msgs::PointCloud& msg) { pub_matched_points_.publish(msg); }
+// void Publisher::kfMatchedPointCloudCallback(const sensor_msgs::msg::PointCloud& msg) {
+//   pub_matched_points_->publish(msg);
+// }
 
-void Publisher::publishGlobalMap(const sensor_msgs::PointCloud2& cloud) { pub_gloal_map_.publish(cloud); }
+void Publisher::publishGlobalMap(const sensor_msgs::msg::PointCloud2& cloud) { pub_gloal_map_->publish(cloud); }
 
-void Publisher::publishPath(const std::vector<geometry_msgs::PoseStamped>& poses, const ros::Publisher& pub) const {
-  nav_msgs::Path path;
+void Publisher::publishPath(const std::vector<geometry_msgs::msg::PoseStamped>& poses,
+                            const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub) const {
+  nav_msgs::msg::Path path;
   path.header.frame_id = poses.back().header.frame_id;
   path.header.stamp = poses.back().header.stamp;
-  path.header.seq = poses.size() + 1;
   path.poses = poses;
-  pub.publish(path);
+  pub->publish(path);
 }
 
-void Publisher::publishPath(const nav_msgs::Path& path, const ros::Publisher& publisher) const {
-  publisher.publish(path);
+void Publisher::publishPath(const nav_msgs::msg::Path& path,
+                            const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisher) const {
+  publisher->publish(path);
 }
 
-void Publisher::publishOdometry(const nav_msgs::Odometry& odom, const ros::Publisher& publisher) const {
-  publisher.publish(odom);
+void Publisher::publishOdometry(const nav_msgs::msg::Odometry& odom,
+                                const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher) const {
+  publisher->publish(odom);
 }
 
 void Publisher::publishKeyframePath(const std::pair<Timestamp, Eigen::Matrix4d>& kf_pose,
@@ -63,7 +66,7 @@ void Publisher::publishKeyframePath(const std::pair<Timestamp, Eigen::Matrix4d>&
   Eigen::Quaterniond quat(rot);
   Eigen::Vector3d trans = kf_pose.second.block<3, 1>(0, 3);
 
-  geometry_msgs::PoseStamped pose_stamped;
+  geometry_msgs::msg::PoseStamped pose_stamped;
   pose_stamped.header.stamp = Utils::toRosTime(kf_pose.first);
   pose_stamped.header.frame_id = "world";
   pose_stamped.pose.position.x = trans.x();
@@ -96,7 +99,7 @@ void Publisher::publishLoopClosurePath(
     Eigen::Matrix3d rot = kf_pose.second.block<3, 3>(0, 0);
     Eigen::Quaterniond quat(rot);
     Eigen::Vector3d trans = kf_pose.second.block<3, 1>(0, 3);
-    geometry_msgs::PoseStamped pose_stamped;
+    geometry_msgs::msg::PoseStamped pose_stamped;
     pose_stamped.header.stamp = Utils::toRosTime(kf_pose.first);
     pose_stamped.header.frame_id = "world";
     pose_stamped.pose.position.x = trans.x();
@@ -122,27 +125,30 @@ void Publisher::setGlobalPointCloudFunction(const PointCloudCallback& global_poi
   pointcloud_callback_ = global_pointcloud_callback;
 }
 
-void Publisher::updatePublishGlobalMap(const ros::TimerEvent& event) {
+void Publisher::updatePublishGlobalMap() {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr global_map_pcl(new pcl::PointCloud<pcl::PointXYZRGB>);
   pointcloud_callback_(global_map_pcl);
-  sensor_msgs::PointCloud2 pcl_msg;
+  sensor_msgs::msg::PointCloud2 pcl_msg;
   pcl::toROSMsg(*global_map_pcl, pcl_msg);
   pcl_msg.header.frame_id = "world";
-  pcl_msg.header.stamp = ros::Time::now();
+  pcl_msg.header.stamp = node_->now();
   publishGlobalMap(pcl_msg);
 }
 
-bool Publisher::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
-  ROS_INFO_STREAM("!! Saving Point Cloud !!");
+bool Publisher::savePointCloud(const std::shared_ptr<rmw_request_id_t> request_header,
+                               const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                               const std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+  RCLCPP_INFO(node_->get_logger(), "!! Saving Point Cloud !!");
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   pointcloud_callback_(pointcloud);
 
-  std::string pkg_path = ros::package::getPath("pose_graph");
+  std::string pkg_path;
+  // = ros::package::getPath("pose_graph");
   std::string pointcloud_file = pkg_path + "/reconstruction_results/pointcloud.ply";
 
   pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
-  response.success = true;
-  response.message = "Saving Point Cloud ";
+  response->success = true;
+  response->message = "Saving Point Cloud ";
   return true;
 }
 
@@ -151,11 +157,12 @@ void Publisher::saveTrajectory(const std::string& filename) const {
   loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
   loop_path_file.precision(9);
   loop_path_file << "#timestamp tx ty tz qx qy qz qw" << std::endl;
-  for (geometry_msgs::PoseStamped keyframe_pose : loop_closure_traj_.poses) {
-    geometry_msgs::Quaternion quat = keyframe_pose.pose.orientation;
-    geometry_msgs::Point pos = keyframe_pose.pose.position;
-    loop_path_file << keyframe_pose.header.stamp << " " << pos.x << " " << pos.y << " " << pos.z << " " << quat.x << " "
-                   << quat.y << " " << quat.z << " " << quat.w << std::endl;
+  for (geometry_msgs::msg::PoseStamped keyframe_pose : loop_closure_traj_.poses) {
+    geometry_msgs::msg::Quaternion quat = keyframe_pose.pose.orientation;
+    geometry_msgs::msg::Point pos = keyframe_pose.pose.position;
+    // loop_path_file << keyframe_pose.header.stamp << " " << pos.x << " " << pos.y << " " << pos.z << " " << quat.x <<
+    // " "
+    //                << quat.y << " " << quat.z << " " << quat.w << std::endl;
   }
   loop_path_file.close();
 }
@@ -165,8 +172,8 @@ void Publisher::publishPrimitiveEstimator(const std::pair<Timestamp, Eigen::Matr
   Eigen::Quaterniond quat(rot);
   Eigen::Vector3d trans = primitive_estimator_pose.second.block<3, 1>(0, 3);
 
-  geometry_msgs::PoseStamped pose_stamped;
-  geometry_msgs::Pose pose;
+  geometry_msgs::msg::PoseStamped pose_stamped;
+  geometry_msgs::msg::Pose pose;
   pose_stamped.header.stamp = Utils::toRosTime(primitive_estimator_pose.first);
   pose_stamped.header.frame_id = "world";
   pose.position.x = trans.x();
@@ -182,7 +189,7 @@ void Publisher::publishPrimitiveEstimator(const std::pair<Timestamp, Eigen::Matr
   primitive_estimator_traj_.header = pose_stamped.header;
 
   publishPath(primitive_estimator_traj_, pub_primitive_estimator_path_);
-  nav_msgs::Odometry prim_odom;
+  nav_msgs::msg::Odometry prim_odom;
   prim_odom.header = pose_stamped.header;
   prim_odom.pose.pose = pose;
   publishOdometry(prim_odom, pub_primitive_odometry_);

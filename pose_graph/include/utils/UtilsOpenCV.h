@@ -1,8 +1,7 @@
 #pragma once
 
-#include <sensor_msgs/Image.h>
-
 #include <opencv2/opencv.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <string>
 #include <vector>
 
@@ -94,5 +93,5 @@ class UtilsOpenCV {
                                     const KeypointsCV& corners_2,
                                     const bool& random_color);
 
-  static cv::Mat readRosImage(const sensor_msgs::ImageConstPtr& img_msg, bool grayscale = true);
+  static cv::Mat readRosImage(const sensor_msgs::msg::Image::ConstSharedPtr img_msg, bool grayscale = true);
 };

@@ -259,7 +259,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
       double euler_array[max_length][3];       // NOLINT
       double sequence_array[max_length];       // NOLINT
 
-      ceres::Manifold* angle_local_parameterization = AngleManifold::Create();
+      ceres::Manifold* angle_manifold = new ceres::AutoDiffManifold<YawAngleFunctor, 1, 1>;
 
       std::list<Keyframe*>::iterator it;
 
@@ -284,7 +284,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
 
         sequence_array[i] = (*it)->sequence;
 
-        problem.AddParameterBlock(euler_array[i], 1, angle_local_parameterization);
+        problem.AddParameterBlock(euler_array[i], 1, angle_manifold);
         problem.AddParameterBlock(t_array[i], 3);
 
         if ((*it)->index == first_looped_index) {
@@ -433,7 +433,7 @@ void PoseGraph::optimize6DoFPoseGraph() {
       Eigen::Quaterniond q_array[kMaxLength];  // NOLINT
       double sequence_array[kMaxLength];       // NOLINT
 
-      ceres::Manifold* quaternion_local_parameterization = new ceres::EigenQuaternionParameterization;
+      ceres::Manifold* quaternion_manifold = new ceres::EigenQuaternionManifold;
 
       std::list<Keyframe*>::iterator it;
 
@@ -450,7 +450,7 @@ void PoseGraph::optimize6DoFPoseGraph() {
         q_array[i] = tmp_q;
         sequence_array[i] = (*it)->sequence;
 
-        problem.AddParameterBlock(q_array[i].coeffs().data(), 4, quaternion_local_parameterization);
+        problem.AddParameterBlock(q_array[i].coeffs().data(), 4, quaternion_manifold);
         problem.AddParameterBlock(t_array[i].data(), 3);
 
         if ((*it)->index == first_looped_index || (*it)->sequence == 0) {

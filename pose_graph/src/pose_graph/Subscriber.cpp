@@ -1,7 +1,5 @@
 #include "pose_graph/Subscriber.h"
 
-#include <ros/console.h>
-
 #include <memory>
 #include <opencv2/core/eigen.hpp>
 #include <utility>
@@ -12,7 +10,7 @@
 #include "utils/Utils.h"
 #include "utils/UtilsOpenCV.h"
 
-Subscriber::Subscriber(ros::NodeHandle& nh, Parameters& params) : params_(params) {
+Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node, Parameters& params) : node_(node), params_(params) {
   // TODO(bjoshi): pass as params from roslaunch file
   kf_image_topic_ = "/okvis_node/keyframe_imageL";
   kf_pose_topic_ = "/okvis_node/keyframe_pose";
@@ -23,18 +21,13 @@ Subscriber::Subscriber(ros::NodeHandle& nh, Parameters& params) : params_(params
   last_image_time_ = -1;
   raw_image_topic_ = "/cam0/image_raw";
 
-  setNodeHandle(nh);
-}
+  rclcpp::QoS qos(10);
+  auto rmw_qos_profile = qos.get_rmw_qos_profile();
 
-void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
-  nh_ = &nh;
-  if (it_) it_.reset();
-  it_ = std::make_unique<image_transport::ImageTransport>(std::move(*nh_));
-
-  keyframe_image_subscriber_.subscribe(*it_, kf_image_topic_, 10);
-  keyframe_points_subscriber_.subscribe(*nh_, kf_points_topic_, 10);
-  keyframe_pose_subscriber_.subscribe(*nh_, kf_pose_topic_, 10);
-  svin_health_subscriber_.subscribe(*nh_, svin_health_topic_, 10);
+  keyframe_image_subscriber_.subscribe(node_, kf_image_topic_, rmw_qos_profile);
+  keyframe_points_subscriber_.subscribe(node_, kf_points_topic_, rmw_qos_profile);
+  keyframe_pose_subscriber_.subscribe(node_, kf_pose_topic_, rmw_qos_profile);
+  svin_health_subscriber_.subscribe(node_, svin_health_topic_, rmw_qos_profile);
 
   static constexpr size_t kMaxKeyframeSynchronizerQueueSize = 10u;
   sync_keyframe_ = std::make_unique<message_filters::Synchronizer<keyframe_sync_policy>>(
@@ -43,19 +36,26 @@ void Subscriber::setNodeHandle(ros::NodeHandle& nh) {
       keyframe_pose_subscriber_,
       keyframe_points_subscriber_,
       svin_health_subscriber_);
-  sync_keyframe_->registerCallback(boost::bind(&Subscriber::keyframeCallback, this, _1, _2, _3, _4));
+  sync_keyframe_->registerCallback(std::bind(&Subscriber::keyframeCallback,
+                                             this,
+                                             std::placeholders::_1,
+                                             std::placeholders::_2,
+                                             std::placeholders::_3,
+                                             std::placeholders::_4));
 
   if (params_.global_mapping_params_.enabled) {
-    sub_orig_image_ =
-        it_->subscribe(raw_image_topic_, 100, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
+    sub_orig_image_ = node_->create_subscription<sensor_msgs::msg::Image>(
+        raw_image_topic_, 100, std::bind(&Subscriber::imageCallback, this, std::placeholders::_1));
   }
   if (params_.health_params_.enabled) {
-    sub_primitive_estimator_ =
-        nh_->subscribe(primitive_estimator_topic_, 100, &Subscriber::primitiveEstimatorCallback, this);
+    sub_primitive_estimator_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+        primitive_estimator_topic_,
+        100,
+        std::bind(&Subscriber::primitiveEstimatorCallback, this, std::placeholders::_1));
   }
 }
 
-void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& msg) {
+void Subscriber::primitiveEstimatorCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg) {
   if (!primitive_estimator_callback_ && params_.health_params_.enabled) {
     LOG_EVERY_N(ERROR, 100) << "Primitive estimator callback not set";
   } else if (primitive_estimator_callback_) {
@@ -63,15 +63,15 @@ void Subscriber::primitiveEstimatorCallback(const nav_msgs::OdometryConstPtr& ms
     cv::Mat cv_pose;
     cv::eigen2cv(pose, cv_pose);
     auto pose_with_timestamp =
-        std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(msg->header.stamp.toNSec(), cv_pose));
+        std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(msg->header.stamp.nanosec, cv_pose));
     primitive_estimator_callback_(std::move(pose_with_timestamp));
   }
 }
 
-void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& image_msg) {
+void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr image_msg) {
   cv::Mat image = UtilsOpenCV::readRosImage(image_msg, false);
   auto image_with_timestamp =
-      std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(image_msg->header.stamp.toNSec(), image));
+      std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(image_msg->header.stamp.nanosec, image));
   // raw image callback is not compulsory
   if (raw_image_callback_) {
     raw_image_callback_(std::move(image_with_timestamp));
@@ -80,11 +80,11 @@ void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& image_msg) {
   }
 }
 
-nav_msgs::OdometryConstPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t& ros_stamp) {
-  nav_msgs::OdometryConstPtr prim_estimator_pose = nullptr;
+nav_msgs::msg::Odometry::ConstSharedPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t& ros_stamp) {
+  nav_msgs::msg::Odometry::ConstSharedPtr prim_estimator_pose = nullptr;
   // 25ms sync period while using primitive estimator publish rate of 20Hz
   while (!prim_estimator_odom_buffer_.empty() &&
-         prim_estimator_odom_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 25000000)) {
+         prim_estimator_odom_buffer_.front()->header.stamp.nanosec < (ros_stamp - 25000000)) {
     prim_estimator_pose = prim_estimator_odom_buffer_.front();
     prim_estimator_odom_buffer_.pop();
   }
@@ -97,12 +97,13 @@ nav_msgs::OdometryConstPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t&
   return prim_estimator_pose;
 }
 
-void Subscriber::getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vector<nav_msgs::OdometryConstPtr>& poses) {
-  nav_msgs::OdometryConstPtr prim_estimator_pose = nullptr;
+void Subscriber::getPrimitiveEstimatorPoses(const uint64_t& ros_stamp,
+                                            std::vector<nav_msgs::msg::Odometry::ConstSharedPtr>& poses) {
+  nav_msgs::msg::Odometry::ConstSharedPtr prim_estimator_pose = nullptr;
   // 25ms sync period while using primitive estimator publish rate of 20Hz
 
   while (!prim_estimator_odom_buffer_.empty() &&
-         prim_estimator_odom_buffer_.front()->header.stamp.toNSec() < (ros_stamp - 25000000)) {
+         prim_estimator_odom_buffer_.front()->header.stamp.nanosec < (ros_stamp - 25000000)) {
     prim_estimator_odom_buffer_.pop();
   }
 
@@ -112,16 +113,16 @@ void Subscriber::getPrimitiveEstimatorPoses(const uint64_t& ros_stamp, std::vect
   }
 }
 
-void Subscriber::keyframeCallback(const sensor_msgs::ImageConstPtr& kf_image_msg,
-                                  const nav_msgs::OdometryConstPtr& kf_odom,
-                                  const sensor_msgs::PointCloudConstPtr& kf_points,
-                                  const okvis_ros::SvinHealthConstPtr& svin_health) {
-  TrackingInfo tracking_info(kf_odom->header.stamp.toNSec(),
-                             svin_health->numTrackedKps,
-                             svin_health->newKps,
-                             svin_health->kpsPerQuadrant,
+void Subscriber::keyframeCallback(const sensor_msgs::msg::Image::ConstSharedPtr kf_image_msg,
+                                  const nav_msgs::msg::Odometry::ConstSharedPtr kf_odom,
+                                  const sensor_msgs::msg::PointCloud::ConstSharedPtr kf_points,
+                                  const okvis_ros::msg::SvinHealth::ConstSharedPtr svin_health) {
+  TrackingInfo tracking_info(kf_odom->header.stamp.nanosec,
+                             svin_health->num_tracked_kps,
+                             svin_health->new_kps,
+                             svin_health->kps_per_quadrant,
                              svin_health->covisibilities,
-                             svin_health->responseStrengths,
+                             svin_health->response_strengths,
                              svin_health->quality);
 
   Eigen::Vector3d translation =

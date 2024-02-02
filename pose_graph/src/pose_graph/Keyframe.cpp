@@ -1,7 +1,5 @@
 #include "pose_graph/Keyframe.h"
 
-#include <sensor_msgs/PointCloud.h>
-
 #include <map>
 #include <memory>
 #include <string>
@@ -609,6 +607,6 @@ BriefExtractor::BriefExtractor(const std::string& pattern_file) {
   m_brief.importPairs(x1, y1, x2, y2);
 }
 
-void Keyframe::setRelocalizationPCLCallback(const PointCloudCallback& pcl_callback) {
-  relocalization_pcl_callback_ = pcl_callback;
-}
+// void Keyframe::setRelocalizationPCLCallback(const PointCloudCallback& pcl_callback) {
+//   relocalization_pcl_callback_ = pcl_callback;
+// }

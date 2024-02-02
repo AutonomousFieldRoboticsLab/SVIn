@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 
 #include <algorithm>
+#include <iomanip>
 #include <numeric>
 
 SwitchingEstimator::SwitchingEstimator(Parameters& params) {

@@ -2,7 +2,6 @@
 
 #include <Eigen/Core>
 #include <deque>
-
 #include "common/Definitions.h"
 #include "pose_graph/Parameters.h"
 /*

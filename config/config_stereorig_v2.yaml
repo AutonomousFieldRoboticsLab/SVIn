@@ -120,7 +120,6 @@ publishing_options:
 #Sharmin
 isSonarUsed: false
 isDepthUsed: false
-isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
 claheClipLimit: 1.0
 claheTilesGridSize: 4
@@ -131,8 +130,13 @@ resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the or
 loop_closure_params:
     enable: 1  
     min_correspondences: 25 #Minimum 2D to 3D correspondences required for loop closure
+    #decrease for more loop closure, might result in false loop closure (20 to 40)
     pnp_reprojection_threshold: 20.0 #Reprojection threshold for PnP RANSAC
+    #increase for more loop closure, might result in false loop closure (8 to 30)
     pnp_ransac_iterations: 100  #Number of iterations for PnP RANSAC
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
 
 health:
     enable: 0
@@ -145,6 +149,6 @@ global_map_params:
     enable: 0
     min_landmark_quality: 0.01
 
-debug:
-    enable: 1
-    output_dir: /home/bjoshi/ros_workspaces/svin_ws/src/SVIn/pose_graph/debug_output
+output_params:
+    debug: 1
+    output_dir: /home/bjoshi/ros_ws/svin_ws/src/SVIn/pose_graph

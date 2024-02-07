@@ -42,8 +42,8 @@
  * @author Andreas Forster
  */
 
-#include <cv_bridge/cv_bridge.h>          // Sharmin
-#include <imagenex831l/ProcessedRange.h>  // Sharmin
+#include <cv_bridge/cv_bridge.h>  // Sharmin
+// #include <imagenex831l/ProcessedRange.h>  // Sharmin
 #include <stdlib.h>
 
 #include <fstream>
@@ -52,29 +52,27 @@
 #include <memory>
 #include <opencv2/highgui/highgui.hpp>  // Sharmin
 // #include <depth_node_py/Depth.h>  // Sharmin
-#include <string>
-#include <vector>
-
-#include "sensor_msgs/Imu.h"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <image_transport/image_transport.h>
-#include <ros/ros.h>
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#include <opencv2/opencv.hpp>
-#pragma GCC diagnostic pop
+
 #include <okvis/Publisher.hpp>
 #include <okvis/RosParametersReader.hpp>
 #include <okvis/Subscriber.hpp>
 #include <okvis/ThreadedKFVio.hpp>
-
-#include "rosbag/bag.h"
-#include "rosbag/chunked_file.h"
-#include "rosbag/view.h"
+#include <opencv2/opencv.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rosbag2_cpp/reader.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <string>
+#include <vector>
+// #include "rosbag/chunked_file.h"
+// #include "rosbag/view.h"
 
 // this is just a workbench. most of the stuff here will go into the Frontend class.
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "okvis_node_synchronous");
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  options.allow_undeclared_parameters(true);
+  options.automatically_declare_parameters_from_overrides(true);
 
   google::InitGoogleLogging(argv[0]);
   FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
@@ -91,10 +89,10 @@ int main(int argc, char** argv) {
   }
 
   // set up the node
-  ros::NodeHandle nh("okvis_node");
+  auto node = std::make_shared<rclcpp::Node>("okvis_node", options);
 
   // publisher
-  okvis::Publisher publisher(nh);
+  okvis::Publisher publisher(node);
 
   // read configuration file
   std::string configFilename(argv[1]);
@@ -106,6 +104,12 @@ int main(int argc, char** argv) {
   okvis::ThreadedKFVio okvis_estimator(parameters);
 
   // okvis_estimator.setFullStateCallback(std::bind(&okvis::Publisher::publishFullStateAsCallback,&publisher,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3,std::placeholders::_4));
+  okvis_estimator.setFullStateCallback(std::bind(&okvis::Publisher::publishFullStateAsCallback,
+                                                 &publisher,
+                                                 std::placeholders::_1,
+                                                 std::placeholders::_2,
+                                                 std::placeholders::_3,
+                                                 std::placeholders::_4));
   okvis_estimator.setLandmarksCallback(std::bind(&okvis::Publisher::publishLandmarksAsCallback,
                                                  &publisher,
                                                  std::placeholders::_1,
@@ -113,6 +117,12 @@ int main(int argc, char** argv) {
                                                  std::placeholders::_3));
   okvis_estimator.setStateCallback(
       std::bind(&okvis::Publisher::publishStateAsCallback, &publisher, std::placeholders::_1, std::placeholders::_2));
+  okvis_estimator.setKeyframeCallback(std::bind(&okvis::Publisher::publishKeyframeAsCallback,
+                                                &publisher,
+                                                std::placeholders::_1,
+                                                std::placeholders::_2,
+                                                std::placeholders::_3,
+                                                std::placeholders::_4));
   okvis_estimator.setBlocking(true);
   publisher.setParameters(parameters);  // pass the specified publishing stuff
 
@@ -142,7 +152,8 @@ int main(int argc, char** argv) {
   }
 
   // open the bag
-  rosbag::Bag bag(argv[2], rosbag::bagmode::Read);
+  rosbag2_cpp::Reader bag_reader;
+  bag_reader.open(argv[2]);
   // views on topics. the slash is needs to be correct, it's ridiculous...
   // std::string imu_topic("/imu/data");  // Sharmin: for husky mono
   std::string imu_topic("/imu/imu");  // Sharmin: for stereo rig
@@ -155,12 +166,12 @@ int main(int argc, char** argv) {
   LOG(INFO) << "No. IMU messages: " << view_imu.size();
 
   // Sharmin: For Sonar
-  std::string sonar_topic("/imagenex831l/range");  // Sharmin: for stereo rig
-  rosbag::View view_sonar(bag, rosbag::TopicQuery(sonar_topic));
-  if (view_sonar.size() == 0) {
-    LOG(ERROR) << "no Sonar topic";
-    return -1;
-  }
+  // std::string sonar_topic("/imagenex831l/range");  // Sharmin: for stereo rig
+  // rosbag::View view_sonar(bag, rosbag::TopicQuery(sonar_topic));
+  // if (view_sonar.size() == 0) {
+  //   LOG(ERROR) << "no Sonar topic";
+  //   return -1;
+  // }
   rosbag::View::iterator view_sonar_iterator = view_sonar.begin();
   LOG(INFO) << "No. Sonar messages: " << view_sonar.size();
 
@@ -208,25 +219,25 @@ int main(int argc, char** argv) {
 
     // check if at the end
     // Sharmin
-    if (view_sonar_iterator == view_sonar.end()) {
-      std::cout << std::endl << "Finished. Press any key to exit." << std::endl << std::flush;
-      char k = 0;
-      while (k == 0 && ros::ok()) {
-        k = cv::waitKey(1);
-        ros::spinOnce();
-      }
-      return 0;
-    }
-    // Sharmin
-    if (view_depth_iterator == view_depth.end()) {
-      std::cout << std::endl << "Finished. Press any key to exit." << std::endl << std::flush;
-      char k = 0;
-      while (k == 0 && ros::ok()) {
-        k = cv::waitKey(1);
-        ros::spinOnce();
-      }
-      return 0;
-    }
+    // if (view_sonar_iterator == view_sonar.end()) {
+    //   std::cout << std::endl << "Finished. Press any key to exit." << std::endl << std::flush;
+    //   char k = 0;
+    //   while (k == 0 && ros::ok()) {
+    //     k = cv::waitKey(1);
+    //     ros::spinOnce();
+    //   }
+    //   return 0;
+    // }
+    // // Sharmin
+    // if (view_depth_iterator == view_depth.end()) {
+    //   std::cout << std::endl << "Finished. Press any key to exit." << std::endl << std::flush;
+    //   char k = 0;
+    //   while (k == 0 && ros::ok()) {
+    //     k = cv::waitKey(1);
+    //     ros::spinOnce();
+    //   }
+    //   return 0;
+    // }
 
     if (view_imu_iterator == view_imu.end()) {
       std::cout << std::endl << "Finished. Press any key to exit." << std::endl << std::flush;
@@ -271,35 +282,34 @@ int main(int argc, char** argv) {
 
       // Sharmin
       // get all Sonar measurements till then
-      okvis::Time t_sonar = start;
-      do {
-        imagenex831l::ProcessedRange::ConstPtr msg = view_sonar_iterator->instantiate<imagenex831l::ProcessedRange>();
-        double rangeResolution = msg->max_range / msg->intensity.size();
-        int max = 0;
-        int maxIndex = 0;
+      // okvis::Time t_sonar = start;
+      // do {
+      //   imagenex831l::ProcessedRange::ConstPtr msg =
+      //   view_sonar_iterator->instantiate<imagenex831l::ProcessedRange>(); double rangeResolution = msg->max_range /
+      //   msg->intensity.size(); int max = 0; int maxIndex = 0;
 
-        // @Sharmin: Discarding few measurements as range was set too high during data collection
-        for (unsigned int ui = 0; ui < msg->intensity.size() - 150; ui++) {
-          if (msg->intensity[ui] > max) {
-            max = msg->intensity[ui];
-            maxIndex = ui;
-          }
-        }
+      //   // @Sharmin: Discarding few measurements as range was set too high during data collection
+      //   for (unsigned int ui = 0; ui < msg->intensity.size() - 150; ui++) {
+      //     if (msg->intensity[ui] > max) {
+      //       max = msg->intensity[ui];
+      //       maxIndex = ui;
+      //     }
+      //   }
 
-        double range = (maxIndex + 1) * rangeResolution;
-        double heading = (msg->head_position * M_PI) / 180;
+      //   double range = (maxIndex + 1) * rangeResolution;
+      //   double heading = (msg->head_position * M_PI) / 180;
 
-        t_sonar = okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec);
+      //   t_sonar = okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec);
 
-        // add the Sonar measurement for (blocking) processing
-        if (t_sonar - start > deltaT) {
-          if (range < 4.5 && max > 10) {
-            okvis_estimator.addSonarMeasurement(t_sonar, range, heading);
-          }
-        }
+      //   // add the Sonar measurement for (blocking) processing
+      //   if (t_sonar - start > deltaT) {
+      //     if (range < 4.5 && max > 10) {
+      //       okvis_estimator.addSonarMeasurement(t_sonar, range, heading);
+      //     }
+      //   }
 
-        view_sonar_iterator++;
-      } while (view_sonar_iterator != view_sonar.end() && t_sonar <= t);
+      //   view_sonar_iterator++;
+      // } while (view_sonar_iterator != view_sonar.end() && t_sonar <= t);
 
       // Sharmin
       // get all Depth measurements till then

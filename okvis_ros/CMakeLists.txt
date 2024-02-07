@@ -125,21 +125,23 @@ rosidl_target_interfaces(okvis_node ${PROJECT_NAME} rosidl_typesupport_cpp)
 install(TARGETS okvis_node DESTINATION lib/${PROJECT_NAME})
 
 # add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
-# ament_target_dependencies(okvis_node ${ament_libraries})
+# ament_target_dependencies(okvis_node_synchronous ${ament_libraries})
 # target_link_libraries(okvis_node_synchronous ${PROJECT_NAME}_lib )
+# rosidl_target_interfaces(okvis_node_synchronous ${PROJECT_NAME} rosidl_typesupport_cpp) 
 # install(TARGETS okvis_node_synchronous DESTINATION lib/${PROJECT_NAME})
 
 # add_executable(dataset_convertor src/dataset_convertor.cpp)
 # target_link_libraries(dataset_convertor ${PROJECT_NAME}_lib )
 # install(TARGETS dataset_convertor DESTINATION lib/${PROJECT_NAME})
 
-# add_executable(stereo_sync src/stereo_sync.cpp)
-# ament_target_dependencies(okvis_node ${ament_libraries})
-# target_link_libraries(stereo_sync ${catkin_LIBRARIES} ${PROJECT_NAME}_lib)
-# install(TARGETS stereo_sync DESTINATION lib/${PROJECT_NAME})
+add_executable(stereo_sync src/stereo_sync.cpp)
+ament_target_dependencies(stereo_sync ${ament_libraries})
+install(TARGETS stereo_sync DESTINATION lib/${PROJECT_NAME})
 
+
+#All the necessary files in relative path needs to be copied to the install directory
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
-install(DIRECTORY okvis/config/ DESTINATION share/${PROJECT_NAME}/okvis/config/)
-install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)
+install(DIRECTORY ../config/ DESTINATION share/${PROJECT_NAME}/config/)
+install(DIRECTORY ../rviz_config/ DESTINATION share/${PROJECT_NAME}/rviz_config/)
 
 ament_package()

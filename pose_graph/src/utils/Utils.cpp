@@ -76,3 +76,7 @@ rclcpp::Time Utils::toRosTime(const Timestamp t) {
   uint32_t sec_part = static_cast<uint64_t>(t) / 1000000000UL;
   return rclcpp::Time(sec_part, nsec_part);
 }
+
+Timestamp Utils::getHeaderStamp(const std_msgs::msg::Header& header) {
+  return header.stamp.sec * 1000000000UL + header.stamp.nanosec;
+}

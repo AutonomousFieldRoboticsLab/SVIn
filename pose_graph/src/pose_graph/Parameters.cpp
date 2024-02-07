@@ -2,7 +2,9 @@
 
 #include <glog/logging.h>
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <boost/filesystem.hpp>
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -35,14 +37,12 @@ void Parameters::loadParameters(const std::string& config_file) {
 
   camera_visual_size_ = fsSettings["visualize_camera_size"];
 
-  std::string pkg_path;
+  std::string pkg_share_dir = ament_index_cpp::get_package_share_directory("pose_graph");
 
-  // = ros::package::getPath("pose_graph");
-
-  vocabulary_file_ = pkg_path + "/Vocabulary/brief_k10L6.bin";
+  vocabulary_file_ = pkg_share_dir + "/Vocabulary/brief_k10L6.bin";
   std::cout << "vocabulary_file" << vocabulary_file_ << std::endl;
 
-  brief_pattern_file_ = pkg_path + "/Vocabulary/brief_pattern.yml";
+  brief_pattern_file_ = pkg_share_dir + "/Vocabulary/brief_pattern.yml";
 
   if (fsSettings["loop_closure_params"]["enable"].isInt()) {
     loop_closure_params_.enabled = static_cast<int>(fsSettings["loop_closure_params"]["enable"]);
@@ -70,15 +70,12 @@ void Parameters::loadParameters(const std::string& config_file) {
     }
   }
 
-  if (fsSettings["debug"]["enable"].isInt()) {
-    debug_mode_ = static_cast<int>(fsSettings["debug"]["enable"]);
-    if (fsSettings["debug"]["output_dir"].isString()) {
-      debug_output_path_ = static_cast<std::string>(fsSettings["debug"]["output_dir"]);
-      LOG(INFO) << "Debug output folder: " << debug_output_path_;
-    } else {
-      LOG(WARNING) << "Could not found output folder for debug images.";
-      LOG(WARNING) << "setting debug mode to false";
-      debug_mode_ = false;
+  if (fsSettings["output_params"]["output_dir"].isString()) {
+    output_path_ = static_cast<std::string>(fsSettings["output_params"]["output_dir"]);
+    debug_output_path_ = output_path_ + "/debug_output";
+    LOG(INFO) << "Output folder: " << output_path_;
+    if (fsSettings["output_params"]["debug"].isInt()) {
+      debug_mode_ = static_cast<int>(fsSettings["output_params"]["debug"]);
     }
   }
 
@@ -122,9 +119,9 @@ void Parameters::loadParameters(const std::string& config_file) {
 
   fast_relocalization_ = fsSettings["fast_relocalization"];
 
-  std::string results_path = pkg_path + "/svin_results/";
-  if (!boost::filesystem::exists(results_path)) {
-    boost::filesystem::create_directory(results_path);
+  std::string results_path = output_path_ + "/svin_results/";
+  if (!std::filesystem::exists(results_path)) {
+    std::filesystem::create_directory(results_path);
   }
   svin_w_loop_path_ = results_path + "svin_" + Utils::getTimeStr() + ".txt";
 

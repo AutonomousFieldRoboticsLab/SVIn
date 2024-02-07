@@ -140,4 +140,5 @@ class Utils {
 
   static std::string healthMsgToString(const okvis_ros::msg::SvinHealth::ConstSharedPtr health);
   static rclcpp::Time toRosTime(const Timestamp t);
+  static Timestamp getHeaderStamp(const std_msgs::msg::Header& header);
 };

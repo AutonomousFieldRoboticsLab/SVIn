@@ -226,22 +226,20 @@ int PoseGraph::detectLoop(Keyframe* keyframe, int frame_index) {
 void PoseGraph::optimize4DoFPoseGraph() {
   while (true) {
     int cur_index = -1;
-    int first_looped_index = -1;
 
     {
       std::lock_guard<std::mutex> l(optimizationMutex_);
       while (!optimizationBuffer_.empty()) {
         cur_index = optimizationBuffer_.front();
-        first_looped_index = earliest_loop_index;
         optimizationBuffer_.pop();
       }
     }
     if (cur_index != -1) {
       ceres::Problem problem;
       ceres::Solver::Options options;
-      options.linear_solver_type = ceres::SPARSE_SCHUR;
-      options.max_num_iterations = 5;
-      options.trust_region_strategy_type = ceres::DOGLEG;
+      options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;
+      options.max_num_iterations = 10;
+      // options.trust_region_strategy_type = ceres::DOGLEG;
       options.logging_type = ceres::SILENT;
       options.minimizer_progress_to_stdout = false;
 
@@ -265,7 +263,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
 
       int i = 0;
       for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
-        if ((*it)->index < first_looped_index) continue;
+        if ((*it)->index < earliest_loop_index) continue;
         (*it)->local_index = i;
         Eigen::Quaterniond tmp_q;
         Eigen::Matrix3d tmp_r;
@@ -287,7 +285,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
         problem.AddParameterBlock(euler_array[i], 1, angle_manifold);
         problem.AddParameterBlock(t_array[i], 3);
 
-        if ((*it)->index == first_looped_index) {
+        if ((*it)->index <= earliest_loop_index) {
           problem.SetParameterBlockConstant(euler_array[i]);
           problem.SetParameterBlockConstant(t_array[i]);
         }
@@ -316,7 +314,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
         // add loop edge
 
         if ((*it)->has_loop) {
-          assert((*it)->loop_index >= first_looped_index);
+          assert((*it)->loop_index >= earliest_loop_index);
           int connected_index = getKFPtr((*it)->loop_index)->local_index;
           Eigen::Vector3d euler_conncected = Utils::R2ypr(q_array[connected_index].toRotationMatrix());
           Eigen::Vector3d relative_t;
@@ -343,7 +341,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
         std::lock_guard<std::mutex> l(kflistMutex_);
         i = 0;
         for (it = keyframelist.begin(); it != keyframelist.end(); it++) {
-          if ((*it)->index < first_looped_index) continue;
+          if ((*it)->index < earliest_loop_index) continue;
           Eigen::Quaterniond tmp_q;
           tmp_q = Utils::ypr2R(Eigen::Vector3d(euler_array[i][0], euler_array[i][1], euler_array[i][2]));
           Eigen::Vector3d tmp_t = Eigen::Vector3d(t_array[i][0], t_array[i][1], t_array[i][2]);
@@ -474,9 +472,6 @@ void PoseGraph::optimize6DoFPoseGraph() {
                                      q_array[i - j].coeffs().data(),
                                      t_array[i].data(),
                                      q_array[i].coeffs().data());
-
-            // problem.SetManifold(q_array[i - j].coeffs().data(), quaternion_local_parameterization);
-            // problem.SetManifold(q_array[i].coeffs().data(), quaternion_local_parameterization);
           }
         }
 
@@ -497,9 +492,6 @@ void PoseGraph::optimize6DoFPoseGraph() {
                                    q_array[connected_index].coeffs().data(),
                                    t_array[i].data(),
                                    q_array[i].coeffs().data());
-
-          // problem.SetManifold(q_array[connected_index].coeffs().data(), quaternion_local_parameterization);
-          // problem.SetManifold(q_array[i].coeffs().data(), quaternion_local_parameterization);
         }
 
         if ((*it)->index == cur_index) break;

@@ -128,7 +128,7 @@ find_package(METIS QUIET)
 
 if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-  find_package( Ceres 2 REQUIRED )
+  find_package( Ceres 2.1 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
   message(STATUS "Using system Ceres.")
 else()

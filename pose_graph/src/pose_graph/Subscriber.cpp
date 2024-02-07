@@ -12,11 +12,11 @@
 
 Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node, Parameters& params) : node_(node), params_(params) {
   // TODO(bjoshi): pass as params from roslaunch file
-  kf_image_topic_ = "/okvis_node/keyframe_imageL";
-  kf_pose_topic_ = "/okvis_node/keyframe_pose";
-  kf_points_topic_ = "/okvis_node/keyframe_points";
-  svin_reloc_odom_topic_ = "/okvis_node/relocalization_odometry";
-  svin_health_topic_ = "/okvis_node/svin_health";
+  kf_image_topic_ = "/keyframe_imageL";
+  kf_pose_topic_ = "/keyframe_pose";
+  kf_points_topic_ = "/keyframe_points";
+  svin_reloc_odom_topic_ = "/relocalization_odometry";
+  svin_health_topic_ = "/svin_health";
   primitive_estimator_topic_ = "/aqua_primitive_estimator/odometry";
   last_image_time_ = -1;
   raw_image_topic_ = "/cam0/image_raw";
@@ -63,7 +63,7 @@ void Subscriber::primitiveEstimatorCallback(const nav_msgs::msg::Odometry::Const
     cv::Mat cv_pose;
     cv::eigen2cv(pose, cv_pose);
     auto pose_with_timestamp =
-        std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(msg->header.stamp.nanosec, cv_pose));
+        std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(Utils::getHeaderStamp(msg->header), cv_pose));
     primitive_estimator_callback_(std::move(pose_with_timestamp));
   }
 }
@@ -71,7 +71,7 @@ void Subscriber::primitiveEstimatorCallback(const nav_msgs::msg::Odometry::Const
 void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr image_msg) {
   cv::Mat image = UtilsOpenCV::readRosImage(image_msg, false);
   auto image_with_timestamp =
-      std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(image_msg->header.stamp.nanosec, image));
+      std::make_unique<std::pair<Timestamp, cv::Mat>>(std::make_pair(Utils::getHeaderStamp(image_msg->header), image));
   // raw image callback is not compulsory
   if (raw_image_callback_) {
     raw_image_callback_(std::move(image_with_timestamp));
@@ -80,11 +80,11 @@ void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr ima
   }
 }
 
-nav_msgs::msg::Odometry::ConstSharedPtr Subscriber::getPrimitiveEstimatorPose(const uint64_t& ros_stamp) {
+nav_msgs::msg::Odometry::ConstSharedPtr Subscriber::getPrimitiveEstimatorPose(const int64_t& ros_stamp) {
   nav_msgs::msg::Odometry::ConstSharedPtr prim_estimator_pose = nullptr;
   // 25ms sync period while using primitive estimator publish rate of 20Hz
   while (!prim_estimator_odom_buffer_.empty() &&
-         prim_estimator_odom_buffer_.front()->header.stamp.nanosec < (ros_stamp - 25000000)) {
+         Utils::getHeaderStamp(prim_estimator_odom_buffer_.front()->header) < (ros_stamp - 25000000)) {
     prim_estimator_pose = prim_estimator_odom_buffer_.front();
     prim_estimator_odom_buffer_.pop();
   }
@@ -97,13 +97,13 @@ nav_msgs::msg::Odometry::ConstSharedPtr Subscriber::getPrimitiveEstimatorPose(co
   return prim_estimator_pose;
 }
 
-void Subscriber::getPrimitiveEstimatorPoses(const uint64_t& ros_stamp,
+void Subscriber::getPrimitiveEstimatorPoses(const int64_t& ros_stamp,
                                             std::vector<nav_msgs::msg::Odometry::ConstSharedPtr>& poses) {
   nav_msgs::msg::Odometry::ConstSharedPtr prim_estimator_pose = nullptr;
   // 25ms sync period while using primitive estimator publish rate of 20Hz
 
   while (!prim_estimator_odom_buffer_.empty() &&
-         prim_estimator_odom_buffer_.front()->header.stamp.nanosec < (ros_stamp - 25000000)) {
+         Utils::getHeaderStamp(prim_estimator_odom_buffer_.front()->header) < (ros_stamp - 25000000)) {
     prim_estimator_odom_buffer_.pop();
   }
 
@@ -117,7 +117,7 @@ void Subscriber::keyframeCallback(const sensor_msgs::msg::Image::ConstSharedPtr 
                                   const nav_msgs::msg::Odometry::ConstSharedPtr kf_odom,
                                   const sensor_msgs::msg::PointCloud::ConstSharedPtr kf_points,
                                   const okvis_ros::msg::SvinHealth::ConstSharedPtr svin_health) {
-  TrackingInfo tracking_info(kf_odom->header.stamp.nanosec,
+  TrackingInfo tracking_info(Utils::getHeaderStamp(kf_odom->header),
                              svin_health->num_tracked_kps,
                              svin_health->new_kps,
                              svin_health->kps_per_quadrant,
@@ -188,6 +188,6 @@ void Subscriber::keyframeCallback(const sensor_msgs::msg::Image::ConstSharedPtr 
 
     keyframe_callback_(std::move(keyframe_info));
   } else {
-    // LOG(WARNING) << "Skipping keyframe. Does not contain any triangulated points.";
+    LOG(WARNING) << "Skipping keyframe. Does not contain any triangulated points.";
   }
 }

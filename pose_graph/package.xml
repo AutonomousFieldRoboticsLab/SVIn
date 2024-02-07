@@ -11,8 +11,9 @@
   <maintainer email="bjoshi@email.sc.edu">Bharat Joshi</maintainer>
   <license>BSD</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
+  <depend>ament_index_cpp</depend>
   <depend>okvis_ros</depend>
   <depend>rclcpp</depend>
   <depend>pcl_ros</depend>

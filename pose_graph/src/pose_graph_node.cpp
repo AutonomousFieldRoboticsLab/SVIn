@@ -1,7 +1,7 @@
 
 #include <glog/logging.h>
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <rclcpp/rclcpp.hpp>
 
 #include "pose_graph/LoopClosure.h"
@@ -11,48 +11,48 @@
 
 void setupOutputLogDirectories(const std::string base_path) {
   std::string output_dir = base_path + "/loop_candidates/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directories(output_dir);
+  if (!std::filesystem::is_directory(output_dir) || !std::filesystem::exists(output_dir)) {
+    std::filesystem::create_directories(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
+  for (const auto& entry : std::filesystem::directory_iterator(output_dir)) {
+    std::filesystem::remove_all(entry.path());
   }
 
   output_dir = base_path + "/descriptor_matched/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directories(output_dir);
+  if (!std::filesystem::is_directory(output_dir) || !std::filesystem::exists(output_dir)) {
+    std::filesystem::create_directories(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
+  for (const auto& entry : std::filesystem::directory_iterator(output_dir)) {
+    std::filesystem::remove_all(entry.path());
   }
 
   output_dir = base_path + "/pnp_verified/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directories(output_dir);
+  if (!std::filesystem::is_directory(output_dir) || !std::filesystem::exists(output_dir)) {
+    std::filesystem::create_directories(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
+  for (const auto& entry : std::filesystem::directory_iterator(output_dir)) {
+    std::filesystem::remove_all(entry.path());
   }
 
   output_dir = base_path + "/loop_closure/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directories(output_dir);
+  if (!std::filesystem::is_directory(output_dir) || !std::filesystem::exists(output_dir)) {
+    std::filesystem::create_directories(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
+  for (const auto& entry : std::filesystem::directory_iterator(output_dir)) {
+    std::filesystem::remove_all(entry.path());
   }
 
   output_dir = base_path + "/geometric_verification/";
-  if (!boost::filesystem::is_directory(output_dir) || !boost::filesystem::exists(output_dir)) {
-    boost::filesystem::create_directories(output_dir);
+  if (!std::filesystem::is_directory(output_dir) || !std::filesystem::exists(output_dir)) {
+    std::filesystem::create_directories(output_dir);
   }
-  for (const auto& entry : boost::filesystem::directory_iterator(output_dir)) {
-    boost::filesystem::remove_all(entry.path());
+  for (const auto& entry : std::filesystem::directory_iterator(output_dir)) {
+    std::filesystem::remove_all(entry.path());
   }
 
   std::string loop_closure_file = base_path + "/loop_closure.txt";
-  if (boost::filesystem::exists(loop_closure_file)) {
-    boost::filesystem::remove(loop_closure_file);
+  if (std::filesystem::exists(loop_closure_file)) {
+    std::filesystem::remove(loop_closure_file);
   }
   std::ofstream loop_path_file(loop_closure_file, std::ios::out);
   loop_path_file << "cur_kf_id"
@@ -77,8 +77,8 @@ void setupOutputLogDirectories(const std::string base_path) {
   loop_path_file.close();
 
   std::string switch_info_file = base_path + "/switch_info.txt";
-  if (boost::filesystem::exists(switch_info_file)) {
-    boost::filesystem::remove(switch_info_file);
+  if (std::filesystem::exists(switch_info_file)) {
+    std::filesystem::remove(switch_info_file);
   }
   std::ofstream switch_info_file_stream(switch_info_file, std::ios::out);
   switch_info_file_stream << "type"
@@ -97,21 +97,18 @@ int main(int argc, char** argv) {
   options.allow_undeclared_parameters(true);
   options.automatically_declare_parameters_from_overrides(true);
 
-  auto node = std::make_shared<rclcpp::Node>("pose_graph_node", options);
+  auto node = std::make_shared<rclcpp::Node>("pose_graph_node");
 
-  // Initialize Google's flags library.
-  google::ParseCommandLineFlags(&argc, &argv, true);
   // Initialize Google's logging library.
   google::InitGoogleLogging(argv[0]);
 
-  FLAGS_stderrthreshold = 1;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
+  FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
   FLAGS_colorlogtostderr = 1;
-  FLAGS_v = 0;
-  // FLAGS_log_prefix = true;
 
   // read parameters
   std::string config_file;
 
+  node->declare_parameter<std::string>("config_file", "");
   node->get_parameter<std::string>("config_file", config_file);
 
   if (config_file.empty()) {
@@ -124,7 +121,7 @@ int main(int argc, char** argv) {
 
   if (params.debug_mode_) {
     setupOutputLogDirectories(params.debug_output_path_);
-    FLAGS_v = 10;
+    FLAGS_v = 0;
   }
 
   auto subscriber = std::make_unique<Subscriber>(node, params);
@@ -171,10 +168,10 @@ int main(int argc, char** argv) {
 
   rclcpp::Time last_print_time = node->now();
 
-  // rclcpp::executors::MultiThreadedExecutor executor;
-  // executor.add_node(node);
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
   while (rclcpp::ok()) {
-    rclcpp::spin_some(node);
+    executor.spin_once();
     if ((node->now() - last_print_time).seconds() > 10.0) {
       last_print_time = node->now();
       LOG(INFO) << utils::Statistics::Print();

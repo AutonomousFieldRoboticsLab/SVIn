@@ -276,9 +276,6 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   success = parseBoolean(file["isDepthUsed"], vioParameters_.sensorList.isDepthUsed);
   OKVIS_ASSERT_TRUE(Exception, success, "'isDepthUsed' parameter missing in configuration file.");
 
-  success = parseBoolean(file["isRelocalization"], vioParameters_.relocParameters.isRelocalization);
-  OKVIS_ASSERT_TRUE(Exception, success, "'isRelocalization' parameter missing in configuration file.");
-
   if (file["histogramMethod"].isString()) {
     std::string histogram_method = static_cast<std::string>(file["histogramMethod"]);
     if (histogram_method == "NONE" || histogram_method == "none") {

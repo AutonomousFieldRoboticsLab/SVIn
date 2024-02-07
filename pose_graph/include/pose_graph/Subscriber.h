@@ -25,13 +25,11 @@ class Subscriber {
 
   ~Subscriber() = default;
 
-  nav_msgs::msg::Odometry::ConstSharedPtr getPrimitiveEstimatorPose(const uint64_t& ros_stamp);
-  void getPrimitiveEstimatorPoses(const uint64_t& ros_stamp,
+  nav_msgs::msg::Odometry::ConstSharedPtr getPrimitiveEstimatorPose(const int64_t& ros_stamp);
+  void getPrimitiveEstimatorPoses(const int64_t& ros_stamp,
                                   std::vector<nav_msgs::msg::Odometry::ConstSharedPtr>& poses);  // NOLINT
 
  private:
-  std::mutex measurement_mutex_;
-
   std::shared_ptr<rclcpp::Node> node_;  // The node handle of the node that will subscribe to the topic.
 
   Parameters params_;  // The parameters of the node.

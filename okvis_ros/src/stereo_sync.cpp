@@ -1,125 +1,128 @@
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
-#include <ros/console.h>
 
-#include <sensor_msgs/msg/CompressedImage.hpp>
-#include <sensor_msgs/msg/Image.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
-typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_img;
-typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage, sensor_msgs::CompressedImage>
-    sync_pol_compressed_img;
+typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image>
+    image_sync_policy;
+typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::CompressedImage,
+                                                        sensor_msgs::msg::CompressedImage>
+    compressed_image_sync_policy;
 
-std::string left_img_topic, right_img_topic;
-std::string left_compressed_img_topic, right_compressed_img_topic;
-bool compressed_image;
-ros::Time previous_stamp(1);
+class StereoSync : public rclcpp::Node {
+ public:
+  StereoSync(const rclcpp::NodeOptions& options) : Node("stereo_sync", options) {
+    previous_stamp_ = rclcpp::Time(0, 0);
 
-ros::Publisher left_img_pub, right_img_pub;
+    this->get_parameter("left_img_topic", left_img_topic_);
+    this->get_parameter("right_img_topic", right_img_topic_);
+    this->get_parameter("compressed", compressed_image_);
 
-void imageCallback(const sensor_msgs::ImageConstPtr& left_msg, const sensor_msgs::ImageConstPtr& right_msg) {
-  ROS_INFO_STREAM_ONCE("Inside stereo image callback");
+    rclcpp::QoS qos(10);
+    auto rmw_qos_profile = qos.get_rmw_qos_profile();
+    static constexpr size_t kImageSynchronizerQueueSize = 10u;
 
-  ros::Time stamp = left_msg->header.stamp + (right_msg->header.stamp - left_msg->header.stamp) * 0.5;
-  std_msgs::Header left_header, right_header;
-  left_header.stamp = stamp;
-  right_header.stamp = stamp;
-  left_header.frame_id = left_msg->header.frame_id;
-  right_header.frame_id = right_msg->header.frame_id;
+    if (compressed_image_) {
+      left_compressed_img_topic_ = left_img_topic_ + "/compressed";
+      right_compressed_img_topic_ = right_img_topic_ + "/compressed";
 
-  if (previous_stamp >= stamp) {
-    return;
+      left_compressed_img_sub_.subscribe(this, left_compressed_img_topic_, rmw_qos_profile);
+      right_compressed_img_sub_.subscribe(this, right_compressed_img_topic_, rmw_qos_profile);
+      compressed_image_synchronizer_ = std::make_unique<message_filters::Synchronizer<compressed_image_sync_policy>>(
+          compressed_image_sync_policy(kImageSynchronizerQueueSize),
+          left_compressed_img_sub_,
+          right_compressed_img_sub_);
+      compressed_image_synchronizer_->registerCallback(
+          std::bind(&StereoSync::compressedImageCallback, this, std::placeholders::_1, std::placeholders::_2));
+    } else {
+      left_img_sub_.subscribe(this, left_img_topic_, rmw_qos_profile);
+      right_img_sub_.subscribe(this, right_img_topic_, rmw_qos_profile);
+      image_synchonizer_ = std::make_unique<message_filters::Synchronizer<image_sync_policy>>(
+          image_sync_policy(kImageSynchronizerQueueSize), left_img_sub_, right_img_sub_);
+      image_synchonizer_->registerCallback(
+          std::bind(&StereoSync::imageCallback, this, std::placeholders::_1, std::placeholders::_2));
+    }
+
+    left_img_pub_ = this->create_publisher<sensor_msgs::msg::Image>("/cam0/image_raw", 100);
+    right_img_pub_ = this->create_publisher<sensor_msgs::msg::Image>("/cam1/image_raw", 100);
   }
 
-  left_img_pub.publish(left_msg);
-  right_img_pub.publish(right_msg);
+ private:
+  std::string left_img_topic_, right_img_topic_;
+  std::string left_compressed_img_topic_, right_compressed_img_topic_;
+  bool compressed_image_;
+  rclcpp::Time previous_stamp_;
+  message_filters::Subscriber<sensor_msgs::msg::Image> left_img_sub_, right_img_sub_;
+  message_filters::Subscriber<sensor_msgs::msg::CompressedImage> left_compressed_img_sub_, right_compressed_img_sub_;
 
-  previous_stamp = stamp;
-}
+  std::unique_ptr<message_filters::Synchronizer<image_sync_policy>> image_synchonizer_;
+  std::unique_ptr<message_filters::Synchronizer<compressed_image_sync_policy>> compressed_image_synchronizer_;
 
-void compressedImageCallback(const sensor_msgs::CompressedImageConstPtr& left_msg,
-                             const sensor_msgs::CompressedImageConstPtr& right_msg) {
-  ROS_INFO_STREAM_ONCE("Inside stereo compressed image callback");
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_img_pub_, right_img_pub_;
 
-  ros::Time stamp = left_msg->header.stamp + (right_msg->header.stamp - left_msg->header.stamp) * 0.5;
-  std_msgs::Header left_header, right_header;
-  left_header.stamp = stamp;
-  right_header.stamp = stamp;
-  left_header.frame_id = left_msg->header.frame_id;
-  right_header.frame_id = right_msg->header.frame_id;
+  void compressedImageCallback(const sensor_msgs::msg::CompressedImage::ConstSharedPtr left_msg,
+                               const sensor_msgs::msg::CompressedImage::ConstSharedPtr right_msg) {
+    RCLCPP_INFO_ONCE(this->get_logger(), "Inside stereo compressed image callback");
 
-  if (previous_stamp >= stamp) {
-    return;
+    rclcpp::Time stamp = rclcpp::Time(left_msg->header.stamp.sec, left_msg->header.stamp.nanosec) +
+                         (rclcpp::Time(right_msg->header.stamp.sec, right_msg->header.stamp.nanosec) -
+                          rclcpp::Time(left_msg->header.stamp.sec, left_msg->header.stamp.nanosec)) *
+                             0.5;
+    std_msgs::msg::Header left_header, right_header;
+    left_header.stamp = stamp;
+    right_header.stamp = stamp;
+    left_header.frame_id = left_msg->header.frame_id;
+    right_header.frame_id = right_msg->header.frame_id;
+
+    if (previous_stamp_ >= stamp) {
+      return;
+    }
+
+    cv_bridge::CvImageConstPtr left_cv_ptr, right_cv_ptr;
+    left_cv_ptr = cv_bridge::toCvCopy(left_msg);
+    right_cv_ptr = cv_bridge::toCvCopy(right_msg);
+
+    left_img_pub_->publish(*left_cv_ptr->toImageMsg());
+    right_img_pub_->publish(*right_cv_ptr->toImageMsg());
+
+    previous_stamp_ = stamp;
   }
 
-  cv_bridge::CvImageConstPtr left_cv_ptr, right_cv_ptr;
-  left_cv_ptr = cv_bridge::toCvCopy(left_msg);
-  right_cv_ptr = cv_bridge::toCvCopy(right_msg);
+  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr left_msg,
+                     const sensor_msgs::msg::Image::ConstSharedPtr right_msg) {
+    RCLCPP_INFO_ONCE(this->get_logger(), "Inside stereo image callback");
 
-  left_img_pub.publish(left_cv_ptr->toImageMsg());
-  right_img_pub.publish(right_cv_ptr->toImageMsg());
+    rclcpp::Time stamp = rclcpp::Time(left_msg->header.stamp.sec, left_msg->header.stamp.nanosec) +
+                         (rclcpp::Time(right_msg->header.stamp.sec, right_msg->header.stamp.nanosec) -
+                          rclcpp::Time(left_msg->header.stamp.sec, left_msg->header.stamp.nanosec)) *
+                             0.5;
+    std_msgs::msg::Header left_header, right_header;
+    left_header.stamp = stamp;
+    right_header.stamp = stamp;
+    left_header.frame_id = left_msg->header.frame_id;
+    right_header.frame_id = right_msg->header.frame_id;
 
-  previous_stamp = stamp;
-}
+    if (previous_stamp_ >= stamp) {
+      return;
+    }
 
-void readParameters(const ros::NodeHandle& nh) {
-  if (!nh.hasParam("left_img_topic")) {
-    ROS_FATAL_STREAM("left_img_topic param not found");
-    exit(1);
-  } else {
-    nh.getParam("left_img_topic", left_img_topic);
+    left_img_pub_->publish(*left_msg);
+    right_img_pub_->publish(*right_msg);
+
+    previous_stamp_ = stamp;
   }
-
-  if (!nh.hasParam("right_img_topic")) {
-    ROS_FATAL_STREAM("right_img_topic not found");
-    exit(1);
-  } else {
-    nh.getParam("left_img_topic", right_img_topic);
-  }
-
-  if (nh.hasParam("compressed")) nh.getParam("compressed", compressed_image);
-
-  if (compressed_image) {
-    left_compressed_img_topic = left_img_topic + "/compressed";
-    right_compressed_img_topic = right_img_topic + "/compressed";
-  }
-}
+};
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "stereo_sync");
-  ros::NodeHandle nh = ros::NodeHandle("~");
-  std::vector<std::string> keys;
-  nh.getParamNames(keys);
-
-  for (auto k : keys) {
-    ROS_INFO_STREAM(k);
-  }
-  readParameters(nh);
-
-  ROS_INFO_STREAM("Left Image Topic: " << left_img_topic);
-  ROS_INFO_STREAM("Right Image Topic: " << right_img_topic);
-
-  message_filters::Subscriber<sensor_msgs::Image> l_img_sub(nh, left_img_topic, 100);
-  message_filters::Subscriber<sensor_msgs::Image> r_img_sub(nh, right_img_topic, 100);
-  message_filters::Subscriber<sensor_msgs::CompressedImage> l_img_compressed_sub(nh, left_compressed_img_topic, 100);
-  message_filters::Subscriber<sensor_msgs::CompressedImage> r_img_compressed_sub(nh, right_compressed_img_topic, 100);
-
-  // Use time synchronizer to make sure we get properly synchronized images
-  message_filters::Synchronizer<sync_pol_img> image_sync(sync_pol_img(25), l_img_sub, r_img_sub);
-  message_filters::Synchronizer<sync_pol_compressed_img> compressed_image_sync(
-      sync_pol_compressed_img(25), l_img_compressed_sub, r_img_compressed_sub);
-
-  left_img_pub = nh.advertise<sensor_msgs::Image>("/cam0/image_raw", 100);
-  right_img_pub = nh.advertise<sensor_msgs::Image>("/cam1/image_raw", 100);
-
-  if (compressed_image) {
-    compressed_image_sync.registerCallback(boost::bind(&compressedImageCallback, _1, _2));
-  } else {
-    image_sync.registerCallback(boost::bind(&imageCallback, _1, _2));
-  }
-
-  ros::spin();
+  rclcpp::init(argc, argv);
+  rclcpp::NodeOptions options;
+  options.allow_undeclared_parameters(true);
+  options.automatically_declare_parameters_from_overrides(true);
+  rclcpp::spin(std::make_shared<StereoSync>(options));
 
   return 0;
 }

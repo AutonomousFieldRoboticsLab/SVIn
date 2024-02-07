@@ -85,11 +85,11 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
   // }
 
   // Sharmin
-  if (vioParameters_.relocParameters.isRelocalization) {
-    std::cout << "Subscribing to /pose_graph/match_points topic" << std::endl;
-    subReloPoints_ = node->create_subscription<sensor_msgs::msg::PointCloud>(
-        "/pose_graph/match_points", 1000, std::bind(&Subscriber::relocCallback, this, std::placeholders::_1));
-  }
+  // if (vioParameters_.relocParameters.isRelocalization) {
+  //   std::cout << "Subscribing to /pose_graph/match_points topic" << std::endl;
+  //   subReloPoints_ = node->create_subscription<sensor_msgs::msg::PointCloud>(
+  //       "/pose_graph/match_points", 1000, std::bind(&Subscriber::relocCallback, this, std::placeholders::_1));
+  // }
 
   tfBuffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);

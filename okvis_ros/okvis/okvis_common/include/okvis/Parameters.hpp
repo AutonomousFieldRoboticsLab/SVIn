@@ -75,11 +75,6 @@ struct HistogramParams {
   int claheTilesGridSize;
 };
 
-// Sharmin: Read from config file
-struct RelocParameters {
-  bool isRelocalization;
-};
-
 /// \brief Struct to define the behavior of the camera extrinsics.
 struct ExtrinsicsEstimationParameters {
   // set to 0 in order to turn off
@@ -359,7 +354,6 @@ struct VioParameters {
   WindParameters wind;                                ///< Wind parameters.
   PublishingParameters publishing;                    ///< Publishing parameters.
   SensorList sensorList;                              ///< Sharmin: which sensors are used
-  RelocParameters relocParameters;                    ///< Sharmin: Relocalization Parameters
   HistogramParams histogramParams;                    ///< Sharmin: CLAHE Parameters
   MiscParams miscParams;                ///< Sharmin: contains misc parameters, e.g. opencv image resize factor
   SonarParameters sonar;                ///< Sharmin: sonar parameters (T_SSo)

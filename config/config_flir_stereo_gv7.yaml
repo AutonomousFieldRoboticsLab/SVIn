@@ -1,0 +1,153 @@
+%YAML:1.0
+
+# Config file with flir stereo cameras and new IMU with Magnetometer (3DMGV7-AHRS)
+# Valid from 08/2023 and beyond
+cameras:
+    - {T_SC:
+       [ 0.01030504,  0.00326659, -0.99994157, -0.03646241,
+        -0.99973207,  0.02076152, -0.01023506,  0.06283929,
+         0.02072687,  0.99977912,  0.00347966,  0.01680684,
+         0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1100],
+       distortion_coefficients: [0.16359430353148227, 0.6463286221097123, 0.0036352132266568014, -0.001565309077001724],
+       distortion_type: radialtangential,
+       focal_length: [1198.689866179, 1216.394331519], 
+       principal_point: [798.498094044, 565.370958272]} 
+
+    - {T_SC:
+       [ 0.00541017, -0.00128785, -0.99998454, -0.03518469,
+        -0.99980925, -0.01877401, -0.00538505, -0.04759083,
+        -0.01876679,  0.99982292, -0.00138917,  0.01675327,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1100],
+       distortion_coefficients: [0.1619446605610256, 0.6895456694944884, 0.0007598512503814833, -0.0021117860843568254],
+       distortion_type: radialtangential,
+       focal_length: [1199.850077763, 1217.116118906], 
+       principal_point: [794.856516231, 551.236737914]}
+
+camera_params:
+    camera_rate: 20 # just to manage the expectations of when there should be frames arriving
+    sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
+    sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
+    sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
+    sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
+    # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
+
+
+
+# use direct driver
+useDriver: false
+
+imu_params:
+    a_max: 176.0 # acceleration saturation [m/s^2]
+    g_max: 7.8 # gyro saturation [rad/s]
+    sigma_g_c: 5.69024e-04 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
+    sigma_a_c: 3.83854e-03  # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
+    sigma_bg: 0.03 # gyro bias prior [rad/s]
+    sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
+    sigma_gw_c: 9.41390e-05 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
+    sigma_aw_c: 1.90014e-03 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
+    tau: 3600.0 # reversion time constant, currently not in use [s]
+    g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
+    a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
+    imu_rate: 100
+    # tranform Body-Sensor (IMU)
+    T_BS:
+        [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
+         0.0000, 0.0000, 0.0000, 1.0000]
+
+# mag_params:
+#     sigma_m_c: 0.0204555   #0.013637 * 5.0
+#     sigma_mw_c: 5.0142e-03
+#     T_SM: [1.0000, 0.0000, 0.0000, 0.0000,
+#          0.0000, 1.0000, 0.0000, 0.0000,
+#          0.0000, 0.0000, 1.0000, 0.0000,
+#          0.0000, 0.0000, 0.0000, 1.0000]
+#     b0: [2.24643740459736, -0.429177442071548, 6.20682644531343]
+#     A0: [0.959106568610500, 0.00548336648142209, 0.0183519125272094,
+#          0.00548336648142209, 1.02126059248023, 0.0160196098481661,
+#          0.0183519125272094, 0.0160196098481661,1.02156190329362]
+#     rate: 100
+#     yaw_std: 5.0
+
+# Estimator parameters
+numKeyframes: 5 # number of keyframes in optimisation window
+numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
+
+# ceres optimization options
+ceres_options:
+    minIterations: 3   # minimum number of iterations always performed
+    maxIterations: 10  # never do more than these, even if not converged
+    timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
+
+# detection
+detection_options:
+    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels (20 to 40)
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+
+# delay of images [s]:
+imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+
+# display debug images?
+displayImages: true  # displays debug video and keyframe matches. May be slow.
+publishDebugImages: false  # publish debug image to topic ~debug_image_x
+
+# use direct driver
+useDriver: false
+
+# some options for how and what to publish -- optional in ROS-free version
+publishing_options:
+    publish_rate: 100                  # rate at which odometry updates are published only works properly if imu_rate/publish_rate is an integer!!
+    publishLandmarks: true             # select, if you want to publish landmarks at all
+    landmarkQualityThreshold: 1.0e-2   # landmark with lower quality will not be published
+    maximumLandmarkQuality: 0.05       # landmark with higher quality will be published with the maximum colour intensity
+    maxPathLength: 20                  # maximum length of the published path
+    publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
+    # provide custom World frame Wc
+    T_Wc_W:
+        [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
+         0.0000, 0.0000, 0.0000, 1.0000]
+    trackedBodyFrame: B                # B or S, the frame of reference that will be expressed relative to the selected worldFrame
+    velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
+
+#Sharmin
+isSonarUsed: false
+isDepthUsed: false
+isRelocalization: true
+histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
+claheClipLimit: 2.0
+claheTilesGridSize: 4
+resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+
+loop_closure_params:
+    enable: 1  
+    min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
+    pnp_reprojection_threshold: 25.0 #increase for more loop closure, might result in false loop closure (8 to 30)
+    pnp_ransac_iterations: 100
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+    
+    
+                     
+
+health:
+    enable: 0
+    min_keypoints: 15
+    consecutive_keyframes: 3
+    keyframe_wait_time: 2.0
+    kps_per_quadrant: 1
+
+global_map_params:
+    enable: 0
+    min_landmark_quality: 0.01
+
+debug:
+    enable: 0
+    # Relative to pose_graph package
+    output_dir: debug_output

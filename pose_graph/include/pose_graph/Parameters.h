@@ -16,6 +16,9 @@ struct LoopClosureParams {
   double pnp_reprojection_thresh;
   double pnp_ransac_iterations;
   int min_correspondences;
+  int keyframe_queue_size = 5;
+  float max_relative_yaw = 25.0;
+  float max_relative_distance = 10.0;
 };
 
 struct HealthParams {

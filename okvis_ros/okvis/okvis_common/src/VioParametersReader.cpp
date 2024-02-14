@@ -300,7 +300,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
         vioParameters_.histogramParams.claheTilesGridSize = static_cast<int>(file["claheTilesGridSize"]);
       }
 
-      std::cout << "Read Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
+      LOG(INFO) << "Read Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
                 << vioParameters_.histogramParams.claheTilesGridSize << std::endl;
     } else {
       LOG(WARNING) << histogram_method << " unknown/invalid histogramMethod, setting to NONE";

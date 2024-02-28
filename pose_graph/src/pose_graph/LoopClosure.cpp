@@ -138,7 +138,7 @@ void LoopClosure::run() {
             if (params_.resize_factor_ != 0) {
               cv::resize(original_color_image,
                          original_color_image,
-                         cv::Size(params_.image_width_, params_.image_height_),
+                         cv::Size(params_.camera_calibration_.image_dimension_.x(), params_.camera_calibration_.image_dimension_.y()),
                          cv::INTER_LINEAR);
             }
             if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
@@ -155,7 +155,7 @@ void LoopClosure::run() {
             }
           }
         }
-        last_keyframe_index_ = keyframe_info->keyframe_index_;
+        // last_keyframe_index_ = keyframe_info->keyframe_index_;
       }
     } else if (params_.health_params_.enabled) {
       //   Timestamp prim_stamp;

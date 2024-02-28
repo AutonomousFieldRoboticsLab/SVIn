@@ -44,7 +44,7 @@
 #include <memory>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/ReprojectionErrorBase.hpp>
 #include <string>
 #include <vector>

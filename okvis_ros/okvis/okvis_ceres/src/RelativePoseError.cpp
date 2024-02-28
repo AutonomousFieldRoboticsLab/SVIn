@@ -36,7 +36,7 @@
  * @author Stefan Leutenegger
  */
 
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/RelativePoseError.hpp>
 
 /// \brief okvis Main namespace of this package.
@@ -108,7 +108,7 @@ bool RelativePoseError::EvaluateWithMinimalJacobians(double const* const* parame
 
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      PoseManifold::liftJacobian(parameters[0], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       J0 = J0_minimal * J_lift;
@@ -129,7 +129,7 @@ bool RelativePoseError::EvaluateWithMinimalJacobians(double const* const* parame
 
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[1], J_lift.data());
+      PoseManifold::liftJacobian(parameters[1], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       J1 = J1_minimal * J_lift;

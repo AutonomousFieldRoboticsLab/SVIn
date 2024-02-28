@@ -105,8 +105,8 @@ int main(int argc, char** argv) {
   params.loadParameters(config_file);
 
   if (params.debug_mode_) {
-    std::string package_path = ros::package::getPath("pose_graph");
-    params.debug_output_path_ = package_path + "/" + params.debug_output_path_;
+    // std::string package_path = ros::package::getPath("pose_graph");
+    // params.debug_output_path_ = package_path + "/" + params.debug_output_path_;
     LOG(INFO) << "Debug mode enabled. Saving debug output to: " << params.debug_output_path_;
     setupOutputLogDirectories(params.debug_output_path_);
   }

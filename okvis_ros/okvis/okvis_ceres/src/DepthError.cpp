@@ -37,7 +37,7 @@
  */
 
 #include <okvis/ceres/DepthError.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

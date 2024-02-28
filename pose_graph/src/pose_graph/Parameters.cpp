@@ -4,6 +4,7 @@
 #include <ros/package.h>
 
 #include <boost/filesystem.hpp>
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -85,15 +86,12 @@ void Parameters::loadParameters(const std::string& config_file) {
     }
   }
 
-  if (fsSettings["debug"]["enable"].isInt()) {
-    debug_mode_ = static_cast<int>(fsSettings["debug"]["enable"]);
-    if (fsSettings["debug"]["output_dir"].isString()) {
-      debug_output_path_ = static_cast<std::string>(fsSettings["debug"]["output_dir"]);
-      LOG(INFO) << "Debug output folder: " << debug_output_path_;
-    } else {
-      LOG(WARNING) << "Could not found output folder for debug images.";
-      LOG(WARNING) << "setting debug mode to false";
-      debug_mode_ = false;
+  if (fsSettings["output_params"]["output_dir"].isString()) {
+    output_path_ = static_cast<std::string>(fsSettings["output_params"]["output_dir"]);
+    debug_output_path_ = output_path_ + "/debug_output";
+    LOG(INFO) << "Output folder: " << output_path_;
+    if (fsSettings["output_params"]["debug"].isInt()) {
+      debug_mode_ = static_cast<int>(fsSettings["output_params"]["debug"]);
     }
   }
 

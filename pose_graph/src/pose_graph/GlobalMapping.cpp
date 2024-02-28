@@ -1,6 +1,6 @@
 #include "pose_graph/GlobalMapping.h"
 
-#include <ros/console.h>
+#include <glog/logging.h>
 
 #include <utility>
 
@@ -16,7 +16,7 @@ void Landmark::updateObservation(uint64_t keyframe_id,
                                  double quality,
                                  const Eigen::Vector3d& color) {
   if (keyframe_observations_.find(keyframe_id) != keyframe_observations_.end()) {
-    std::cout << "Multiple observation of landmark: " << id_ << " in keyframe: " << keyframe_id << std::endl;
+    LOG(WARNING) << "Multiple observation of landmark: " << id_ << " in keyframe: " << keyframe_id;
     return;
   }
 

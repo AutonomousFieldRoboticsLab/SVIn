@@ -98,11 +98,6 @@ void VioInterface::setKeyframeCallback(const KeyframeCallback& keyframeCallback)
   keyframeCallback_ = keyframeCallback;
 }
 
-// Sharmin
-void VioInterface::setRelocRelativePoseCallback(const RelocRelativePoseCallback& relocRelativePoseCallback) {
-  relocRelativePoseCallback_ = relocRelativePoseCallback;
-}
-
 // Hunter
 void VioInterface::setDebugImgCallback(const ImageCallback& imageCallback) { debugImgCallback_ = imageCallback; }
 

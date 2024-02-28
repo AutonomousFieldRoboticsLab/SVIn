@@ -97,8 +97,6 @@ class VioParametersReader {
   /// Directly interface with driver without ROS message passing.
   bool useDriver;
 
-  std::shared_ptr<void> viSensor;
-
  protected:
   /// @brief Struct that contains all the camera calibration information.
   struct CameraCalibration {
@@ -147,14 +145,6 @@ class VioParametersReader {
   bool getCalibrationViaConfig(
       std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations,  // NOLINT
       cv::FileNode cameraNode) const;                                                             // NOLINT
-
-  /**
-   * @brief Get the camera calibrations via the visensor API.
-   * @param[out] calibrations The calibrations.
-   * @return True if successful.
-   */
-  bool getCalibrationViaVisensorAPI(
-      std::vector<CameraCalibration, Eigen::aligned_allocator<CameraCalibration>>& calibrations) const;  // NOLINT
 };
 
 }  // namespace okvis

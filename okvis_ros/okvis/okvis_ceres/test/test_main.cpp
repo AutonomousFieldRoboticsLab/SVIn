@@ -38,5 +38,9 @@
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   google::InitGoogleLogging(argv[0]);
+  FLAGS_logtostderr = true;
+  FLAGS_colorlogtostderr = true;
+  FLAGS_stderrthreshold = 0;
+
   return RUN_ALL_TESTS();
 }

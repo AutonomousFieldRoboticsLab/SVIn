@@ -41,8 +41,8 @@ useDriver: false
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 5.69024e-04 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
-    sigma_a_c: 3.83854e-03  # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
+    sigma_g_c: 5.69024e-04 # gyro noise density [rad/s/sqrt(Hz)] 5.69024e-05
+    sigma_a_c: 3.83854e-03  # accelerometer noise density [m/s^2/sqrt(Hz)] 3.83854e-04
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
     sigma_gw_c: 9.41390e-05 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165

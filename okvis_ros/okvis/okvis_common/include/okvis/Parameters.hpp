@@ -75,11 +75,6 @@ struct HistogramParams {
   int claheTilesGridSize;
 };
 
-// Sharmin: Read from config file
-struct RelocParameters {
-  bool isRelocalization;
-};
-
 /// \brief Struct to define the behavior of the camera extrinsics.
 struct ExtrinsicsEstimationParameters {
   // set to 0 in order to turn off
@@ -136,6 +131,22 @@ struct ImuParameters {
   double g;                                ///< Earth acceleration.
   Eigen::Vector3d a0;                      ///< Mean of the prior accelerometer bias.
   int rate;                                ///< IMU rate in Hz.
+
+  void print() {
+    std::cout << "T_BS: " << T_BS.T() << std::endl;
+    std::cout << "a_max: " << a_max << std::endl;
+    std::cout << "g_max: " << g_max << std::endl;
+    std::cout << "sigma_g_c: " << sigma_g_c << std::endl;
+    std::cout << "sigma_bg: " << sigma_bg << std::endl;
+    std::cout << "sigma_a_c: " << sigma_a_c << std::endl;
+    std::cout << "sigma_ba: " << sigma_ba << std::endl;
+    std::cout << "sigma_gw_c: " << sigma_gw_c << std::endl;
+    std::cout << "sigma_aw_c: " << sigma_aw_c << std::endl;
+    std::cout << "tau: " << tau << std::endl;
+    std::cout << "g: " << g << std::endl;
+    std::cout << "a0: " << a0 << std::endl;
+    std::cout << "rate: " << rate << std::endl;
+  }
 };
 
 /*!
@@ -343,8 +354,7 @@ struct VioParameters {
   WindParameters wind;                                ///< Wind parameters.
   PublishingParameters publishing;                    ///< Publishing parameters.
   SensorList sensorList;                              ///< Sharmin: which sensors are used
-  RelocParameters relocParameters;                    ///< Sharmin: Relocalization Parameters
-  HistogramParams histogramParams;                            ///< Sharmin: CLAHE Parameters
+  HistogramParams histogramParams;                    ///< Sharmin: CLAHE Parameters
   MiscParams miscParams;                ///< Sharmin: contains misc parameters, e.g. opencv image resize factor
   SonarParameters sonar;                ///< Sharmin: sonar parameters (T_SSo)
   ResetPoseParameters resetableParams;  ///< Hunter: Reset pose parameters

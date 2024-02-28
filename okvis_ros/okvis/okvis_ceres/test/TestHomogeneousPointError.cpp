@@ -41,7 +41,7 @@
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/ceres/HomogeneousPointError.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/kinematics/Transformation.hpp>
@@ -86,7 +86,7 @@ TEST(okvisTestSuite, HomogeneousPointError) {
   }
 
   // Run the solver!
-  map.options.minimizer_progress_to_stdout = false;
+  map.options.minimizer_progress_to_stdout = true;
   std::cout << "run the solver... " << std::endl;
   map.solve();
 

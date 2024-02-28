@@ -2,15 +2,15 @@
 
 #include <assert.h>
 #include <ceres/autodiff_cost_function.h>
-#include <ceres/autodiff_local_parameterization.h>
+#include <ceres/autodiff_manifold.h>
 #include <ceres/cost_function.h>
-#include <ceres/local_parameterization.h>
+#include <ceres/manifold.h>
 #include <geometry_msgs/PointStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <stdio.h>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <list>
 #include <map>
 #include <mutex>
@@ -97,17 +97,17 @@ T NormalizeAngle(const T& angle_degrees) {
     return angle_degrees;
 }
 
-class AngleLocalParameterization {
- public:
+struct YawAngleFunctor {
   template <typename T>
-  bool operator()(const T* theta_radians, const T* delta_theta_radians, T* theta_radians_plus_delta) const {
+  bool Plus(const T* theta_radians, const T* delta_theta_radians, T* theta_radians_plus_delta) const {
     *theta_radians_plus_delta = NormalizeAngle(*theta_radians + *delta_theta_radians);
-
     return true;
   }
 
-  static ceres::LocalParameterization* Create() {
-    return (new ceres::AutoDiffLocalParameterization<AngleLocalParameterization, 1, 1>);
+  template <typename T>
+  bool Minus(const T* theta_radians_plus_delta, const T* theta_radians, T* delta_theta_radians) const {
+    *delta_theta_radians = NormalizeAngle(*theta_radians_plus_delta - *theta_radians);
+    return true;
   }
 };
 

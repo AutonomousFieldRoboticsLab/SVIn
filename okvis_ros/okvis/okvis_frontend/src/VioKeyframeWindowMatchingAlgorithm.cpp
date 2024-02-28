@@ -262,66 +262,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
       }
     }
   }
-
-  //*********** Added by Sharmin for Stereo Contour Matching *****************//
-  // FIXME Sharmin
-  /*if (useSCM_){
-          std::cout<< "This should not be executing!!"<< std::endl;
-          scm_numMatches_ = 0;
-          scm_numUncertainMatches_ = 0;
-          const size_t scm_numA = frameA_->contour_numKeypoints(camIdA_);
-          std::cout<< "frameA: "<<scm_numA << std::endl;
-          scm_skipA_.clear();
-          scm_skipA_.resize(scm_numA, false);
-          scm_raySigmasA_.resize(scm_numA);
-
-          for (size_t k = 0; k < scm_numA; ++k) {
-                  double keypointAStdDev;
-                  frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);
-                  keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
-                  scm_raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;
-           }
-
-          const size_t scm_numB = frameB_->contour_numKeypoints(camIdB_);
-          std::cout<< "frameB: "<<scm_numB << std::endl;
-          scm_skipB_.clear();
-          scm_skipB_.reserve(scm_numB);
-          scm_raySigmasB_.resize(scm_numB);
-          // do the projections for each keypoint, if applicable
-
-          for (size_t k = 0; k < scm_numB; ++k) {
-                  double keypointBStdDev;
-                  frameB_->getKeypointSize(camIdB_, k, keypointBStdDev);
-                  keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-                  scm_raySigmasB_[k] = sqrt(sqrt(2)) * keypointBStdDev / fB_;
-
-                  // FIXME Sharmin
-                  /*if (frameB_->landmarkId(camIdB_, k) == 0) {
-                        skipB_.push_back(false);
-                        continue;
-                  }
-                  if (estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
-                        skipB_.push_back(
-                                estimator_->isLandmarkInitialized(frameB_->landmarkId(camIdB_, k)));  // old: isSet -
-  check. } else { skipB_.push_back(false);
-              }
-          }
-
-  }*/
-
-  //*********** End Added by Sharmin for Stereo Contour Matching *****************//
 }
-
-// Added by Sharmin
-/*template<class CAMERA_GEOMETRY_T>
-size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::scm_sizeA() const {
-  return frameA_->contour_numKeypoints(camIdA_);
-}
-// Added by Sharmin
-template<class CAMERA_GEOMETRY_T>
-size_t VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::scm_sizeB() const {
-  return frameB_->contour_numKeypoints(camIdB_);
-}*/
 
 // What is the size of list A?
 template <class CAMERA_GEOMETRY_T>

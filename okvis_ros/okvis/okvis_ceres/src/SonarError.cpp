@@ -36,7 +36,7 @@
  * @author Sharmin Rahman
  */
 
-#include <okvis/ceres/PoseLocalParameterization.hpp>
+#include <okvis/ceres/PoseManifold.hpp>
 #include <okvis/ceres/SonarError.hpp>
 #include <vector>
 
@@ -53,12 +53,12 @@ namespace ceres {
 }*/
 
 // Construct with measurement, variance and LandmarkSubset.
-SonarError::SonarError(const okvis::VioParameters& params,
+SonarError::SonarError(const okvis::SonarParameters& sonar_params,
                        double range,
                        double heading,
                        const information_t& information,
                        std::vector<Eigen::Vector3d> landmarkSubset)
-    : params_(params) {
+    : sonar_params_(sonar_params) {
   setMeasurement(range, heading);
   setInformation(information);
   // computeCovarianceMatrix(landmarkSubset);
@@ -141,7 +141,7 @@ bool SonarError::EvaluateWithMinimalJacobians(double const* const* parameters,
   residuals[0] = weighted_error;
   Eigen::Vector3d sonar_landmark;
 
-  okvis::kinematics::Transformation T_WSo = T_WS * params_.sonar.T_SSo;
+  okvis::kinematics::Transformation T_WSo = T_WS * sonar_params_.T_SSo;
 
   okvis::kinematics::Transformation sonar_point(Eigen::Vector3d(range_ * cos(heading_), range_ * sin(heading_), 0.0),
                                                 Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
@@ -165,7 +165,7 @@ bool SonarError::EvaluateWithMinimalJacobians(double const* const* parameters,
 
       // pseudo inverse of the local parametrization Jacobian:
       // Eigen::Matrix<double, 7, 1, Eigen::RowMajor> J_lift;
-      // PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      // PoseManifold::liftJacobian(parameters[0], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       J0 = J0_minimal;

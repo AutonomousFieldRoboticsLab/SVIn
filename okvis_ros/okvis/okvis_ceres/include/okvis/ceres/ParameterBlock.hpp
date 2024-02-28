@@ -56,7 +56,7 @@ namespace ceres {
 class ParameterBlock {
  public:
   /// @brief Default constructor, assumes not fixed and no local parameterisation.
-  ParameterBlock() : id_(0), fixed_(false), localParameterizationPtr_(0) {}
+  ParameterBlock() : id_(0), fixed_(false), manifoldPtr_(0) {}
 
   /// \brief Trivial destructor.
   virtual ~ParameterBlock() {}
@@ -118,7 +118,7 @@ class ParameterBlock {
   /// @param[in] x0_plus_Delta Perturbed variable.
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
-  virtual void minus(const double* x0, const double* x0_plus_Delta, double* Delta_Chi) const = 0;
+  virtual void minus(const double* x0_plus_Delta, const double* x0, double* Delta_Chi) const = 0;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x0 Variable.
@@ -130,15 +130,13 @@ class ParameterBlock {
   /// @{
   /**
    * @brief Set which local parameterisation object to use.
-   * @param localParameterizationPtr The local parameterisation object to use.
+   * @param ManifoldPtr The local parameterisation object to use.
    */
-  virtual void setLocalParameterizationPtr(const ::ceres::LocalParameterization* localParameterizationPtr) {
-    localParameterizationPtr_ = localParameterizationPtr;
-  }
+  virtual void setManifoldPtr(const ::ceres::Manifold* manifoldPtr) { manifoldPtr_ = manifoldPtr; }
   /**
    * @brief The local parameterisation object to use.
    */
-  virtual const ::ceres::LocalParameterization* localParameterizationPtr() const { return localParameterizationPtr_; }
+  virtual const ::ceres::Manifold* manifoldPtr() const { return manifoldPtr_; }
   /// @}
   /// @brief Return parameter block type as string
   virtual std::string typeInfo() const = 0;
@@ -149,7 +147,7 @@ class ParameterBlock {
   /// @brief Whether or not this should be optimised at all (ceres::problem::setFixed)
   bool fixed_;
   /// @brief The local parameterisation object to use.
-  const ::ceres::LocalParameterization* localParameterizationPtr_;
+  const ::ceres::Manifold* manifoldPtr_;
 };
 
 }  // namespace ceres

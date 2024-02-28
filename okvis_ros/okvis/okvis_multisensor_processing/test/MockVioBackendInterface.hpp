@@ -48,10 +48,13 @@ class MockVioBackendInterface : public VioBackendInterface {
   MOCK_METHOD0(clearCameras, void());
   MOCK_METHOD0(clearImus, void());
 
-  MOCK_METHOD3(addStates,
+  MOCK_METHOD6(addStates,
                bool(okvis::MultiFramePtr multiFrame,
                     const okvis::ImuMeasurementDeque& imuMeasurements,
-                    bool asKeyframe));
+                    bool asKeyframe,
+                    const okvis::SonarMeasurementDeque& sonarMeasurements,
+                    const okvis::DepthMeasurementDeque& depthMeasurements,
+                    double firstDepth));
 
   MOCK_METHOD2(addLandmark, bool(uint64_t landmarkId, const Eigen::Vector4d& landmark));
   MOCK_METHOD4(addObservation,

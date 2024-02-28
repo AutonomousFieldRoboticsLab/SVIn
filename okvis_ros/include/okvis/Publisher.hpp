@@ -135,8 +135,7 @@ class Publisher {
    */
   void setOdometry(const okvis::kinematics::Transformation& T_WS,
                    const okvis::SpeedAndBiases& speedAndBiases,
-                   const Eigen::Vector3d& omega_S,
-                   const okvis::kinematics::Transformation& driftCorrected_T_WS);
+                   const Eigen::Vector3d& omega_S);
 
   /// \brief Set the parameters
   /// @param parameters The parameters.
@@ -217,8 +216,7 @@ class Publisher {
   void publishFullStateAsCallback(const okvis::Time& t,
                                   const okvis::kinematics::Transformation& T_WS,
                                   const Eigen::Matrix<double, 9, 1>& speedAndBiases,
-                                  const Eigen::Matrix<double, 3, 1>& omega_S,
-                                  const okvis::kinematics::Transformation& driftCorrected_T_WS);
+                                  const Eigen::Matrix<double, 3, 1>& omega_S);
 
   /**
    * @brief Set and publish landmarks.
@@ -237,11 +235,6 @@ class Publisher {
                                  const cv::Mat& imageL,
                                  const okvis::kinematics::Transformation& T_WCa,
                                  std::vector<std::list<std::vector<double> > >& keyframePoints);  // NOLINT
-  void publishRelocRelativePoseAsCallback(const okvis::Time& t,
-                                          const Eigen::Vector3d& relative_t,
-                                          const Eigen::Quaterniond& relative_q,
-                                          const double& relative_yaw,
-                                          const double& frame_index);
 
   /**
    * @brief Set and write full state to CSV file.
@@ -327,12 +320,6 @@ class Publisher {
   ros::Publisher pubKeyframeImageL_;  ///< Sharmin: The publisher for Keyframe image left.
   ros::Publisher pubKeyframePose_;    ///< Sharmin: The publisher for Keyframe pose.
   ros::Publisher pubKeyframePoints_;  ///< Sharmin: The publisher for Keyframe 3d-2d points.
-  ros::Publisher
-      pubReloRelativePose_;      ///< Sharmin: The publisher for reloc related msg is there is any for  pose_graph.
-  ros::Publisher pubRelocPath_;  ///< Sharmin: To publish Reloc Path
-  ros::Publisher pubRelocPose_;  ///< Sharmin: To publish Reloc Pose
-
-  nav_msgs::Path relocPath_;  ///< Sharmin: To publish Reloc Path
 
   // pcl::PointCloud<pcl::PointXYZRGB>::Ptr stereoPointsMatched_; ///< Sharmin Point cloud for matched points.
   // pcl::PointCloud<pcl::PointXYZRGB> stereoPointsMatchedFiltered_; /// Sharmin: for filtering out outliers  from

@@ -84,7 +84,7 @@ class SonarError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   /// @param[in] measurement The measurement.
   /// @param[in] variance The variance of the measurement, i.e. information_ has variance in its diagonal.
   /// TODO document.
-  SonarError(const okvis::VioParameters& params,
+  SonarError(const okvis::SonarParameters& params,
              double range,
              double heading,
              const information_t& information,
@@ -179,7 +179,7 @@ class SonarError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   covariance_t covariance_;              ///< The 6x6 covariance matrix.
 
  private:
-  const okvis::VioParameters params_;  // Sharmin
+  const okvis::SonarParameters sonar_params_;  // Sharmin
 };
 
 }  // namespace ceres

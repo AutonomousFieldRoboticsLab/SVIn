@@ -138,7 +138,8 @@ void LoopClosure::run() {
             if (params_.resize_factor_ != 0) {
               cv::resize(original_color_image,
                          original_color_image,
-                         cv::Size(params_.camera_calibration_.image_dimension_.x(), params_.camera_calibration_.image_dimension_.y()),
+                         cv::Size(params_.camera_calibration_.image_dimension_(0),
+                                  params_.camera_calibration_.image_dimension_(1)),
                          cv::INTER_LINEAR);
             }
             if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
@@ -157,32 +158,33 @@ void LoopClosure::run() {
         }
         // last_keyframe_index_ = keyframe_info->keyframe_index_;
       }
-    } else if (params_.health_params_.enabled) {
-      //   Timestamp prim_stamp;
-      //   cv::Mat primitive_estimator_pose;
-      //   bool got_primitive_pose = false;
-      //   got_primitive_pose = primitive_estimator_poses_buffer_.getNewestValue(&primitive_estimator_pose,
-      //   &prim_stamp); if (got_primitive_pose) {
-      //     Eigen::Matrix4d primitive_estimator_pose_eigen;
-      //     cv::cv2eigen(primitive_estimator_pose, primitive_estimator_pose_eigen);
-      //     switching_estimator_->addPrimitiveEstimatorPose(prim_stamp, primitive_estimator_pose_eigen);
-      //   }
-      //   std::vector<std::pair<Timestamp, Eigen::Matrix4d>> poses;
-      //   switching_estimator_->getPrimitiveEstimatorPoses(poses);
-      //   if (!poses.empty()) {
-      //     auto primitive_estimator_kfs = switching_estimator_->getPrimitiveKFCount();
-      //     int kf_index = last_keyframe_index_ + primitive_estimator_kfs - poses.size();
-      //     for (auto kf_pose : poses) {
-      //       kf_index++;
-      //       std::map<Keyframe*, int> kf_counter;
-      //       Eigen::Vector3d T = kf_pose.second.block<3, 1>(0, 3);
-      //       Eigen::Matrix3d R = kf_pose.second.block<3, 3>(0, 0);
-      //       Keyframe* keyframe = new Keyframe(kf_pose.first, kf_index, T, R, kf_counter, sequence_, params_, false);
-      //       kfMapper_.insert(std::make_pair(kf_index, keyframe));
-      //       pose_graph_->addKFToPoseGraph(keyframe, false);
-      //     }
-      //   }
     }
+    // else if (params_.health_params_.enabled) {
+    //   Timestamp prim_stamp;
+    //   cv::Mat primitive_estimator_pose;
+    //   bool got_primitive_pose = false;
+    //   got_primitive_pose = primitive_estimator_poses_buffer_.getNewestValue(&primitive_estimator_pose,
+    //   &prim_stamp); if (got_primitive_pose) {
+    //     Eigen::Matrix4d primitive_estimator_pose_eigen;
+    //     cv::cv2eigen(primitive_estimator_pose, primitive_estimator_pose_eigen);
+    //     switching_estimator_->addPrimitiveEstimatorPose(prim_stamp, primitive_estimator_pose_eigen);
+    //   }
+    //   std::vector<std::pair<Timestamp, Eigen::Matrix4d>> poses;
+    //   switching_estimator_->getPrimitiveEstimatorPoses(poses);
+    //   if (!poses.empty()) {
+    //     auto primitive_estimator_kfs = switching_estimator_->getPrimitiveKFCount();
+    //     int kf_index = last_keyframe_index_ + primitive_estimator_kfs - poses.size();
+    //     for (auto kf_pose : poses) {
+    //       kf_index++;
+    //       std::map<Keyframe*, int> kf_counter;
+    //       Eigen::Vector3d T = kf_pose.second.block<3, 1>(0, 3);
+    //       Eigen::Matrix3d R = kf_pose.second.block<3, 3>(0, 0);
+    //       Keyframe* keyframe = new Keyframe(kf_pose.first, kf_index, T, R, kf_counter, sequence_, params_, false);
+    //       kfMapper_.insert(std::make_pair(kf_index, keyframe));
+    //       pose_graph_->addKFToPoseGraph(keyframe, false);
+    //     }
+    //   }
+    // }
   }
 }
 
@@ -288,17 +290,17 @@ void LoopClosure::updateGlobalMap() {
   }
 }
 
-void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
-  // geometry_msgs::PoseStamped pose_stamped;
-  // pose_stamped.header = pose_msg->header;
-  // pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
-  // pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
-  //                                              Utility::rosPoseToMatrix(pose_msg->pose.pose) *
-  //                                              params_.T_body_imu_ * params_.T_imu_cam0_);
-  // primitive_estimator_poses_.push_back(pose_stamped);
-}
+// void LoopClosure::updatePrimiteEstimatorTrajectory(const nav_msgs::OdometryConstPtr& pose_msg) {
+// geometry_msgs::PoseStamped pose_stamped;
+// pose_stamped.header = pose_msg->header;
+// pose_stamped.header.seq = primitive_estimator_poses_.size() + 1;
+// pose_stamped.pose = Utility::matrixToRosPose(init_t_w_svin_ * init_t_w_prim_.inverse() *
+//                                              Utility::rosPoseToMatrix(pose_msg->pose.pose) *
+//                                              params_.T_body_imu_ * params_.T_imu_cam0_);
+// primitive_estimator_poses_.push_back(pose_stamped);
+// }
 
-bool LoopClosure::healthCheck(const TrackingInfo& tracking_info, boost::optional<std::string> error_message) {
+bool LoopClosure::healthCheck(const TrackingInfo& tracking_info, std::string error_message) {
   std::stringstream ss;
   std::setprecision(5);
 
@@ -327,11 +329,9 @@ bool LoopClosure::healthCheck(const TrackingInfo& tracking_info, boost::optional
       static_cast<float>(tracking_info.num_new_keypoints_) / static_cast<float>(tracking_info.num_tracked_keypoints_);
 
   if (new_detected_keypoints_ratio >= 0.75) {
-    if (error_message) {
-      ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
-      error_message = ss.str();
-      return false;
-    }
+    ss << "Too many new keypoints: " << new_detected_keypoints_ratio << std::endl;
+    error_message = ss.str();
+    return false;
   }
 
   double average_response = std::accumulate(tracking_info.keypoints_response_strengths_.begin(),
@@ -345,11 +345,9 @@ bool LoopClosure::healthCheck(const TrackingInfo& tracking_info, boost::optional
       static_cast<float>(tracking_info.keypoints_response_strengths_.size());
 
   if (fraction_with_low_detector_response >= 0.85) {
-    if (error_message) {
-      ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
-      error_message = ss.str();
-      return false;
-    }
+    ss << "Too many detectors with low response: " << fraction_with_low_detector_response << std::endl;
+    error_message = ss.str();
+    return false;
   }
 
   return true;

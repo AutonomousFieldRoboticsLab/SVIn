@@ -158,10 +158,10 @@ class Keyframe {
 
   Parameters params_;
 
-  typedef std::function<void(const sensor_msgs::PointCloud& pointcloud)> PointCloudCallback;
+  // typedef std::function<void(const sensor_msgs::PointCloud& pointcloud)> PointCloudCallback;
 
-  void setRelocalizationPCLCallback(const PointCloudCallback& pointcloud_callback);
-  PointCloudCallback relocalization_pcl_callback_;
+  // void setRelocalizationPCLCallback(const PointCloudCallback& pointcloud_callback);
+  // PointCloudCallback relocalization_pcl_callback_;
 
   // Bharat - easy check to see if this keyframe comes from primitive estimator
   bool is_vio_keyframe_;

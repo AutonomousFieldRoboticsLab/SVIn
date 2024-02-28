@@ -31,16 +31,16 @@
  *********************************************************************************/
 
 /**
- * @file PoseLocalParameterization.hpp
+ * @file PoseManifold.hpp
  * @brief Header file for the PoseLocalParemerization class.
  * @author Stefan Leutenegger
  */
 
-#ifndef INCLUDE_OKVIS_CERES_POSELOCALPARAMETERIZATION_HPP_
-#define INCLUDE_OKVIS_CERES_POSELOCALPARAMETERIZATION_HPP_
+#ifndef INCLUDE_OKVIS_CERES_POSEMANIFOLD_HPP_
+#define INCLUDE_OKVIS_CERES_POSEMANIFOLD_HPP_
 
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include <okvis/ceres/ManifoldAdditionalInterfaces.hpp>
 
 #include "ceres/ceres.h"
 
@@ -50,10 +50,10 @@ namespace okvis {
 namespace ceres {
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
-class PoseLocalParameterization : public ::ceres::LocalParameterization, public LocalParamizationAdditionalInterfaces {
+class PoseManifold : public ::ceres::Manifold, public ManifoldAdditionalInterfaces {
  public:
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization() {}
+  virtual ~PoseManifold() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -68,12 +68,21 @@ class PoseLocalParameterization : public ::ceres::LocalParameterization, public 
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+  virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
 
-  /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  /// @param[in] x Variable.
-  /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  /// \brief Compute the derivative of Plus(x, delta) w.r.t delta at delta = 0, i.e.
+  ///
+  /// jacobian is a row-major AmbientSize() x TangentSize() matrix.
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -101,7 +110,13 @@ class PoseLocalParameterization : public ::ceres::LocalParameterization, public 
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  static bool minus(const double* x, const double* x_plus_delta, double* delta);
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  static bool minusJacobian(const double* x, double* jacobian);
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -110,10 +125,10 @@ class PoseLocalParameterization : public ::ceres::LocalParameterization, public 
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const { return 7; }
+  virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const { return 6; }
+  virtual int TangentSize() const { return 6; }
 
   // added convenient check
   bool VerifyJacobianNumDiff(const double* x, double* jacobian, double* jacobianNumDiff);
@@ -121,11 +136,10 @@ class PoseLocalParameterization : public ::ceres::LocalParameterization, public 
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
 ///        Here, we only perturb the translation though.
-class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
-                                    public LocalParamizationAdditionalInterfaces {
+class PoseManifold3d : public ::ceres::Manifold, public ManifoldAdditionalInterfaces {
  public:
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization3d() {}
+  virtual ~PoseManifold3d() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -140,12 +154,25 @@ class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+  virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
+
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -159,6 +186,12 @@ class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
 
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  static bool minusJacobian(const double* x, double* jacobian);
+
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
@@ -166,19 +199,18 @@ class PoseLocalParameterization3d : public ::ceres::LocalParameterization,
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const { return 7; }
+  virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const { return 3; }
+  virtual int TangentSize() const { return 3; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
 ///        Here, we only perturb the translation and yaw though.
-class PoseLocalParameterization4d : public ::ceres::LocalParameterization,
-                                    public LocalParamizationAdditionalInterfaces {
+class PoseManifold4d : public ::ceres::Manifold, public ManifoldAdditionalInterfaces {
  public:
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization4d() {}
+  virtual ~PoseManifold4d() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -193,12 +225,25 @@ class PoseLocalParameterization4d : public ::ceres::LocalParameterization,
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+  virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
+
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -212,26 +257,28 @@ class PoseLocalParameterization4d : public ::ceres::LocalParameterization,
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
 
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
   /// \return True on success.
+  static bool minusJacobian(const double* x, double* jacobian);
+
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const { return 7; }
+  virtual int AmbientSize() const { return 7; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const { return 4; }
+  virtual int TangentSize() const { return 4; }
 };
 
 /// \brief Pose local parameterisation, i.e. for orientation dq(dalpha) x q_bar.
 ///        Here, we only perturb roll and pitch, i.e. dalpha = [dalpha1, dalpha2, 0]^T.
-class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
-                                    public LocalParamizationAdditionalInterfaces {
+class PoseManifold2d : public ::ceres::Manifold, public ManifoldAdditionalInterfaces {
  public:
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization2d() {}
+  virtual ~PoseManifold2d() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -246,12 +293,25 @@ class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+  virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
+
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  static bool minus(const double* x_plus_delta, const double* x, double* delta);
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -265,6 +325,12 @@ class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
 
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  static bool minusJacobian(const double* x, double* jacobian);
+
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
@@ -272,12 +338,12 @@ class PoseLocalParameterization2d : public ::ceres::LocalParameterization,
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const { return 7; }
+  virtual int AmbientSize() const { return 7; }
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const { return 2; }
+  virtual int TangentSize() const { return 2; }
 };
 
 }  // namespace ceres
 }  // namespace okvis
 
-#endif /* INCLUDE_OKVIS_CERES_POSELOCALPARAMETERIZATION_HPP_ */
+#endif /* INCLUDE_OKVIS_CERES_POSEMANIFOLD_HPP_ */

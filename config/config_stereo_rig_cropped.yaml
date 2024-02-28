@@ -30,25 +30,26 @@ camera_params:
     sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
 
 
+
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 0.0016017 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
-    sigma_a_c: 0.0071376 # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
+    sigma_g_c: 0.00080085 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
+    sigma_a_c: 0.00356884 # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
-    sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
+    sigma_gw_c: 0.00000825 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
+    sigma_aw_c: 0.0001437 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
     imu_rate: 100
     # tranform Body-Sensor (IMU)
     T_BS:
-        [0.0000, 0.0000, 1.0000, -0.018,
-         1.0000, 0.0000, 0.0000, -0.016,
+        [0.0000, 0.0000, 1.0000, 0.0,
+         1.0000, 0.0000, 0.0000, 0.0,
          0.0000, 1.0000, 0.0000, 0.0,
-         0.0000, 0.0000, 0.0000, 1.0000]
+         0.0000, 0.0000, 0.0000, 1.0]
 
 sonar_params:
     T_SSo:

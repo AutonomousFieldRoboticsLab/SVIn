@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.8.11)
 
 project(okvis)
 # The version number.
@@ -10,9 +10,9 @@ set(OKVIS_VERSION
 
 # options for build configuration
 option (USE_SYSTEM_BRISK
-        "Use brisk via find_package rather than downloading it as part of okvis" ON) 
+        "Use brisk via find_package rather than downloading it as part of okvis" OFF) 
 option (USE_SYSTEM_CERES
-        "Use ceres via find_package rather than downloading it as part of okvis" OFF) 
+        "Use ceres via find_package rather than downloading it as part of okvis" ON) 
 option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON) 
 option (BUILD_TESTS
@@ -83,22 +83,6 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 find_package( Eigen REQUIRED )
 include_directories(${EIGEN_INCLUDE_DIR}) 
 
-# libvisensor
-find_package(VISensor)
-
-if(VISENSORDRIVER_FOUND)
-  add_definitions(-DHAVE_LIBVISENSOR)
-  set(LIBVISENSOR TRUE)
-  message(STATUS "Found libvisensor. Setting HAVE_LIBVISENSOR flag.")
-  include_directories(${VISensorDriver_INCLUDE_DIR})
-  # install find script
-  install(FILES ${PROJECT_SOURCE_DIR}/cmake/FindVISensor.cmake
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/CMake)
-else()
-  message(STATUS "libvisensor not found")
-endif()
-
-
 
 # glog
 find_package(Glog REQUIRED)
@@ -111,7 +95,7 @@ if(${USE_SYSTEM_BRISK})
   message(STATUS "Using system brisk. Found at ${BRISK_INCLUDE_DIRS}.")
 else()
   ExternalProject_Add(brisk_external
-    URL "https://www.doc.ic.ac.uk/~sleutene/software/brisk-2.0.5.zip"    
+    URL "https://www.doc.ic.ac.uk/~sleutene/software/brisk-2.0.8.zip"    
     INSTALL_DIR ${CMAKE_BINARY_DIR}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/brisk
@@ -139,14 +123,16 @@ endif()
 # ceres
 find_package(SuiteSparse REQUIRED QUIET) #will be needed in any case...
 find_package(CXSparse QUIET) #optional
+find_package(METIS QUIET)
+
 if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-  find_package( Ceres 2.1.0 REQUIRED )
+  find_package( Ceres 2.1 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
   message(STATUS "Using system Ceres.")
 else()
-  set(CERES_VERSION 2.1.0)
-  set(CERES_TAG 783637a6ed285abc6c57b16ccd968c594a91b35f) #version 1.14
+  set(CERES_VERSION 2.2.0)
+  set(CERES_TAG f3356504f954d1fbc8b5daba0aeef2f5de5fa196) #version 2.2.0
   ExternalProject_Add(ceres_external
     GIT_REPOSITORY https://ceres-solver.googlesource.com/ceres-solver
     GIT_TAG ${CERES_TAG}
@@ -158,7 +144,7 @@ else()
       -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} 
       -DBUILD_EXAMPLES:BOOL=OFF
       -DBUILD_TESTING:BOOL=OFF
-      -DCUDA:BOOL=OFF
+      -DUSE_CUDA:BOOL=OFF
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/ceres
     BUILD_IN_SOURCE 0
     BUILD_COMMAND make -j${N_CORES}
@@ -187,7 +173,7 @@ else()
     set_property(TARGET ceres PROPERTY IMPORTED_LOCATION
                ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres.a )
   endif ()
-  set(CERES_LIBRARIES ceres ${SUITESPARSE_LIBRARIES} ${CXSPARSE_LIBRARIES}  ${Eigen_LIBS} ${GLOG_LIBRARY}) #ceres won't export these
+  set(CERES_LIBRARIES ceres ${SUITESPARSE_LIBRARIES} ${CXSPARSE_LIBRARIES}  ${Eigen_LIBS} ${GLOG_LIBRARY} ${METIS_LIBRARY}) #ceres won't export these
   add_dependencies(${CERES_LIBRARIES} ceres_external)
 
   # install it once built
@@ -236,34 +222,7 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/CMake/opengv/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/CMake/opengv/)
 
 if(${BUILD_TESTS})
-  # gmock
-  # http://stackoverflow.com/questions/9689183/cmake-googletest
-  ExternalProject_Add(
-    googlemock
-    URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gmock
-    CMAKE_ARGS -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    BUILD_COMMAND make -j${N_CORES}
-    INSTALL_COMMAND ""
-  )
-  ExternalProject_Get_Property(googlemock source_dir)
-  set(GMOCK_INCLUDE_DIR ${source_dir}/include)
-  set(GTEST_INCLUDE_DIR ${source_dir}/gtest/include)
-  include_directories(BEFORE ${GMOCK_INCLUDE_DIR})
-  include_directories(BEFORE ${GTEST_INCLUDE_DIR})
-  ExternalProject_Get_Property(googlemock binary_dir)
-  set(GMOCK_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gmock.a)
-  set(GMOCK_LIBRARY gmock)
-  add_library(${GMOCK_LIBRARY} UNKNOWN IMPORTED)
-  set_property(TARGET ${GMOCK_LIBRARY} PROPERTY IMPORTED_LOCATION
-                  ${GMOCK_LIBRARY_PATH} )
-  add_dependencies(${GMOCK_LIBRARY} googlemock)
-  set(GTEST_LIBRARY_PATH ${binary_dir}/gtest/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
-  set(GTEST_LIBRARY gtestlocal)
-  add_library(${GTEST_LIBRARY} UNKNOWN IMPORTED)
-  set_property(TARGET ${GTEST_LIBRARY} PROPERTY IMPORTED_LOCATION
-                  ${GTEST_LIBRARY_PATH})
-  add_dependencies(${GTEST_LIBRARY} googlemock)
+ find_package(GTest REQUIRED)
 endif()
 
 # BUILD LOCAL DEPENDENCIES
@@ -323,9 +282,7 @@ if(BUILD_APPS)
     pthread 
     ${Boost_LIBRARIES}
   )
-  if(${VISENSORDRIVER_FOUND})
-    target_link_libraries(okvis_app_synchronous ${VISensorDriver_LIBRARY})
-  endif()
+
   install(TARGETS okvis_app_synchronous
     # IMPORTANT: Add the executable to the "export-set"
     EXPORT okvisTargets
@@ -349,8 +306,8 @@ export (TARGETS
 export ( PACKAGE okvis )
 
 # Create the okvisConfig.cmake and okvisConfigVersion files
-file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
-   "${INSTALL_INCLUDE_DIR}")
+# file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
+#    "${INSTALL_INCLUDE_DIR}")
 # ... for the build tree
 set(CONF_INCLUDE_DIRS 
   "${PROJECT_SOURCE_DIR}/okvis_util/include"

@@ -104,7 +104,7 @@ typedef std::function<void(const uint64_t)> EventCallback;
 typedef std::function<void(std::unique_ptr<KeyframeInfo>)> KeyframeCallback;
 typedef std::function<void(std::unique_ptr<std::pair<Timestamp, cv::Mat>>)> CVMatCallback;
 typedef std::function<void(const std::pair<Timestamp, Eigen::Matrix4d>&)> PoseCallback;
-typedef std::function<void(const std::vector<std::pair<ros::Time, Eigen::Matrix4d>>&)> PathCallback;
+typedef std::function<void(const std::vector<std::pair<Timestamp, Eigen::Matrix4d>>&)> PathCallback;
 typedef std::function<void(const std::pair<Timestamp, Eigen::Matrix4d>&,
                            const std::pair<Eigen::Vector3d, Eigen::Vector3d>&)>
     KeframeWithLoopClosureCallback;

@@ -254,7 +254,7 @@ class Frontend : public VioFrontendInterface {
 
   bool isInitialized_;              ///< Is the pose initialised?
   const size_t numCameras_;         ///< Number of cameras in the configuration.
-  bool isScaleRefined_ = true;      // false; // FIXME Sharmin: make it private and create set/get functions
+  bool isScaleRefined_ = false;     // false; // FIXME Sharmin: make it private and create set/get functions
   int numStatesToRefineScale_ = 0;  // FIXME Sharmin: make it private and create set/get functions
 
   // Note Sharmin ransac2d2d_R, ransac2d2d_t, imu_interal_deltaP, imu_interal_deltaV, imu_interal_dt must have same size

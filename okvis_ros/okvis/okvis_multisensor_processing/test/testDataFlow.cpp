@@ -1,5 +1,6 @@
 #define GTEST_USE_OWN_TR1_TUPLE 0
 
+#include "gmock/gmock-matchers.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -33,31 +34,30 @@ TEST(OkvisVioInterfaces, testDataFlow) {
 
   // configure mock object
   MockVioBackendInterface dummy;
-  EXPECT_CALL(dummy, optimize(_, _, _)).Times(Between(5, 10));
-  EXPECT_CALL(dummy, get_T_WS(_, _)).Times(Between(12, 21));  // 1 per matching, 1 per optimization and in destructor
-  EXPECT_CALL(dummy, addCamera(_)).Times(2);
-  EXPECT_CALL(dummy, addImu(_)).Times(1);
-  EXPECT_CALL(dummy, addStates(_, _, _)).Times(Between(5, 10));
-  EXPECT_CALL(dummy, applyMarginalizationStrategy(_, _, _)).Times(Between(5, 10));
-  EXPECT_CALL(dummy, setOptimizationTimeLimit(_, _)).Times(1);
+  EXPECT_CALL(dummy, optimize).Times(Between(5, 10));
+  EXPECT_CALL(dummy, get_T_WS).Times(Between(12, 21));  // 1 per matching, 1 per optimization and in destructor
+  EXPECT_CALL(dummy, addCamera).Times(2);
+  EXPECT_CALL(dummy, addImu).Times(1);
+  EXPECT_CALL(dummy, addStates).Times(Between(5, 10));
+  EXPECT_CALL(dummy, applyMarginalizationStrategy).Times(Between(5, 10));
+  EXPECT_CALL(dummy, setOptimizationTimeLimit).Times(1);
 
-  EXPECT_CALL(dummy, multiFrame(_)).Times(AnyNumber());
-  EXPECT_CALL(dummy, getSpeedAndBias(_, _, _)).Times(AnyNumber());
-  EXPECT_CALL(dummy, numFrames()).Times(AnyNumber());
-
-  ON_CALL(dummy, numFrames()).WillByDefault(Return(1));
-  ON_CALL(dummy, addStates(_, _, _)).WillByDefault(Return(true));
+  EXPECT_CALL(dummy, multiFrame).Times(AnyNumber());
+  EXPECT_CALL(dummy, getSpeedAndBias).Times(AnyNumber());
+  EXPECT_CALL(dummy, numFrames).Times(AnyNumber());
+  ON_CALL(dummy, numFrames).WillByDefault(Return(1));
+  ON_CALL(dummy, addStates).WillByDefault(Return(true));
   // to circumvent segfault
-  ON_CALL(dummy, multiFrame(_))
+  ON_CALL(dummy, multiFrame)
       .WillByDefault(Return(
           std::shared_ptr<okvis::MultiFrame>(new okvis::MultiFrame(parameters.nCameraSystem, okvis::Time::now()))));
 
   MockVioFrontendInterface mock_frontend;
-  EXPECT_CALL(mock_frontend, detectAndDescribe(_, _, _, _)).Times(Between(18, 20));
-  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_, _, _, _, _, _)).Times(Between(7, 10));
-  EXPECT_CALL(mock_frontend, propagation(_, _, _, _, _, _, _, _)).Times(Between(99, 100));
-  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_)).Times(1);
-  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_)).Times(1);
+  EXPECT_CALL(mock_frontend, detectAndDescribe).Times(Between(18, 20));
+  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization).Times(Between(7, 10));
+  EXPECT_CALL(mock_frontend, propagation).Times(Between(99, 100));
+  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves).Times(1);
+  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold).Times(1);
 
   // start with mock
   ThreadedKFVio vio(parameters);

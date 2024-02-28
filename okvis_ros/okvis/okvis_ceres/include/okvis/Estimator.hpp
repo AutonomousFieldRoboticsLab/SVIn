@@ -60,7 +60,7 @@
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
-#include <okvis/ceres/SonarParameterBlock.hpp>  // @Sharmin
+// #include <okvis/ceres/SonarParameterBlock.hpp>  // @Sharmin
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <utility>
@@ -112,6 +112,7 @@ class Estimator : public VioBackendInterface {
    */
   int addImu(const okvis::ImuParameters& imuParameters);
 
+  int addSonar(const SonarParameters& sonarParameters);
   /**
    * @brief Remove all cameras from the configuration
    */
@@ -133,11 +134,10 @@ class Estimator : public VioBackendInterface {
    */
   bool addStates(okvis::MultiFramePtr multiFrame,
                  const okvis::ImuMeasurementDeque& imuMeasurements,
-                 const okvis::VioParameters& params,                    /* @Sharmin */
-                 const okvis::SonarMeasurementDeque& sonarMeasurements, /*Sharmin*/
-                 const okvis::DepthMeasurementDeque& depthMeasurements,
-                 double firstDepth, /*Sharmin*/
-                 bool asKeyframe);
+                 bool asKeyframe,
+                 const okvis::SonarMeasurementDeque& sonarMeasurements = {},
+                 const okvis::DepthMeasurementDeque& depthMeasurements = {},
+                 double firstDepth = 0.0);
 
   /**
    * @brief Prints state information to buffer.
@@ -155,13 +155,13 @@ class Estimator : public VioBackendInterface {
   bool addLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark);
 
   /// @Sharmin
-  /**
-   * @brief Add a sonar landmark.
-   * @param landmarkId ID of the new sonar landmark.
-   * @param landmark Homogeneous coordinates of landmark in W-frame.
-   * @return True if successful.
-   */
-  bool addSonarLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark);
+  // /**
+  //  * @brief Add a sonar landmark.
+  //  * @param landmarkId ID of the new sonar landmark.
+  //  * @param landmark Homogeneous coordinates of landmark in W-frame.
+  //  * @return True if successful.
+  //  */
+  // bool addSonarLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark);
 
   /**
    * @brief Add an observation to a landmark.
@@ -613,6 +613,8 @@ class Estimator : public VioBackendInterface {
       extrinsicsEstimationParametersVec_;  ///< Extrinsics parameters.
   std::vector<okvis::ImuParameters, Eigen::aligned_allocator<okvis::ImuParameters>>
       imuParametersVec_;  ///< IMU parameters.
+
+  okvis::SonarParameters sonarParameters_;  ///< Sonar parameters.
 
   // loss function for reprojection errors
   std::shared_ptr<::ceres::LossFunction> cauchyLossFunctionPtr_;  ///< Cauchy loss.

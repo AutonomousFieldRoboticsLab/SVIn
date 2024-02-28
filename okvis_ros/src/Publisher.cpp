@@ -91,13 +91,10 @@ void Publisher::setNodeHandle(ros::NodeHandle& nh) {
   // advertise
 
   // pubStereoMatched_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_stereo_matched", 1);   // Sharmin
-  pubKeyframeImageL_ = nh_->advertise<sensor_msgs::Image>("keyframe_imageL", 10);       // Sharmin
-  pubKeyframePose_ = nh_->advertise<nav_msgs::Odometry>("keyframe_pose", 10);           // Sharmin
-  pubKeyframePoints_ = nh_->advertise<sensor_msgs::PointCloud>("keyframe_points", 1);   // Sharmin
-  pubReloRelativePose_ = nh_->advertise<nav_msgs::Odometry>("relo_relative_pose", 10);  // Sharmin
-  pubRelocPath_ = nh_->advertise<nav_msgs::Path>("relocalization_path", 10);            // Sharmin
-  pubRelocPose_ = nh_->advertise<nav_msgs::Odometry>("relocalization_odometry", 10);    // Sharmin
-  pubSvinHealth = nh_->advertise<okvis_ros::SvinHealth>("svin_health", 1);              // Sharmin: SVIN health
+  pubKeyframeImageL_ = nh_->advertise<sensor_msgs::Image>("keyframe_imageL", 10);      // Sharmin
+  pubKeyframePose_ = nh_->advertise<nav_msgs::Odometry>("keyframe_pose", 10);          // Sharmin
+  pubKeyframePoints_ = nh_->advertise<sensor_msgs::PointCloud>("keyframe_points", 1);  // Sharmin
+  pubSvinHealth = nh_->advertise<okvis_ros::SvinHealth>("svin_health", 1);             // Sharmin: SVIN health
 
   pubPointsMatched_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_points_matched", 1);
   pubPointsUnmatched_ = nh_->advertise<sensor_msgs::PointCloud2>("okvis_points_unmatched", 1);
@@ -116,78 +113,6 @@ void Publisher::setNodeHandle(ros::NodeHandle& nh) {
   }
 
   static_tf_published_ = false;
-}
-
-// ********** Added by Sharmin ****************//
-/*
-
- void Publisher::publishSteroPointCloudAsCallback(const okvis::Time & //t
-        , const std::vector<Eigen::Vector3d> & stereoMatched){
-
-  stereoPointsMatched_->clear();
-
-  for (size_t i = 0; i < stereoMatched.size(); ++i) {
-
-        stereoPointsMatched_->push_back(pcl::PointXYZRGB());
-        const Eigen::Vector3d point = stereoMatched[i];
-        stereoPointsMatched_->back().x = point[0];
-        stereoPointsMatched_->back().y = point[1];
-        stereoPointsMatched_->back().z = point[2];
-        stereoPointsMatched_->back().r = 255;
-        stereoPointsMatched_->back().g = 255;
-
-  }
-
-  std::cerr << "Cloud before filtering: " << std::endl;
-  std::cerr << *stereoPointsMatched_ << std::endl;
-
-  sorfilter.setInputCloud (stereoPointsMatched_);
-  sorfilter.setMeanK (50);  // FIXME Sharmin
-  sorfilter.setStddevMulThresh (0.001);
-  sorfilter.filter (stereoPointsMatchedFiltered_);
-
-  std::cerr << "Cloud after filtering: " << std::endl;
-  std::cerr << stereoPointsMatchedFiltered_ << std::endl;
-
-  stereoPointsMatchedFiltered_.header.frame_id = "world";
-
-#if PCL_VERSION >= PCL_VERSION_CALC(1,7,0)
-  std_msgs::Header header;
-  header.stamp = _t;
-  stereoPointsMatchedFiltered_.header.stamp = pcl_conversions::toPCL(header).stamp;
-#else
-  stereoPointsMatchedFiltered_.header.stamp=_t;
-#endif
-
-
-  pubStereoMatched_.publish(stereoPointsMatchedFiltered_);
-}
- */
-void Publisher::publishRelocRelativePoseAsCallback(const okvis::Time& t,
-                                                   const Eigen::Vector3d& relative_t,
-                                                   const Eigen::Quaterniond& relative_q,
-                                                   const double& relative_yaw,
-                                                   const double& frame_index) {
-  nav_msgs::Odometry odometry;
-
-  odometry.header.frame_id = "world";
-  odometry.header.stamp = ros::Time(t.sec, t.nsec);
-
-  // Note Sharmin: relative_t and relative_q are w.r.t Ca
-
-  odometry.pose.pose.orientation.x = relative_q.x();
-  odometry.pose.pose.orientation.y = relative_q.y();
-  odometry.pose.pose.orientation.z = relative_q.z();
-  odometry.pose.pose.orientation.w = relative_q.w();
-
-  odometry.pose.pose.position.x = relative_t.x();
-  odometry.pose.pose.position.y = relative_t.y();
-  odometry.pose.pose.position.z = relative_t.z();
-
-  odometry.twist.twist.linear.x = relative_yaw;
-  odometry.twist.twist.linear.y = frame_index;
-
-  pubReloRelativePose_.publish(odometry);
 }
 
 void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
@@ -534,8 +459,7 @@ void Publisher::setPose(const okvis::kinematics::Transformation& T_WS) {
 // Modified by SHarmin
 void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
                             const okvis::SpeedAndBiases& speedAndBiases,
-                            const Eigen::Vector3d& omega_S,
-                            const okvis::kinematics::Transformation& driftCorrected_T) {
+                            const Eigen::Vector3d& omega_S) {
   // header.frame_id is the frame in which the pose is given. I.e. world frame in our case
   // child_frame_id is the frame in which the twist part of the odometry message is given.
   // see also nav_msgs/Odometry Message documentation
@@ -551,14 +475,14 @@ void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
   if (parameters_.publishing.trackedBodyFrame == FrameName::S) {
     odometryMsg_.header.frame_id = "world";
     T = parameters_.publishing.T_Wc_W * T_WS;
-    reloc_T = parameters_.publishing.T_Wc_W * (driftCorrected_T * T_WS);  // Sharmin
-    t_W_ofFrame.setZero();                                                // r_SS_in_W
+    reloc_T = parameters_.publishing.T_Wc_W * T_WS;  // Sharmin
+    t_W_ofFrame.setZero();                           // r_SS_in_W
     v_W_ofFrame =
         parameters_.publishing.T_Wc_W.C() * speedAndBiases.head<3>();  // world-centric speedAndBiases.head<3>()
     // LOG (INFO) << "Tracked Body Frame: S";
   } else if (parameters_.publishing.trackedBodyFrame == FrameName::B) {
     odometryMsg_.header.frame_id = "world";
-    T = parameters_.publishing.T_Wc_W * driftCorrected_T * T_WS * parameters_.imu.T_BS.inverse();
+    T = parameters_.publishing.T_Wc_W * T_WS * parameters_.imu.T_BS.inverse();
     reloc_T = parameters_.publishing.T_Wc_W * T_WS * parameters_.imu.T_BS.inverse();  // Sharmin
     t_W_ofFrame = (parameters_.publishing.T_Wc_W * T_WS * parameters_.imu.T_BS.inverse()).r() -
                   (parameters_.publishing.T_Wc_W * T_WS).r();  // r_BS_in_W
@@ -570,8 +494,8 @@ void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
     LOG(ERROR) << "Pose frame does not exist for publishing. Choose 'S' or 'B'.";
     odometryMsg_.header.frame_id = "world";
     T = parameters_.publishing.T_Wc_W * T_WS;
-    reloc_T = parameters_.publishing.T_Wc_W * driftCorrected_T * T_WS;  // SHarmin
-    t_W_ofFrame.setZero();                                              // r_SS_in_W
+    reloc_T = parameters_.publishing.T_Wc_W * T_WS;  // SHarmin
+    t_W_ofFrame.setZero();                           // r_SS_in_W
     v_W_ofFrame =
         parameters_.publishing.T_Wc_W.C() * speedAndBiases.head<3>();  // world-centric speedAndBiases.head<3>()
   }
@@ -649,16 +573,6 @@ void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
   odometry.pose.pose.position.z = relo_r[2];
 
   odometry.twist = odometryMsg_.twist;
-
-  pubRelocPose_.publish(odometry);
-
-  geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.pose = odometry.pose.pose;
-  relocPath_.header.frame_id = "world";
-  relocPath_.header.stamp = _t;
-
-  relocPath_.poses.push_back(pose_stamped);
-  pubRelocPath_.publish(relocPath_);
 
   // ******************  End Sharmin: For Reloc Pose **********//
 }
@@ -813,11 +727,10 @@ void Publisher::publishStateAsCallback(const okvis::Time& t, const okvis::kinema
 void Publisher::publishFullStateAsCallback(const okvis::Time& t,
                                            const okvis::kinematics::Transformation& T_WS,
                                            const Eigen::Matrix<double, 9, 1>& speedAndBiases,
-                                           const Eigen::Matrix<double, 3, 1>& omega_S,
-                                           const okvis::kinematics::Transformation& driftCorrected_T_WS) {
+                                           const Eigen::Matrix<double, 3, 1>& omega_S) {
   setTime(t);
   // Modified by Sharmin
-  setOdometry(T_WS, speedAndBiases, omega_S, driftCorrected_T_WS);  // TODO(sharmin): provide setters for this hack
+  setOdometry(T_WS, speedAndBiases, omega_S);  // TODO(sharmin): provide setters for this hack
   setPath(T_WS);
   publishOdometry();
   publishTransform();
@@ -831,10 +744,7 @@ void Publisher::csvSaveFullStateAsCallback(const okvis::Time& t,
                                            const Eigen::Matrix<double, 3, 1>& omega_S) {
   setTime(t);
   // Modified by Sharmin
-  setOdometry(T_WS,
-              speedAndBiases,
-              omega_S,
-              okvis::kinematics::Transformation());  // TODO(sharmin): provide setters for this hack
+  setOdometry(T_WS, speedAndBiases, omega_S);
   if (!csvFile_) {
     LOG(WARNING) << "csvFile_ not ok";
   } else {
@@ -864,10 +774,7 @@ void Publisher::csvSaveFullStateWithExtrinsicsAsCallback(
         extrinsics) {
   setTime(t);
   // Modified by SHarmin
-  setOdometry(T_WS,
-              speedAndBiases,
-              omega_S,
-              okvis::kinematics::Transformation());  // TODO(sharmin): provide setters for this hack
+  setOdometry(T_WS, speedAndBiases, omega_S);
   if (csvFile_) {
     if (csvFile_->good()) {
       Eigen::Vector3d p_WS_W = T_WS.r();

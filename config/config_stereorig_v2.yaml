@@ -27,8 +27,8 @@ camera_params:
     camera_rate: 15 # just to manage the expectations of when there should be frames arriving
     sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
-    sigma_c_relative_translation: 1.0e-8 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
-    sigma_c_relative_orientation: 1.0e-8 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
+    sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
+    sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
     # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
 
 
@@ -36,12 +36,12 @@ camera_params:
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 0.0016017 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
-    sigma_a_c: 0.0071376 # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
+    sigma_g_c: 0.00080085 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
+    sigma_a_c: 0.00356884 # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
-    sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
+    sigma_gw_c: 0.00000825 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
+    sigma_aw_c: 0.0001437 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
@@ -91,7 +91,7 @@ detection_options:
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
-imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+imageDelay: 0.00  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
@@ -120,7 +120,6 @@ publishing_options:
 #Sharmin
 isSonarUsed: false
 isDepthUsed: false
-isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
 claheClipLimit: 1.0
 claheTilesGridSize: 4
@@ -133,6 +132,9 @@ loop_closure_params:
     min_correspondences: 25 #Minimum 2D to 3D correspondences required for loop closure
     pnp_reprojection_threshold: 20.0 #Reprojection threshold for PnP RANSAC
     pnp_ransac_iterations: 100  #Number of iterations for PnP RANSAC
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 25.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 5.0 #Max position difference between keyframe and query frame (meters)
 
 health:
     enable: 0
@@ -142,9 +144,9 @@ health:
     kps_per_quadrant: 1
 
 global_map_params:
-    enable: 0
+    enable: 1
     min_landmark_quality: 0.01
 
-debug:
-    enable: 1
-    output_dir: /home/bjoshi/ros_workspaces/svin_ws/src/SVIn/pose_graph/debug_output
+output_params:
+    debug: 1
+    output_dir: /home/bjoshi/ros_workspaces/svin_ws/src/SVIn/pose_graph/

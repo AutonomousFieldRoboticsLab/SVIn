@@ -47,10 +47,10 @@
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 #include <okvis/ceres/ParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
-#include <okvis/ceres/SonarLocalParameterization.hpp>  // @Sharmin
+#include <okvis/ceres/PoseManifold.hpp>
+// #include <okvis/ceres/SonarManifold.hpp>  // @Sharmin
 #include <unordered_map>
 
 /// \brief okvis Main namespace of this package.
@@ -96,13 +96,13 @@ class Map {
 
   /// @brief The Parameterisation enum
   enum Parameterization {
-    HomogeneousPoint,  ///< Use okvis::ceres::HomogeneousPointLocalParameterization.
-    Sonar,             ///< Use okvis::ceres::SonarLocalParameterization. @Sharmin
-    Pose6d,            ///< Use okvis::ceres::PoseLocalParameterization.
-    Pose3d,            ///< Use okvis::ceres::PoseLocalParameterization3d (orientation varying).
-    Pose4d,            ///< Use okvis::ceres::PoseLocalParameterization4d (position and yaw varying).
-    Pose2d,            ///< Use okvis::ceres::PoseLocalParameterization2d (roll/pitch varying).
-    Trivial            ///< No local parameterisation.
+    HomogeneousPoint,  ///< Use okvis::ceres::HomogeneousPointManifold.
+    // Sonar,             ///< Use okvis::ceres::SonarManifold. @Sharmin
+    Pose6d,  ///< Use okvis::ceres::PoseManifold.
+    Pose3d,  ///< Use okvis::ceres::PoseManifold3d (orientation varying).
+    Pose4d,  ///< Use okvis::ceres::PoseManifold4d (position and yaw varying).
+    Pose2d,  ///< Use okvis::ceres::PoseManifold2d (roll/pitch varying).
+    Trivial  ///< No local parameterisation.
   };
 
   /**
@@ -264,20 +264,19 @@ class Map {
   /**
    * @brief Set the (local) parameterisation of a parameter block.
    * @param[in] parameterBlockId The ID of the parameter block in question.
-   * @param[in] local_parameterization Give it an actual local parameterisation object.
+   * @param[in] manifold Give it an actual manifold object.
    * @return True on success.
    */
-  bool setParameterization(uint64_t parameterBlockId, ::ceres::LocalParameterization* local_parameterization);
+  bool setParameterization(uint64_t parameterBlockId, ::ceres::Manifold* manifold);
 
   /**
    * @brief Set the (local) parameterisation of a parameter block.
    * @param[in] parameterBlock The pointer to the parameter block in question.
-   * @param[in] local_parameterization Give it an actual local parameterisation object.
+   * @param[in] manifold Give it an actual manifold object.
    * @return True on success.
    */
-  bool setParameterization(std::shared_ptr<okvis::ceres::ParameterBlock> parameterBlock,
-                           ::ceres::LocalParameterization* local_parameterization) {
-    return setParameterization(parameterBlock->id(), local_parameterization);
+  bool setParameterization(std::shared_ptr<okvis::ceres::ParameterBlock> parameterBlock, ::ceres::Manifold* manifold) {
+    return setParameterization(parameterBlock->id(), manifold);
   }
 
   /// @}
@@ -401,23 +400,23 @@ class Map {
   ResidualBlockId2ParameterBlockCollection_Map residualBlockId2ParameterBlockCollection_Map_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::HomogeneousPointLocalParameterization homogeneousPointLocalParameterization_;
+  okvis::ceres::HomogeneousPointManifold homogeneousPointManifold_;
 
   /// @Sharmin
   /// \brief Store parameterisation locally.
-  okvis::ceres::SonarLocalParameterization sonarLocalParameterization_;
+  // okvis::ceres::SonarManifold sonarManifold_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization poseLocalParameterization_;
+  okvis::ceres::PoseManifold poseManifold_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization2d poseLocalParameterization2d_;
+  okvis::ceres::PoseManifold2d poseManifold2d_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization3d poseLocalParameterization3d_;
+  okvis::ceres::PoseManifold3d poseManifold3d_;
 
   /// \brief Store parameterisation locally.
-  okvis::ceres::PoseLocalParameterization4d poseLocalParameterization4d_;
+  okvis::ceres::PoseManifold4d poseManifold4d_;
 };
 
 }  // namespace ceres

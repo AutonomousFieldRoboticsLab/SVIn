@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.8.11)
 
 project(okvis_cv)
 
@@ -51,7 +51,10 @@ if(BUILD_TESTS)
   )
   target_link_libraries(${PROJECT_TEST_NAME} 
     ${PROJECT_NAME} 
-    ${GTEST_LIBRARY}  
+      gtest
+      gtest_main
+      gmock
+      gmock_main 
     pthread)
   add_test(test ${PROJECT_TEST_NAME})
 endif()

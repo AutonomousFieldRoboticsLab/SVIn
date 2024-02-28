@@ -47,14 +47,12 @@
 #include <okvis/IdProvider.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/DepthError.hpp>                      // @Sharmin
-#include <okvis/ceres/HomogeneousPointError.hpp>           // @Sharmin
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>  // @Sharmin
+#include <okvis/ceres/DepthError.hpp>
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/RelativePoseError.hpp>
-#include <okvis/ceres/SonarError.hpp>  // @Sharmin
+#include <okvis/ceres/SonarError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <utility>
 #include <vector>
@@ -105,11 +103,10 @@ void Estimator::clearImus() { imuParametersVec_.clear(); }
 // Add a pose to the state.
 bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
                           const okvis::ImuMeasurementDeque& imuMeasurements,
-                          const okvis::VioParameters& params,                    /* @Sharmin */
+                          bool asKeyframe,
                           const okvis::SonarMeasurementDeque& sonarMeasurements, /* @Sharmin */
                           const okvis::DepthMeasurementDeque& depthMeasurements,
-                          double firstDepth, /* @Sharmin */
-                          bool asKeyframe) {
+                          double firstDepth) {
   // Note Sharmin: this is for imu propagation no matter isScaleRefined_ is true/false.
   // TODO(Sharmin): Start actual optimization when isScaleRefined_ = true.
 
@@ -122,10 +119,11 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     if (!success0) return false;
 
     // Sharmin
-    if (multiFrame->numKeypoints() > 15) {
-      std::cout << "Initialized!! As enough keypoints are found" << std::endl;
-      std::cout << "Initial T_WS: " << T_WS.parameters();
+    if (multiFrame->numKeypoints() > 10) {
+      LOG(INFO) << "Initialized!! As enough keypoints are found";
+      LOG(INFO) << "Initial T_WS: " << T_WS.parameters();
     } else {
+      LOG(WARNING) << "Not enought multiframe Points: " << multiFrame->numKeypoints();
       return false;
     }
     // End Sharmin
@@ -134,7 +132,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     speedAndBias.segment<3>(6) = imuParametersVec_.at(0).a0;
   } else {
     // get the previous states
-    uint64_t T_WS_id = statesMap_.rbegin()->second.id;  // n-th state
+    uint64_t T_WS_id = statesMap_.rbegin()->second.id;
     uint64_t speedAndBias_id =
         statesMap_.rbegin()->second.sensors.at(SensorStates::Imu).at(0).at(ImuSensorStates::SpeedAndBias).id;
     OKVIS_ASSERT_TRUE_DBG(
@@ -276,20 +274,20 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     mapPtr_->addResidualBlock(depthError, NULL, poseParameterBlock);
     std::cout << "Residual block z: " << (*poseParameterBlock->parameters()) + 2 << std::endl;
   }
-  // Sonar
-  std::vector<Eigen::Vector3d> landmarkSubset;
-  Eigen::Vector3d sonar_landmark;
-  double range = 0.0, heading = 0.0;
 
   // @Sharmin
   if (sonarMeasurements.size() != 0) {
+    // Sonar
+    std::vector<Eigen::Vector3d> landmarkSubset;
+    Eigen::Vector3d sonar_landmark;
+    double range = 0.0, heading = 0.0;
     auto last_sonarMeasurement_it = sonarMeasurements.rbegin();
 
     // Taking the nearest range value to the n+1 th frame
     range = last_sonarMeasurement_it->measurement.range;
     heading = last_sonarMeasurement_it->measurement.heading;
 
-    okvis::kinematics::Transformation T_WSo = T_WS * params.sonar.T_SSo;
+    okvis::kinematics::Transformation T_WSo = T_WS * sonarParameters_.T_SSo;
 
     okvis::kinematics::Transformation sonar_point(Eigen::Vector3d(range * cos(heading), range * sin(heading), 0.0),
                                                   Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0));
@@ -325,7 +323,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
       double information_sonar = 1.0;  // TODO(sharmin) calculate properly?
 
       std::shared_ptr<ceres::SonarError> sonarError(
-          new ceres::SonarError(params, range, heading, information_sonar, landmarkSubset));
+          new ceres::SonarError(sonarParameters_, range, heading, information_sonar, landmarkSubset));
       mapPtr_->addResidualBlock(sonarError, NULL, poseParameterBlock);
     }
     // End @Sharmin
@@ -428,51 +426,6 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
   return true;
 }
 
-// @Sharmin
-// Add a sonar landmark.
-// TODO(sharmin) check whether it's okvis::ceres::Map::Sonar or okvis::ceres::Map::HomogeneousPoint
-bool Estimator::addSonarLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark) {
-  std::shared_ptr<okvis::ceres::HomogeneousPointParameterBlock> pointParameterBlock(
-      new okvis::ceres::HomogeneousPointParameterBlock(landmark, landmarkId));
-  if (!mapPtr_->addParameterBlock(pointParameterBlock, okvis::ceres::Map::HomogeneousPoint)) {
-    return false;
-  }
-
-  /*std::shared_ptr<okvis::ceres::SonarParameterBlock> pointParameterBlock(
-      new okvis::ceres::SonarParameterBlock(landmark, landmarkId));
-  if (!mapPtr_->addParameterBlock(pointParameterBlock,
-                                  okvis::ceres::Map::Sonar)) {
-    return false;
-  }*/
-
-  /*Eigen::Matrix<double,3,3> information = Eigen::Matrix<double,3,3>::Zero();
-          information(0,0) = 1.0; information(1,1) = 1.0; information(2,2) = 1.0;
-  // TODO(Sharmin): check Runtime error, parameterBlockExists = false
-  std::shared_ptr<ceres::SonarError > sonarError(
-                        new ceres::SonarError(landmark, information, landmarkSubset));
-  // add to map
-  mapPtr_->addResidualBlock(sonarError, NULL, pointParameterBlock);*/
-
-  // TODO(Sharmin) check it!!
-  /*std::shared_ptr<okvis::ceres::HomogeneousPointError> homogeneousPointError(
-               new okvis::ceres::HomogeneousPointError(
-                               landmark, 0.01));
-
-  mapPtr_->addResidualBlock(
-               homogeneousPointError, NULL, pointParameterBlock);*/
-
-  // remember
-  double dist = std::numeric_limits<double>::max();
-  if (fabs(landmark[3]) > 1.0e-8) {
-    dist = (landmark / landmark[3]).head<3>().norm();  // euclidean distance
-  }
-  //  (sharmin) check landmarksMap
-  landmarksMap_.insert(std::pair<uint64_t, MapPoint>(landmarkId, MapPoint(landmarkId, landmark, 0.0, dist)));
-  OKVIS_ASSERT_TRUE_DBG(
-      Exception, isLandmarkAdded(landmarkId), "bug adding sonar landmark: inconsistend landmarkdMap_ with mapPtr_.");
-  return true;
-}
-
 // Add a landmark.
 bool Estimator::addLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark) {
   std::shared_ptr<okvis::ceres::HomogeneousPointParameterBlock> pointParameterBlock(
@@ -480,14 +433,6 @@ bool Estimator::addLandmark(uint64_t landmarkId, const Eigen::Vector4d& landmark
   if (!mapPtr_->addParameterBlock(pointParameterBlock, okvis::ceres::Map::HomogeneousPoint)) {
     return false;
   }
-
-  // TODO(sharmin) check it!!
-  /* std::shared_ptr<okvis::ceres::HomogeneousPointError> homogeneousPointError(
-          new okvis::ceres::HomogeneousPointError(
-                          landmark, 0.1));
-
-   mapPtr_->addResidualBlock(
-          homogeneousPointError, NULL, pointParameterBlock);*/
 
   // remember
   double dist = std::numeric_limits<double>::max();
@@ -681,7 +626,7 @@ bool Estimator::applyMarginalizationStrategy(size_t numKeyframes,
 
     // schedule removal - but always keep the very first frame.
     // if(it != statesMap_.begin()){
-    if (true) {
+    if (true) {                                              /////DEBUG
       it->second.global[GlobalStates::T_WS].exists = false;  // remember we removed
       paremeterBlocksToBeMarginalized.push_back(it->second.global[GlobalStates::T_WS].id);
       keepParameterBlocks.push_back(false);
@@ -799,7 +744,7 @@ bool Estimator::applyMarginalizationStrategy(size_t numKeyframes,
               residuals.erase(residuals.begin() + r);
               r--;
             } else if (marginalize && vectorContains(allLinearizedFrames, poseId)) {
-              // TODO(sharmin): consider only the sensible ones for marginalization
+              // TODO: consider only the sensible ones for marginalization
               if (obsCount < 2) {  // visibleInFrame.size()
                 removeObservation(residuals[r].residualBlockId);
                 residuals.erase(residuals.begin() + r);

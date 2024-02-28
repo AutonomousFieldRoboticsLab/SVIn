@@ -36,8 +36,8 @@
  * @author Stefan Leutenegger
  */
 
-#ifndef INCLUDE_OKVIS_CERES_LOCALPARAMIZATIONADDITIONALINTERFACES_HPP_
-#define INCLUDE_OKVIS_CERES_LOCALPARAMIZATIONADDITIONALINTERFACES_HPP_
+#ifndef INCLUDE_OKVIS_CERES_MANIFOLDADDITIONALINTERFACES_HPP_
+#define INCLUDE_OKVIS_CERES_MANIFOLDADDITIONALINTERFACES_HPP_
 
 #include <okvis/assert_macros.hpp>
 
@@ -50,17 +50,10 @@ namespace ceres {
 
 /// \brief Provides some additional interfaces to ceres' LocalParamization
 ///        than are needed in the generic marginalisation okvis::ceres::MarginalizationError.
-class LocalParamizationAdditionalInterfaces {
+class ManifoldAdditionalInterfaces {
  public:
   /// \brief Trivial destructor.
-  virtual ~LocalParamizationAdditionalInterfaces() {}
-
-  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
-  /// @param[in] x Variable.
-  /// @param[in] x_plus_delta Perturbed variable.
-  /// @param[out] delta minimal difference.
-  /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const = 0;
+  virtual ~ManifoldAdditionalInterfaces() {}
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -78,4 +71,4 @@ class LocalParamizationAdditionalInterfaces {
 }  // namespace ceres
 }  // namespace okvis
 
-#endif /* INCLUDE_OKVIS_CERES_LOCALPARAMIZATIONADDITIONALINTERFACES_HPP_ */
+#endif /* INCLUDE_OKVIS_CERES_MANIFOLDADDITIONALINTERFACES_HPP_ */

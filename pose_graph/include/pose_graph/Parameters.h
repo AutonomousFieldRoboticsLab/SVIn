@@ -61,7 +61,8 @@ class Parameters {
   // The first camera in the camera is used as refrence
   CameraCalibration camera_calibration_;
 
-  bool debug_mode_;
+  bool debug_mode_ = false;
+  std::string output_path_;
   std::string debug_output_path_;
 
   double image_delay_;

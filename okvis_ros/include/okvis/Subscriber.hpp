@@ -81,11 +81,6 @@
 #include <opencv2/opencv.hpp>
 #pragma GCC diagnostic pop
 #include <Eigen/Core>
-
-#ifdef HAVE_LIBVISENSOR
-#include <visensor/visensor_api.hpp>
-#endif
-
 #include <okvis/Publisher.hpp>
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/Time.hpp>
@@ -155,57 +150,21 @@ class Subscriber {
   void sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg);
 
   /// @}
-  /// @name Direct (no ROS) callbacks and other sensor related methods.
-  /// @{
-
-#ifdef HAVE_LIBVISENSOR
-  /// @brief Initialise callbacks. Called in constructor.
-  void initialiseDriverCallbacks();
-  /// @brief Start up sensor.
-  /// @warning Call initialiseDriverCallbacks() first to initialise sensor API.
-  void startSensors(const std::vector<unsigned int>& camRate, const unsigned int imuRate);
-  /// @brief The IMU callback.
-  void directImuCallback(boost::shared_ptr<visensor::ViImuMsg> imu_ptr, visensor::ViErrorCode error);
-  /// @brief The image callback.
-  void directFrameCallback(visensor::ViFrame::Ptr frame_ptr, visensor::ViErrorCode error);
-  /// @brief The callback for images including detected corners.
-  /// @warning Not implemented.
-  void directFrameCornerCallback(visensor::ViFrame::Ptr frame_ptr, visensor::ViCorner::Ptr corners_ptr);
-  /// \brief Dynamic reconfigure callback
-  void configCallback(okvis_ros::CameraConfig& config, uint32_t level);  // NOLINT
-#endif
-
-  /// @}
   /// @name Node and subscriber related
   /// @{
 
   ros::NodeHandle* nh_;                                        ///< The node handle.
   image_transport::ImageTransport* imgTransport_;              ///< The image transporter.
   std::vector<image_transport::Subscriber> imageSubscribers_;  ///< The image message subscriber.
-  unsigned int imgLeftCounter;                                 // @Sharmin
-  unsigned int imgRightCounter;                                // @Sharmin
   ros::Subscriber subImu_;                                     ///< The IMU message subscriber.
   ros::Subscriber subSonarRange_;                              ///< The Sonar Range Subscriber @Sharmin
   ros::Subscriber subDepth_;                                   ///< The Depth Subscriber @Sharmin
-  ros::Subscriber subReloPoints_;  ///< The Relocalization Points Subscriber from pose_graph @Sharmin
-  cv::Ptr<cv::CLAHE> clahe;        /// Sharmin
+  cv::Ptr<cv::CLAHE> clahe;                                    /// Sharmin
   /// @}
-
-#ifdef HAVE_LIBVISENSOR
-  std::shared_ptr<visensor::ViSensorDriver> sensor_;  ///< The sensor API.
-  dynamic_reconfigure::Server<okvis_ros::CameraConfig>
-      cameraConfigReconfigureService_;  ///< dynamic reconfigure service.
-#endif
 
   okvis::VioInterface* vioInterface_;   ///< The VioInterface. (E.g. ThreadedKFVio)
   okvis::VioParameters vioParameters_;  ///< The parameters and settings.
 
-  /// @Sharmin
-  // std::mutex lastState_mutex_;            ///< Lock when accessing any of the 'lastOptimized*' variables.
-  /// TODO: @Sharmin: Parameter
-  /// TODO: Check this transformation, q(w,x,y,z)
-  // const static okvis::kinematics::Transformation T_SSo(Eigen::Vector3d(0.365, 0.095, 0.070), Eigen::Quaterniond(0.0,
-  // 0.707, 0.000, 0.707));
 };
 }  // namespace okvis
 

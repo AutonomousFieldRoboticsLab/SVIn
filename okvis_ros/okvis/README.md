@@ -195,15 +195,6 @@ OKVIS.
     # require OpenGV
     find_package(opengv REQUIRED)
     
-    # VISensor, if available
-    list(APPEND CMAKE_MODULE_PATH ${OKVIS_INSTALLATION}/lib/CMake)
-    find_package(VISensor)
-    if(VISENSORDRIVER_FOUND)
-      message(STATUS "Found libvisensor.")
-    else()
-      message(STATUS "libvisensor not found")
-    endif()
-    
     # now continue with your project-specific stuff...
 
 ### Contribution guidelines ###

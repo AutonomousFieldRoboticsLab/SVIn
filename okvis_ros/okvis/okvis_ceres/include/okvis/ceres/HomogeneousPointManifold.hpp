@@ -31,16 +31,16 @@
  *********************************************************************************/
 
 /**
- * @file HomogeneousPointLocalParameterization.hpp
- * @brief Header file for the HomogeneousPointLocalParameterization class.
+ * @file HomogeneousPointManifold.hpp
+ * @brief Header file for the HomogeneousPointManifold class.
  * @author Stefan Leutenegger
  */
 
-#ifndef INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTLOCALPARAMETERIZATION_HPP_
-#define INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTLOCALPARAMETERIZATION_HPP_
+#ifndef INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTMANIFOLD_HPP_
+#define INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTMANIFOLD_HPP_
 
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
+#include <okvis/ceres/ManifoldAdditionalInterfaces.hpp>
 
 #include "ceres/ceres.h"
 
@@ -51,13 +51,12 @@ namespace ceres {
 
 /// \brief Local parameterisation of a homogeneous point [x,y,z,w]^T.
 ///        We use a Euclidean-type perturbation, i.e. only affect the x-y-z-part.
-class HomogeneousPointLocalParameterization : public ::ceres::LocalParameterization,
-                                              public LocalParamizationAdditionalInterfaces {
+class HomogeneousPointManifold : public ::ceres::Manifold, public ManifoldAdditionalInterfaces {
  public:
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief Destructor (does nothing)
-  virtual ~HomogeneousPointLocalParameterization() {}
+  virtual ~HomogeneousPointManifold() {}
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
@@ -72,12 +71,19 @@ class HomogeneousPointLocalParameterization : public ::ceres::LocalParameterizat
   /// @param[in] x_plus_delta Perturbed variable.
   /// @param[out] delta minimal difference.
   /// \return True on success.
-  virtual bool Minus(const double* x, const double* x_plus_delta, double* delta) const;
+  virtual bool Minus(const double* x_plus_delta, const double* x, double* delta) const;
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual bool ComputeJacobian(const double* x, double* jacobian) const;
+  virtual bool PlusJacobian(const double* x, double* jacobian) const;
+
+  /// \brief Compute the derivative of Minus(y, x) w.r.t y at y = x, i.e
+  //   (D_1 Minus) (x, x)
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  virtual bool MinusJacobian(const double* x, double* jacobian) const;
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x Variable.
@@ -100,6 +106,11 @@ class HomogeneousPointLocalParameterization : public ::ceres::LocalParameterizat
   /// @param[out] jacobian The Jacobian.
   static bool plusJacobian(const double* x, double* jacobian);
 
+  /// @param[in] x Variable
+  /// @param[out] jacobian The Jacobian
+  /// @return Return value indicates whether the operation was successful or not.
+  static bool minusJacobian(const double* x, double* jacobian);
+
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x Variable.
   /// @param[in] x_plus_delta Perturbed variable.
@@ -114,13 +125,13 @@ class HomogeneousPointLocalParameterization : public ::ceres::LocalParameterizat
   static bool liftJacobian(const double* x, double* jacobian);
 
   /// \brief The parameter block dimension.
-  virtual int GlobalSize() const { return 4; }
+  virtual int AmbientSize() const { return 4; }
 
   /// \brief The parameter block local dimension.
-  virtual int LocalSize() const { return 3; }
+  virtual int TangentSize() const { return 3; }
 };
 
 }  // namespace ceres
 }  // namespace okvis
 
-#endif /* INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTLOCALPARAMETERIZATION_HPP_ */
+#endif /* INCLUDE_OKVIS_CERES_HOMOGENEOUSPOINTMANIFOLD_HPP_ */

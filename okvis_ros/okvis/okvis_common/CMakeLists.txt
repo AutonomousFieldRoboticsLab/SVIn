@@ -1,15 +1,14 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.8.11)
 
 project(okvis_common)
 
-IF(libvisensor_FOUND)
-  add_definitions(-DHAVE_LIBVISENSOR)
-  MESSAGE(STATUS "Found libvisensor. Setting HAVE_LIBVISENSOR flag.")
-ENDIF()
 
 # require Eigen
 find_package( Eigen REQUIRED )
+find_package(OpenCV REQUIRED)
+
 include_directories(${EIGEN_INCLUDE_DIR}) 
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 # build the library
 add_library(${PROJECT_NAME} STATIC 
@@ -29,7 +28,9 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC okvis_util
   PUBLIC okvis_kinematics 
   PUBLIC okvis_time 
-  PUBLIC okvis_cv)
+  PUBLIC okvis_cv
+  ${OpenCV_LIBS}
+)
 
 # installation if required
 install(TARGETS ${PROJECT_NAME}

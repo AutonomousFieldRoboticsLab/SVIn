@@ -37,7 +37,7 @@
  */
 
 #include <okvis/ceres/HomogeneousPointError.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+#include <okvis/ceres/HomogeneousPointManifold.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -80,7 +80,7 @@ bool HomogeneousPointError::EvaluateWithMinimalJacobians(double const* const* pa
   Eigen::Vector4d hp(parameters[0][0], parameters[0][1], parameters[0][2], parameters[0][3]);
   // delta
   Eigen::Vector3d error;
-  HomogeneousPointLocalParameterization::minus(&measurement_[0], &parameters[0][0], &error[0]);
+  HomogeneousPointManifold::minus(&parameters[0][0], &measurement_[0], &error[0]);
 
   // LOG(INFO)<<hp.toHomogeneous().transpose() << " : " << measurement.transpose();
 
@@ -93,9 +93,9 @@ bool HomogeneousPointError::EvaluateWithMinimalJacobians(double const* const* pa
     if (jacobians[0] != NULL) {
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 3, 4, Eigen::RowMajor> J_lift;
-      HomogeneousPointLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      HomogeneousPointManifold::liftJacobian(parameters[0], J_lift.data());
       Eigen::Matrix<double, 4, 3, Eigen::RowMajor> J_plus;
-      HomogeneousPointLocalParameterization::plusJacobian(parameters[0], J_plus.data());
+      HomogeneousPointManifold::plusJacobian(parameters[0], J_plus.data());
 
       Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> > J0(jacobians[0]);
       Eigen::Matrix<double, 3, 3, Eigen::RowMajor> J0_minimal = J_lift * J_plus;

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.8.11)
 project(okvis_ceres)
 
 # require Eigen
@@ -10,10 +10,10 @@ add_library(${PROJECT_NAME}
   src/PoseParameterBlock.cpp
   src/SpeedAndBiasParameterBlock.cpp
   src/HomogeneousPointParameterBlock.cpp
-  src/HomogeneousPointLocalParameterization.cpp
-  src/SonarParameterBlock.cpp  # @Sharmin
-  src/SonarLocalParameterization.cpp  # @Sharmin
-  src/PoseLocalParameterization.cpp
+  src/HomogeneousPointManifold.cpp
+  # src/SonarParameterBlock.cpp  # @Sharmin
+  # src/SonarManifold.cpp  # @Sharmin
+  src/PoseManifold.cpp
   src/ImuError.cpp
   src/PoseError.cpp
   src/RelativePoseError.cpp
@@ -25,7 +25,7 @@ add_library(${PROJECT_NAME}
   src/SonarError.cpp  # @Sharmin
   src/DepthError.cpp  # @Sharmin
   src/Estimator.cpp
-  src/LocalParamizationAdditionalInterfaces.cpp
+  src/ManifoldAdditionalInterfaces.cpp
   include/okvis/Estimator.hpp
   include/okvis/ceres/CeresIterationCallback.hpp
 )
@@ -63,10 +63,14 @@ if(BUILD_TESTS)
     test/TestImuError.cpp
     test/TestMap.cpp
     test/TestMarginalization.cpp
+    test/TestJacobians.cpp
   )
   target_link_libraries(${PROJECT_TEST_NAME} 
     ${PROJECT_NAME} 
-    ${GTEST_LIBRARY}  
+      gtest
+      gtest_main
+      gmock
+      gmock_main 
     pthread)
   add_test(test ${PROJECT_TEST_NAME})
 endif()

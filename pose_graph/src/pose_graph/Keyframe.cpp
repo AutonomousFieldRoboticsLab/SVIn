@@ -500,7 +500,8 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
 
     relative_yaw = Utils::normalizeAngle(Utils::R2ypr(origin_svin_R).x() - Utils::R2ypr(PnP_R_old).x());
 
-    if (abs(relative_yaw) < 25.0 && relative_t.norm() < 15.0) {
+    if (abs(relative_yaw) < params_.loop_closure_params_.max_relative_yaw &&
+        relative_t.norm() < params_.loop_closure_params_.max_relative_distance) {
       if (params_.debug_mode_) {
         cv::Mat loop_image =
             UtilsOpenCV::DrawCornersMatches(image, matched_2d_cur, old_kf->image, matched_2d_old, true);
@@ -530,10 +531,10 @@ bool Keyframe::findConnection(Keyframe* old_kf) {
         std::ofstream loop_closure_file(loop_closure_stats, std::ios::app);
         loop_closure_file.setf(std::ios::fixed, std::ios::floatfield);
         Eigen::Vector3d relative_ypr = Utils::R2ypr(relative_q.toRotationMatrix());
-        loop_closure_file.precision(9);
+        loop_closure_file.precision(5);
+        double relative_pitch = Utils::normalizeAngle(Utils::R2ypr(origin_svin_R).y() - Utils::R2ypr(PnP_R_old).y());
         loop_closure_file << index << " " << time_stamp << " " << old_kf->index << " " << old_kf->time_stamp << " "
-                          << relative_t.x() << " " << relative_t.y() << " " << relative_t.z() << " "
-                          << relative_ypr.transpose() << std::endl;
+                          << relative_t.norm() << " " << relative_yaw << std::endl;
         loop_closure_file.close();
       }
       has_loop = true;

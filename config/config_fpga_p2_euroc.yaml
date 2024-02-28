@@ -1,25 +1,26 @@
 %YAML:1.0
 cameras:
-    - {T_SC:
-       [ 0.0135852,   0.00289628,  0.99990352,  0.08129607,
-         0.99984969,  0.01073337, -0.01361556,  0.04478996,
-        -0.01077177,  0.9999382,  -0.00275003,  0.00302547,
-          0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1100],
-       distortion_coefficients: [0.1462139249855356, 0.3775304191882089, 0.007835564538475424, 0.002760598455182088],
-       distortion_type: radialtangential,
-       focal_length: [1159.2905564436558, 1157.0215864700963], 
-       principal_point: [804.4293114224579, 561.884540048856]} 
-    - {T_SC:
-       [ 0.0303923,  -0.00234773,  0.99953529,  0.08039185,
-         0.99941217,  0.01594106, -0.03035111, -0.06368291,
-        -0.0158624,   0.99987018,  0.00283084,  0.00470852,
-         0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1100],
-       distortion_coefficients: [0.15369547519155982, 0.340182231006338, 0.009963444523504303, -0.0027052356327500835],
-       distortion_type: radialtangential,
-       focal_length: [1155.8539673842838, 1155.4754872259887], 
-       principal_point: [794.2244374878869, 574.2082960760906]} 
+     - {T_SC:
+        [ 0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+          0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+          -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+           0.0, 0.0, 0.0, 1.0],
+        image_dimension: [752, 480],
+        distortion_coefficients: [-0.28340811217, 0.0739590738929, 0.000193595028569, 1.76187114545e-05],
+        distortion_type: radialtangential,
+        focal_length: [458.654880721, 457.296696463],
+        principal_point: [367.215803962, 248.37534061]}
+
+     - {T_SC:
+        [ 0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
+          0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
+          -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
+           0.0, 0.0, 0.0, 1.0],
+        image_dimension: [752, 480],
+        distortion_coefficients: [-0.283683654496, 0.0745128430929, -0.000104738949098, -3.55590700274e-05],
+        distortion_type: radialtangential,
+        focal_length: [457.587426604, 456.13442556],
+        principal_point: [379.99944652, 255.238185386]}
 
 
 camera_params:
@@ -28,32 +29,27 @@ camera_params:
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
     sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
     sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
-    # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
-
-
-
+    timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
 
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 0.0016017 # gyro noise density [rad/s/sqrt(Hz)] 0.00016017
-    sigma_a_c: 0.0071376 # accelerometer noise density [m/s^2/sqrt(Hz)] 0.00071376
+    sigma_g_c: 12.0e-4 # gyro noise density [rad/s/sqrt(Hz)]
+    sigma_a_c: 8.0e-3 # accelerometer noise density [m/s^2/sqrt(Hz)]
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
-    sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
+    sigma_gw_c: 4.0e-6 # gyro drift noise density [rad/s^s/sqrt(Hz)]
+    sigma_aw_c: 4.0e-5 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
-    imu_rate: 100
+    imu_rate: 200
     # tranform Body-Sensor (IMU)
     T_BS:
-        [1.0000, 0.0000, 0.0000, 0.0,
-         0.0000, 1.0000, 0.0000, 0.0,
-         0.0000, 0.0000, 1.0000, 0.0,
+        [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
          0.0000, 0.0000, 0.0000, 1.0000]
-
-
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
@@ -69,26 +65,25 @@ ceres_options:
 detection_options:
     threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
-publishDebugImages: false  # publish debug image to topic ~debug_image_x
 
 # use direct driver
-useDriver: false
+useDriver: false 
 
 # some options for how and what to publish -- optional in ROS-free version
 publishing_options:
-    publish_rate: 100                  # rate at which odometry updates are published only works properly if imu_rate/publish_rate is an integer!!
-    publishLandmarks: true             # select, if you want to publish landmarks at all
+    publish_rate: 200                  # rate at which odometry updates are published only works properly if imu_rate/publish_rate is an integer!!
+    publishLandmarks: treu             # select, if you want to publish landmarks at all
     landmarkQualityThreshold: 1.0e-2   # landmark with lower quality will not be published
     maximumLandmarkQuality: 0.05       # landmark with higher quality will be published with the maximum colour intensity
     maxPathLength: 20                  # maximum length of the published path
-    publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
+    publishImuPropagatedState: true    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:
         [1.0000, 0.0000, 0.0000, 0.0000,
@@ -103,5 +98,34 @@ isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
+claheClipLimit: 2.0
+claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
+
+loop_closure_params:
+    enable: 1  
+    min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
+    pnp_reprojection_threshold: 25.0     #increase for more loop closure, might result in false loop closure (8 to 30)
+    pnp_ransac_iterations: 100
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+    
+                     
+
+health:
+    enable: 0
+    min_keypoints: 15
+    consecutive_keyframes: 3
+    keyframe_wait_time: 2.0
+    kps_per_quadrant: 1
+
+global_map_params:
+    enable: 0
+    min_landmark_quality: 0.01
+
+debug:
+    enable: 1
+    # Relative to pose_graph package
+    output_dir: debug_output

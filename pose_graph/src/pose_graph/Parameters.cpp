@@ -67,6 +67,22 @@ void Parameters::loadParameters(const std::string& config_file) {
           static_cast<int>(fsSettings["loop_closure_params"]["pnp_ransac_iterations"]);
       LOG(INFO) << "PnP ransac iterations: " << loop_closure_params_.pnp_ransac_iterations;
     }
+    if (fsSettings["loop_closure_params"]["keyframe_queue"].isInt() ||
+        fsSettings["loop_closure_params"]["keyframe_queue"].isReal()) {
+      loop_closure_params_.keyframe_queue_size = static_cast<int>(fsSettings["loop_closure_params"]["keyframe_queue"]);
+      LOG(INFO) << "Keyframe Queue Size: " << loop_closure_params_.keyframe_queue_size;
+    }
+    if (fsSettings["loop_closure_params"]["max_yaw_diff"].isInt() ||
+        fsSettings["loop_closure_params"]["max_yaw_diff"].isReal()) {
+      loop_closure_params_.max_relative_yaw = static_cast<int>(fsSettings["loop_closure_params"]["max_yaw_diff"]);
+      LOG(INFO) << "Max Relative Yaw: " << loop_closure_params_.max_relative_yaw;
+    }
+    if (fsSettings["loop_closure_params"]["max_position_diff"].isInt() ||
+        fsSettings["loop_closure_params"]["max_position_diff"].isReal()) {
+      loop_closure_params_.max_relative_distance =
+          static_cast<int>(fsSettings["loop_closure_params"]["max_position_diff"]);
+      LOG(INFO) << "Max Relative Distance: " << loop_closure_params_.max_relative_distance;
+    }
   }
 
   if (fsSettings["debug"]["enable"].isInt()) {

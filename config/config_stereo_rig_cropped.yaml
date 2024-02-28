@@ -1,33 +1,34 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [ -0.0204017431055, -0.000775486330789, 0.999791562026, 0.191223742056,
-         0.999705395678, -0.0131673485818, 0.0203897715677, -0.0327723324671,
-         0.0131487920172, 0.999913005992, 0.00104389473231, -0.159324369284,
+       [ -0.9999514849243678, 0.007454284822327213, -0.00643905546937816, 0.09571982853264846,
+        -0.007271683630496376, -0.9995834071126521, -0.027930894046524813, -0.002254291217617223,
+        -0.006644577844233425, -0.027882716202835157, 0.9995891174489757, 0.024317486464850345,
           0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.16610165879624592, 0.1156504557423161, -5.9407782773707644e-05, 0.0018508320481282106],  
+       image_dimension: [800, 600],
+       distortion_coefficients: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295],
        distortion_type: radialtangential,
-       focal_length: [1167.87421447215, 1166.9553764645004], 
-       principal_point: [771.763112280329, 589.9626482585169]}  
+       focal_length: [1156.5188534683703, 1156.5772666173266], 
+       principal_point: [363.2083316463371, 317.2779853849335]}
 
     - {T_SC:
-       [ 0.0156138019401, -0.00209949819523, 0.999875892947, 0.192334191016,
-         0.999688314226, 0.0195154495097, -0.0155698950229, 0.199003903504,
-         -0.0194803385383, 0.999807351112, 0.00240355417492, -0.160662618063,
+       [-0.9999822972664981, 0.00584741297162457, -0.0011013242740797412, -0.043088620439334535,
+         -0.005818312404541281, -0.99967563540319, -0.024794580496386425, -0.0015079897295443207,
+         -0.0012459511950961815, -0.0247877337158503, 0.9996919604872553, 0.023901322246288572,
           0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.17863115239034907, 0.13121795689445712, -6.741741965147593e-05, -0.002580879117584875],
+       image_dimension: [800, 600],
+       distortion_coefficients: [-0.173831269260396, 0.10747272137157605, 0.004231076633773206, -0.0026692219494915187],
        distortion_type: radialtangential,
-       focal_length: [1165.9493476066016, 1167.2556820541186], 
-       principal_point: [752.2788466729131, 580.9613365661235]}  
+       focal_length: [1158.625855755729, 1156.0604864187183], 
+       principal_point: [365.5609812846063, 288.6683184401453]}  
 
 camera_params:
-    camera_rate: 13
+    camera_rate: 15
     sigma_absolute_translation: 0.0
     sigma_absolute_orientation: 0.0
     sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
     sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
+
 
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
@@ -44,16 +45,19 @@ imu_params:
     imu_rate: 100
     # tranform Body-Sensor (IMU)
     T_BS:
-        [1.0000, 0.0000, 0.0000, -0.195,
-         0.0000, -1.0000, 0.0000, 0.0950,
-         0.0000, 0.0000, -1.0000, -0.1250,
+        [0.0000, 0.0000, 1.0000, -0.018,
+         1.0000, 0.0000, 0.0000, -0.016,
+         0.0000, 1.0000, 0.0000, 0.0,
          0.0000, 0.0000, 0.0000, 1.0000]
+
 sonar_params:
-    T_SSo:  
-        [0.0000, 0.0000, 1.0000, 0.365,
-         0.0000, -1.0000, 0.0000, 0.0950005,
-         1.0000, 0.0000, 0.0000, 0.0699993,
-         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V1
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
+
+#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
@@ -67,9 +71,9 @@ ceres_options:
 
 # detection
 detection_options:
-    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)
+    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -88,7 +92,7 @@ publishing_options:
     landmarkQualityThreshold: 1.0e-2   # landmark with lower quality will not be published
     maximumLandmarkQuality: 0.05       # landmark with higher quality will be published with the maximum colour intensity
     maxPathLength: 20                  # maximum length of the published path
-    publishImuPropagatedState: true    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
+    publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
     # provide custom World frame Wc
     T_Wc_W:
         [1.0000, 0.0000, 0.0000, 0.0000,
@@ -103,6 +107,34 @@ isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
-claheClipLimit: 1.0
-claheTileGridSize: 4
+claheClipLimit: 2.0
+claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+
+
+loop_closure_params:
+    enable: 1  
+    min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
+    pnp_reprojection_threshold: 25.0     #increase for more loop closure, might result in false loop closure (8 to 30)
+    pnp_ransac_iterations: 100
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+    
+                     
+
+health:
+    enable: 0
+    min_keypoints: 15
+    consecutive_keyframes: 3
+    keyframe_wait_time: 2.0
+    kps_per_quadrant: 1
+
+global_map_params:
+    enable: 0
+    min_landmark_quality: 0.01
+
+debug:
+    enable: 1
+    # Relative to pose_graph package
+    output_dir: debug_output

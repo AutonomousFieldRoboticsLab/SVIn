@@ -63,17 +63,9 @@ void setupOutputLogDirectories(const std::string base_path) {
                  << " "
                  << "matched_kf_ts"
                  << " "
-                 << "relative_tx"
+                 << "relative_distance"
                  << " "
-                 << "relative_ty"
-                 << " "
-                 << "relative_tz"
-                 << " "
-                 << "relative_yaw"
-                 << " "
-                 << "relative_pitch"
-                 << " "
-                 << "relative_roll" << std::endl;
+                 << "relative_yaw" << std::endl;
   loop_path_file.close();
 
   std::string switch_info_file = base_path + "/switch_info.txt";
@@ -100,7 +92,7 @@ int main(int argc, char** argv) {
   // Initialize Google's logging library.
   google::InitGoogleLogging(argv[0]);
 
-  FLAGS_stderrthreshold = 1;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
+  FLAGS_stderrthreshold = 0;  // INFO: 0, WARNING: 1, ERROR: 2, FATAL: 3
   FLAGS_colorlogtostderr = 1;
   FLAGS_v = 0;
   // FLAGS_log_prefix = true;
@@ -113,8 +105,10 @@ int main(int argc, char** argv) {
   params.loadParameters(config_file);
 
   if (params.debug_mode_) {
+    std::string package_path = ros::package::getPath("pose_graph");
+    params.debug_output_path_ = package_path + "/" + params.debug_output_path_;
+    LOG(INFO) << "Debug mode enabled. Saving debug output to: " << params.debug_output_path_;
     setupOutputLogDirectories(params.debug_output_path_);
-    FLAGS_v = 10;
   }
 
   auto subscriber = std::make_unique<Subscriber>(nh, params);

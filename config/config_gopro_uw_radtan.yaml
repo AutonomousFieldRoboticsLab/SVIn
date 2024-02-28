@@ -1,20 +1,20 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [ -0.99998695, -0.00450621,  0.00240799,  0.0009764 ,
-         -0.00243019,  0.00492873, -0.9999849,  -0.02437543,
-          0.00449427, -0.9999777,  -0.00493961, -0.00087935,
+       [ -0.99985742, -0.00464227, -0.016235, -0.00362714,
+         0.01618997,  0.00972486, -0.99982164, -0.01316733,
+         0.00479933, -0.99994194, -0.00964832, 0.00681237,
           0.0, 0.0, 0.0, 1.0],
-       image_dimension: [960, 540],
-       distortion_coefficients: [-0.10973803,  0.09313709,  0.00143941,  0.0004831],
+       image_dimension: [1328, 747],
+       distortion_coefficients: [-0.1150974141409347,  0.10292772047643643, 0.001419836324816038, -0.0018379214527896284],
        distortion_type: radialtangential,
-       focal_length: [583.16116134, 581.292988], #projection matrix as pre-rectified images have been used
-       principal_point: [481.92859774, 270.2504108]} #projection matrix as pre-rectified images have been used
+       focal_length: [806.14930851, 803.50174497 ], #projection matrix as pre-rectified images have been used
+       principal_point: [663.94055341, 376.03135187]} #projection matrix as pre-rectified images have been used
 
 camera_params:
     camera_rate: 30
-    sigma_absolute_translation: 0.0
-    sigma_absolute_orientation: 0.0
+    sigma_absolute_translation: 0
+    sigma_absolute_orientation: 0
     sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
     sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
 
@@ -22,12 +22,12 @@ camera_params:
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 0.0010030 # gyro noise density [rad/s/sqrt(Hz)]
-    sigma_a_c: 0.0140018 # accelerometer noise density [m/s^2/sqrt(Hz)]
+    sigma_g_c: 0.0011695 # gyro noise density [rad/s/sqrt(Hz)]
+    sigma_a_c: 0.0117039 # accelerometer noise density [m/s^2/sqrt(Hz)]
     sigma_bg: 0.03 # gyro bias prior [rad/s]
     sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 0.0000981 # gyro drift noise density [rad/s^s/sqrt(Hz)]
-    sigma_aw_c: 0.0009312 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
+    sigma_gw_c: 0.0001147 # gyro drift noise density [rad/s^s/sqrt(Hz)]
+    sigma_aw_c: 0.0006328 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
@@ -38,14 +38,6 @@ imu_params:
          0.0, 1.0, 0.0, 0.0,
          0.0, 0.0, 1.0, 0.0,
          0.0, 0.0, 0.0, 1.0]
-sonar_params:
-    T_SSo:
-        [0.0000, 1.0000, 0.0000, 0.015995,
-         -1.0000, 0.0000, 0.0000, 0.125,
-         0.0000, 0.0000, 1.0000, 0.128,
-         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
-
-#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
@@ -54,14 +46,14 @@ numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error ter
 # ceres optimization options
 ceres_options:
     minIterations: 3   # minimum number of iterations always performed
-    maxIterations: 10  # never do more than these, even if not converged
-    timeLimit: -1   # [s] negative values will set the an unlimited time limit
+    maxIterations: 20  # never do more than these, even if not converged
+    timeLimit: 0.05   # [s] negative values will set the an unlimited time limit
 
 # detection
 detection_options:
-    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 600  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -92,5 +84,36 @@ publishing_options:
 #Sharmin
 isSonarUsed: false
 isDepthUsed: false
-isRelocalization: false
-isCLAHE: false
+isRelocalization: true
+histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
+claheClipLimit: 2.0
+claheTilesGridSize: 4
+resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+
+
+loop_closure_params:
+    enable: 1  
+    min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
+    pnp_reprojection_threshold: 25.0     #increase for more loop closure, might result in false loop closure (8 to 30)
+    pnp_ransac_iterations: 100
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+    
+                     
+
+health:
+    enable: 0
+    min_keypoints: 15
+    consecutive_keyframes: 3
+    keyframe_wait_time: 2.0
+    kps_per_quadrant: 1
+
+global_map_params:
+    enable: 0
+    min_landmark_quality: 0.01
+
+debug:
+    enable: 1
+    # Relative to pose_graph package
+    output_dir: debug_output

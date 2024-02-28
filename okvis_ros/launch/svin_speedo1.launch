@@ -1,19 +1,14 @@
 <launch>
 
     <!-- Arguments -->
-    <arg name="config_path" default="$(find pose_graph)/config/speedo1/speedo1_config.yaml" />
+    <arg name="config_path" default="$(find pose_graph)/config/speedo1/speedo1.yaml" />
 
     <param name="/use_sim_time" value="true" />
 
 
-    <!-- To un-compress image topics -->
-    <node name="republish1" type="republish" pkg="image_transport" output="screen"
-        args="compressed in:=/cam_fl/image_raw raw out:=/cam0/image_raw" />
-    <node name="republish2" type="republish" pkg="image_transport" output="screen"
-        args="compressed in:=/cam_fr/image_raw raw out:=/cam1/image_raw" />
-
     <!-- Run pose_graph node-->
     <node name="pose_graph_node" pkg="pose_graph" type="pose_graph_node" output="screen">
+        <remap from="/cam0/image_raw" to="/cam_fl/image_raw" />
         <param name=" config_file" type="string" value="$(arg config_path)" />
     </node>
 
@@ -24,8 +19,8 @@
         <param name="mesh_file" value="firefly.dae" />
 
 
-        <remap from="/camera0" to="/cam0/image_raw" />
-        <remap from="/camera1" to="/cam1/image_raw" />
+        <remap from="/camera0" to="/cam_fl/image_raw" />
+        <remap from="/camera1" to="/cam_fr/image_raw" />
 
         <remap from="/imu" to="/imu/imu" />
 

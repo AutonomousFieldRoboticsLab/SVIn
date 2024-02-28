@@ -1,18 +1,28 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [ 0.0135852,   0.00289628,  0.99990352,  0.08129607,
-         0.99984969,  0.01073337, -0.01361556,  0.04478996,
-        -0.01077177,  0.9999382,  -0.00275003,  0.00302547,
+       [-0.9995659, 0.01749552, -0.02370463, 0.08351123,
+        -0.01665316, -0.99923874, -0.03527894, -0.00506557,
+        -0.02430381, -0.03486887, 0.99909634, 0.04011354,
           0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1100],
-       distortion_coefficients: [0.1462139249855356, 0.3775304191882089, 0.007835564538475424, 0.002760598455182088],
+       image_dimension: [1600, 1200],
+       distortion_coefficients: [-0.16012168, 0.1020015, 0.00369027, 0.0034287],
        distortion_type: radialtangential,
-       focal_length: [1159.2905564436558, 1157.0215864700963], 
-       principal_point: [804.4293114224579, 561.884540048856]} 
+       focal_length: [1149.52000993, 1150.57923685], 
+       principal_point: [798.75530924, 577.20248548]} 
+    - {T_SC:
+       [-0.99978446,  0.01454984, -0.01480997, -0.05868093,
+        -0.01448955, -0.99988632, -0.00417068, -0.00695112,
+        -0.01486897, -0.0039552,   0.99988163,  0.03934924,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1200],
+       distortion_coefficients: [-0.14726897, 0.08035029, -0.00216681, 0.00125576],
+       distortion_type: radialtangential,
+       focal_length: [1151.2674512, 1148.87177954], 
+       principal_point: [782.44896179, 573.73883587]} 
 
 camera_params:
-    camera_rate: 20 # just to manage the expectations of when there should be frames arriving
+    camera_rate: 15 # just to manage the expectations of when there should be frames arriving
     sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
     sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
@@ -37,12 +47,33 @@ imu_params:
     imu_rate: 100
     # tranform Body-Sensor (IMU)
     T_BS:
-        [1.0000, 0.0000, 0.0000, 0.0,
+        [0.0000, 0.0000, 1.0000, -0.018,
+         1.0000, 0.0000, 0.0000, -0.016,
          0.0000, 1.0000, 0.0000, 0.0,
-         0.0000, 0.0000, 1.0000, 0.0,
          0.0000, 0.0000, 0.0000, 1.0000]
 
+mag_params:
+    sigma_m_c: 0.054548   #0.013637 * 5.0
+    sigma_mw_c: 5.0142e-03
+    T_SM: [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
+         0.0000, 0.0000, 0.0000, 1.0000]
+    b0: [3.61381806352380, -5.31295850055563, -2.28147071839031]
+    A0: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+    rate: 100
+    yaw_std: 5.0
+    
+sonar_params:
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
+#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
@@ -56,12 +87,12 @@ ceres_options:
 
 # detection
 detection_options:
-    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels
+    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
     maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
-imageDelay: -0.018  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
@@ -87,10 +118,38 @@ publishing_options:
     trackedBodyFrame: B                # B or S, the frame of reference that will be expressed relative to the selected worldFrame
     velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
 
-#Sharmin
 isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
+claheClipLimit: 2.0
+claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
+
+loop_closure_params:
+    enable: 1  
+    min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
+    pnp_reprojection_threshold: 25.0     #increase for more loop closure, might result in false loop closure (8 to 30)
+    pnp_ransac_iterations: 100
+    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+    
+                     
+
+health:
+    enable: 0
+    min_keypoints: 15
+    consecutive_keyframes: 3
+    keyframe_wait_time: 2.0
+    kps_per_quadrant: 1
+
+global_map_params:
+    enable: 0
+    min_landmark_quality: 0.01
+
+debug:
+    enable: 1
+    # Relative to pose_graph package
+    output_dir: debug_output

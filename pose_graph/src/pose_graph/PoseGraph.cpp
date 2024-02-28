@@ -194,7 +194,7 @@ int PoseGraph::detectLoop(Keyframe* keyframe, int frame_index) {
 
   // first query; then add this frame into database!
   DBoW2::QueryResults ret;
-  db.query(keyframe->bowVec, ret, 4, frame_index - 50);
+  db.query(keyframe->bowVec, ret, 8, frame_index - 50);
   db.add(keyframe->brief_descriptors);
 
   bool find_loop = false;
@@ -241,7 +241,6 @@ void PoseGraph::optimize4DoFPoseGraph() {
       ceres::Solver::Options options;
       options.linear_solver_type = ceres::SPARSE_SCHUR;
       options.max_num_iterations = 5;
-      options.trust_region_strategy_type = ceres::DOGLEG;
       options.logging_type = ceres::SILENT;
       options.minimizer_progress_to_stdout = false;
 
@@ -381,7 +380,7 @@ void PoseGraph::optimize4DoFPoseGraph() {
         loop_closure_optimization_callback_(last_kf->time_stamp);
       }
     }
-    std::chrono::milliseconds duration(500);
+    std::chrono::milliseconds duration(1000);
     std::this_thread::sleep_for(duration);
   }
 }

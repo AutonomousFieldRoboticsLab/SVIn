@@ -112,7 +112,6 @@ loop_closure_params:
     keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
     max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
     max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
-    
                      
 
 health:
@@ -128,5 +127,4 @@ global_map_params:
 
 debug:
     enable: 1
-    # Relative to pose_graph package
     output_dir: debug_output

@@ -63,7 +63,7 @@ RUN git clone https://github.com/laurentkneip/opengv.git && \
 
 RUN mkdir -p /svin_ws/src && \
     cd /svin_ws/src && \
-    git clone --branch 0.2 https://github.com/18r441m/SVIn.git && \
+    git clone --branch 0.2 https://github.com/AutonomousFieldRoboticsLab/SVIn.git && \
     git clone https://github.com/AutonomousFieldRoboticsLab/imagenex831l.git && \
     git clone --branch ros-noetic https://github.com/AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
 

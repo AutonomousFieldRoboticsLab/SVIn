@@ -98,4 +98,4 @@ Note: We plan to release the scale accurate trajectory using rig constraints soo
 
         BAGS=/path/to/your/bag/files
 
-        docker run -it -e "DISPLAY" -e "QT_X11_NO_MITSHM=1" -v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -v "$BAGS:/data" svin
+        docker run --gpus all -it -e "DISPLAY" -e "QT_X11_NO_MITSHM=1" -v "/tmp/.X11-unix:/tmp/.X11-unix:rw" -v "$BAGS:/data" svin

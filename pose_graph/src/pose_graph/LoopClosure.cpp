@@ -130,31 +130,32 @@ void LoopClosure::run() {
         kfMapper_.insert(std::make_pair(combined_kf_index, keyframe));
         pose_graph_->addKFToPoseGraph(keyframe, params_.loop_closure_params_.enabled);
 
-        // if (params_.global_mapping_params_.enabled) {
-        //   cv::Mat original_color_image;
-        //   if (!raw_image_buffer_.getNearestValueToTime(stamp, &original_color_image)) {
-        //     LOG(WARNING) << "Could not find color image for keyframe with timestamp " << stamp;
-        //   } else {
-        //     if (params_.resize_factor_ != 0) {
-        //       cv::resize(original_color_image,
-        //                  original_color_image,
-        //                  cv::Size(params_.image_width_, params_.image_height_),
-        //                  cv::INTER_LINEAR);
-        //     }
-        //     if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
-        //       addPointsToGlobalMap(combined_kf_index,
-        //                            original_color_image,
-        //                            rotation,
-        //                            translation,
-        //                            keyframe_info->keyfame_points_,
-        //                            keyframe_info->tracking_info_.points_quality_,
-        //                            keyframe_info->keypoint_ids_,
-        //                            keyframe_info->cv_keypoints_);
-        //     } else {
-        //       LOG(WARNING) << "Keyframe not found";
-        //     }
-        //   }
-        // }
+        if (params_.global_mapping_params_.enabled) {
+          cv::Mat original_color_image;
+          if (!raw_image_buffer_.getNearestValueToTime(stamp, &original_color_image)) {
+            LOG(WARNING) << "Could not find color image for keyframe with timestamp " << stamp;
+          } else {
+            if (params_.resize_factor_ != 0) {
+              cv::resize(original_color_image,
+                         original_color_image,
+                         cv::Size(params_.camera_calibration_.image_dimension_.x(),
+                                  params_.camera_calibration_.image_dimension_.y()),
+                         cv::INTER_LINEAR);
+            }
+            if (kfMapper_.find(keyframe_info->keyframe_index_) != kfMapper_.end()) {
+              addPointsToGlobalMap(combined_kf_index,
+                                   original_color_image,
+                                   rotation,
+                                   translation,
+                                   keyframe_info->keyfame_points_,
+                                   keyframe_info->tracking_info_.points_quality_,
+                                   keyframe_info->keypoint_ids_,
+                                   keyframe_info->cv_keypoints_);
+            } else {
+              LOG(WARNING) << "Keyframe not found";
+            }
+          }
+        }
         // last_keyframe_index_ = keyframe_info->keyframe_index_;
       }
     } else if (params_.health_params_.enabled) {

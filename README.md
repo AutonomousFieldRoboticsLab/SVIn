@@ -1,91 +1,81 @@
-SVIn2 is a tightly coupled Sonar-Visual-Inertial-Depth formulation of Simultaneous Localization and Mapping (SLAM) algorithm for real-time Underwater navigation. The package contains two modules:
+SVIN is a tightly coupled Sonar-Visual-Inertial-Depth formulation of Simultaneous Localization and Mapping (SLAM) algorithm for real-time underwater navigation. The package contains two modules:
 
-1. okvis_ros: Adaption of OKVIS (<https://github.com/ethz-asl/okvis_ros>) to fuse Sonar and Depth information in the tightly coupled formulation.
+1. okvis_ros: Adaption of OKVIS (<https://github.com/ethz-asl/okvis_ros>) to fuse sonar,depth information in the tightly coupled formulation. 
 2. pose_graph:  Loop-closing module to enable real-time loop detection and pose-graph optimization based on the bag-of-binary-words library DBoW2.
 
-### How do I get set up? ###
 
-This is a catkin package that wraps the pure CMake project.
-You will need to install the following dependencies,
+### !!! Note !!!##
 
-* CMake,
+**The main branch now uses ROS 2. Please use the ros1 branch if you need to work with ROS1. We are in process of figuring out how to use old sonar and data in ROS2 as they are custom topic types. Sonar and depth modes will not work and are disabled by default.**
 
-        sudo apt install cmake
+### Setup Instructions ###
 
-* ROS (currently tested in: melodic and noetic). Read the instructions to install [ROS Noetic](http://wiki.ros.org/noetic/Installation/Ubuntu). You will need the additional package pcl-ros and tf2-sensor-msgs.
+The setup instructions are tested on Ubuntu 24.04 with ROS Jazzy. 
 
-        sudo apt install ros-noetic-pcl-ros
-        sudo apt install ros-noetic-tf2-sensor-msgs
+**Prerequisites**
 
-* google-glog + gflags, BLAS & LAPACK, Eigen3
+- [Glog](http://rpg.ifi.uzh.ch/docs/glog.html), [Gflags](https://gflags.github.io/gflags/)
 
-        sudo apt install libgoogle-glog-dev libatlas-base-dev libeigen3-dev
+- [BLAS](https://www.netlib.org/blas/), [LAPACK](https://www.netlib.org/lapack/)
+- [OpenCV](https://github.com/opencv/opencv) >= 3.4
+- [Suitesparse](https://people.engr.tamu.edu/davis/suitesparse.html)
+- [ceres-solver](https://github.com/ceres-solver/ceres-solver/tree/master)
+- [Brisk](https://ieeexplore.ieee.org/document/6126542)
+- [ROS2 Jazzy](https://docs.ros.org/en/jazzy/index.html) 
 
-* SuiteSparse, CXSparse, OpenCV and Boost
-
-        sudo apt install libsuitesparse-dev libopencv-dev
-        sudo apt install libboost-dev libboost-filesystem-dev
-
-* ceres-solver
-
-        git clone https://github.com/ceres-solver/ceres-solver.git
-        cd ceres-solver
-        git checkout 1.14.x
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        make -j8
-        sudo make install
-        cd ../..
-
-* brisk
-
-        wget https://www.doc.ic.ac.uk/~sleutene/software/brisk-2.0.8.zip
-        unzip brisk-2.0.8.zip
-        cd brisk
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
-        make -j8
-        sudo make install
-        cd ../..
-
-### Building the project ###
-
-* Create ros workspace. Download SVIn and sonar driver. Then build catkin project:
-
-        mkdir -p ~/svin_ws/src
-        cd ~/svin_ws/src
-        git clone --branch 0.2 https://github.com/AutonomousFieldRoboticsLab/SVIn.git
-        git clone https://github.com/AutonomousFieldRoboticsLab/imagenex831l.git
-        
-        # For Ubuntu 18.04/20.04 (ROS Noetic)
-        git clone --branch ros-noetic git@github.com:AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
-        
-        #For Ubuntu 16.04
-        git clone git@github.com:AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
-        
-        cd ..
-        catkin_make
+Please follow [installation page](install.md) for detailed instructions on building SVIN.
 
 ### Running the project ###
 
 Running it on our publicly available datasets: <https://afrl.cse.sc.edu/afrl/resources/datasets/>. If you follow "Datasets for Visual-Inertial-Based State Estimation Algorithms" link you will be directed to a google drive directory,  under the 'Bus' and 'Cave' you will find ROS bagfile with Sonar topic named as '/imagenex831l/range' and  '/imagenex831l/range_raw'.
 
+### !!!Note !!!: Any changes in config/launch files are not reflected unless you build the repo again. All the config/launch files are saved inside install folder and will be updated as part of build. ###
+
+To build again use
+```bash
+colcon build  --event-handlers console_direct+
+```
+
+## Converting between ROS2 and ROS1 bags
+The easiest way to convert between ROS1 and ROS2 bag is using rosbags-convert [rosbags](https://gitlab.com/ternaris/rosbags).
+
+To install
+```bash
+sudo apt install pipx
+pix install rosbags
+```
+
+To convert ROS1 bag to ROS2 use
+```bash
+rosbags-convert --src <ros1 bag> --dst <ros2_bag_folder>
+```
+
+## Running with GoPro Dataset ## 
 Run the launch file for Cave:
 
-        source ~/svin_ws/devel/setup.bash
-        roslaunch okvis_ros svin_stereorig_v2.launch
+```bash
+source install/setup.bash
+ros2 launch okvis_ros svin_gopro_uw.xml
+```
 
+## Running on AFRL Datasets ##
+Run the launch file for Cave:
+
+```bash
+source install/setup.bash
+ros2 launch okvis_ros svin_stereorig_v2.xml
+```
 Or, run the launch file for Bus:
+```bash
+source install/setup.bash
+roslaunch okvis_ros svin_stereorig_v1.xml
+```
 
-        source ~/svin_ws/devel/setup.bash
-        roslaunch okvis_ros svin_stereorig_v1.launch
 
 In different terminal, run the bag file
-
-        rosbag play bagfile_name --clock -r 0.8
-
+```bash
+ros2 bag play bagfile_name --clock
+```
 
 ### Ground Truth ###
 The pseudo ground truth trajectories obtained using COLMAP are in colmap_groundtruth folder. These trajectories are only accurate up to scale and evaluation should be done after scaling only.

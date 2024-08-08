@@ -38,13 +38,13 @@
  * @author Andreas Forster
  */
 
-#include <cv_bridge/cv_bridge.h>
 #include <glog/logging.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <algorithm>
+#include <cv_bridge/cv_bridge.hpp>
 #include <list>
 #include <memory>
 #include <okvis/FrameTypedefs.hpp>

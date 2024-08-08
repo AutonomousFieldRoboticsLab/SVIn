@@ -41,10 +41,10 @@
 #ifndef INCLUDE_OKVIS_PUBLISHER_HPP_
 #define INCLUDE_OKVIS_PUBLISHER_HPP_
 
-#include <cv_bridge/cv_bridge.h>  // Sharmin
 #include <pcl/point_types.h>
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <cv_bridge/cv_bridge.hpp>  // Sharmin
 #include <fstream>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <list>

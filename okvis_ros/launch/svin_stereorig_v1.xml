@@ -1,7 +1,7 @@
 <launch>
 
   <!-- Arguments -->
-  <arg name="config" default="$(find-pkg-share okvis_ros)/config/config_stereorig_v2.yaml" />
+  <arg name="config" default="$(find-pkg-share okvis_ros)/config/config_stereorig_v1.yaml" />
 
   <set_parameter name="use_sim_time" value="true" />
 
@@ -18,7 +18,7 @@
   </node>
 
 
-  <node name="okvis_node" pkg="okvis_ros" exec="okvis_node" >
+  <node name="okvis_node" pkg="okvis_ros" exec="okvis_node">
 
     <param name="config_filename" value="$(var config)" />
     <param name="mesh_file" value="firefly.dae" />
@@ -31,5 +31,6 @@
   </node>
 
   <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share okvis_ros)/rviz_config/svin.rviz"/>
+
 
 </launch>

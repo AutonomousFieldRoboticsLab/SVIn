@@ -72,6 +72,14 @@ void Parameters::loadParameters(const std::string& config_file) {
 
   if (fsSettings["output_params"]["output_dir"].isString()) {
     output_path_ = static_cast<std::string>(fsSettings["output_params"]["output_dir"]);
+    try {
+      if (!std::filesystem::exists(output_path_)) {
+        std::filesystem::create_directory(output_path_);
+      }
+    } catch (std::filesystem::filesystem_error& e) {
+      LOG(ERROR) << e.what();
+      output_path_ = "/tmp";
+    }
     debug_output_path_ = output_path_ + "/debug_output";
     LOG(INFO) << "Output folder: " << output_path_;
     if (fsSettings["output_params"]["debug"].isInt()) {

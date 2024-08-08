@@ -1,9 +1,9 @@
 #include "utils/UtilsOpenCV.h"
 
-#include <cv_bridge/cv_bridge.h>
 #include <glog/logging.h>
 
 #include <algorithm>
+#include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <string>
 #include <vector>

@@ -138,6 +138,10 @@ add_executable(stereo_sync src/stereo_sync.cpp)
 ament_target_dependencies(stereo_sync ${ament_libraries})
 install(TARGETS stereo_sync DESTINATION lib/${PROJECT_NAME})
 
+add_executable(uncompress_image src/uncompress_image.cpp)
+ament_target_dependencies(uncompress_image ${ament_libraries})
+install(TARGETS uncompress_image DESTINATION lib/${PROJECT_NAME})
+
 
 #All the necessary files in relative path needs to be copied to the install directory
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)

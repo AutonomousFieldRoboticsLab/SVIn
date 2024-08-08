@@ -1,35 +1,34 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [-0.999951484924370, -0.007271683630496, -0.006644577844233,  0.095860371617174,
-         0.007454284822327, -0.999583407112654, -0.027882716202835, -0.002288837387091,
-        -0.006439055469378, -0.027930894046525,  0.999589117448978, -0.023754113917685,
-         0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.17473019446863114, 0.10643290428040156, 0.005210777878907861, -0.00028664918860079295], 
-       distortion_type: radialtangential,
-       focal_length: [1156.5188534683703, 1156.5772666173266], 
-       principal_point: [763.2083316463371, 617.2779853849335]} 
-
-    - {T_SC:
-        [-0.999982297266498, -0.005818312404541, -0.001245951195096, -0.043066851727302,
-          0.005847412971625, -0.999675635403190, -0.024787733715850, -6.630840216796008e-4,
-         -0.001101324274080, -0.024794580496386,  0.999691960487255, -0.023978804210993,
+       [-0.9995659, 0.01749552, -0.02370463, 0.08351123,
+        -0.01665316, -0.99923874, -0.03527894, -0.00506557,
+        -0.02430381, -0.03486887, 0.99909634, 0.04011354,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [1600, 1200],
-       distortion_coefficients: [-0.173831269260396, 0.10747272137157605, 0.004231076633773206, -0.0026692219494915187], 
+       distortion_coefficients: [-0.16012168, 0.1020015, 0.00369027, 0.0034287],
        distortion_type: radialtangential,
-       focal_length: [1158.625855755729, 1156.0604864187183], 
-       principal_point: [765.5609812846063, 588.6683184401453]}
-
+       focal_length: [1149.52000993, 1150.57923685], 
+       principal_point: [798.75530924, 577.20248548]} 
+    - {T_SC:
+       [-0.99978446,  0.01454984, -0.01480997, -0.05868093,
+        -0.01448955, -0.99988632, -0.00417068, -0.00695112,
+        -0.01486897, -0.0039552,   0.99988163,  0.03934924,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1600, 1200],
+       distortion_coefficients: [-0.14726897, 0.08035029, -0.00216681, 0.00125576],
+       distortion_type: radialtangential,
+       focal_length: [1151.2674512, 1148.87177954], 
+       principal_point: [782.44896179, 573.73883587]} 
 
 camera_params:
     camera_rate: 15 # just to manage the expectations of when there should be frames arriving
     sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
-    sigma_c_relative_translation: 1.0e-8 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
-    sigma_c_relative_orientation: 1.0e-8 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
+    sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
+    sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
     # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
+
 
 
 
@@ -48,23 +47,10 @@ imu_params:
     imu_rate: 100
     # tranform Body-Sensor (IMU)
     T_BS:
-        [0.0000, 0.0000, 1.0000, 0.0,
-         1.0000, 0.0000, 0.0000, 0.0,
+        [0.0000, 0.0000, 1.0000, -0.018,
+         1.0000, 0.0000, 0.0000, -0.016,
          0.0000, 1.0000, 0.0000, 0.0,
-         0.0000, 0.0000, 0.0000, 1.0]
-
-# mag_params:
-#     sigma_m_c: 0.054548   #0.013637 * 5.0
-#     sigma_mw_c: 5.0142e-03 #not used currently
-#     T_SM: [1.0000, 0.0000, 0.0000, 0.0000, # Transfromation from Magnetometer to IMU
-#          0.0000, 1.0000, 0.0000, 0.0000,
-#          0.0000, 0.0000, 1.0000, 0.0000,
-#          0.0000, 0.0000, 0.0000, 1.0000]
-#     b0: [4.89234283318107, -11.6765063864419, 1.85266325715590] # Initial Magnetometer Bias 
-#     A0: [1.0, 0.0, 0.0,         #Initial Soft Iron Matrix
-#          0.0, 1.0, 0.0,
-#          0.0, 0.0, 1.0]
-#     rate: 100
+         0.0000, 0.0000, 0.0000, 1.0000]
 
 sonar_params:
     T_SSo:
@@ -73,6 +59,7 @@ sonar_params:
          0.0000, 0.0000, 1.0000, 0.128,
          0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
+#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
@@ -120,11 +107,9 @@ publishing_options:
 #Sharmin
 isSonarUsed: false
 isDepthUsed: false
+isRelocalization: true
 histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
-claheClipLimit: 1.0
-claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
-
 
 #Posegraph Parameters 
 loop_closure_params:

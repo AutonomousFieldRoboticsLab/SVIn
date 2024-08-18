@@ -42,7 +42,7 @@ The easiest way to convert between ROS1 and ROS2 bag is using rosbags-convert [r
 To install
 ```bash
 sudo apt install pipx
-pix install rosbags
+pipx install rosbags
 ```
 
 To convert ROS1 bag to ROS2 use

@@ -1161,15 +1161,11 @@ void ThreadedKFVio::optimizationLoop() {
 
             std::vector<std::list<std::vector<double>>> kf_points;
             int num_keypoint = 0;
-            cv::Mat temp_image = image_l;
 
-            for (PointMap::const_iterator cit = lmMap.begin(); cit != lmMap.end(); ++cit) {
+            for (auto cit = lmMap.begin(); cit != lmMap.end(); ++cit) {
               std::map<okvis::KeypointIdentifier, uint64_t> observations =
                   cit->second.observations;  // result.landmarksVector.at(l).observations;
-
-              for (std::map<okvis::KeypointIdentifier, uint64_t>::iterator mit = observations.begin();
-                   mit != observations.end();
-                   ++mit) {
+              for (auto mit = observations.begin(); mit != observations.end(); ++mit) {
                 if ((mit->first).frameId == frame_pairs->id()) {
                   std::list<std::vector<double>> ptList;
                   int obs_num = 0;
@@ -1184,20 +1180,15 @@ void ThreadedKFVio::optimizationLoop() {
                   obs_num++;
 
                   cv::KeyPoint cvkeypoint;  // Associated 2D point in left image to publish
+                  if (mit->first.cameraIndex != CamIndexA) continue;
+                  if ((mit->first).keypointIndex >= frame_pairs->numKeypoints(CamIndexA)) continue;
+
                   frame_pairs->getCvKeypoint(CamIndexA, (mit->first).keypointIndex, cvkeypoint);
-
-                  if ((mit->first).keypointIndex >= frame_pairs->numKeypoints(CamIndexA)) {
-                    // TODO(Sharmin): check--> to avoid segfault for being keypoint out-of-range
-
-                    // LOG(ERROR) << "Keypoint " << (mit->first).keypointIndex << " out of bounds ("
-                    //            << frame_pairs->numKeypoints(CamIndexA) << ")";
-                    break;
-                  }
 
                   std::vector<double> pt_id_w_uv;
                   if (isnan(cvkeypoint.pt.x) || isnan(cvkeypoint.pt.y) ||
                       isnan(cvkeypoint.size))  // TODO(Sharmin): Better way to fix this?
-                    break;
+                    continue;
 
                   // @Reloc
                   pt_id_w_uv.push_back(cit->first);                  // landmarkId
@@ -1230,7 +1221,7 @@ void ThreadedKFVio::optimizationLoop() {
                       for (std::map<int, size_t>::iterator mKfId = kf_f_map_.begin(); mKfId != kf_f_map_.end();
                            ++mKfId) {
                         if ((mMPit->first).frameId == mKfId->second) {
-                          ptList.push_back({mKfId->first});
+                          ptList.push_back({static_cast<double>(mKfId->first)});
 
                           obs_num++;
                           break;
@@ -1260,10 +1251,10 @@ void ThreadedKFVio::optimizationLoop() {
 
       if (parameters_.visualization.displayImages || debugImgCallback_) {
         // fill in information that requires access to estimator.
-        visualizationDataPtr = VioVisualizer::VisualizationData::Ptr(new VioVisualizer::VisualizationData());
+        visualizationDataPtr = std::make_shared<VioVisualizer::VisualizationData>();
         visualizationDataPtr->observations.resize(frame_pairs->numKeypoints());
         okvis::MapPoint landmark;
-        okvis::ObservationVector::iterator it = visualizationDataPtr->observations.begin();
+        auto it = visualizationDataPtr->observations.begin();
         for (size_t camIndex = 0; camIndex < frame_pairs->numFrames(); ++camIndex) {
           for (size_t k = 0; k < frame_pairs->numKeypoints(camIndex); ++k) {
             OKVIS_ASSERT_TRUE_DBG(
@@ -1299,7 +1290,7 @@ void ThreadedKFVio::optimizationLoop() {
     if (!parameters_.publishing.publishImuPropagatedState) {
       // adding further elements to result that do not access estimator.
       for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
-        result.vector_of_T_SCi.push_back(okvis::kinematics::Transformation(*parameters_.nCameraSystem.T_SC(i)));
+        result.vector_of_T_SCi.emplace_back(*parameters_.nCameraSystem.T_SC(i));
       }
     }
     optimizationResults_.Push(result);

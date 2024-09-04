@@ -24,7 +24,7 @@ cameras:
 
 
 camera_params:
-    camera_rate: 15 # just to manage the expectations of when there should be frames arriving
+    camera_rate: 20 # just to manage the expectations of when there should be frames arriving
     sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
     sigma_c_relative_translation: 1.0e-8 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
@@ -134,7 +134,7 @@ loop_closure_params:
     pnp_reprojection_threshold: 20.0 #Reprojection threshold for PnP RANSAC
     #increase for more loop closure, might result in false loop closure (8 to 30)
     pnp_ransac_iterations: 100  #Number of iterations for PnP RANSAC
-    keyframe_queue: -1 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    keyframe_queue: 5 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
     max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
     max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
 
@@ -150,6 +150,6 @@ global_map_params:
     min_landmark_quality: 0.01
 
 output_params:
-    debug: 0
+    debug: 1
     output_dir: ~/ros_ws/src/SVIn/pose_graph 
     # does not detect ~, so full path is needed if the path is not detected, /tmp is used a default

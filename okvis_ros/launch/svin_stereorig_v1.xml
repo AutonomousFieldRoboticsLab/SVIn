@@ -1,36 +1,36 @@
 <launch>
 
-  <!-- Arguments -->
-  <arg name="config" default="$(find-pkg-share okvis_ros)/config/config_stereorig_v1.yaml" />
+    <!-- Arguments -->
+    <arg name="config" default="$(find-pkg-share okvis_ros)/config/config_stereorig_v1.yaml"/>
 
-  <set_parameter name="use_sim_time" value="true" />
+    <set_parameter name="use_sim_time" value="true"/>
 
-  <!-- To un-compress and sync the image topics -->
-  <node name="stereo_sync" exec="stereo_sync" pkg="okvis_ros" output="screen">
-    <param name="left_img_topic" value="/slave1/image_raw" />
-    <param name="right_img_topic" value="/slave2/image_raw" />
-    <param name="compressed" value="true" />
-  </node>
+    <!-- To un-compress and sync the image topics -->
+    <node name="stereo_sync" exec="stereo_sync" pkg="okvis_ros" output="screen">
+        <param name="left_img_topic" value="/slave1/image_raw"/>
+        <param name="right_img_topic" value="/slave2/image_raw"/>
+        <param name="compressed" value="true"/>
+    </node>
 
-  <!-- Run pose_graph node-->
-  <node name="pose_graph_node" pkg="pose_graph" exec="pose_graph_node">
-    <param name="config_file" type="str" value="$(var config)" />
-  </node>
+    <!-- Run pose_graph node-->
+    <node name="pose_graph_node" pkg="pose_graph" exec="pose_graph_node">
+        <param name="config_file" type="str" value="$(var config)"/>
+    </node>
 
 
-  <node name="okvis_node" pkg="okvis_ros" exec="okvis_node">
+    <node name="okvis_node" pkg="okvis_ros" exec="okvis_node">
 
-    <param name="config_filename" value="$(var config)" />
-    <param name="mesh_file" value="firefly.dae" />
+        <param name="config_filename" value="$(var config)"/>
+        <param name="mesh_file" value="firefly.dae"/>
 
-    <remap from="/camera0" to="/cam0/image_raw" />
-    <remap from="/camera1" to="/cam1/image_raw" />
+        <remap from="/camera0" to="/cam0/image_raw"/>
+        <remap from="/camera1" to="/cam1/image_raw"/>
 
-    <remap from="/imu" to="/imu/imu" />
+        <remap from="/imu" to="/imu/imu"/>
 
-  </node>
+    </node>
 
-  <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share okvis_ros)/rviz_config/svin.rviz"/>
+    <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share okvis_ros)/rviz_config/svin.rviz"/>
 
 
 </launch>

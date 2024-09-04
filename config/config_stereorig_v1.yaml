@@ -100,9 +100,9 @@ publishing_options:
 #Sharmin
 isSonarUsed: false
 isDepthUsed: false
-histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
+histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
 claheClipLimit: 1.0
-claheTileGridSize: 4
+claheTilesGridSize: 2
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
 

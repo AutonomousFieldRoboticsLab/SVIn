@@ -1,0 +1,33 @@
+<launch>
+
+  <!-- Arguments -->
+  <arg name="config" default="$(find-pkg-share okvis_ros)/config/config_gopro2_uw_radtan.yaml" />
+
+  <set_parameter name="use_sim_time" value="true" />
+
+  <!-- To un-compress (image transport is broken somehow)-->
+  <node name="uncompressor" exec="uncompress_image" pkg="okvis_ros" output="screen">
+    <param name="compressed_img_topic" value="/gopro/image_raw/compressed" />
+    <param name="ouput_img_topic" value="/cam0/image_raw" />
+  </node>
+
+  <!-- Run pose_graph node-->
+  <node name="pose_graph_node" pkg="pose_graph" exec="pose_graph_node">
+    <param name="config_file" type="str" value="$(var config)" />
+  </node>
+
+
+  <node name="okvis_node" pkg="okvis_ros" exec="okvis_node">
+
+    <param name="config_filename" value="$(var config)" />
+    <param name="mesh_file" value="firefly.dae" />
+
+    <remap from="/camera0" to="/cam0/image_raw" />
+    <remap from="/imu" to="/gopro/imu" />
+
+  </node>
+
+  <node name="rviz" pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share okvis_ros)/rviz_config/svin.rviz"/>
+
+
+</launch>

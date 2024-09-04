@@ -6,8 +6,12 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
 endif()
 
+set(VALID_BUILD_TYPES "Release" "RelWithDebInfo")
 if(CMAKE_BUILD_TYPE)
     message(STATUS "Build type specified as ${CMAKE_BUILD_TYPE}")
+    if(NOT ${CMAKE_BUILD_TYPE} IN_LIST VALID_BUILD_TYPES)
+        message(FATAL_ERROR "Build type should either be Release or RelWithDebInfo")
+    endif ()
 else()
     message(STATUS "Build type not specified, using Release")
     set(CMAKE_BUILD_TYPE Release)
@@ -75,7 +79,6 @@ add_library(${PROJECT_NAME}_lib SHARED
     src/utils/UtilsOpenCV.cpp
     src/utils/Utils.cpp
     src/utils/Statistics.cpp
-    # src/utils/LoopClosureUtils.cpp
     ThirdParty/DBoW/BowVector.cpp
     ThirdParty/DBoW/FBrief.cpp
     ThirdParty/DBoW/FeatureVector.cpp

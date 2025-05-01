@@ -1,0 +1,78 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"_install",
+			"install"
+		],
+		"files" : 
+		[
+			"/opt/ros/noetic/share/catkin/cmake/custom_install.cmake",
+			"okvis/okvis_time/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 16,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 20,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 3
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 2,
+			"component" : "lib",
+			"destination" : "/usr/local/lib",
+			"paths" : 
+			[
+				"devel/lib/libokvis_time.a"
+			],
+			"targetId" : "okvis_time::@2faedb5476df5a93798b",
+			"targetIndex" : 76,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 4,
+			"component" : "dev",
+			"destination" : "/usr/local/include",
+			"paths" : 
+			[
+				{
+					"from" : "okvis/okvis_time/include",
+					"to" : "."
+				}
+			],
+			"type" : "directory"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "okvis/okvis_time",
+		"source" : "okvis/okvis_time"
+	}
+}

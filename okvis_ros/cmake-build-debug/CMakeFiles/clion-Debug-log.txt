@@ -1,0 +1,264 @@
+/opt/clion-2025.1/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/opt/clion-2025.1/bin/ninja/linux/x64/ninja -G Ninja -S /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros -B /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug
+CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Warning (dev) at CMakeLists.txt:2 (project):
+  Policy CMP0048 is not set: project() command manages VERSION variables.
+  Run "cmake --help-policy CMP0048" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+
+  The following variable(s) would be set to empty:
+
+    CMAKE_PROJECT_VERSION
+    CMAKE_PROJECT_VERSION_MAJOR
+    CMAKE_PROJECT_VERSION_MINOR
+    CMAKE_PROJECT_VERSION_PATCH
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Using CATKIN_DEVEL_PREFIX: /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/devel
+-- Using CMAKE_PREFIX_PATH: /home/cmb/singularity/svin_ws/devel;/opt/ros/noetic
+-- This workspace overlays: /home/cmb/singularity/svin_ws/devel;/opt/ros/noetic
+CMake Warning (dev) at /opt/ros/noetic/share/catkin/cmake/python.cmake:4 (find_package):
+  Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs modules
+  are removed.  Run "cmake --help-policy CMP0148" for policy details.  Use
+  the cmake_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  /opt/ros/noetic/share/catkin/cmake/all.cmake:164 (include)
+  /opt/ros/noetic/share/catkin/cmake/catkinConfig.cmake:20 (include)
+  CMakeLists.txt:4 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3")
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using Debian Python package layout
+-- Using empy: /usr/lib/python3/dist-packages/em.py
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/test_results
+-- Forcing gtest/gmock from source, though one was otherwise available.
+-- Found gtest sources under '/usr/src/googletest': gtests will be built
+-- Found gmock sources under '/usr/src/googletest': gmock will be built
+CMake Deprecation Warning at /usr/src/googletest/CMakeLists.txt:4 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at /usr/src/googletest/googlemock/CMakeLists.txt:45 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at /usr/src/googletest/googletest/CMakeLists.txt:56 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Warning (dev) at /usr/src/googletest/googletest/cmake/internal_utils.cmake:249 (find_package):
+  Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs modules
+  are removed.  Run "cmake --help-policy CMP0148" for policy details.  Use
+  the cmake_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  /usr/src/googletest/googletest/CMakeLists.txt:91 (include)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Found PythonInterp: /usr/bin/python3 (found version "3.8.10")
+-- Using Python nosetests: /usr/bin/nosetests3
+-- catkin 0.8.11
+-- BUILD_SHARED_LIBS is on
+-- Using these message generators: gencpp;geneus;genlisp;gennodejs;genpy
+CMake Warning (dev) at /opt/ros/noetic/share/dynamic_reconfigure/cmake/dynamic_reconfigure-macros.cmake:128 (find_package):
+  Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs modules
+  are removed.  Run "cmake --help-policy CMP0148" for policy details.  Use
+  the cmake_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  /opt/ros/noetic/share/dynamic_reconfigure/cmake/dynamic_reconfigure-macros.cmake:89 (dynreconf_called)
+  CMakeLists.txt:30 (generate_dynamic_reconfigure_options)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- okvis_ros: 1 messages, 1 services
+-- Building with Release
+CMake Deprecation Warning at okvis/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Building with build type 'Release'
+-- Assuming SSE instructions available.
+-- Using system brisk. Found at /home/cmb/singularity/svin_ws/src/3rdparty/brisk/include;/home/cmb/singularity/svin_ws/src/3rdparty/brisk/agast/include;/home/cmb/singularity/svin_ws/src/3rdparty/brisk/build.
+-- Found AMD library: /usr/lib/x86_64-linux-gnu/libamd.so
+-- Found AMD header in: /usr/include/suitesparse
+-- Found CAMD library: /usr/lib/x86_64-linux-gnu/libcamd.so
+-- Found CAMD header in: /usr/include/suitesparse
+-- Found COLAMD library: /usr/lib/x86_64-linux-gnu/libcolamd.so
+-- Found COLAMD header in: /usr/include/suitesparse
+-- Found CCOLAMD library: /usr/lib/x86_64-linux-gnu/libccolamd.so
+-- Found CCOLAMD header in: /usr/include/suitesparse
+-- Found CHOLMOD library: /usr/lib/x86_64-linux-gnu/libcholmod.so
+-- Found CHOLMOD header in: /usr/include/suitesparse
+-- Found SuiteSparseQR library: /usr/lib/x86_64-linux-gnu/libspqr.so
+-- Found SuiteSparseQR header in: /usr/include/suitesparse
+-- Found Intel Thread Building Blocks (TBB) library: /usr/lib/x86_64-linux-gnu/libtbb.so, assuming SuiteSparseQR was compiled with TBB.
+-- Found Intel Thread Building Blocks (TBB) Malloc library: /usr/lib/x86_64-linux-gnu/libtbbmalloc.so
+-- Found SuiteSparse_config library: /usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so
+-- Found SuiteSparse_config header in: /usr/include/suitesparse
+-- Adding librt: /usr/lib/x86_64-linux-gnu/librt.so to SuiteSparse_config libraries (required on Linux & Unix [not OSX] if SuiteSparse is compiled with timing).
+-- Did not find METIS library (optional SuiteSparse dependency)
+-- Failed to find CXSparse - Could not find CXSparse include directory, set CXSPARSE_INCLUDE_DIR to directory containing cs.h
+-- NOTE: Suppressing some warnings when compiling OpenGV.
+CMake Deprecation Warning at okvis/okvis_util/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_kinematics/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_time/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_cv/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_common/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Found OpenCV: /usr (found version "4.2.0")
+CMake Deprecation Warning at okvis/okvis_ceres/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_timing/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_matcher/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+CMake Deprecation Warning at okvis/okvis_frontend/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Deactivating timers.
+CMake Deprecation Warning at okvis/okvis_multisensor_processing/CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Deactivating timers.
+-- /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/okvis/okvis_multisensor_processing/okvisConfig.hpp
+-- Found OpenCV: /usr (found version "4.2.0") found components: core highgui imgproc features2d
+CMake Warning (dev) at okvis/CMakeLists.txt:268 (FIND_PACKAGE):
+  Policy CMP0167 is not set: The FindBoost module is removed.  Run "cmake
+  --help-policy CMP0167" for policy details.  Use the cmake_policy command to
+  set the policy and suppress this warning.
+
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+CMake Warning at CMakeLists.txt:83 (find_package):
+  By not providing "FindVISensor.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "VISensor",
+  but CMake did not find one.
+
+  Could not find a package configuration file provided by "VISensor" with any
+  of the following names:
+
+    VISensorConfig.cmake
+    visensor-config.cmake
+
+  Add the installation prefix of "VISensor" to CMAKE_PREFIX_PATH or set
+  "VISensor_DIR" to a directory containing one of the above files.  If
+  "VISensor" provides a separate development package or SDK, be sure it has
+  been installed.
+
+
+CMake Warning at CMakeLists.txt:90 (message):
+  libvisensor not found
+
+
+-- Configuring done (2.9s)
+CMake Error: The following variables are used in this project, but they are set to NOTFOUND.
+Please set them or make sure they are set and tested correctly in the CMake files:
+METIS_LIBRARY (ADVANCED)
+    linked by target "okvis_ceres" in directory /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/okvis/okvis_ceres
+    linked by target "okvis_frontend" in directory /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/okvis/okvis_frontend
+
+-- Generating done (0.3s)
+CMake Generate step failed.  Build files cannot be regenerated correctly.

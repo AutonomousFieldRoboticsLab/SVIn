@@ -2,3 +2,15 @@ pose_graph/svin_results/*
 pose_graph/reconstruction_results/*
 pose_graph/output_logs/*
 pose_graph/debug_output/*
+cmake-build-*
+build
+Build
+*.*~
+.idea
+doxgen_generated
+*.swp
+*.swo
+doc
+.vscode
+__pycache__
+okvis_ros/cmake-build-*

@@ -394,6 +394,18 @@ CXSPARSE_INCLUDE_DIR:PATH=CXSPARSE_INCLUDE_DIR-NOTFOUND
 //Path to a library.
 CXSPARSE_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcxsparse.so
 
+//The directory containing a CMake configuration file for CXSparse.
+CXSparse_DIR:PATH=CXSparse_DIR-NOTFOUND
+
+//Path to a file.
+CXSparse_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+CXSparse_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcxsparse.so
+
+//The directory containing a CMake configuration file for Ceres.
+Ceres_DIR:PATH=/usr/local/lib/cmake/Ceres
+
 //Path to a program.
 DOXYGEN_EXECUTABLE:FILEPATH=DOXYGEN_EXECUTABLE-NOTFOUND
 
@@ -408,6 +420,9 @@ EMPY_EXECUTABLE:FILEPATH=EMPY_EXECUTABLE-NOTFOUND
 
 //Empy script
 EMPY_SCRIPT:STRING=/usr/lib/python3/dist-packages/em.py
+
+//The directory containing a CMake configuration file for Eigen3.
+Eigen3_DIR:PATH=/usr/lib/cmake/eigen3
 
 //Git command line client
 GIT_EXECUTABLE:FILEPATH=/usr/bin/git
@@ -527,30 +542,6 @@ N_CORES:STRING=3
 //The directory containing a CMake configuration file for OpenCV.
 OpenCV_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/opencv4
 
-//CXX compiler flags for OpenMP parallelization
-OpenMP_CXX_FLAGS:STRING=-fopenmp
-
-//CXX compiler libraries for OpenMP parallelization
-OpenMP_CXX_LIB_NAMES:STRING=gomp;pthread
-
-//C compiler flags for OpenMP parallelization
-OpenMP_C_FLAGS:STRING=-fopenmp
-
-//C compiler libraries for OpenMP parallelization
-OpenMP_C_LIB_NAMES:STRING=gomp;pthread
-
-//Path to the gomp library for OpenMP
-OpenMP_gomp_LIBRARY:FILEPATH=/usr/lib/gcc/x86_64-linux-gnu/9/libgomp.so
-
-//Path to the pthread library for OpenMP
-OpenMP_pthread_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libpthread.so
-
-//Arguments to supply to pkg-config
-PKG_CONFIG_ARGN:STRING=
-
-//pkg-config executable
-PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
-
 //Path to a program.
 PYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3
 
@@ -581,6 +572,54 @@ SUITESPARSE_CONFIG_INCLUDE_DIR:PATH=/usr/include/suitesparse
 //Path to a library.
 SUITESPARSE_CONFIG_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so
 
+//Path to a file.
+SuiteSparse_AMD_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_AMD_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libamd.so
+
+//Path to a file.
+SuiteSparse_CAMD_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_CAMD_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcamd.so
+
+//Path to a file.
+SuiteSparse_CCOLAMD_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_CCOLAMD_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libccolamd.so
+
+//Path to a file.
+SuiteSparse_CHOLMOD_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_CHOLMOD_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcholmod.so
+
+//Path to a file.
+SuiteSparse_COLAMD_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_COLAMD_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libcolamd.so
+
+//Path to a file.
+SuiteSparse_Config_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_Config_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so
+
+//The directory containing a CMake configuration file for SuiteSparse.
+SuiteSparse_DIR:PATH=SuiteSparse_DIR-NOTFOUND
+
+//Path to a file.
+SuiteSparse_SPQR_INCLUDE_DIR:PATH=/usr/include/suitesparse
+
+//Path to a library.
+SuiteSparse_SPQR_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libspqr.so
+
+//The directory containing a CMake configuration file for TBB.
+TBB_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/TBB
+
 //Path to a library.
 TBB_LIBRARIES:FILEPATH=/usr/lib/x86_64-linux-gnu/libtbb.so
 
@@ -595,17 +634,11 @@ UBUNTU_FOCAL:BOOL=TRUE
 
 //Use brisk via find_package rather than downloading it as part
 // of okvis
-USE_SYSTEM_BRISK:BOOL=ON
+USE_SYSTEM_BRISK:BOOL=OFF
 
 //Use ceres via find_package rather than downloading it as part
 // of okvis
-USE_SYSTEM_CERES:BOOL=OFF
-
-//Path to a file.
-VISensorDriver_INCLUDE_DIR:PATH=VISensorDriver_INCLUDE_DIR-NOTFOUND
-
-//Path to a library.
-VISensorDriver_LIBRARY:FILEPATH=VISensorDriver_LIBRARY-NOTFOUND
+USE_SYSTEM_CERES:BOOL=ON
 
 //The directory containing a CMake configuration file for VISensor.
 VISensor_DIR:PATH=VISensor_DIR-NOTFOUND
@@ -643,9 +676,6 @@ boost_headers_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.71.0
 //The directory containing a CMake configuration file for boost_system.
 boost_system_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_system-1.71.0
 
-//The directory containing a CMake configuration file for brisk.
-brisk_DIR:PATH=/home/cmb/singularity/svin_ws/src/3rdparty/brisk/build
-
 //The directory containing a CMake configuration file for catkin.
 catkin_DIR:PATH=/opt/ros/noetic/share/catkin/cmake
 
@@ -681,6 +711,9 @@ genpy_DIR:PATH=/opt/ros/noetic/share/genpy/cmake
 
 //The directory containing a CMake configuration file for geometry_msgs.
 geometry_msgs_DIR:PATH=/opt/ros/noetic/share/geometry_msgs/cmake
+
+//The directory containing a CMake configuration file for gflags.
+gflags_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/gflags
 
 //Value Computed by CMake
 gmock_BINARY_DIR:STATIC=/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/gtest/googlemock
@@ -783,7 +816,7 @@ okvis_ceres_BINARY_DIR:STATIC=/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/c
 okvis_ceres_IS_TOP_LEVEL:STATIC=OFF
 
 //Dependencies for the target
-okvis_ceres_LIB_DEPENDS:STATIC=general;okvis_util;general;okvis_cv;general;okvis_common;general;ceres;general;/usr/lib/x86_64-linux-gnu/libspqr.so;general;/usr/lib/x86_64-linux-gnu/libtbb.so;general;/usr/lib/x86_64-linux-gnu/libtbbmalloc.so;general;/usr/lib/x86_64-linux-gnu/libcholmod.so;general;/usr/lib/x86_64-linux-gnu/libccolamd.so;general;/usr/lib/x86_64-linux-gnu/libcamd.so;general;/usr/lib/x86_64-linux-gnu/libcolamd.so;general;/usr/lib/x86_64-linux-gnu/libamd.so;general;/usr/lib/x86_64-linux-gnu/liblapack.so;general;/usr/lib/x86_64-linux-gnu/libblas.so;general;/usr/lib/x86_64-linux-gnu/libf77blas.so;general;/usr/lib/x86_64-linux-gnu/libatlas.so;general;/usr/lib/x86_64-linux-gnu/libblas.so;general;/usr/lib/x86_64-linux-gnu/libf77blas.so;general;/usr/lib/x86_64-linux-gnu/libatlas.so;general;/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so;general;/usr/lib/x86_64-linux-gnu/librt.so;general;/usr/lib/x86_64-linux-gnu/libcxsparse.so;general;/usr/lib/x86_64-linux-gnu/libglog.so;general;METIS_LIBRARY-NOTFOUND;
+okvis_ceres_LIB_DEPENDS:STATIC=general;okvis_util;general;okvis_cv;general;okvis_common;general;Ceres::ceres;
 
 //Value Computed by CMake
 okvis_ceres_SOURCE_DIR:STATIC=/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/okvis/okvis_ceres
@@ -819,7 +852,7 @@ okvis_frontend_BINARY_DIR:STATIC=/home/cmb/singularity/svin_ws/src/SVIn/okvis_ro
 okvis_frontend_IS_TOP_LEVEL:STATIC=OFF
 
 //Dependencies for the target
-okvis_frontend_LIB_DEPENDS:STATIC=general;brisk;general;agast;general;opengv;general;ceres;general;/usr/lib/x86_64-linux-gnu/libspqr.so;general;/usr/lib/x86_64-linux-gnu/libtbb.so;general;/usr/lib/x86_64-linux-gnu/libtbbmalloc.so;general;/usr/lib/x86_64-linux-gnu/libcholmod.so;general;/usr/lib/x86_64-linux-gnu/libccolamd.so;general;/usr/lib/x86_64-linux-gnu/libcamd.so;general;/usr/lib/x86_64-linux-gnu/libcolamd.so;general;/usr/lib/x86_64-linux-gnu/libamd.so;general;/usr/lib/x86_64-linux-gnu/liblapack.so;general;/usr/lib/x86_64-linux-gnu/libblas.so;general;/usr/lib/x86_64-linux-gnu/libf77blas.so;general;/usr/lib/x86_64-linux-gnu/libatlas.so;general;/usr/lib/x86_64-linux-gnu/libblas.so;general;/usr/lib/x86_64-linux-gnu/libf77blas.so;general;/usr/lib/x86_64-linux-gnu/libatlas.so;general;/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so;general;/usr/lib/x86_64-linux-gnu/librt.so;general;/usr/lib/x86_64-linux-gnu/libcxsparse.so;general;/usr/lib/x86_64-linux-gnu/libglog.so;general;METIS_LIBRARY-NOTFOUND;general;okvis_util;general;okvis_cv;general;okvis_ceres;general;okvis_timing;general;okvis_matcher;
+okvis_frontend_LIB_DEPENDS:STATIC=general;brisk;general;agast;general;opengv;general;Ceres::ceres;general;okvis_util;general;okvis_cv;general;okvis_ceres;general;okvis_timing;general;okvis_matcher;
 
 //Value Computed by CMake
 okvis_frontend_SOURCE_DIR:STATIC=/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/okvis/okvis_frontend
@@ -1242,10 +1275,16 @@ COLAMD_LIBRARY-ADVANCED:INTERNAL=1
 CXSPARSE_INCLUDE_DIR-ADVANCED:INTERNAL=0
 //ADVANCED property for variable: CXSPARSE_LIBRARY
 CXSPARSE_LIBRARY-ADVANCED:INTERNAL=0
+//ADVANCED property for variable: CXSparse_INCLUDE_DIR
+CXSparse_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CXSparse_LIBRARY
+CXSparse_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: EIGEN_INCLUDE_DIR
 EIGEN_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //Details about finding Boost
 FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[/usr/lib/x86_64-linux-gnu/cmake/Boost-1.71.0/BoostConfig.cmake][cfound components: filesystem system ][v1.71.0()]
+//Details about finding CXSparse
+FIND_PACKAGE_MESSAGE_DETAILS_CXSparse:INTERNAL=[/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libcxsparse.so][v3.2.0(3.2.0)]
 //Details about finding Eigen
 FIND_PACKAGE_MESSAGE_DETAILS_Eigen:INTERNAL=[/usr/include/eigen3][TRUE][v(2.91.0)]
 //Details about finding Glog
@@ -1254,10 +1293,10 @@ FIND_PACKAGE_MESSAGE_DETAILS_Glog:INTERNAL=[/usr/include][/usr/lib/x86_64-linux-
 FIND_PACKAGE_MESSAGE_DETAILS_OpenCV:INTERNAL=[/usr][cfound components: core highgui imgproc features2d ][v4.2.0()]
 //Details about finding PY_em
 FIND_PACKAGE_MESSAGE_DETAILS_PY_em:INTERNAL=[/usr/lib/python3/dist-packages/em.py][v()]
-//Details about finding PkgConfig
-FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig:INTERNAL=[/usr/bin/pkg-config][v0.29.1()]
 //Details about finding PythonInterp
 FIND_PACKAGE_MESSAGE_DETAILS_PythonInterp:INTERNAL=[/usr/bin/python3][v3.8.10()]
+//Details about finding SuiteSparse
+FIND_PACKAGE_MESSAGE_DETAILS_SuiteSparse:INTERNAL=[/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libamd.so][/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libcamd.so][/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libccolamd.so][/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libcholmod.so][/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libcolamd.so][/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libspqr.so][/usr/include/suitesparse][/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so][cfound components: AMD CAMD CCOLAMD CHOLMOD COLAMD SPQR Config ][v5.7.1(5.7.1)]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: GIT_EXECUTABLE
@@ -1294,6 +1333,8 @@ GTEST_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 GTEST_MAIN_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: GTEST_MAIN_LIBRARY_DEBUG
 GTEST_MAIN_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
+//Have library rt
+HAVE_LIBRT:INTERNAL=1
 //ADVANCED property for variable: LAPACK_Accelerate_LIBRARY
 LAPACK_Accelerate_LIBRARY-ADVANCED:INTERNAL=1
 //Have function cheev_
@@ -1328,59 +1369,6 @@ METIS_LIBRARY-ADVANCED:INTERNAL=1
 METIS_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: METIS_LIBRARY_RELEASE
 METIS_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
-//Result of TRY_COMPILE
-OpenMP_COMPILE_RESULT_CXX_fopenmp:INTERNAL=TRUE
-//Result of TRY_COMPILE
-OpenMP_COMPILE_RESULT_C_fopenmp:INTERNAL=TRUE
-//ADVANCED property for variable: OpenMP_CXX_FLAGS
-OpenMP_CXX_FLAGS-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OpenMP_CXX_LIB_NAMES
-OpenMP_CXX_LIB_NAMES-ADVANCED:INTERNAL=1
-//CXX compiler's OpenMP specification date
-OpenMP_CXX_SPEC_DATE:INTERNAL=201511
-//ADVANCED property for variable: OpenMP_C_FLAGS
-OpenMP_C_FLAGS-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OpenMP_C_LIB_NAMES
-OpenMP_C_LIB_NAMES-ADVANCED:INTERNAL=1
-//C compiler's OpenMP specification date
-OpenMP_C_SPEC_DATE:INTERNAL=201511
-//Result of TRY_COMPILE
-OpenMP_SPECTEST_CXX_:INTERNAL=TRUE
-//Result of TRY_COMPILE
-OpenMP_SPECTEST_C_:INTERNAL=TRUE
-//ADVANCED property for variable: OpenMP_gomp_LIBRARY
-OpenMP_gomp_LIBRARY-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OpenMP_pthread_LIBRARY
-OpenMP_pthread_LIBRARY-ADVANCED:INTERNAL=1
-PC_VISENSOR_CFLAGS:INTERNAL=
-PC_VISENSOR_CFLAGS_I:INTERNAL=
-PC_VISENSOR_CFLAGS_OTHER:INTERNAL=
-PC_VISENSOR_FOUND:INTERNAL=
-PC_VISENSOR_INCLUDEDIR:INTERNAL=
-PC_VISENSOR_LIBDIR:INTERNAL=
-PC_VISENSOR_LIBS:INTERNAL=
-PC_VISENSOR_LIBS_L:INTERNAL=
-PC_VISENSOR_LIBS_OTHER:INTERNAL=
-PC_VISENSOR_LIBS_PATHS:INTERNAL=
-PC_VISENSOR_MODULE_NAME:INTERNAL=
-PC_VISENSOR_PREFIX:INTERNAL=
-PC_VISENSOR_STATIC_CFLAGS:INTERNAL=
-PC_VISENSOR_STATIC_CFLAGS_I:INTERNAL=
-PC_VISENSOR_STATIC_CFLAGS_OTHER:INTERNAL=
-PC_VISENSOR_STATIC_LIBDIR:INTERNAL=
-PC_VISENSOR_STATIC_LIBS:INTERNAL=
-PC_VISENSOR_STATIC_LIBS_L:INTERNAL=
-PC_VISENSOR_STATIC_LIBS_OTHER:INTERNAL=
-PC_VISENSOR_STATIC_LIBS_PATHS:INTERNAL=
-PC_VISENSOR_VERSION:INTERNAL=
-PC_VISENSOR_visensor_INCLUDEDIR:INTERNAL=
-PC_VISENSOR_visensor_LIBDIR:INTERNAL=
-PC_VISENSOR_visensor_PREFIX:INTERNAL=
-PC_VISENSOR_visensor_VERSION:INTERNAL=
-//ADVANCED property for variable: PKG_CONFIG_ARGN
-PKG_CONFIG_ARGN-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: PKG_CONFIG_EXECUTABLE
-PKG_CONFIG_EXECUTABLE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: PYTHON_EXECUTABLE
 PYTHON_EXECUTABLE-ADVANCED:INTERNAL=1
 //This needs to be in PYTHONPATH when 'setup.py install' is called.
@@ -1395,14 +1383,38 @@ SUITESPARSEQR_LIBRARY-ADVANCED:INTERNAL=1
 SUITESPARSE_CONFIG_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: SUITESPARSE_CONFIG_LIBRARY
 SUITESPARSE_CONFIG_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_AMD_INCLUDE_DIR
+SuiteSparse_AMD_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_AMD_LIBRARY
+SuiteSparse_AMD_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_CAMD_INCLUDE_DIR
+SuiteSparse_CAMD_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_CAMD_LIBRARY
+SuiteSparse_CAMD_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_CCOLAMD_INCLUDE_DIR
+SuiteSparse_CCOLAMD_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_CCOLAMD_LIBRARY
+SuiteSparse_CCOLAMD_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_CHOLMOD_INCLUDE_DIR
+SuiteSparse_CHOLMOD_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_CHOLMOD_LIBRARY
+SuiteSparse_CHOLMOD_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_COLAMD_INCLUDE_DIR
+SuiteSparse_COLAMD_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_COLAMD_LIBRARY
+SuiteSparse_COLAMD_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_Config_INCLUDE_DIR
+SuiteSparse_Config_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_Config_LIBRARY
+SuiteSparse_Config_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_SPQR_INCLUDE_DIR
+SuiteSparse_SPQR_INCLUDE_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: SuiteSparse_SPQR_LIBRARY
+SuiteSparse_SPQR_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: TBB_LIBRARIES
 TBB_LIBRARIES-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: TBB_MALLOC_LIB
 TBB_MALLOC_LIB-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: VISensorDriver_INCLUDE_DIR
-VISensorDriver_INCLUDE_DIR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: VISensorDriver_LIBRARY
-VISensorDriver_LIBRARY-ADVANCED:INTERNAL=1
 //linker supports push/pop state
 _CMAKE_CXX_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 //linker supports push/pop state
@@ -1411,7 +1423,6 @@ _CMAKE_C_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 //CMAKE_INSTALL_PREFIX during last run
 _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/usr/local
-__pkg_config_checked_PC_VISENSOR:INTERNAL=1
 //ADVANCED property for variable: boost_filesystem_DIR
 boost_filesystem_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: boost_headers_DIR

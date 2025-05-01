@@ -142,7 +142,7 @@
 /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/gtest/googletest/CMakeFiles/install.dir
 /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/gtest/googletest/CMakeFiles/install/local.dir
 /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/gtest/googletest/CMakeFiles/install/strip.dir
-/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/okvis/CMakeFiles/ceres_external.dir
+/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/okvis/CMakeFiles/brisk_external.dir
 /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/okvis/CMakeFiles/opengv_external.dir
 /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/okvis/CMakeFiles/okvis_app_synchronous.dir
 /home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/okvis/CMakeFiles/test.dir

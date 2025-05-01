@@ -44,38 +44,41 @@ endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/lib/libceres.a")
+   "/usr/local/lib/libbrisk.a;/usr/local/lib/libagast.a")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/lib" TYPE FILE FILES "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/lib/libceres.a")
+  file(INSTALL DESTINATION "/usr/local/lib" TYPE FILE FILES
+    "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/lib/libbrisk.a"
+    "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/lib/libagast.a"
+    )
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/include/ceres//")
+   "/usr/local/include/brisk//")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/include/ceres/" TYPE DIRECTORY FILES "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/include/ceres/")
+  file(INSTALL DESTINATION "/usr/local/include/brisk/" TYPE DIRECTORY FILES "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/include/brisk/")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-   "/usr/local/share/Ceres//")
+   "/usr/local/lib/CMake/brisk//")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-  file(INSTALL DESTINATION "/usr/local/share/Ceres/" TYPE DIRECTORY FILES "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/share/Ceres/")
+  file(INSTALL DESTINATION "/usr/local/lib/CMake/brisk/" TYPE DIRECTORY FILES "/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/lib/CMake/brisk/")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)

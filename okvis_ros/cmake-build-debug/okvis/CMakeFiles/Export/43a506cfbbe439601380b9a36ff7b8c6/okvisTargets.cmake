@@ -80,7 +80,7 @@ set_target_properties(okvis_common PROPERTIES
 add_library(okvis_ceres STATIC IMPORTED)
 
 set_target_properties(okvis_ceres PROPERTIES
-  INTERFACE_LINK_LIBRARIES "okvis_util;okvis_cv;okvis_common;\$<LINK_ONLY:ceres>;/usr/lib/x86_64-linux-gnu/libspqr.so;/usr/lib/x86_64-linux-gnu/libtbb.so;/usr/lib/x86_64-linux-gnu/libtbbmalloc.so;/usr/lib/x86_64-linux-gnu/libcholmod.so;/usr/lib/x86_64-linux-gnu/libccolamd.so;/usr/lib/x86_64-linux-gnu/libcamd.so;/usr/lib/x86_64-linux-gnu/libcolamd.so;/usr/lib/x86_64-linux-gnu/libamd.so;/usr/lib/x86_64-linux-gnu/liblapack.so;/usr/lib/x86_64-linux-gnu/libblas.so;/usr/lib/x86_64-linux-gnu/libf77blas.so;/usr/lib/x86_64-linux-gnu/libatlas.so;/usr/lib/x86_64-linux-gnu/libblas.so;/usr/lib/x86_64-linux-gnu/libf77blas.so;/usr/lib/x86_64-linux-gnu/libatlas.so;/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so;/usr/lib/x86_64-linux-gnu/librt.so;/usr/lib/x86_64-linux-gnu/libcxsparse.so;/usr/lib/x86_64-linux-gnu/libglog.so;\$<LINK_ONLY:METIS_LIBRARY-NOTFOUND>"
+  INTERFACE_LINK_LIBRARIES "okvis_util;okvis_cv;okvis_common;\$<LINK_ONLY:Ceres::ceres>"
 )
 
 # Create imported target okvis_timing
@@ -101,7 +101,7 @@ set_target_properties(okvis_matcher PROPERTIES
 add_library(okvis_frontend STATIC IMPORTED)
 
 set_target_properties(okvis_frontend PROPERTIES
-  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:brisk>;\$<LINK_ONLY:agast>;\$<LINK_ONLY:opengv>;\$<LINK_ONLY:ceres>;/usr/lib/x86_64-linux-gnu/libspqr.so;/usr/lib/x86_64-linux-gnu/libtbb.so;/usr/lib/x86_64-linux-gnu/libtbbmalloc.so;/usr/lib/x86_64-linux-gnu/libcholmod.so;/usr/lib/x86_64-linux-gnu/libccolamd.so;/usr/lib/x86_64-linux-gnu/libcamd.so;/usr/lib/x86_64-linux-gnu/libcolamd.so;/usr/lib/x86_64-linux-gnu/libamd.so;/usr/lib/x86_64-linux-gnu/liblapack.so;/usr/lib/x86_64-linux-gnu/libblas.so;/usr/lib/x86_64-linux-gnu/libf77blas.so;/usr/lib/x86_64-linux-gnu/libatlas.so;/usr/lib/x86_64-linux-gnu/libblas.so;/usr/lib/x86_64-linux-gnu/libf77blas.so;/usr/lib/x86_64-linux-gnu/libatlas.so;/usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so;/usr/lib/x86_64-linux-gnu/librt.so;/usr/lib/x86_64-linux-gnu/libcxsparse.so;/usr/lib/x86_64-linux-gnu/libglog.so;\$<LINK_ONLY:METIS_LIBRARY-NOTFOUND>;okvis_util;okvis_cv;okvis_ceres;okvis_timing;okvis_matcher"
+  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:brisk>;\$<LINK_ONLY:agast>;\$<LINK_ONLY:opengv>;\$<LINK_ONLY:Ceres::ceres>;okvis_util;okvis_cv;okvis_ceres;okvis_timing;okvis_matcher"
 )
 
 # Create imported target okvis_multisensor_processing

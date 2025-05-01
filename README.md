@@ -30,7 +30,7 @@ You will need to install the following dependencies,
 
         git clone https://github.com/ceres-solver/ceres-solver.git
         cd ceres-solver
-        git checkout 1.14.x
+        git checkout 2.1.0
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..

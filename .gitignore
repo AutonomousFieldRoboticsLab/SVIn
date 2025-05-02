@@ -13,4 +13,5 @@ doxgen_generated
 doc
 .vscode
 __pycache__
-okvis_ros/cmake-build-*
+okvis_ros/cmake-build*/
+okvis_ros/.idea*/

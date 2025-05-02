@@ -1,1 +1,0 @@
-cmd='/opt/clion-2025.1/bin/cmake/linux/x64/bin/cmake;-DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>;-DCMAKE_BUILD_TYPE:STRING=Release;-DCMAKE_CXX_FLAGS= -march=native -Wall -std=c++17 -fPIC -mssse3 -Wno-unused-parameter -Wno-maybe-uninitialized -Wno-sign-compare -Wno-unused-but-set-variable -Wno-unused-variable -Wno-pedantic;-GNinja;-S;<SOURCE_DIR><SOURCE_SUBDIR>;-B;<BINARY_DIR>'

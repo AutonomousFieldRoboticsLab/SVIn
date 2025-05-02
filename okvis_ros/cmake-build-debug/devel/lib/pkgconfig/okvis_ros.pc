@@ -1,8 +1,0 @@
-prefix=/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/devel
-
-Name: okvis_ros
-Description: Description of okvis_ros
-Version: 1.1.3
-Cflags: -I/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/cmake-build-debug/devel/include -I/home/cmb/singularity/svin_ws/src/SVIn/okvis_ros/include
-Libs: -L${prefix}/lib -lokvis_ros
-Requires: geometry_msgs tf tf2 roscpp tf2_ros tf2_geometry_msgs tf2_sensor_msgs sensor_msgs message_runtime std_srvs nav_msgs cv_bridge message_filters

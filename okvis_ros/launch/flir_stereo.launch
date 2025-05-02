@@ -5,6 +5,7 @@
 
     <param name="/use_sim_time" value="true" />
 
+<!-- Camera Topics-->>
 <!--     <node name="republish1" type="republish" pkg="image_transport" output="screen" args="compressed in:=/left/image_raw raw out:=/cam0/image_raw" /> -->
 <!--     <node name="republish2" type="republish" pkg="image_transport" output="screen" args="compressed in:=/right/image_raw raw out:=/cam1/image_raw" /> -->
 
@@ -28,6 +29,7 @@
 
     </node>
 
+<!--     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/rviz_config/rviz_svin.rviz" /> -->
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/../rviz_config/rviz_svin.rviz" />
 
 </launch>

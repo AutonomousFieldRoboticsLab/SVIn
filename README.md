@@ -50,6 +50,17 @@ You will need to install the following dependencies,
         sudo make install
         cd ../..
 
+  * opengv
+
+        git clone https://github.com/laurentkneip/opengv.git
+        cd opengv
+        mkdir build
+        cd build
+        cmake ..
+        make -j$(nproc)
+        sudo make install 
+        cd ../.. 
+  
 ### Building the project ###
 
 * Create ros workspace. Download SVIn and sonar driver. Then build catkin project:

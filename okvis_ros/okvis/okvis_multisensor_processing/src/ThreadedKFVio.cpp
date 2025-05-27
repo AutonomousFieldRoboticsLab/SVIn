@@ -699,6 +699,7 @@ void ThreadedKFVio::matchingLoop() {
       // no measurements in timeframe, should not happen, as we waited for measurements
       if (sonarData.size() == 0) continue;
     }
+
     // Depth data
     okvis::DepthMeasurementDeque depthData;
     if (parameters_.sensorList.isDepthUsed) {

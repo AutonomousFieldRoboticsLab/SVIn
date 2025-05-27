@@ -38,4 +38,6 @@
   <!-- Added by Hunter -->
   <depend>std_srvs</depend>
   <depend>nav_msgs</depend>
+
+  <depend>depth_node_py</depend>
 </package>

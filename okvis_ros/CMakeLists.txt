@@ -24,6 +24,8 @@ find_package(catkin REQUIRED
   ## Added by Hunter
   std_srvs
   nav_msgs
+  # depth data msg
+  depth_node_py
 )
 
 # generate dynamic reconfigure stuff
@@ -55,6 +57,7 @@ catkin_package(
                    tf2_geometry_msgs
                    tf2_sensor_msgs
                    sensor_msgs
+                   depth_node_py
                    message_runtime
                    std_srvs
                    nav_msgs

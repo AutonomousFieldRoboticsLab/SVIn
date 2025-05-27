@@ -13,8 +13,8 @@ cameras:
 
 camera_params:
     camera_rate: 30
-    sigma_absolute_translation: 0
-    sigma_absolute_orientation: 0
+    sigma_absolute_translation: 0.0
+    sigma_absolute_orientation: 0.0
     sigma_c_relative_translation: 0.0 # below 1.0e-6 ruines numerics...
     sigma_c_relative_orientation: 0.0 # below 1.0e-6 ruines numerics...
 

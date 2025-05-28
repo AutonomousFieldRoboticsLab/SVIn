@@ -44,7 +44,14 @@
 #include <pcl/point_types.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include <cv_bridge/cv_bridge.hpp>  // Sharmin
+#if defined(ROS2_JAZZY)
+  #include <cv_bridge/cv_bridge.hpp>
+#elif defined(ROS2_HUMBLE)
+  #include <cv_bridge/cv_bridge.h>
+#else
+  #include <cv_bridge/cv_bridge.h>
+#endif
+
 #include <fstream>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <list>

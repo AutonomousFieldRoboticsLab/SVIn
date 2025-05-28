@@ -2,8 +2,15 @@
 
 #include <glog/logging.h>
 
+#if defined(ROS2_JAZZY)
+  #include <cv_bridge/cv_bridge.hpp>
+#elif defined(ROS2_HUMBLE)
+  #include <cv_bridge/cv_bridge.h>
+#else
+  #include <cv_bridge/cv_bridge.h>
+#endif
+
 #include <algorithm>
-#include <cv_bridge/cv_bridge.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <string>
 #include <vector>

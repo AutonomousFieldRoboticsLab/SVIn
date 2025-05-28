@@ -43,8 +43,15 @@
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
+#if defined(ROS2_JAZZY)
+  #include <cv_bridge/cv_bridge.hpp>
+#elif defined(ROS2_HUMBLE)
+  #include <cv_bridge/cv_bridge.h>
+#else
+  #include <cv_bridge/cv_bridge.h>
+#endif
+
 #include <algorithm>
-#include <cv_bridge/cv_bridge.hpp>
 #include <list>
 #include <memory>
 #include <okvis/FrameTypedefs.hpp>

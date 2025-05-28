@@ -26,10 +26,11 @@ sudo apt install libsuitesparse-dev libopencv-dev
 
 Please follow installation instructions for ROS Jazzy. Follow the [ROS Jazzy installation guide](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debians.html) and install ROS Jazzy full desktop.
 
-You will need the additional package pcl-ros, cv-bridge and tf2-sensor-msgs.
+You will need the additional package pcl-ros, cv-bridge, image-transport and tf2-sensor-msgs.
 
 ```bash
-sudo apt install ros-jazzy-pcl-ros ros-jazzy-tf2-sensor-msgs 
+sudo apt install ros-jazzy-pcl-ros ros-jazzy-tf2-sensor-msgs ros-jazzy-compressed-image-transport
+
 ```
 
 **Brisk**

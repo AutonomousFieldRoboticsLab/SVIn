@@ -10,6 +10,7 @@
         <param name="left_img_topic" value="/slave1/image_raw"/>
         <param name="right_img_topic" value="/slave2/image_raw"/>
         <param name="compressed" value="true"/>
+        <param name="config_filename" type="str" value="$(var config)"/>
     </node>
 
     <!-- Run pose_graph node-->
@@ -25,7 +26,6 @@
 
         <remap from="/camera0" to="/cam0/image_raw"/>
         <remap from="/camera1" to="/cam1/image_raw"/>
-
         <remap from="/imu" to="/imu/imu"/>
 
     </node>

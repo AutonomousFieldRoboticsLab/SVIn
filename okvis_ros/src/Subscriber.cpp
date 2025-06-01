@@ -63,6 +63,11 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
 
   imgTransport_ = std::make_unique<image_transport::ImageTransport>(node);
 
+  // setup callback groups
+  auto svin2_callback_group = node->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+  auto options = rclcpp::SubscriptionOptions();
+  options.callback_group = svin2_callback_group;
+
   // set up callbacks
   for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
     imageSubscribers_[i] =
@@ -73,6 +78,8 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
 
   subImu_ = node->create_subscription<sensor_msgs::msg::Imu>(
       "imu", 1000, std::bind(&Subscriber::imuCallback, this, std::placeholders::_1));
+  //subImu_ = node->create_subscription<sensor_msgs::msg::Imu>(
+  //    "imu", rclcpp::SensorDataQoS(), std::bind(&Subscriber::imuCallback, this, std::placeholders::_1), options);
 
   // Sharmin
   // if (vioParameters_.sensorList.isSonarUsed) {

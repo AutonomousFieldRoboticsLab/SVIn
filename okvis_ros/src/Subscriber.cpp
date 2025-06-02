@@ -247,6 +247,11 @@ const cv::Mat Subscriber::readRosImage(const sensor_msgs::msg::Image::ConstShare
   try {
     // TODO(Toni): here we should consider using toCvShare...
     cv_ptr = cv_bridge::toCvCopy(img_msg);
+    RCLCPP_INFO(node_->get_logger(), "Received image - encoding: %s, width: %d, height: %d, size: %zu",
+                img_msg->encoding.c_str(),
+                img_msg->width,
+                img_msg->height,
+                img_msg->data.size());
   } catch (cv_bridge::Exception& exception) {
     RCLCPP_FATAL(node_->get_logger(), "cv_bridge exception: %s", exception.what());
     rclcpp::shutdown();

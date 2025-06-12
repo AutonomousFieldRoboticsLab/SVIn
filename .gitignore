@@ -15,3 +15,4 @@ doc
 __pycache__
 okvis_ros/cmake-build*/
 okvis_ros/.idea*/
+pose_graph/ThirdParty/opengv/

@@ -22,9 +22,12 @@
     <remap from="/camera0" to="/cam0/image_raw" />
     <remap from="/imu" to="/gopro/imu" />
 
+<!--     <remap from="/okvis_node/okvis_maplab_odometry" to="/odometry/maplab_odom_T_M_I"/> -->
+    <remap from="/okvis_node/okvis_maplab_odometry" to="odometry/maplab_odom_T_M_I"/>
+
   </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_stereorig.rviz" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_svin.rviz" />
 
 
 </launch>

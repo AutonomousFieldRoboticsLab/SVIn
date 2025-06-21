@@ -68,7 +68,7 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
   auto options = rclcpp::SubscriptionOptions();
   options.callback_group = svin2_callback_group;
 
-  // set up callbacks
+  // Set up Camera callbacks
   for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
     imageSubscribers_[i] =
         imgTransport_->subscribe("camera" + std::to_string(i),
@@ -76,6 +76,7 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
                                  std::bind(&Subscriber::imageCallback, this, std::placeholders::_1, i));
   }
 
+  // Set up IMU callback
   subImu_ = node->create_subscription<sensor_msgs::msg::Imu>(
       "imu", 1000, std::bind(&Subscriber::imuCallback, this, std::placeholders::_1));
   //subImu_ = node->create_subscription<sensor_msgs::msg::Imu>(

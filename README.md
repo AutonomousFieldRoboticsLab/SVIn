@@ -30,7 +30,7 @@ You will need to install the following dependencies,
 
         git clone https://github.com/ceres-solver/ceres-solver.git
         cd ceres-solver
-        git checkout 1.14.x
+        git checkout 2.1.0
         mkdir build
         cd build
         cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -58,7 +58,13 @@ You will need to install the following dependencies,
         cd ~/svin_ws/src
         git clone --branch v0.1 https://github.com/AutonomousFieldRoboticsLab/SVIn.git
         git clone https://github.com/AutonomousFieldRoboticsLab/imagenex831l.git
-        
+
+        # catkin_simple
+        git clone https://github.com/catkin/catkin_simple.git
+
+        #maplab_msgs
+        git clone https://github.com/ethz-asl/maplab_msgs.git
+
         # For Ubuntu 18.04/20.04 (ROS Noetic)
         git clone --branch ros-noetic git@github.com:AutonomousFieldRoboticsLab/sonar_rviz_plugin.git
         

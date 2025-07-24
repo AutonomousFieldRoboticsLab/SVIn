@@ -49,7 +49,13 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#include <cv_bridge/cv_bridge.h>
+
+#if __has_include(<cv_bridge/cv_bridge.hpp>)  // requires GCC ≥ 5
+#  include <cv_bridge/cv_bridge.hpp>
+#else
+#  include <cv_bridge/cv_bridge.h>
+#endif
+
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <rosbag/bag.h>

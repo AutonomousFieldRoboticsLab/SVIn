@@ -42,7 +42,12 @@
  * @author Andreas Forster
  */
 
-#include <cv_bridge/cv_bridge.h>  // Sharmin
+#if __has_include(<cv_bridge/cv_bridge.hpp>)  // requires GCC ≥ 5
+#  include <cv_bridge/cv_bridge.hpp>
+#else
+#  include <cv_bridge/cv_bridge.h>
+#endif // Sharmin
+
 // #include <imagenex831l/ProcessedRange.h>  // Sharmin
 #include <stdlib.h>
 

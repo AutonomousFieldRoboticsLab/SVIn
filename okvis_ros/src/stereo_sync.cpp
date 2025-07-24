@@ -1,12 +1,10 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-#if defined(ROS2_JAZZY)
-  #include <cv_bridge/cv_bridge.hpp>
-#elif defined(ROS2_HUMBLE)
-  #include <cv_bridge/cv_bridge.h>
+#if __has_include(<cv_bridge/cv_bridge.hpp>)  // requires GCC ≥ 5
+#  include <cv_bridge/cv_bridge.hpp>
 #else
-  #include <cv_bridge/cv_bridge.h>
+#  include <cv_bridge/cv_bridge.h>
 #endif
 
 #include <rclcpp/rclcpp.hpp>

@@ -1,15 +1,15 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-         [ -0.99998695, -0.00450621,  0.00240799,  0.0009764 ,
-           -0.00243019,  0.00492873, -0.9999849,  -0.02437543,
-           0.00449427, -0.9999777,  -0.00493961, -0.00087935,
+         [ -0.9999537667881426, -0.007892384909633109, -0.005493136321408202, -0.0010916786218502532,
+           0.005457815644802107, 0.004489875435515847, -0.9999750263216395, -0.0037729638380404754,
+           0.007916851305584298, -0.9999587747897482, -0.004446592672319036, -0.022025982898190858,
            0.0, 0.0, 0.0, 1.0],
         image_dimension: [ 960, 540 ],
-        distortion_coefficients: [ -0.10973803,  0.09313709,  0.00143941,  0.0004831 ],
+        distortion_coefficients: [-0.10984983828690566, 0.10600669194280174, 0.0017155029931461923, -0.0032591922911890028],
         distortion_type: radialtangential,
-        focal_length: [ 583.16116134, 581.292988 ], #projection matrix as pre-rectified images have been used
-        principal_point: [ 481.92859774, 270.2504108 ] } #projection matrix as pre-rectified images have been used
+        focal_length: [585.1458698638675, 585.7832726372784], #projection matrix as pre-rectified images have been used
+        principal_point: [476.16427777543055, 273.39643747563633] } #projection matrix as pre-rectified images have been used
 
 camera_params:
     camera_rate: 30
@@ -22,10 +22,25 @@ camera_params:
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 0.0010030 # gyro noise density [rad/s/sqrt(Hz)]
-    sigma_a_c: 0.0140018 # accelerometer noise density [m/s^2/sqrt(Hz)]
-    sigma_bg: 0.03 # gyro bias prior [rad/s]
-    sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
+
+    # gyro noise density [rad/s/sqrt(Hz)]
+    # sigma_g_c: 0.00019293200812529958 # original
+    sigma_g_c: 0.0019293200812529958 # 10 times
+
+    # accelerometer noise density [m/s^2/sqrt(Hz)]
+    # sigma_a_c: 0.0012390569148256674 # original
+    sigma_a_c: 0.012390569148256674 # 10 times
+
+    # gyro bias prior [rad/s]
+    # sigma_bg: 3.8877049328031264e-05 # original
+    #    sigma_bg: 0.00019438524 # 5 times
+    sigma_bg: 0.00038877049 # 10 times
+
+    # accelerometer bias prior [m/s^2]
+    #    sigma_ba: 0.00010357974944037915 # original
+    # sigma_ba: 0.00051789874  # 5 times
+    sigma_ba: 0.00103579749 # 10 times
+
     sigma_gw_c: 0.0000981 # gyro drift noise density [rad/s^s/sqrt(Hz)]
     sigma_aw_c: 0.0009312 # accelerometer drift noise density [m/s^2/sqrt(Hz)]
     tau: 3600.0 # reversion time constant, currently not in use [s]
@@ -121,5 +136,5 @@ global_map_params:
 
 output_params:
     debug: 1
-    output_dir: ~/ros_ws/src/SVIn/pose_graph
+    output_dir: ~/ros_ws/src/SVIn/pose_graph # not in use
     # does not detect ~, so full path is needed if the path is not detected, /tmp is used a default

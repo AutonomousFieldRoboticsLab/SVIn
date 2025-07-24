@@ -165,7 +165,10 @@ install(TARGETS uncompress_image DESTINATION lib/${PROJECT_NAME})
 
 #All the necessary files in relative path needs to be copied to the install directory
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
-install(DIRECTORY ../config/ DESTINATION share/${PROJECT_NAME}/config/)
+install(
+        DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../config
+        DESTINATION share/${PROJECT_NAME}
+)
 install(DIRECTORY ../rviz_config/ DESTINATION share/${PROJECT_NAME}/rviz_config/)
 
 ament_package()

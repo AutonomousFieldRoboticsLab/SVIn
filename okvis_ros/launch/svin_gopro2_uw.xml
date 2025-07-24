@@ -1,7 +1,9 @@
 <launch>
 
   <!-- Arguments -->
-  <arg name="config" default="$(find-pkg-share okvis_ros)/config/config_gopro2_uw_radtan.yaml" />
+  <arg name="posegraph_config" default="$(find-pkg-share pose_graph)/config/gopro/gopro2_uw.yaml" />
+  <arg name="okvis_config" default="$(find-pkg-share okvis_ros)/okvis/config/config_gopro2_uw_radtan.yaml" />
+<!--  <arg name="okvis_config" default="$(find-pkg-share okvis_ros)/config/gopro/config_gopro2_uw_radtan.yaml" />-->
 
   <set_parameter name="use_sim_time" value="true" />
 
@@ -13,13 +15,12 @@
 
   <!-- Run pose_graph node-->
   <node name="pose_graph_node" pkg="pose_graph" exec="pose_graph_node">
-    <param name="config_file" type="str" value="$(var config)" />
+    <param name="config_file" type="str" value="$(var posegraph_config)" />
   </node>
-
 
   <node name="okvis_node" pkg="okvis_ros" exec="okvis_node">
 
-    <param name="config_filename" value="$(var config)" />
+    <param name="config_filename" value="$(var okvis_config)" />
     <param name="mesh_file" value="firefly.dae" />
 
     <remap from="/camera0" to="/cam0/image_raw" />

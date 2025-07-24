@@ -26,5 +26,4 @@
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find okvis_ros)/config/rviz_stereorig.rviz" />
 
-
 </launch>

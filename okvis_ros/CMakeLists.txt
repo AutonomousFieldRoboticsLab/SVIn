@@ -5,13 +5,6 @@ if (NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
 endif ()
 
-# Checking if ROS2 is humble or jazzy
-if($ENV{ROS_DISTRO} STREQUAL "humble")
-    add_definitions(-DROS2_HUMBLE)
-elseif($ENV{ROS_DISTRO} STREQUAL "jazzy")
-    add_definitions(-DROS2_JAZZY)
-endif()
-
 find_package(OpenCV REQUIRED)
 
 find_package(ament_cmake REQUIRED)

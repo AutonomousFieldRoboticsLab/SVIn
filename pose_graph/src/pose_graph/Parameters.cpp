@@ -70,8 +70,13 @@ void Parameters::loadParameters(const std::string& config_file) {
     }
   }
 
+  // Determine source directory of this file
+  std::filesystem::path this_file(__FILE__);
+  std::filesystem::path package_src_dir = this_file.parent_path().parent_path().parent_path();  // Go up from src/pose_graph/
+
+  output_path_ = (package_src_dir).string();
+
   if (fsSettings["output_params"]["output_dir"].isString()) {
-    output_path_ = static_cast<std::string>(fsSettings["output_params"]["output_dir"]);
     try {
       if (!std::filesystem::exists(output_path_)) {
         std::filesystem::create_directory(output_path_);
@@ -82,6 +87,7 @@ void Parameters::loadParameters(const std::string& config_file) {
     }
     debug_output_path_ = output_path_ + "/debug_output";
     LOG(INFO) << "Output folder: " << output_path_;
+    std::cout << "Output folder: " << output_path_ << std::endl;
     if (fsSettings["output_params"]["debug"].isInt()) {
       debug_mode_ = static_cast<int>(fsSettings["output_params"]["debug"]);
     }

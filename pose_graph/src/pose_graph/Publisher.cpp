@@ -10,6 +10,10 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <vector>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <boost/filesystem.hpp>
+#include <filesystem>
+#include <fstream>
+#include <string>
 
 #include "utils/Utils.h"
 
@@ -142,9 +146,11 @@ bool Publisher::savePointCloud(const std::shared_ptr<rmw_request_id_t> request_h
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   pointcloud_callback_(pointcloud);
 
-  std::string pkg_path;
-  // = ros::package::getPath("pose_graph");
-  std::string pointcloud_file = pkg_path + "/reconstruction_results/pointcloud.ply";
+  // Determine source directory of this file
+  std::filesystem::path this_file(__FILE__);
+  std::filesystem::path package_src_dir = this_file.parent_path().parent_path().parent_path();
+  std::string package_src_dir_str = package_src_dir.string();
+  std::string pointcloud_file = package_src_dir_str + "/reconstruction_results" + "/pointcloud.ply";
 
   pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
   response->success = true;

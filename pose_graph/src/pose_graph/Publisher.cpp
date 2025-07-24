@@ -14,6 +14,10 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <ctime>
 
 #include "utils/Utils.h"
 
@@ -148,13 +152,37 @@ bool Publisher::savePointCloud(const std::shared_ptr<rmw_request_id_t> request_h
 
   // Determine source directory of this file
   std::filesystem::path this_file(__FILE__);
-  std::filesystem::path package_src_dir = this_file.parent_path().parent_path().parent_path();
-  std::string package_src_dir_str = package_src_dir.string();
-  std::string pointcloud_file = package_src_dir_str + "/reconstruction_results" + "/pointcloud.ply";
+  std::filesystem::path posegraph_dir = this_file.parent_path().parent_path().parent_path();
+  std::string posegraph_dir_str = posegraph_dir.string();
+  std::string pointcloud_dir = posegraph_dir_str + "/reconstruction_results";
+  // std::string pointcloud_dir = "/tmp/reconstruction_results/pointcloud.ply";
+  if (!std::filesystem::exists(pointcloud_dir)) {
+    std::filesystem::create_directories(pointcloud_dir);
+  }
 
-  pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
+  // Generate timestamped filename
+  auto now = std::chrono::system_clock::now();
+  std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+  std::tm now_tm;
+  localtime_r(&now_time, &now_tm);
+  std::stringstream filename_ss;
+  filename_ss << pointcloud_dir << "/pointcloud_"
+              << std::put_time(&now_tm, "%Y-%m-%d_%H-%M-%S") << ".ply";
+  std::string pointcloud_file = filename_ss.str();
+
+  // Save the point cloud to a PLY file
+  // Save point cloud
+  int ret = pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
+  if (ret < 0) {
+    response->success = false;
+    response->message = "Failed to save PLY file.";
+    RCLCPP_ERROR(node_->get_logger(), "Failed to save point cloud to: %s", pointcloud_file.c_str());
+    return true;
+  }
+
   response->success = true;
-  response->message = "Saving Point Cloud ";
+  response->message = "Saved to: " + pointcloud_file;
+  RCLCPP_INFO(node_->get_logger(), "PointCloud saved to: %s", pointcloud_file.c_str());
   return true;
 }
 

@@ -9,8 +9,11 @@
 #include <ros/package.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/MarkerArray.h>
-
+#include <boost/filesystem.hpp>
 #include <vector>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 #include "utils/Utils.h"
 
@@ -131,15 +134,42 @@ void Publisher::updatePublishGlobalMap(const ros::TimerEvent& event) {
 
 bool Publisher::savePointCloud(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
   ROS_INFO_STREAM("!! Saving Point Cloud !!");
+
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   pointcloud_callback_(pointcloud);
 
   std::string pkg_path = ros::package::getPath("pose_graph");
-  std::string pointcloud_file = pkg_path + "/reconstruction_results/pointcloud.ply";
+  std::string folder_path = pkg_path + "/reconstruction_results";
 
-  pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud);
-  response.success = true;
-  response.message = "Saving Point Cloud ";
+  // Ensure the folder exists
+  if (!boost::filesystem::exists(folder_path)) {
+    if (!boost::filesystem::create_directories(folder_path)) {
+      response.success = false;
+      response.message = "Failed to create directory: " + folder_path;
+      ROS_ERROR_STREAM(response.message);
+      return true;
+    }
+  }
+
+  // Get current time
+  std::time_t now = std::time(nullptr);
+  std::tm* now_tm = std::localtime(&now);
+  std::ostringstream timestamp;
+  timestamp << std::put_time(now_tm, "%Y%m%d_%H%M%S");
+
+  // Construct file path
+  std::string pointcloud_file = folder_path + "/pointcloud_" + timestamp.str() + ".ply";
+
+  if (pcl::io::savePLYFileBinary(pointcloud_file, *pointcloud) == 0) {
+    response.success = true;
+    response.message = "Point cloud saved to " + pointcloud_file;
+    ROS_INFO_STREAM(response.message);
+  } else {
+    response.success = false;
+    response.message = "Failed to save point cloud to " + pointcloud_file;
+    ROS_ERROR_STREAM(response.message);
+  }
+  
   return true;
 }
 

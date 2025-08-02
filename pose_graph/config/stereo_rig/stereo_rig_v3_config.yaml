@@ -2,7 +2,7 @@
 
 #camera calibration 
 model_type: PINHOLE
-camera_name: slave1
+camera_name: left
 
 #image resize factor. Note that, this factor MUST be same as OKVIS config file
 resizeFactor: 0.5

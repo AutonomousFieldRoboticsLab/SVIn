@@ -317,7 +317,6 @@ class Publisher {
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr pubMesh_;  ///< The publisher for a robot / camera mesh.
   std::vector<image_transport::Publisher> pubImagesVector_;                ///< The publisher for the images.
   image_transport::ImageTransport image_transport_;                        ///< The image transporters.
-
   // ros::Publisher pubStereoMatched_; ///< Sharmin: The publisher for stereo matched points.
   // image_transport::ImageTransport imageTransportKeyframeImageL_; ///< Sharmin: The image transporter for keyframe
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr
@@ -327,6 +326,7 @@ class Publisher {
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr
       pubKeyframePoints_;  ///< Sharmin: The publisher for Keyframe 3d-2d points.
 
+      
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr
       keyframePointsMatched_;  ///< Sharmin Point cloud for matched points in a keyframe.
 
@@ -366,7 +366,7 @@ class Publisher {
   // Hunter
   std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> pubDebugImage_;
 
-  bool static_tf_published_;  ///< Whether the static transform has been published.
+  bool static_tf_published_;  ///< Whether the static transform has been published.  
 };
 
 }  // namespace okvis

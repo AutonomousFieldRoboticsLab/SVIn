@@ -535,6 +535,20 @@ void Publisher::setOdometry(const okvis::kinematics::Transformation& T_WS,
   odometryMsg_.twist.twist.angular.y = omega[1];
   odometryMsg_.twist.twist.angular.z = omega[2];
 
+  // fill biases
+  Eigen::Vector3d b_g = speedAndBiases.segment<3>(3);
+  Eigen::Vector3d b_a = speedAndBiases.segment<3>(6);
+
+  // gyroscope biases
+  odometryMsg_.pose.covariance[0] = b_g[0];
+  odometryMsg_.pose.covariance[1] = b_g[1];
+  odometryMsg_.pose.covariance[2] = b_g[2];
+
+  // accelerometer biases
+  odometryMsg_.pose.covariance[3] = b_a[0];
+  odometryMsg_.pose.covariance[4] = b_a[1];
+  odometryMsg_.pose.covariance[5] = b_a[2];
+
   // linear acceleration ?? - would also need point of percussion mapping!!
 
   // *********Sharmin: For Reloc Pose ************************//

@@ -25,6 +25,7 @@ find_package(std_srvs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(pcl_conversions REQUIRED)
+
 # Sharmin: for SvinHealth msg
 rosidl_generate_interfaces(${PROJECT_NAME} "msg/SvinHealth.msg" "srv/OdometryTrigger.srv" DEPENDENCIES std_msgs geometry_msgs nav_msgs)
 

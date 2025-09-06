@@ -302,6 +302,9 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
 
       std::cout << "Read Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
                 << vioParameters_.histogramParams.claheTilesGridSize << std::endl;
+
+      LOG(INFO) << "Read Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
+                << vioParameters_.histogramParams.claheTilesGridSize;
     } else {
       LOG(WARNING) << histogram_method << " unknown/invalid histogramMethod, setting to NONE";
       vioParameters_.histogramParams.histogramMethod = HistogramMethod::NONE;
@@ -572,6 +575,10 @@ bool VioParametersReader::getCalibrationViaConfig(
       for (size_t i = 0; i < distortionCoefficientNode.size(); ++i) {
         calib.distortionCoefficients[i] = distortionCoefficientNode[i];
       }
+
+      // Changing image size accord to image resizeFactor
+      LOG(INFO) << "Original image dimension: " << calib.imageDimension[0] * vioParameters_.miscParams.resizeFactor << " x "
+                << calib.imageDimension[1] * vioParameters_.miscParams.resizeFactor;
 
       // Changing focal_length and principal_point accord to image resizeFactor
       calib.focalLength << focalLengthNode[0], focalLengthNode[1];

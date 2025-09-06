@@ -35,8 +35,8 @@ global_map_params:
 
 debug_image: 1
 
-image_height: 1080
-image_width: 1920
-focal_length: [1282.6977865195622, 1282.0563933415326]
-principal_point: [928.3250199345833, 517.4275148460564]
+image_height: 648
+image_width: 1152
+focal_length: [769.619, 769.234]
+principal_point: [556.995, 310.457]
 distortion_coefficients: [-0.07154614806316285, 0.17275073737940927, -0.0009540854697760907, -0.008725871476365036]

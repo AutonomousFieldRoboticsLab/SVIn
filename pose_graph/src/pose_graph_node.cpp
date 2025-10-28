@@ -148,6 +148,24 @@ int main(int argc, char** argv) {
 
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pointcloud_service;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_trajectory_service;
+
+  // Save Trajectory service
+  save_trajectory_service = node->create_service<std_srvs::srv::Trigger>(
+      "save_trajectory",
+      [&publisher, &params](const std::shared_ptr<rmw_request_id_t> /*req_header*/,
+                           const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                           const std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+        try {
+          publisher->saveTrajectory(params.svin_w_loop_path_);
+          response->success = true;
+          response->message = "Trajectory saved.";
+        } catch (const std::exception& e) {
+          response->success = false;
+          response->message = std::string("Failed to save trajectory: ") + e.what();
+        }
+      });
+  
 
   if (params.global_mapping_params_.enabled) {
     publisher->setGlobalPointCloudFunction(

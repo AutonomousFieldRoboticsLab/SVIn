@@ -8,6 +8,7 @@
 #include "pose_graph/Parameters.h"
 #include "pose_graph/Publisher.h"
 #include "pose_graph/Subscriber.h"
+#include "utils/Utils.h"
 
 void setupOutputLogDirectories(const std::string base_path) {
   std::string output_dir = base_path + "/loop_candidates/";
@@ -157,9 +158,10 @@ int main(int argc, char** argv) {
                            const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
                            const std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
         try {
-          publisher->saveTrajectory(params.svin_w_loop_path_);
+          std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr() + ".txt";
+          publisher->saveTrajectory(save_path);
           response->success = true;
-          response->message = "Trajectory saved.";
+          response->message = "Trajectory saved successfully!";
         } catch (const std::exception& e) {
           response->success = false;
           response->message = std::string("Failed to save trajectory: ") + e.what();
@@ -196,7 +198,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  publisher->saveTrajectory(params.svin_w_loop_path_);
+  std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr() + ".txt";
+  publisher->saveTrajectory(save_path);
   LOG(INFO) << "Shutting down threads...";
   loop_closure->shutdown();
 

@@ -137,9 +137,7 @@ void Parameters::loadParameters(const std::string& config_file) {
   if (!std::filesystem::exists(results_path)) {
     std::filesystem::create_directory(results_path);
   }
-  svin_w_loop_path_ = results_path + "svin_" + Utils::getTimeStr() + ".txt";
-
-  std::cout << "SVIN Result path: " << svin_w_loop_path_ << std::endl;
+  svin_traj_path_ = results_path;
 
   // Read config file parameters
   if (fsSettings["resizeFactor"].isReal() || fsSettings["resizeFactor"].isInt()) {

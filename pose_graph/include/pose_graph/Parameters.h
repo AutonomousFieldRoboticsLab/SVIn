@@ -38,7 +38,7 @@ class Parameters {
 
   std::string brief_pattern_file_;
 
-  std::string svin_w_loop_path_;
+  std::string svin_traj_path_;
 
   int fast_relocalization_;
 

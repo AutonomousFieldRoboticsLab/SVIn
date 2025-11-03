@@ -53,6 +53,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <thread>
 #include <vector>
+#include <chrono>
 // @Sharmin
 // #include <imagenex831l/ProcessedRange.h>
 // #include <ros/time.h>
@@ -113,6 +114,7 @@ class Subscriber {
 
   /// @brief The image callback.
   void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex);
+  
   /// @brief The depth image callback.
   /// @warning Not implemented.
   void depthImageCallback(const sensor_msgs::msg::Image::SharedPtr, unsigned int) {
@@ -156,6 +158,16 @@ class Subscriber {
   /// TODO: Check this transformation, q(w,x,y,z)
   // const static okvis::kinematics::Transformation T_SSo(Eigen::Vector3d(0.365, 0.095, 0.070), Eigen::Quaterniond(0.0,
   // 0.707, 0.000, 0.707));
+
+  // Watchdog: freeze node when both IMU and camera inactive beyond timeout
+  void watchdogTick();
+  rclcpp::TimerBase::SharedPtr watchdog_timer_;
+  std::chrono::steady_clock::time_point last_image_tp_;
+  std::chrono::steady_clock::time_point last_imu_tp_;
+  bool seen_first_image_ = false;
+  bool seen_first_imu_ = false;
+  bool frozen_ = false;
+  double freeze_timeout_sec_ = 1.0;
 };
 }  // namespace okvis
 

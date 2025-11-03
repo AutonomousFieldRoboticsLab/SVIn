@@ -192,12 +192,13 @@ int main(int argc, char** argv) {
   executor.add_node(node);
   while (rclcpp::ok()) {
     executor.spin_once();
-    if ((node->now() - last_print_time).seconds() > 10.0) {
+    if ((node->now() - last_print_time).seconds() > 10.0 && !subscriber->isFrozen()) {
       last_print_time = node->now();
       LOG(INFO) << utils::Statistics::Print();
     }
   }
 
+  // After rclcpp::ok() is false (shutdown signal received)
   std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr() + ".txt";
   publisher->saveTrajectory(save_path);
   LOG(INFO) << "Shutting down threads...";

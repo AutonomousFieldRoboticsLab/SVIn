@@ -353,7 +353,7 @@ bool LoopClosure::healthCheck(const TrackingInfo& tracking_info, std::string err
 }
 
 void LoopClosure::shutdown() {
-  LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph modile was already shutdown.";
+  LOG_IF(ERROR, shutdown_) << "Shutdown requested, but PoseGraph module was already shutdown.";
   keyframe_tracking_queue_.shutdown();
   shutdown_ = true;
   LOG(INFO) << "Shutting down PoseGraph module.";

@@ -3,6 +3,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/exact_time.h>
 
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <nav_msgs/msg/odometry.hpp>
@@ -82,8 +83,17 @@ class Subscriber {
   CVMatCallback primitive_estimator_callback_;  // The callback function for the pose.
   CVMatCallback raw_image_callback_;            // The callback function for the original_image.
 
+  // Watchdog: freeze node when keyframe input stops
+  void watchdogTick();
+  rclcpp::TimerBase::SharedPtr watchdog_timer_;
+  std::chrono::steady_clock::time_point last_keyframe_tp_;
+  bool seen_first_keyframe_ = false;
+  bool frozen_ = false;
+  double freeze_timeout_sec_ = 3.0;
+
  public:
   inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }
+  inline bool isFrozen() const { return frozen_; }
   inline void registerKeyframeCallback(const KeyframeCallback& callback) { keyframe_callback_ = callback; }
   inline void registerImageCallback(const CVMatCallback& callback) { raw_image_callback_ = callback; }
   inline void registerPrimitiveEstimatorCallback(const CVMatCallback& callback) {

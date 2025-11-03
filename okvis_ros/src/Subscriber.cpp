@@ -115,12 +115,30 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
     std::cout << "Set Clahe Params " << vioParameters_.histogramParams.claheClipLimit << " "
               << vioParameters_.histogramParams.claheTilesGridSize << std::endl;
   }
+
+  // Watchdog: parameter and timer setup (uses steady clock)
+  try {
+    if (!node_->has_parameter("freeze_timeout_sec")) {
+      node_->declare_parameter<double>("freeze_timeout_sec", 1.0);
+    }
+    node_->get_parameter("freeze_timeout_sec", freeze_timeout_sec_);
+  } catch (const std::exception&) {
+    freeze_timeout_sec_ = 1.0;
+  }
+  last_image_tp_ = std::chrono::steady_clock::now();
+  last_imu_tp_ = std::chrono::steady_clock::now();
+  frozen_ = false;
+  using namespace std::chrono_literals;  // NOLINT
+  watchdog_timer_ = node_->create_wall_timer(500ms, std::bind(&Subscriber::watchdogTick, this));
 }
 
 // Hunter
 void Subscriber::setT_Wc_W(okvis::kinematics::Transformation T_Wc_W) { vioParameters_.publishing.T_Wc_W = T_Wc_W; }
 
 void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex) {
+  if (frozen_) {
+    return;  // frozen: ignore images
+  }
   const cv::Mat raw = readRosImage(msg);
 
   // resizing factor( e.g., with a factor = 0.8, an image will convert from 800x600 to 640x480)
@@ -154,12 +172,22 @@ void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg
   okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nanosec);
   t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
 
+  // Update last image time for watchdog (steady clock)
+  last_image_tp_ = std::chrono::steady_clock::now();
+  seen_first_image_ = true;
+
   if (!vioInterface_->addImage(t, cameraIndex, histogram_equalized_image)) {
     LOG(WARNING) << "Frame delayed at time " << t;
   }
 }
 
 void Subscriber::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg) {
+  if (frozen_) {
+    return;  // frozen: ignore imu
+  }
+  // Update last IMU time for watchdog (steady clock)
+  last_imu_tp_ = std::chrono::steady_clock::now();
+  seen_first_imu_ = true;
   vioInterface_->addImuMeasurement(
       okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
       Eigen::Vector3d(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
@@ -218,6 +246,22 @@ void Subscriber::relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr rel
 //                                           msg->depth);
 // }
 // * /
+
+// Watchdog tick: freeze when both IMU and camera inactive longer than threshold
+void Subscriber::watchdogTick() {
+  if (frozen_) return;
+  // Do not start watchdog until both streams have been seen at least once
+  if (!(seen_first_image_ && seen_first_imu_)) return;
+  const auto now = std::chrono::steady_clock::now();
+  const double dt_img = std::chrono::duration_cast<std::chrono::duration<double>>(now - last_image_tp_).count();
+  const double dt_imu = std::chrono::duration_cast<std::chrono::duration<double>>(now - last_imu_tp_).count();
+  if (dt_img > freeze_timeout_sec_ && dt_imu > freeze_timeout_sec_) {
+    RCLCPP_ERROR(node_->get_logger(),
+                 "SVIn watchdog: No IMU and camera data for %.2fs (timeout=%.2fs). Freezing node.",
+                 std::max(dt_img, dt_imu), freeze_timeout_sec_);
+    frozen_ = true;
+  }
+}
 
 // @Sharmin
 // void Subscriber::sonarCallback(const imagenex831l::ProcessedRange::ConstPtr& msg) {

@@ -53,6 +53,21 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node, Parameters& params) :
         100,
         std::bind(&Subscriber::primitiveEstimatorCallback, this, std::placeholders::_1));
   }
+
+  // Watchdog: parameter and timer setup (uses steady clock)
+  try {
+    if (!node_->has_parameter("freeze_timeout_sec")) {
+      node_->declare_parameter<double>("freeze_timeout_sec", 2.0);
+    }
+    node_->get_parameter("freeze_timeout_sec", freeze_timeout_sec_);
+  } catch (const std::exception&) {
+    freeze_timeout_sec_ = 2.0;
+  }
+  last_keyframe_tp_ = std::chrono::steady_clock::now();
+  frozen_ = false;
+  seen_keyframe_ = false;
+  using namespace std::chrono_literals;  // NOLINT
+  watchdog_timer_ = node_->create_wall_timer(500ms, std::bind(&Subscriber::watchdogTick, this));
 }
 
 void Subscriber::primitiveEstimatorCallback(const nav_msgs::msg::Odometry::ConstSharedPtr msg) {
@@ -117,6 +132,14 @@ void Subscriber::keyframeCallback(const sensor_msgs::msg::Image::ConstSharedPtr 
                                   const nav_msgs::msg::Odometry::ConstSharedPtr kf_odom,
                                   const sensor_msgs::msg::PointCloud::ConstSharedPtr kf_points,
                                   const okvis_ros::msg::SvinHealth::ConstSharedPtr svin_health) {
+  if (frozen_) {
+    return;  // frozen: ignore keyframes
+  }
+
+  // Update last keyframe time for watchdog (steady clock)
+  last_keyframe_tp_ = std::chrono::steady_clock::now();
+  seen_first_keyframe_ = true;
+
   TrackingInfo tracking_info(Utils::getHeaderStamp(kf_odom->header),
                              svin_health->num_tracked_kps,
                              svin_health->new_kps,
@@ -189,5 +212,20 @@ void Subscriber::keyframeCallback(const sensor_msgs::msg::Image::ConstSharedPtr 
     keyframe_callback_(std::move(keyframe_info));
   } else {
     LOG(WARNING) << "Skipping keyframe. Does not contain any triangulated points.";
+  }
+}
+
+// Watchdog tick: freeze when keyframe input stops longer than threshold
+void Subscriber::watchdogTick() {
+  if (frozen_) return;
+  // Do not start watchdog until keyframe stream has been seen at least once
+  if (!seen_first_keyframe_) return;
+  const auto now = std::chrono::steady_clock::now();
+  const double dt_kf = std::chrono::duration_cast<std::chrono::duration<double>>(now - last_keyframe_tp_).count();
+  if (dt_kf > freeze_timeout_sec_) {
+    RCLCPP_ERROR(node_->get_logger(),
+                 "PoseGraph watchdog: No keyframe data for %.2fs (timeout=%.2fs). Freezing node.",
+                 dt_kf, freeze_timeout_sec_);
+    frozen_ = true;
   }
 }

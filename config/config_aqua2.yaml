@@ -1,0 +1,120 @@
+%YAML:1.0
+cameras:
+    - {T_SC:
+       [0.013017943148105171, 0.9998990833735445, 0.005688253241378172, 0.04579873215546053,
+        -0.5033731280764532, 0.001638012761312757, 0.8640675962242308, 0.2464284852371861,
+        0.8639710800059914, -0.014111696671170515, 0.503343652915522, -0.37130057753668394,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [640, 480],
+       distortion_coefficients: [-0.2632274363780483, 0.13085421038808878, -0.0006063586764129825, -7.72789862973948e-05],
+       distortion_type: radialtangential,
+       focal_length: [584.8268406249073, 584.0022225047908], 
+       principal_point: [302.63779178255027, 252.604930240826]} 
+    - {T_SC:
+       [0.0060317621400067245, 0.9999818044250671, -9.308208119213068e-05, -0.042239451046232154,
+        -0.5044424695146347, 0.0031231045763644993, 0.8634396569348564, 0.24704131979455368,
+        0.863424236858952, -0.005161108077975873, 0.5044521287178241, -0.3706884128320702,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [640, 480],
+       distortion_coefficients: [-0.2647649459322316, 0.13510487985850617, -0.00038873628814437987, 0.0007793908350831181],
+       distortion_type: radialtangential,
+       focal_length: [581.7103761194583, 580.8717409582493], 
+       principal_point: [311.56282578970496, 249.42807223883335]} 
+
+camera_params:
+    camera_rate: 30 # just to manage the expectations of when there should be frames arriving
+    sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
+    sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
+    sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
+    sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
+    # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
+
+
+
+
+imu_params:
+    a_max: 176.0 # acceleration saturation [m/s^2]
+    g_max: 7.8 # gyro saturation [rad/s]
+
+    # Gyroscope
+    sigma_g_c: 0.0025411490629492976 # gyro noise density [rad/s/sqrt(Hz)] 
+    
+    sigma_bg: 8.55368076515601e-07 # gyro bias prior [rad/s]
+    
+    # Accelerometer [m/s^2/sqrt(Hz)]
+    # sigma_a_c: 0.008330529915907017 # original
+    sigma_a_c: 0.08330529915907017 # 10 times 
+
+    sigma_ba: 2.34304645114941e-05 # accelerometer bias prior [m/s^2]
+    
+    sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
+    sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
+    tau: 3600.0 # reversion time constant, currently not in use [s]
+    g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
+    a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
+    imu_rate: 100
+    # tranform Body-Sensor (IMU)
+    T_BS:
+        [0.0000, 0.0000, 1.0000, -0.018,
+         1.0000, 0.0000, 0.0000, -0.016,
+         0.0000, 1.0000, 0.0000, 0.0,
+         0.0000, 0.0000, 0.0000, 1.0000]
+
+sonar_params:
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
+
+#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
+
+# Estimator parameters
+numKeyframes: 5 # number of keyframes in optimisation window
+numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
+
+# ceres optimization options
+ceres_options:
+    minIterations: 3   # minimum number of iterations always performed
+    maxIterations: 10  # never do more than these, even if not converged
+    timeLimit: 0.035   # [s] negative values will set the an unlimited time limit
+
+# detection
+detection_options:
+    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+
+# delay of images [s]:
+imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+
+# display debug images?
+displayImages: true  # displays debug video and keyframe matches. May be slow.
+publishDebugImages: false  # publish debug image to topic ~debug_image_x
+
+# use direct driver
+useDriver: false
+
+# some options for how and what to publish -- optional in ROS-free version
+publishing_options:
+    publish_rate: 100                  # rate at which odometry updates are published only works properly if imu_rate/publish_rate is an integer!!
+    publishLandmarks: true             # select, if you want to publish landmarks at all
+    landmarkQualityThreshold: 1.0e-2   # landmark with lower quality will not be published
+    maximumLandmarkQuality: 0.05       # landmark with higher quality will be published with the maximum colour intensity
+    maxPathLength: 20                  # maximum length of the published path
+    publishImuPropagatedState: false    # Should the state that is propagated with IMU messages be published? Or just the optimized ones?
+    # provide custom World frame Wc
+    T_Wc_W:
+        [1.0000, 0.0000, 0.0000, 0.0000,
+         0.0000, 1.0000, 0.0000, 0.0000,
+         0.0000, 0.0000, 1.0000, 0.0000,
+         0.0000, 0.0000, 0.0000, 1.0000]
+    trackedBodyFrame: B                # B or S, the frame of reference that will be expressed relative to the selected worldFrame
+    velocitiesFrame: Wc                # Wc, B or S,  the frames in which the velocities of the selected trackedBodyFrame will be expressed in
+
+#Sharmin
+isSonarUsed: false
+isDepthUsed: false
+isRelocalization: true
+histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
+resizeFactor: 0.9  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 

@@ -112,6 +112,15 @@ typedef std::function<void(const std::vector<std::pair<Timestamp, Eigen::Matrix4
     PathWithLoopClosureCallback;
 typedef std::function<void(pcl::PointCloud<pcl::PointXYZRGB>::Ptr&)> PointCloudCallback;
 
+// Lightweight container to dump keyframe info to text
+struct KeyframeDump {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  int id;             // keyframe index
+  Timestamp stamp;    // keyframe timestamp
+  double qx, qy, qz, qw;  // orientation as quaternion
+  double tx, ty, tz;      // position
+};
+
 struct CameraCalibration {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Eigen::Matrix<double, 4, 4> T_imu_cam0_;  ///< Transformation from camera to sensor (IMU) frame.

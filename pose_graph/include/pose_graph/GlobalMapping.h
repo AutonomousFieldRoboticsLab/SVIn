@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <functional>
 #include <iostream>
+#include <fstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -88,4 +89,11 @@ class GlobalMap {
 
   void loopClosureOptimizationFinishCallback(const Timestamp time);
   bool loop_closure_optimization_finished_;  // this flag is set to true when loop closure optimization is done
+
+  // Save mapping of landmark -> list of observing keyframe IDs to a text file.
+  // Format:
+  //   # landmark_id, [keyframe_id1, keyframe_id2, ...]
+  //   123, [10, 11, 25]
+  //   124, [12]
+  bool saveKeyframeObservationsToFile(const std::string& file_path) const;
 };

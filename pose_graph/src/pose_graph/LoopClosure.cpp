@@ -365,3 +365,30 @@ void LoopClosure::setKeyframePoseCallback(const KeframeWithLoopClosureCallback& 
 void LoopClosure::setLoopClosureCallback(const PathWithLoopClosureCallback& loop_closure_callback) {
   pose_graph_->setLoopClosureCallback(loop_closure_callback);
 }
+
+bool LoopClosure::saveKeyframeObservations(const std::string& file_path) const {
+  if (!global_map_) {
+    LOG(ERROR) << "Global map not initialized; cannot save keyframe observations.";
+    return false;
+  }
+  return global_map_->saveKeyframeObservationsToFile(file_path);
+}
+
+void LoopClosure::getKeyframesDump(std::vector<KeyframeDump>& out) const {
+  out.clear();
+  out.reserve(kfMapper_.size());
+  for (const auto& kv : kfMapper_) {
+    const Keyframe* kf = kv.second;
+    if (!kf) continue;
+    Eigen::Vector3d T;
+    Eigen::Matrix3d R;
+    const_cast<Keyframe*>(kf)->getPose(T, R);  // getPose is non-const; safe as it doesn't mutate state here
+    Eigen::Quaterniond q(R);
+    KeyframeDump dump;
+    dump.id = kf->index;
+    dump.stamp = kf->time_stamp;
+    dump.qx = q.x(); dump.qy = q.y(); dump.qz = q.z(); dump.qw = q.w();
+    dump.tx = T.x(); dump.ty = T.y(); dump.tz = T.z();
+    out.push_back(dump);
+  }
+}

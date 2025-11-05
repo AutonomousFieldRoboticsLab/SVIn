@@ -201,6 +201,29 @@ void Publisher::saveTrajectory(const std::string& filename) const {
   loop_path_file.close();
 }
 
+bool Publisher::saveKeyframes(const std::string& filename, const std::vector<KeyframeDump>& keyframes) const {
+  std::ofstream ofs(filename, std::ios::out);
+  if (!ofs.is_open()) {
+    RCLCPP_ERROR(node_->get_logger(), "Failed to open keyframes file: %s", filename.c_str());
+    return false;
+  }
+  ofs.setf(std::ios::fixed, std::ios::floatfield);
+  ofs.precision(9);
+  ofs << "#ID, timestamp, qx, qy, qz, qw, tx, ty, tz" << std::endl;
+  for (const auto& kf : keyframes) {
+    // Convert Timestamp (ns) to sec.nsec with 9-digit zero-padded nanoseconds
+    const uint64_t sec_part = static_cast<uint64_t>(kf.stamp) / 1000000000ULL;
+    const uint64_t nsec_part = static_cast<uint64_t>(kf.stamp) % 1000000000ULL;
+    ofs << kf.id << ", " << sec_part << "." << std::setw(9) << std::setfill('0') << nsec_part
+        << std::setfill(' ')  // reset fill for subsequent fields
+        << ", " << kf.qx << ", " << kf.qy << ", " << kf.qz << ", " << kf.qw
+        << ", " << kf.tx << ", " << kf.ty << ", " << kf.tz << std::endl;
+  }
+  ofs.close();
+  RCLCPP_INFO(node_->get_logger(), "Keyframes saved to: %s", filename.c_str());
+  return true;
+}
+
 void Publisher::publishPrimitiveEstimator(const std::pair<Timestamp, Eigen::Matrix4d>& primitive_estimator_pose) {
   Eigen::Matrix3d rot = primitive_estimator_pose.second.block<3, 3>(0, 0);
   Eigen::Quaterniond quat(rot);

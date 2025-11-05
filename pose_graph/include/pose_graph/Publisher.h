@@ -45,6 +45,10 @@ class Publisher {
   void saveTrajectory(const std::string& filename) const;
   void publishPrimitiveEstimator(const std::pair<Timestamp, Eigen::Matrix4d>& primitive_estimator_pose);
 
+  // Save all keyframes to a text file with header and lines:
+  // #ID, timestamp, qx, qy, qz, qw, tx, ty, tz
+  bool saveKeyframes(const std::string& filename, const std::vector<KeyframeDump>& keyframes) const;
+
  private:
   std::shared_ptr<rclcpp::Node> node_;
 

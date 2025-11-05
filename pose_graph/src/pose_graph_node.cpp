@@ -2,6 +2,8 @@
 #include <glog/logging.h>
 
 #include <filesystem>
+#include <string>
+#include <fstream>
 #include <rclcpp/rclcpp.hpp>
 
 #include "pose_graph/LoopClosure.h"
@@ -150,6 +152,7 @@ int main(int argc, char** argv) {
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pointcloud_service;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_trajectory_service;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_kf_observations_service;
 
   // Save Trajectory service
   save_trajectory_service = node->create_service<std_srvs::srv::Trigger>(
@@ -165,6 +168,51 @@ int main(int argc, char** argv) {
         } catch (const std::exception& e) {
           response->success = false;
           response->message = std::string("Failed to save trajectory: ") + e.what();
+        }
+      });
+  
+  // Save Keyframe Observations service (also saves keyframes)
+  save_kf_observations_service = node->create_service<std_srvs::srv::Trigger>(
+      "save_keyframe_observations",
+      [&loop_closure, &publisher, &params](const std::shared_ptr<rmw_request_id_t> /*req_header*/,
+                               const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                               const std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+        try {
+          // Ensure base directory exists
+          std::string base_dir = params.output_path_;
+          if (!std::filesystem::exists(base_dir)) {
+            std::filesystem::create_directories(base_dir);
+          }
+          
+          // Save keyframe observations
+          std::string obs_subdir = base_dir + "/keyframe_observations";
+          if (!std::filesystem::exists(obs_subdir)) {
+            std::filesystem::create_directories(obs_subdir);
+          }
+          std::string obs_filename = obs_subdir + "/keyframe_observations_" + Utils::getTimeStr() + ".txt";
+          bool obs_ok = loop_closure->saveKeyframeObservations(obs_filename);
+          
+          // Save keyframes
+          std::string kf_subdir = base_dir + "/keyframes";
+          if (!std::filesystem::exists(kf_subdir)) {
+            std::filesystem::create_directories(kf_subdir);
+          }
+          std::string kf_filename = kf_subdir + "/keyframes_" + Utils::getTimeStr() + ".txt";
+          std::vector<KeyframeDump> dump;
+          loop_closure->getKeyframesDump(dump);
+          bool kf_ok = publisher->saveKeyframes(kf_filename, dump);
+          
+          if (!obs_ok || !kf_ok) {
+            response->success = false;
+            response->message = "Failed to save some files. obs=" + std::string(obs_ok ? "ok" : "fail") + 
+                               " kf=" + std::string(kf_ok ? "ok" : "fail");
+            return;
+          }
+          response->success = true;
+          response->message = "Observations: " + obs_filename + "\nKeyframes: " + kf_filename;
+        } catch (const std::exception& e) {
+          response->success = false;
+          response->message = std::string("Exception while saving: ") + e.what();
         }
       });
   

@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 
 #include <utility>
+#include <algorithm>
 
 std::ostream& operator<<(std::ostream& os, const Landmark& landmark) {
   os << "Landmark: " << landmark.id_ << " at " << landmark.point_.transpose() << " with quality: " << landmark.quality_;
@@ -65,4 +66,36 @@ void GlobalMap::loopClosureOptimizationFinishCallback(const Timestamp optimizati
   last_loop_closure_optimization_time_ = optimization_finish_time;
   loop_closure_optimization_finished_ = true;
   // LOG(WARN) << "Loop Closure Optimization finished at: " << optimization_finish_time);
+}
+
+bool GlobalMap::saveKeyframeObservationsToFile(const std::string& file_path) const {
+  std::ofstream ofs(file_path, std::ios::out);
+  if (!ofs.is_open()) {
+    LOG(ERROR) << "Failed to open file for writing keyframe observations: " << file_path;
+    return false;
+  }
+  ofs << "# landmark_id, [keyframe_id1, keyframe_id2, ...]" << std::endl;
+
+  for (const auto& kv : map_points_) {
+    const uint64_t landmark_id = kv.first;
+    const Landmark& lm = kv.second;
+    // Collect and sort keyframe ids for deterministic output
+    std::vector<uint64_t> observing_kf_ids;
+    observing_kf_ids.reserve(lm.keyframe_observations_.size());
+    for (const auto& obs_kv : lm.keyframe_observations_) {
+      observing_kf_ids.push_back(obs_kv.first);
+    }
+    std::sort(observing_kf_ids.begin(), observing_kf_ids.end());
+
+    ofs << landmark_id << ", [";
+    for (size_t i = 0; i < observing_kf_ids.size(); ++i) {
+      ofs << observing_kf_ids[i];
+      if (i + 1 < observing_kf_ids.size()) ofs << ", ";
+    }
+    ofs << "]" << std::endl;
+  }
+
+  ofs.close();
+  LOG(INFO) << "Saved keyframe observations to: " << file_path;
+  return true;
 }

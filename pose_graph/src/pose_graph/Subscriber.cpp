@@ -57,15 +57,15 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node, Parameters& params) :
   // Watchdog: parameter and timer setup (uses steady clock)
   try {
     if (!node_->has_parameter("freeze_timeout_sec")) {
-      node_->declare_parameter<double>("freeze_timeout_sec", 2.0);
+      node_->declare_parameter<double>("freeze_timeout_sec", 10.0);
     }
     node_->get_parameter("freeze_timeout_sec", freeze_timeout_sec_);
   } catch (const std::exception&) {
-    freeze_timeout_sec_ = 2.0;
+    freeze_timeout_sec_ = 10.0;
   }
   last_keyframe_tp_ = std::chrono::steady_clock::now();
   frozen_ = false;
-  seen_keyframe_ = false;
+  seen_first_keyframe_ = false;
   using namespace std::chrono_literals;  // NOLINT
   watchdog_timer_ = node_->create_wall_timer(500ms, std::bind(&Subscriber::watchdogTick, this));
 }

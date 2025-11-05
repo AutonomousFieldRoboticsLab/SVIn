@@ -40,6 +40,10 @@ class LoopClosure {
                             const std::vector<Eigen::Vector3i>& point_ids,
                             const std::vector<cv::KeyPoint>& cv_keypoints);
 
+  // Save mapping: landmark_id -> list of keyframe_ids that observed it (one line per landmark)
+  // Returns true on success.
+  bool saveKeyframeObservations(const std::string& file_path) const;
+
   inline void fillKeyframeTrackingQueue(std::unique_ptr<KeyframeInfo> keyframe_info) {
     CHECK(keyframe_info);
     keyframe_tracking_queue_.pushOverflowIfFull(std::move(keyframe_info), 5U);
@@ -63,6 +67,9 @@ class LoopClosure {
     primitive_publish_callback_ = primitive_publish_callback;
     DLOG(INFO) << "Primitive publish callback set";
   }
+
+  // Collect all keyframes into a dumpable vector (id, timestamp, pose)
+  void getKeyframesDump(std::vector<KeyframeDump>& out) const;
 
  private:
   void setup();

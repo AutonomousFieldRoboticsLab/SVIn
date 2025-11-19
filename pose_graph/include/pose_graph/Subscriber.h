@@ -89,7 +89,7 @@ class Subscriber {
   std::chrono::steady_clock::time_point last_keyframe_tp_;
   bool seen_first_keyframe_ = false;
   bool frozen_ = false;
-  double freeze_timeout_sec_ = 10.0;
+  double freeze_timeout_sec_ = 240.0;
 
  public:
   inline double getLatestPrimitiveEstimatorTime() const { return last_primitive_estimator_time_; }

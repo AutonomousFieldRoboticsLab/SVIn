@@ -167,7 +167,7 @@ class Subscriber {
   bool seen_first_image_ = false;
   bool seen_first_imu_ = false;
   bool frozen_ = false;
-  double freeze_timeout_sec_ = 5.0;
+  double freeze_timeout_sec_ = 60.0;
 };
 }  // namespace okvis
 

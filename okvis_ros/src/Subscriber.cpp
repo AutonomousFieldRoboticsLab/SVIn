@@ -119,11 +119,11 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
   // Watchdog: parameter and timer setup (uses steady clock)
   try {
     if (!node_->has_parameter("freeze_timeout_sec")) {
-      node_->declare_parameter<double>("freeze_timeout_sec", 5.0);
+      node_->declare_parameter<double>("freeze_timeout_sec", 60.0);
     }
     node_->get_parameter("freeze_timeout_sec", freeze_timeout_sec_);
   } catch (const std::exception&) {
-    freeze_timeout_sec_ = 5.0;
+    freeze_timeout_sec_ = 60.0;
   }
   last_image_tp_ = std::chrono::steady_clock::now();
   last_imu_tp_ = std::chrono::steady_clock::now();

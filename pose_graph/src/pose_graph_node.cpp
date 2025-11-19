@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
                            const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
                            const std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
         try {
-          std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr() + ".txt";
+          std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr();
           publisher->saveTrajectory(save_path);
           response->success = true;
           response->message = "Trajectory saved successfully!";
@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
           if (!std::filesystem::exists(kf_subdir)) {
             std::filesystem::create_directories(kf_subdir);
           }
-          std::string kf_filename = kf_subdir + "/keyframes_" + Utils::getTimeStr() + ".txt";
+          std::string kf_filename = kf_subdir + "/keyframes_" + Utils::getTimeStr();
           std::vector<KeyframeDump> dump;
           loop_closure->getKeyframesDump(dump);
           bool kf_ok = publisher->saveKeyframes(kf_filename, dump);
@@ -247,7 +247,7 @@ int main(int argc, char** argv) {
   }
 
   // After rclcpp::ok() is false (shutdown signal received)
-  std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr() + ".txt";
+  std::string save_path = params.svin_traj_path_ + "svin_" + Utils::getTimeStr();
   publisher->saveTrajectory(save_path);
   LOG(INFO) << "Shutting down threads...";
   loop_closure->shutdown();

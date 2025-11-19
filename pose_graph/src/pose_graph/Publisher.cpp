@@ -187,7 +187,14 @@ bool Publisher::savePointCloud(const std::shared_ptr<rmw_request_id_t> request_h
 }
 
 void Publisher::saveTrajectory(const std::string& filename) const {
-  std::ofstream loop_path_file(filename, std::ios::out);
+
+  // Save the trajectory to a text file
+  std::string txt_file = filename + ".txt";
+  // Save the trajectory to a .ply file
+  std::string ply_file = filename + ".ply";
+
+  // Save .txt file
+  std::ofstream loop_path_file(txt_file, std::ios::out);
   loop_path_file.setf(std::ios::fixed, std::ios::floatfield);
   loop_path_file.precision(9);
   loop_path_file << "#timestamp tx ty tz qx qy qz qw" << std::endl;
@@ -199,12 +206,44 @@ void Publisher::saveTrajectory(const std::string& filename) const {
                    << std::endl;
   }
   loop_path_file.close();
+  RCLCPP_INFO(node_->get_logger(), "Trajectory saved to: %s", txt_file.c_str());
+
+  // Save .ply file with positions
+  std::ofstream ply_ofs(ply_file, std::ios::out);
+  if (!ply_ofs.is_open()) {
+    RCLCPP_ERROR(node_->get_logger(), "Failed to open PLY file: %s", ply_file.c_str());
+    return;
+  }
+  
+  // Write ASCII PLY header
+  ply_ofs << "ply\n";
+  ply_ofs << "format ascii 1.0\n";
+  ply_ofs << "element vertex " << loop_closure_traj_.poses.size() << "\n";
+  ply_ofs << "property float x\n";
+  ply_ofs << "property float y\n";
+  ply_ofs << "property float z\n";
+  ply_ofs << "end_header\n";
+  
+  // Write vertex data (positions)
+  ply_ofs.setf(std::ios::fixed, std::ios::floatfield);
+  ply_ofs.precision(9);
+  for (const auto& keyframe_pose : loop_closure_traj_.poses) {
+    geometry_msgs::msg::Point pos = keyframe_pose.pose.position;
+    ply_ofs << pos.x << " " << pos.y << " " << pos.z << "\n";
+  }
+  ply_ofs.close();
+  RCLCPP_INFO(node_->get_logger(), "Trajectory PLY saved to: %s", ply_file.c_str());
 }
 
 bool Publisher::saveKeyframes(const std::string& filename, const std::vector<KeyframeDump>& keyframes) const {
-  std::ofstream ofs(filename, std::ios::out);
+
+  // Save keyframes to a text file with header and lines:
+  std::string txt_file = filename + ".txt";
+
+  // Save .txt file
+  std::ofstream ofs(txt_file, std::ios::out);
   if (!ofs.is_open()) {
-    RCLCPP_ERROR(node_->get_logger(), "Failed to open keyframes file: %s", filename.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "Failed to open keyframes file: %s", txt_file.c_str());
     return false;
   }
   ofs.setf(std::ios::fixed, std::ios::floatfield);
@@ -220,7 +259,8 @@ bool Publisher::saveKeyframes(const std::string& filename, const std::vector<Key
         << ", " << kf.tx << ", " << kf.ty << ", " << kf.tz << std::endl;
   }
   ofs.close();
-  RCLCPP_INFO(node_->get_logger(), "Keyframes saved to: %s", filename.c_str());
+  RCLCPP_INFO(node_->get_logger(), "Keyframes saved to: %s", txt_file.c_str());
+
   return true;
 }
 

@@ -74,7 +74,7 @@ bool GlobalMap::saveKeyframeObservationsToFile(const std::string& file_path) con
     LOG(ERROR) << "Failed to open file for writing keyframe observations: " << file_path;
     return false;
   }
-  ofs << "# landmark_id, [keyframe_id1, keyframe_id2, ...]" << std::endl;
+  ofs << "# landmark_id, [landmark_x, landmark_y, landmark_z], [keyframe_id1, keyframe_id2, ...]" << std::endl;
 
   for (const auto& kv : map_points_) {
     const uint64_t landmark_id = kv.first;
@@ -87,7 +87,10 @@ bool GlobalMap::saveKeyframeObservationsToFile(const std::string& file_path) con
     }
     std::sort(observing_kf_ids.begin(), observing_kf_ids.end());
 
-    ofs << landmark_id << ", [";
+    ofs << landmark_id << ", [" 
+        << lm.point_.x() << ", " 
+        << lm.point_.y() << ", " 
+        << lm.point_.z() << "], [";
     for (size_t i = 0; i < observing_kf_ids.size(); ++i) {
       ofs << observing_kf_ids[i];
       if (i + 1 < observing_kf_ids.size()) ofs << ", ";

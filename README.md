@@ -30,7 +30,7 @@ Please follow [installation page](install.md) for detailed instructions on build
 
 ### Running the project ###
 
-Running it on our publicly available datasets: <https://www.afrl.ai/resources>. If you follow "Datasets for
+Running it on our publicly available datasets: <https://huggingface.co/datasets/afrl-uw/stereo-vi-underwater-dataset>. If you follow "Datasets for
 Visual-Inertial-Based State Estimation Algorithms" link you will be directed to a google drive directory, under the '
 Bus' and 'Cave' you will find ROS bagfile with Sonar topic named as '/imagenex831l/range' and  '
 /imagenex831l/range_raw'.

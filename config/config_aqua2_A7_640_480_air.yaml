@@ -1,25 +1,25 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [0.00813671984517389, 0.9999379063319543, 0.007614280703390375, 0.03979563328841908,
-        -0.49918844709680277, -0.00253609700767915, 0.8664897359444319, 0.24000441374154333,
-        0.8664552429729102, -0.01085134519018316, 0.4991368151442245, -0.37014477397110446,
+       [0.009547907011793144, 0.9999388923125971, -0.00557217303674451, 0.04616411617875856,
+        0.0023811991490284012, 0.00554967508977966, 0.9999817653322542, 0.04954854278330773,
+        0.9999515825090272, -0.009561001362574428, -0.0023280658577522484, -0.4613320513182685,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [640, 480],
-       distortion_coefficients: [-0.26294000595558176, 0.13338192564470644, -0.0009136944767513714, -0.0006014710113888096],
+       distortion_coefficients: [-0.34001571326993424, 0.1192932397869883, 0.0002319090386160509, -0.0003695690527914604],
        distortion_type: radialtangential,
-       focal_length: [583.3607048668066, 582.897672551729], 
-       principal_point: [307.11039952448766, 253.21969813567173]} 
+       focal_length: [438.40998075685343, 438.1044608734531], 
+       principal_point: [326.23618753773263, 240.26141220544767]} 
     - {T_SC:
-       [0.004425169846586141, 0.999984192951582, 0.00346867680863594, -0.04960438341022827,
-        -0.5000225467239245, -0.0007912436364791997, 0.8660120245708075, 0.2406183154922724,
-        0.8660010800452561, -0.005566666909528117, 0.5000111414558368, -0.3692643456957849,
+       [0.0024392916576993495, 0.9999813297834552, -0.005602672640921014, -0.04204602505663715,
+        -0.002830206515046285, 0.005609570481532794, 0.999980261130236, 0.05176331631426951,
+        0.9999930198692843, -0.0024233867882290094, 0.0028438370529567103, -0.4606527811186744,
           0.0, 0.0, 0.0, 1.0],
        image_dimension: [640, 480],
-       distortion_coefficients: [-0.2636793779436048, 0.13472557934541757, -0.000747505585118454, 0.00029136916274226984],
+       distortion_coefficients: [-0.33927228663021836, 0.11840170078813175, 0.0006558802729960746, -4.651163926965988e-06],
        distortion_type: radialtangential,
-       focal_length: [580.2966888203597, 579.7316770019883], 
-       principal_point: [315.9031070591844, 250.1722984776974]} 
+       focal_length: [438.2222396545766, 438.06544669488954], 
+       principal_point: [311.9268868846497, 248.189600928201]} 
 
 camera_params:
     camera_rate: 30 # just to manage the expectations of when there should be frames arriving
@@ -28,6 +28,8 @@ camera_params:
     sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
     sigma_c_relative_orientation: 0.0 # The std. dev. of the cam. extr. orient. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [rad].
     # timestamp_tolerance: 0.005 # [s] stereo frame out-of-sync tolerance
+
+
 
 
 imu_params:
@@ -41,12 +43,11 @@ imu_params:
     
     # Accelerometer [m/s^2/sqrt(Hz)]
     # sigma_a_c: 0.008330529915907017 # original
-    sigma_a_c: 0.04165264957953509 # 5 times
-    # sigma_a_c: 0.08330529915907017 # 10 times 
+    sigma_a_c: 0.08330529915907017 # 10 times 
 
     # accelerometer bias prior [m/s^2]
-    # sigma_ba: 2.34304645114941e-05 # original
-    sigma_ba: 0.00011715232255747049 # 5 times
+    # sigma_ba: 2.34304645114941e-05  # original
+    sigma_ba: 0.00011715232 # 5 times
     
     sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
     sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
@@ -68,8 +69,6 @@ sonar_params:
          0.0000, 0.0000, 1.0000, 0.128,
          0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
-#gyroscope_noise_density: 0.2e-3, gyroscope_random_walk: 2.8577e-006
-
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
 numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
@@ -82,9 +81,9 @@ ceres_options:
 
 # detection
 detection_options:
-    threshold: 40.0      # detection threshold. By default the uniformity radius in pixels
-    octaves: 0           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
+    octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
+    maxNoKeypoints: 100  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -117,5 +116,7 @@ publishing_options:
 isSonarUsed: false
 isDepthUsed: false
 isRelocalization: true
-histogramMethod: "NONE" # NONE, HISTOGRAM, CLAHE
-resizeFactor: 0.9  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
+claheClipLimit: 5.0 # 5.0
+claheTilesGridSize: 8 # 8
+resizeFactor: 1.0  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 

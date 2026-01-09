@@ -86,9 +86,15 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
   // if (vioParameters_.sensorList.isSonarUsed) {
   //   subSonarRange_ = nh_->subscribe("/imagenex831l/range", 1000, &Subscriber::sonarCallback, this);
   // }
-  // Sharmin
-  // if (vioParameters_.sensorList.isDepthUsed){
-  // subDepth_ = nh_->subscribe("/bar30/depth", 1000, &Subscriber::depthCallback, this);
+
+  // Depth callback @CMB
+  if (vioParameters_.sensorList.isDepthUsed){
+    subDepth_ = node_->create_subscription<depth_node_py::msg::Depth>(
+        "depth", rclcpp::SensorDataQoS(), 
+        std::bind(&Subscriber::depthCallback, this, std::placeholders::_1), 
+        options);
+  }
+
   // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
   // }
 
@@ -237,15 +243,18 @@ void Subscriber::relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr rel
 // }
 // */
 
-// /*
-// // stereo rig depth topic subscription
-// void Subscriber::depthCallback(const depth_node_py::Depth::ConstPtr& msg)
-// {
-//         vioInterface_->addDepthMeasurement(
-//                                           okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
-//                                           msg->depth);
-// }
-// * /
+
+// stereo rig depth topic subscription
+void Subscriber::depthCallback(const depth_node_py::msg::Depth::SharedPtr msg)
+{
+  RCLCPP_INFO(node_->get_logger(), 
+              "Depth: %.3f m, variance: %.6f", 
+              msg->depth, msg->depth_variance);
+  
+  vioInterface_->addDepthMeasurement(
+      okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
+      msg->depth);
+}
 
 // Watchdog tick: freeze when both IMU and camera inactive longer than threshold
 void Subscriber::watchdogTick() {

@@ -178,6 +178,7 @@ void ThreadedKFVio::startThreads() {
   if (parameters_.sensorList.isSonarUsed) {
     sonarConsumerThread_ = std::thread(&ThreadedKFVio::sonarConsumerLoop, this);  // @Sharmin
   }
+
   // Sharmin
   if (parameters_.sensorList.isDepthUsed) {
     depthConsumerThread_ = std::thread(&ThreadedKFVio::depthConsumerLoop, this);  // @Sharmin
@@ -304,7 +305,12 @@ bool ThreadedKFVio::addKeypoints(const okvis::Time& /*stamp*/,
 // @Sharmin
 // Add depth measurement
 bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) {
-  okvis::DepthMeasurement depth_measurement;
+
+  // Continue further only if VIO is initialized
+  if (!frontend_.isInitialized()) {
+    LOG(INFO) << "VIO frontend is not initialized yet. Dropping depth measurement.";
+    return false;
+  } 
 
   // For storing the first depth data
   if (isFirstDepth_) {
@@ -313,10 +319,12 @@ bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) 
 
     LOG(INFO) << "First depth: " << depth;
   }
-
+  
+  okvis::DepthMeasurement depth_measurement;
   depth_measurement.timeStamp = stamp;
   depth_measurement.measurement.depth = depth;
 
+  // blocking mode is disabled when using ros2 bag play 
   if (blocking_) {
     depthMeasurementsReceived_.PushBlockingIfFull(depth_measurement, 1);
     return true;
@@ -325,6 +333,7 @@ bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) 
     return depthMeasurementsReceived_.Size() == 1;
   }
 }
+
 // @Sharmin
 // Add a Sonar measurement.
 bool ThreadedKFVio::addSonarMeasurement(const okvis::Time& stamp, double range, double heading) {
@@ -465,36 +474,37 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
 
     // @Sharmin
     // Depth
-    if (parameters_.sensorList.isDepthUsed) {
-      okvis::Time depthDataEndTime = multiFrame->timestamp();
-      okvis::Time depthDataBeginTime = lastTimestamp;
+    // if (parameters_.sensorList.isDepthUsed) {
+    //   okvis::Time depthDataEndTime = multiFrame->timestamp();
+    //   okvis::Time depthDataBeginTime = lastTimestamp;
 
-      OKVIS_ASSERT_TRUE_DBG(
-          Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
+    //   OKVIS_ASSERT_TRUE_DBG(
+    //       Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
 
-      // wait until all relevant depth messages have arrived and check for termination request
-      // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
-      //   return;
-      // }
-      OKVIS_ASSERT_TRUE_DBG(Exception,
-                            depthDataEndTime < depthMeasurements_.back().timeStamp,
-                            "Waiting for up to date depth data seems to have failed!");
+    //   // wait until all relevant depth messages have arrived and check for termination request
+    //   // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+    //   //   return;
+    //   // }
+    //   OKVIS_ASSERT_TRUE_DBG(Exception,
+    //                         depthDataEndTime < depthMeasurements_.back().timeStamp,
+    //                         "Waiting for up to date depth data seems to have failed!");
 
-      okvis::DepthMeasurementDeque depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
+    //   okvis::DepthMeasurementDeque depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
 
-      // if depth_data is empty, either end_time > begin_time or
-      // no measurements in timeframe, should not happen, as we waited for measurements
-      if (depthData.size() == 0) {
-        beforeDetectTimer.stop();
-        continue;
-      }
+    //   // if depth_data is empty, either end_time > begin_time or
+    //   // no measurements in timeframe, should not happen, as we waited for measurements
+    //   if (depthData.size() == 0) {
+    //     beforeDetectTimer.stop();
+    //     continue;
+    //   }
 
-      if (depthData.front().timeStamp > frame->timeStamp) {
-        LOG(WARNING) << "Frame is newer than oldest Depth measurement. Dropping it.";
-        beforeDetectTimer.stop();
-        continue;
-      }
-    }
+    //   if (depthData.front().timeStamp > frame->timeStamp) {
+    //     LOG(WARNING) << "Frame is newer than oldest Depth measurement. Dropping it.";
+    //     beforeDetectTimer.stop();
+    //     continue;
+    //   }
+    // }
+
     // Sonar
     if (parameters_.sensorList.isSonarUsed) {
       // -- get relevant sonar messages for new state
@@ -697,35 +707,36 @@ void ThreadedKFVio::matchingLoop() {
 
       // if sonar_data is empty, either end_time > begin_time or
       // no measurements in timeframe, should not happen, as we waited for measurements
-      if (sonarData.size() == 0) continue;
+      if (sonarData.size() == 0) continue; // CMB - as enhancement sensor need to remove this continue
     }
+
     // Depth data
     okvis::DepthMeasurementDeque depthData;
     if (parameters_.sensorList.isDepthUsed) {
       // -- get relevant depth message for new state
-      okvis::Time depthDataEndTime = frame->timestamp();
-      okvis::Time depthDataBeginTime = lastAddedStateTimestamp_;
+      // okvis::Time depthDataEndTime = frame->timestamp();
+      // okvis::Time depthDataBeginTime = lastAddedStateTimestamp_;
 
-      OKVIS_ASSERT_TRUE_DBG(
-          Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
+      // OKVIS_ASSERT_TRUE_DBG(
+      //     Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
 
-      // wait until all relevant depth messages have arrived and check for termination request
-      // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
-      //   return;
+      // // wait until all relevant depth messages have arrived and check for termination request
+      // // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+      // //   return;
+      // // }
+      // OKVIS_ASSERT_TRUE_DBG(Exception,
+      //                       depthDataEndTime < depthMeasurements_.back().timeStamp,
+      //                       "Waiting for up to date depth data seems to have failed!");
+
+      // depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
+      // prepareToAddStateTimer.stop();
+
+      // // if depth_data is empty, either end_time > begin_time or
+      // // no measurements in timeframe, should not happen, as we waited for measurements
+      // if (depthData.size() == 0) {
+      //   LOG(WARNING) << "NO DEPTH DATA!!!";
+      //   continue; // CMB - check if we are really skipping the frame when no depth data
       // }
-      OKVIS_ASSERT_TRUE_DBG(Exception,
-                            depthDataEndTime < depthMeasurements_.back().timeStamp,
-                            "Waiting for up to date depth data seems to have failed!");
-
-      depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
-      prepareToAddStateTimer.stop();
-
-      // if depth_data is empty, either end_time > begin_time or
-      // no measurements in timeframe, should not happen, as we waited for measurements
-      if (depthData.size() == 0) {
-        LOG(WARNING) << "NO DEPTH DATA!!!";
-        continue;
-      }
     }
 
     // End @sharmin
@@ -833,7 +844,7 @@ void ThreadedKFVio::imuConsumerLoop() {
 }
 
 // @Sharmin
-// Loop to process depth measurements.
+// Consumer Thread | Loop to process depth measurements. This infinite loop is runnning in a separate thread.
 void ThreadedKFVio::depthConsumerLoop() {
   okvis::DepthMeasurement data;
   TimerSwitchable processDepthTimer("0 processDepthMeasurements", true);
@@ -843,6 +854,8 @@ void ThreadedKFVio::depthConsumerLoop() {
     processDepthTimer.start();
     okvis::Time start;
     const okvis::Time* end;  // do not need to copy end timestamp
+
+    // Threadsafe access to depthMeasurements_ deque
     {
       std::lock_guard<std::mutex> depthLock(depthMeasurements_mutex_);
       OKVIS_ASSERT_TRUE(Exception,
@@ -857,7 +870,7 @@ void ThreadedKFVio::depthConsumerLoop() {
     }  // unlock depthMeasurements_mutex_
 
     // notify other threads that depth data with timeStamp is here.
-    // depthFrameSynchronizer_.gotDepthData(data.timeStamp);
+    // depthFrameSynchronizer_.gotDepthData(data.timeStamp); 
 
     processDepthTimer.stop();
   }

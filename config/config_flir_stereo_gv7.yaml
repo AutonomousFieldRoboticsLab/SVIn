@@ -112,7 +112,7 @@ publishing_options:
 
 #Sharmin
 isSonarUsed: false
-isDepthUsed: false
+isDepthUsed: true
 #isRelocalization: true
 histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
 claheClipLimit: 2.0

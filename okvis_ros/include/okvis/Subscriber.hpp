@@ -59,7 +59,7 @@
 // #include <ros/time.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-// #include <depth_node_py/Depth.h> // for stereo rig depth
+#include <depth_node_py/msg/depth.hpp> // for stereo rig depth
 // #include <aquacore/StateMsg.h> // Aqua depth
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -124,8 +124,8 @@ class Subscriber {
   /// @brief The IMU callback.
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
 
-  /// @brief The Depth callback. @Sharmin
-  // void depthCallback(const depth_node_py::Depth::ConstPtr& msg);
+  /// @brief The Depth callback. @CMB
+  void depthCallback(const depth_node_py::msg::Depth::SharedPtr msg);
   // void depthCallback(const aquacore::StateMsg::ConstPtr& msg); // Aqua Depth
 
   /// @brief The Relocalization callback. @Sharmin
@@ -143,7 +143,7 @@ class Subscriber {
   unsigned int imgRightCounter;                                    // @Sharmin
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subImu_;  ///< The IMU message subscriber.
   // ros::Subscriber subSonarRange_;                                ///< The Sonar Range Subscriber @Sharmin
-  // ros::Subscriber subDepth_;                                     ///< The Depth Subscriber @Sharmin
+  rclcpp::Subscription<depth_node_py::msg::Depth>::SharedPtr subDepth_; ///< The Depth Subscriber @CMB
   rclcpp::Subscription<sensor_msgs::msg::PointCloud>::SharedPtr
       subReloPoints_;        ///< The Relocalization Points Subscriber from pose_graph @Sharmin
   cv::Ptr<cv::CLAHE> clahe;  /// Sharmin

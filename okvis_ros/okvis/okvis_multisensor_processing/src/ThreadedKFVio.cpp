@@ -306,7 +306,7 @@ bool ThreadedKFVio::addKeypoints(const okvis::Time& /*stamp*/,
 // Add depth measurement
 bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) {
 
-  // Continue further only if VIO is initialized
+  // Continue further only if VIO is initialized // CMB comment out for proper integration
   if (!frontend_.isInitialized()) {
     LOG(INFO) << "VIO frontend is not initialized yet. Dropping depth measurement.";
     return false;
@@ -712,31 +712,78 @@ void ThreadedKFVio::matchingLoop() {
 
     // Depth data
     okvis::DepthMeasurementDeque depthData;
-    if (parameters_.sensorList.isDepthUsed) {
+    if (parameters_.sensorList.isDepthUsed && frontend_.isInitialized()) {
       // -- get relevant depth message for new state
-      // okvis::Time depthDataEndTime = frame->timestamp();
-      // okvis::Time depthDataBeginTime = lastAddedStateTimestamp_;
+      okvis::Time depthDataEndTime = frame->timestamp(); // Current frame timestamp
+      okvis::Time depthDataBeginTime = lastAddedStateTimestamp_; // Last state timestamp
 
-      // OKVIS_ASSERT_TRUE_DBG(
-      //     Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
+      // CMB - Logging code
+      // Log the time window we're looking for
+      LOG(INFO) << "=== DEPTH TIMING DEBUG ===";
+      LOG(INFO) << std::fixed << std::setprecision(3);
+      LOG(INFO) << "Current frame timestamp:     " << depthDataEndTime.sec << "." 
+                << std::setw(9) << std::setfill('0') << depthDataEndTime.nsec << " s";
+      LOG(INFO) << "Last state timestamp:        " << depthDataBeginTime.sec << "." 
+                << std::setw(9) << std::setfill('0') << depthDataBeginTime.nsec << " s";
+      LOG(INFO) << "Time window duration:        " << (depthDataEndTime - depthDataBeginTime).toSec() << " s";
 
-      // // wait until all relevant depth messages have arrived and check for termination request
-      // // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
-      // //   return;
-      // // }
+      {
+        std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);
+        if (!depthMeasurements_.empty()) {
+          LOG(INFO) << "Depth buffer size:           " << depthMeasurements_.size();
+          LOG(INFO) << "Newest depth timestamp:      " << depthMeasurements_.back().timeStamp.sec << "." 
+                    << std::setw(9) << std::setfill('0') << depthMeasurements_.back().timeStamp.nsec << " s";
+          LOG(INFO) << "Newest depth value:          " << depthMeasurements_.back().measurement.depth << " m";
+        } else {
+          LOG(INFO) << "Depth buffer is EMPTY";
+        }
+      }
+      LOG(INFO) << "=========================";
+
+      // CMB - End logging code
+
+
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
+
+      // Do not wait until new depth data arrives, depth is low hz enhacement sensor  
+      // wait until all relevant depth messages have arrived and check for termination request
+      // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
+      //   return;
+      // }
       // OKVIS_ASSERT_TRUE_DBG(Exception,
       //                       depthDataEndTime < depthMeasurements_.back().timeStamp,
       //                       "Waiting for up to date depth data seems to have failed!");
 
-      // depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
-      // prepareToAddStateTimer.stop();
+      depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
+      prepareToAddStateTimer.stop();
 
-      // // if depth_data is empty, either end_time > begin_time or
-      // // no measurements in timeframe, should not happen, as we waited for measurements
-      // if (depthData.size() == 0) {
-      //   LOG(WARNING) << "NO DEPTH DATA!!!";
-      //   continue; // CMB - check if we are really skipping the frame when no depth data
-      // }
+      // CMB - Log retrieved depth data
+      LOG(INFO) << "=== DEPTH RETRIEVAL RESULT ===";
+      if (depthData.size() > 0) {
+        LOG(INFO) << "✓ Successfully retrieved " << depthData.size() << " depth measurement(s)";
+        for (size_t i = 0; i < depthData.size(); ++i) {
+          LOG(INFO) << "  [" << i << "] Timestamp: " << depthData[i].timeStamp.sec << "." 
+                    << std::setw(9) << std::setfill('0') << depthData[i].timeStamp.nsec 
+                    << " s, Depth: " << std::setprecision(3) << depthData[i].measurement.depth << " m";
+        }
+      } else {
+        LOG(WARNING) << "✗ No depth measurements retrieved";
+        LOG(WARNING) << "  Possible reasons:";
+        LOG(WARNING) << "    - Time window [" << depthDataBeginTime.toSec() << ", " 
+                    << depthDataEndTime.toSec() << "] has no depth measurements";
+        LOG(WARNING) << "    - Depth buffer is empty";
+        LOG(WARNING) << "    - Frame timestamp ahead of all depth measurements";
+      }
+      LOG(INFO) << "==============================";
+      // End CMB logging
+
+      // if depth_data is empty, either end_time > begin_time or
+      // no measurements in timeframe, should not happen, as we waited for measurements
+      if (depthData.size() == 0) {
+        LOG(WARNING) << "NO DEPTH DATA!!!";
+        // continue; // CMB - Do not continue if no depth data - let the loop run
+      }
     }
 
     // End @sharmin
@@ -870,7 +917,7 @@ void ThreadedKFVio::depthConsumerLoop() {
     }  // unlock depthMeasurements_mutex_
 
     // notify other threads that depth data with timeStamp is here.
-    // depthFrameSynchronizer_.gotDepthData(data.timeStamp); 
+    depthFrameSynchronizer_.gotDepthData(data.timeStamp); 
 
     processDepthTimer.stop();
   }
@@ -1002,12 +1049,14 @@ okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(okvis::Time& imuData
 // @Sharmin
 // Get the depth measurement in-between/nearest to start and end. Depth sensor has a slowed rate, 1 Hz.
 okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(okvis::Time& beginTime, okvis::Time& endTime) {
+  
+  std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);  // LOCK FIRST
+
   // sanity checks:
   // if end time is smaller than begin time, return empty queue.
-  // if begin time is larger than newest sonar time, return empty queue.
-  if (endTime < beginTime || beginTime > depthMeasurements_.back().timeStamp) return okvis::DepthMeasurementDeque();
+  // if begin time is larger than newest depth time, return empty queue.
+  if (endTime < beginTime || depthMeasurements_.empty() || beginTime > depthMeasurements_.back().timeStamp) return okvis::DepthMeasurementDeque();
 
-  std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);
   // get iterator to depth data before previous frame
   okvis::DepthMeasurementDeque::iterator first_depth_package = depthMeasurements_.begin();
   okvis::DepthMeasurementDeque::iterator last_depth_package = depthMeasurements_.end();

@@ -47,6 +47,7 @@
 #include <okvis/FrameSynchronizer.hpp>
 #include <okvis/Frontend.hpp>
 #include <okvis/ImuFrameSynchronizer.hpp>
+#include <okvis/DepthFrameSynchronizer.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
@@ -363,7 +364,7 @@ class ThreadedKFVio : public VioInterface {
 
   // SonarFrameSynchronizer sonarFrameSynchronizer_;  ///< The Sonar frame synchronizer. @Sharmin
 
-  // DepthFrameSynchronizer depthFrameSynchronizer_;  ///< The Depth frame synchronizer. @Sharmin
+  DepthFrameSynchronizer depthFrameSynchronizer_;  ///< The Depth frame synchronizer. @Sharmin
 
   ImuFrameSynchronizer imuFrameSynchronizer_;  ///< The IMU frame synchronizer.
   /// \brief The frame synchronizer responsible for merging frames into multiframes

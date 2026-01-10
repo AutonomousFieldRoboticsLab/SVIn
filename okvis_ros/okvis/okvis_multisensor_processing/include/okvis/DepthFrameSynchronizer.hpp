@@ -61,7 +61,7 @@ class DepthFrameSynchronizer {
 
   /**
    * @brief Tell the synchronizer that a new Depth measurement has been registered.
-   * @param stamp Timestamp of the new Depth mewasurement.
+   * @param stamp Timestamp of the new Depth measurement.
    */
   void gotDepthData(const okvis::Time& stamp);
 

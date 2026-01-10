@@ -254,7 +254,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     }
     mean_depth = mean_depth / depthMeasurements.size();
 
-    double information_depth = 5.0;  // TODO(Sharmin) doublre check with the manual
+    double information_depth = 5.0;  // TODO(Sharmin) double check with the manual
 
     std::shared_ptr<ceres::DepthError> depthError(new ceres::DepthError(mean_depth, information_depth, firstDepth));
     mapPtr_->addResidualBlock(depthError, NULL, poseParameterBlock);

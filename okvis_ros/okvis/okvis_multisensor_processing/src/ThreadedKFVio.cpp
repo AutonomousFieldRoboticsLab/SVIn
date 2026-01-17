@@ -313,12 +313,12 @@ bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) 
   } 
 
   // For storing the first depth data
-  if (isFirstDepth_) {
-    firstDepth_ = depth;
-    isFirstDepth_ = false;
+  // if (isFirstDepth_) {
+  //   firstDepth_ = depth;
+  //   isFirstDepth_ = false;
 
-    LOG(INFO) << "First depth: " << depth;
-  }
+  //   LOG(INFO) << "First depth: " << depth;
+  // }
   
   okvis::DepthMeasurement depth_measurement;
   depth_measurement.timeStamp = stamp;
@@ -713,78 +713,174 @@ void ThreadedKFVio::matchingLoop() {
     // Depth data
     okvis::DepthMeasurementDeque depthData;
     if (parameters_.sensorList.isDepthUsed && frontend_.isInitialized()) {
-      // -- get relevant depth message for new state
-      okvis::Time depthDataEndTime = frame->timestamp(); // Current frame timestamp
-      okvis::Time depthDataBeginTime = lastAddedStateTimestamp_; // Last state timestamp
-
-      // CMB - Logging code
-      // Log the time window we're looking for
-      LOG(INFO) << "=== DEPTH TIMING DEBUG ===";
-      LOG(INFO) << std::fixed << std::setprecision(3);
-      LOG(INFO) << "Current frame timestamp:     " << depthDataEndTime.sec << "." 
-                << std::setw(9) << std::setfill('0') << depthDataEndTime.nsec << " s";
-      LOG(INFO) << "Last state timestamp:        " << depthDataBeginTime.sec << "." 
-                << std::setw(9) << std::setfill('0') << depthDataBeginTime.nsec << " s";
-      LOG(INFO) << "Time window duration:        " << (depthDataEndTime - depthDataBeginTime).toSec() << " s";
-
-      {
-        std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);
-        if (!depthMeasurements_.empty()) {
-          LOG(INFO) << "Depth buffer size:           " << depthMeasurements_.size();
-          LOG(INFO) << "Newest depth timestamp:      " << depthMeasurements_.back().timeStamp.sec << "." 
-                    << std::setw(9) << std::setfill('0') << depthMeasurements_.back().timeStamp.nsec << " s";
-          LOG(INFO) << "Newest depth value:          " << depthMeasurements_.back().measurement.depth << " m";
-        } else {
-          LOG(INFO) << "Depth buffer is EMPTY";
-        }
-      }
-      LOG(INFO) << "=========================";
-
-      // CMB - End logging code
-
+      
+      okvis::Time currentFrameTime = frame->timestamp(); // Current frame timestamp
+      okvis::Time lastFrameTime = lastAddedStateTimestamp_; // Last state timestamp
 
       OKVIS_ASSERT_TRUE_DBG(
-          Exception, depthDataBeginTime < depthDataEndTime, "Depth data end time is smaller than begin time.");
+          Exception, lastFrameTime < currentFrameTime, "Depth data end time is smaller than begin time.");
 
-      // Do not wait until new depth data arrives, depth is low hz enhacement sensor  
-      // wait until all relevant depth messages have arrived and check for termination request
-      // if (depthFrameSynchronizer_.waitForUpToDateDepthData(okvis::Time(depthDataEndTime)) == false) {
-      //   return;
-      // }
-      // OKVIS_ASSERT_TRUE_DBG(Exception,
-      //                       depthDataEndTime < depthMeasurements_.back().timeStamp,
-      //                       "Waiting for up to date depth data seems to have failed!");
+      // ==== Step 1: Compute First Depth Data in Global Frame (One-Time) =====
+      if (isFirstDepthComputed_ == false) {
 
-      depthData = getDepthMeasurements(depthDataBeginTime, depthDataEndTime);
-      prepareToAddStateTimer.stop();
+        std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);
 
-      // CMB - Log retrieved depth data
-      LOG(INFO) << "=== DEPTH RETRIEVAL RESULT ===";
-      if (depthData.size() > 0) {
-        LOG(INFO) << "✓ Successfully retrieved " << depthData.size() << " depth measurement(s)";
-        for (size_t i = 0; i < depthData.size(); ++i) {
-          LOG(INFO) << "  [" << i << "] Timestamp: " << depthData[i].timeStamp.sec << "." 
-                    << std::setw(9) << std::setfill('0') << depthData[i].timeStamp.nsec 
-                    << " s, Depth: " << std::setprecision(3) << depthData[i].measurement.depth << " m";
+        if (!depthMeasurements_.empty()){
+          
+          // Look for Depth Measurement in the current time window
+          bool foundDepthInWindow = false;
+          double firstDepthRaw = 0.0;
+          okvis::Time firstDepthTimestamp(0.0);
+
+          for (const auto& depth: depthMeasurements_){
+            if (depth.timeStamp > lastFrameTime && depth.timeStamp <= currentFrameTime) {
+              firstDepthRaw = depth.measurement.depth;
+              firstDepthTimestamp = depth.timeStamp;
+              foundDepthInWindow = true;
+              
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "=== FIRST DEPTH FOUND IN TIME WINDOW ===";
+              LOG(INFO) << std::fixed << std::setprecision(3) << "Time window: [" << lastFrameTime.toSec() << ", " 
+                        << currentFrameTime.toSec() << "] s";
+              LOG(INFO) << std::fixed << std::setprecision(3) << "Depth timestamp: " << firstDepthTimestamp.toSec() << " s";
+              LOG(INFO) << std::fixed << std::setprecision(3) << "Raw depth: " << firstDepthRaw << " m";
+              LOG(INFO) << "========================================";
+              break; // Use the first valid depth found
+            }
+          }
+
+          // Transform first depth to global frame if we found depth measurment
+          if (foundDepthInWindow && estimator_.numFrames() > 0){
+
+            // Get the latest/newest state/frame (age 0 = newest) 
+            uint64_t currentStateId = estimator_.frameIdByAge(0);
+
+            // Get the pose T_WS for this frame
+            okvis::kinematics::Transformation T_WS;
+
+            if (estimator_.get_T_WS(currentStateId, T_WS)){
+              Eigen::Matrix3d R_ItoW = T_WS.C(); // Rotation from IMU to Global
+              Eigen::Vector3d p_IinW = T_WS.r(); // Position of IMU in Global
+              Eigen::Vector3d p_DinI = parameters_.depth.T_SD.r(); // Position of Depth sensor in IMU frame
+              Eigen::Vector3d p_DinW = R_ItoW * p_DinI + p_IinW;
+              Eigen::Vector3d e3(0.0,0.0,1.0); // Unit vector along z-axis
+
+              LOG(INFO) << "Current State ID: " << currentStateId;
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "T_WS Rotation:\n" << R_ItoW;
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "T_WS Translation:\n" << p_IinW.transpose();
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "Depth sensor position in IMU frame:\n" << p_DinI.transpose();
+              LOG(INFO) << std::fixed << std::setprecision(3) 
+                        << "p_DinW : " << p_DinW.transpose();
+              // LOG(INFO) << std::fixed << std::setprecision(3) 
+              //           << "first_global_depth: " <<  << " m";
+
+              // Compute depth in global frame
+              firstDepth_ = firstDepthRaw +  e3.transpose() * p_DinW;
+              isFirstDepthComputed_ = true;
+            
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "=== FIRST DEPTH IN GLOBAL FRAME COMPUTED ===" <<
+                        "\nFirst Depth (Global Frame): " << firstDepth_ << " m";
+
+              depthData = okvis::DepthMeasurementDeque(); // Empty depth data for this frame
+              LOG(INFO) << "Skipping depth constraint for this frame with first depth";
+                        
+            } else{
+              depthData = okvis::DepthMeasurementDeque(); // Empty depth data for this frame
+              LOG(ERROR) << "Failed to get T_WS for current state";
+            }
+          } 
+        } // if depthMeasurements_ not empty
+
+      }  // End Part 1 : First Depth computation 
+      else {
+        // ===== Part 2: Regular Depth data retrieval =====
+        // If first depth is already computed, use depth measurements normally
+        // Check if depth measurements exist in valid time range
+        // Retrievve and transform depth measurements to IMU frame
+
+        // lock depthMeasurements_mutex_
+        std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);
+
+        if (!depthMeasurements_.empty()){
+
+          LOG(INFO) << std::fixed << std::setprecision(3) 
+                    << "=======Depth Retrieval START ======"
+                    << "\nLastFrameTimestamp: " << lastFrameTime.toSec() << " s"
+                    << "\nCurrentFrameTimestamp: " << currentFrameTime.toSec() << " s"
+                    << "\nDepth buffer size: " << depthMeasurements_.size();
+
+          // Iterate through buffer: erase old, find valid, transform to IMU
+          auto iter = depthMeasurements_.begin();
+          while (iter != depthMeasurements_.end()){
+            
+            // Case 1 : If measurement is old -> erase
+            if (iter->timeStamp <= lastFrameTime){
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "Erasing old depth @ " << iter->timeStamp.toSec() << " s";
+              iter = depthMeasurements_.erase(iter); // erase() returns the next iterator
+              continue; // Check next measurement
+            }
+            
+            // Case 2: If measurement is in window -> USE it
+            if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime){
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "Found valid depth @ " << iter->timeStamp.toSec() << " s";
+
+              double depthRaw = iter->measurement.depth;
+              okvis::Time depthTimestamp = iter->timeStamp;
+              
+              // Transform Raw depth to IMU frame
+
+              // Get the latest/newest state/frame (age 0 = newest) 
+              uint64_t currentStateId = estimator_.frameIdByAge(0);
+              okvis::kinematics::Transformation T_WS;
+
+              if (estimator_.get_T_WS(currentStateId, T_WS)){
+                Eigen::Matrix3d R_ItoW = T_WS.C(); // Rotation from IMU to Global
+                Eigen::Vector3d p_IinW = T_WS.r(); // Position of IMU in Global
+                Eigen::Vector3d p_DinI = parameters_.depth.T_SD.r(); // Position of Depth sensor in IMU frame
+                Eigen::Vector3d e3(0.0,0.0,1.0); // Unit vector along z-axis
+                
+                LOG(INFO) << std::fixed << std::setprecision(3)
+                          << " R_ItoW * p_DinI " << (R_ItoW * p_DinI).transpose();
+                LOG(INFO) << std::fixed << std::setprecision(3)
+                          << "p_IinW : " << p_IinW.transpose();          
+                
+                double depth_IMU = depthRaw + e3.dot(R_ItoW * p_DinI);
+
+                okvis::DepthMeasurement transformed_measurement = *iter;
+                transformed_measurement.measurement.depth = depth_IMU;
+
+                // Add to depthData deque
+                depthData.push_back(transformed_measurement);
+                
+                LOG(INFO) << std::fixed << std::setprecision(3)
+                          << "Transformed Depth (IMU frame): " << depth_IMU << " m"          
+                          << "\n Raw Depth: " << depthRaw << " m"
+                          << "\n Depth Timestamp: " << depthTimestamp.toSec() << " s";
+              
+              }
+              else{
+                LOG(ERROR) << "Failed to get T_WS for current state";
+              }
+              break;
+            }
+            // Case 3 : If measurement is in future -> STOP
+            if (iter->timeStamp > currentFrameTime){
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "Depth measurement @ " << iter->timeStamp.toSec() << " s is in future. Stop searching.";
+              break;
+            }  
+            ++iter; 
+          }  // while
         }
-      } else {
-        LOG(WARNING) << "✗ No depth measurements retrieved";
-        LOG(WARNING) << "  Possible reasons:";
-        LOG(WARNING) << "    - Time window [" << depthDataBeginTime.toSec() << ", " 
-                    << depthDataEndTime.toSec() << "] has no depth measurements";
-        LOG(WARNING) << "    - Depth buffer is empty";
-        LOG(WARNING) << "    - Frame timestamp ahead of all depth measurements";
-      }
-      LOG(INFO) << "==============================";
-      // End CMB logging
 
-      // if depth_data is empty, either end_time > begin_time or
-      // no measurements in timeframe, should not happen, as we waited for measurements
-      if (depthData.size() == 0) {
-        LOG(WARNING) << "NO DEPTH DATA!!!";
-        // continue; // CMB - Do not continue if no depth data - let the loop run
-      }
-    }
+      } // else ends - Part 2: Regular Depth data retrieval
+    } // ends depth data loop
 
     // End @sharmin
 
@@ -1050,32 +1146,37 @@ okvis::ImuMeasurementDeque ThreadedKFVio::getImuMeasurments(okvis::Time& imuData
 // Get the depth measurement in-between/nearest to start and end. Depth sensor has a slowed rate, 1 Hz.
 okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(okvis::Time& beginTime, okvis::Time& endTime) {
   
-  std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);  // LOCK FIRST
+  std::lock_guard<std::mutex> lock(depthMeasurements_mutex_);  // Thread safe access to depthMeasurements_ deque
 
-  // sanity checks:
-  // if end time is smaller than begin time, return empty queue.
-  // if begin time is larger than newest depth time, return empty queue.
-  if (endTime < beginTime || depthMeasurements_.empty() || beginTime > depthMeasurements_.back().timeStamp) return okvis::DepthMeasurementDeque();
+  // Sanity checks:
+  // - End time must be after begin time 
+  // - Depth buffer must not be empty
+  // - Begin time must not be after newest depth time
+  if (endTime < beginTime || 
+    depthMeasurements_.empty() || 
+    beginTime > depthMeasurements_.back().timeStamp) {
+      return okvis::DepthMeasurementDeque();
+  }
 
-  // get iterator to depth data before previous frame
-  okvis::DepthMeasurementDeque::iterator first_depth_package = depthMeasurements_.begin();
-  okvis::DepthMeasurementDeque::iterator last_depth_package = depthMeasurements_.end();
+  // Find the depth measurement that falls within (beginTime, endTime]
+  // For a 1 Hz sensor with 10 Hz camera (0.05s window), there should be at most 1 measurement
+  okvis::DepthMeasurementDeque result;
 
-  // TODO(sharmin) go backwards through queue. Is probably faster.
-  // TODO(Sharmin) check it
+  // Find depth measurements within the requested time window
   for (auto iter = depthMeasurements_.begin(); iter != depthMeasurements_.end(); ++iter) {
-    // move depth_package iterator back until iter->timeStamp is higher than requested begintime
-    if (iter->timeStamp <= beginTime) first_depth_package = iter;
+    // Only allow measurements strictly after beginTime and up to and including endTime
+    if (iter->timeStamp > beginTime && iter->timeStamp <= endTime) {
+      result.push_back(*iter);
+      return result; // Return immediately after finding the first valid measurement
+    }
 
-    if (iter->timeStamp >= endTime) {
-      last_depth_package = iter;
-      ++last_depth_package;
-      break;
+    if (iter->timeStamp > endTime) {
+      break; // No need to continue searching
     }
   }
 
-  // create copy of depth buffer
-  return okvis::DepthMeasurementDeque(first_depth_package, last_depth_package);
+  // No Depth measurement found in the requested time window
+  return okvis::DepthMeasurementDeque();
 }
 
 // @Sharmin

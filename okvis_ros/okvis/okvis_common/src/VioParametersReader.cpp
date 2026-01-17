@@ -320,6 +320,23 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     ss << vioParameters_.sonar.T_SSo.T();
     LOG(INFO) << "Sonar with transformation T_SSo=\n" << ss.str();
   }
+
+  // depth sensor parameters
+
+  if (vioParameters_.sensorList.isDepthUsed) {
+    cv::FileNode T_SD_ = file["depth_params"]["T_SD"];
+    OKVIS_ASSERT_TRUE(
+        Exception, T_SD_.isSeq(), "'T_SD' parameter missing in the configuration file or in the wrong format.")
+
+    Eigen::Matrix4d T_SD_e;
+    T_SD_e << T_SD_[0], T_SD_[1], T_SD_[2], T_SD_[3], T_SD_[4], T_SD_[5], T_SD_[6], T_SD_[7], T_SD_[8],
+        T_SD_[9], T_SD_[10], T_SD_[11], T_SD_[12], T_SD_[13], T_SD_[14], T_SD_[15];
+
+    vioParameters_.depth.T_SD = okvis::kinematics::Transformation(T_SD_e);
+    std::stringstream ss;
+    ss << vioParameters_.depth.T_SD.T();
+    LOG(INFO) << "Depth sensor with transformation T_SD=\n" << ss.str();
+  }
   // *****  End Sharmin: Additional config ******//
 
   // Hunter: Resetable pose parameters

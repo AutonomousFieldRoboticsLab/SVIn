@@ -81,7 +81,7 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
   // Transforming World frame to Depth frame. So that, in current W-frame is aligned with depth direction(=Gravity
   // direction).
   okvis::kinematics::Transformation T_WD = T_WS * T_SD;
-  // Eigen::Vector4d depthPointW = T_WD * Eigen::Vector4d(0, 0, -1*depth_+ first_depth_, 1.0);
+
   Eigen::Vector3d T_DW = T_WD.inverse().r();
 
   // std::cout<<"T_WD: "<<T_WD.coeffs()<<std::endl;
@@ -91,19 +91,9 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
   // Initial Displacement between depth and world frame
   double displacement = 0.032;
 
-  // error = (T_DW[2] + displacement) - (-1*depth_+ first_depth_);
-  // error = T_DW[2] - (-1*depth_+ first_depth_);
-  // error = parameters[0][2] - depthPointW[2]/depthPointW[3];
   error = parameters[0][2] - (-1 * depth_ + first_depth_);
 
-  /*
-  std::cout<< "Z value in Depth frame: " << T_DW[2]<< std::endl;
-  //std::cout<< "Z value in world frame: " << T_WD[2]<< std::endl;
-  std::cout<< "Depth sensor: "<< -1*depth_+ first_depth_<< std::endl;
 
-
-  std::cout<< " Depth Error:  " << error<< std::endl;
-  */
 
   // weight:
   double weighted_error = _squareRootInformation * error;

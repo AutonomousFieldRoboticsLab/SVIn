@@ -246,16 +246,25 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
   // @Sharmin
   // Depth
   if (depthMeasurements.size() != 0) {
-    // Though there should not be more than one depth data
+
     double mean_depth = 0.0;
+    if (depthMeasurements.size() > 1){
+    // Though there should not be more than one depth data
     for (auto depthMeasurements_it = depthMeasurements.begin(); depthMeasurements_it != depthMeasurements.end();
          ++depthMeasurements_it) {
       mean_depth += depthMeasurements_it->measurement.depth;
     }
     mean_depth = mean_depth / depthMeasurements.size();
+    }else{ // Single depth measurement
+      mean_depth = depthMeasurements.begin()->measurement.depth;
+    }
 
-    double information_depth = 5.0;  // TODO(Sharmin) double check with the manual
+    // Depth sensor uncertainity (from sensor specs)
+    // ToDo(CMB): need to tune - (fresh water to salt water depth noise tunning)
+    double sigma_depth = 0.002; // (in m) = 2mm (in fresh water) resolution in the manual
+    double information_depth = 1.0 / (sigma_depth * sigma_depth);  
 
+    // Depth error and related addResidualBlock
     std::shared_ptr<ceres::DepthError> depthError(new ceres::DepthError(mean_depth, information_depth, firstDepth));
     mapPtr_->addResidualBlock(depthError, NULL, poseParameterBlock);
     std::cout << "Residual block z: " << (*poseParameterBlock->parameters()) + 2 << std::endl;

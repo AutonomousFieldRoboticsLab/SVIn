@@ -191,6 +191,17 @@ struct SonarParameters {
 };
 
 /*!
+ * \brief Depth sensor parameters.
+ *
+ * A simple struct to specify properties of a depth sensor.
+ *
+ */
+struct DepthSensorParameters {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  okvis::kinematics::Transformation T_SD;  ///< Transformation from IMU frame (IMU frame S) to Depth sensor (Depth frame D).
+};
+
+/*!
  * \brief Position sensor parameters.
  *
  * A simple struct to specify properties of a position sensor.
@@ -357,6 +368,7 @@ struct VioParameters {
   HistogramParams histogramParams;                    ///< Sharmin: CLAHE Parameters
   MiscParams miscParams;                ///< Sharmin: contains misc parameters, e.g. opencv image resize factor
   SonarParameters sonar;                ///< Sharmin: sonar parameters (T_SSo)
+  DepthSensorParameters depth;          ///< Depth sensor parameters (T_SD)
   ResetPoseParameters resetableParams;  ///< Hunter: Reset pose parameters
 };
 

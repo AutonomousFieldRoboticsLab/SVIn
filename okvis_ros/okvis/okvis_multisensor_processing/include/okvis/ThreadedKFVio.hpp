@@ -485,8 +485,8 @@ class ThreadedKFVio : public VioInterface {
 
   /// @Sharmin
   const size_t maxDepthInputQueueSize_ = 10;
-  bool isFirstDepth_ = true;
-  double firstDepth_;
+  bool isFirstDepthComputed_ = false;
+  double firstDepth_ = 0.0; // Depth of Global frame 
 
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;

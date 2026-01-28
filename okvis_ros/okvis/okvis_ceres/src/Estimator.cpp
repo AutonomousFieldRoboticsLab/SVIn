@@ -88,6 +88,18 @@ int Estimator::addImu(const ImuParameters& imuParameters) {
   return imuParametersVec_.size() - 1;
 }
 
+// Add Sonar to the configuration.
+int Estimator::addSonar(const SonarParameters& sonarParameters) {
+  sonarParameters_ = sonarParameters;
+  return 0;
+}
+
+// Add Depth sensor to the configuration.
+int Estimator::addDepth(const DepthSensorParameters& depthParameters) {
+  depthParameters_ = depthParameters;
+  return 0;
+}
+
 // Remove all cameras from the configuration
 void Estimator::clearCameras() { extrinsicsEstimationParametersVec_.clear(); }
 
@@ -259,15 +271,22 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
       mean_depth = depthMeasurements.begin()->measurement.depth;
     }
 
-    // Depth sensor uncertainity (from sensor specs)
-    // ToDo(CMB): need to tune - (fresh water to salt water depth noise tunning)
-    double sigma_depth = 0.001; // 0.002 (in m) = 2mm (in fresh water) resolution in the manual
+    // Depth sensor uncertainty from config file
+    double sigma_depth = depthParameters_.sigma_depth;
+    if (std::isnan(sigma_depth)) {
+      sigma_depth = 0.001;
+      LOG(WARNING) << "sigma_depth is NaN, using default value: " << sigma_depth;
+    }
+    LOG(INFO) << "sigma_depth from config file: " << sigma_depth;
+    
     double information_depth = 1.0 / (sigma_depth * sigma_depth);  
 
     // Depth error and related addResidualBlock
     std::shared_ptr<ceres::DepthError> depthError(new ceres::DepthError(mean_depth, information_depth, firstDepth));
     mapPtr_->addResidualBlock(depthError, NULL, poseParameterBlock);
-    std::cout << "Residual block z: " << (*poseParameterBlock->parameters()) + 2 << std::endl;
+    
+    VLOG(3) << "Added depth error with sigma=" << sigma_depth 
+            << " m, information=" << information_depth;
   }
 
   // @Sharmin

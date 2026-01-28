@@ -142,6 +142,12 @@ void ThreadedKFVio::init() {
       temporal_imu_data_overlap;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
 
   estimator_.addImu(parameters_.imu);
+  if (parameters_.sensorList.isSonarUsed) {
+    estimator_.addSonar(parameters_.sonar);
+  }
+  if (parameters_.sensorList.isDepthUsed) {
+    estimator_.addDepth(parameters_.depth);
+  }
   for (size_t i = 0; i < numCameras_; ++i) {
     // parameters_.camera_extrinsics is never set (default 0's)...
     // do they ever change?
@@ -308,17 +314,9 @@ bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) 
 
   // Continue further only if VIO is initialized // CMB comment out for proper integration
   if (!frontend_.isInitialized()) {
-    LOG(INFO) << "VIO frontend is not initialized yet. Dropping depth measurement.";
+    VLOG(3) << "VIO frontend is not initialized yet. Dropping depth measurement.";
     return false;
   } 
-
-  // For storing the first depth data
-  // if (isFirstDepth_) {
-  //   firstDepth_ = depth;
-  //   isFirstDepth_ = false;
-
-  //   LOG(INFO) << "First depth: " << depth;
-  // }
   
   okvis::DepthMeasurement depth_measurement;
   depth_measurement.timeStamp = stamp;
@@ -732,20 +730,19 @@ void ThreadedKFVio::matchingLoop() {
           double firstDepthRaw = 0.0;
           okvis::Time firstDepthTimestamp(0.0);
 
-          // Depth measurements are in IMU frame
+          // Depth measurements are in 
           for (const auto& depth: depthMeasurements_){
             if (depth.timeStamp > lastFrameTime && depth.timeStamp <= currentFrameTime) {
               firstDepthRaw = depth.measurement.depth;
               firstDepthTimestamp = depth.timeStamp;
               foundDepthInWindow = true;
               
-              LOG(INFO) << std::fixed << std::setprecision(3)
-                        << "=== FIRST DEPTH FOUND IN TIME WINDOW ===";
-              LOG(INFO) << std::fixed << std::setprecision(3) << "Time window: [" << lastFrameTime.toSec() << ", " 
-                        << currentFrameTime.toSec() << "] s";
-              LOG(INFO) << std::fixed << std::setprecision(3) << "Depth timestamp: " << firstDepthTimestamp.toSec() << " s";
-              LOG(INFO) << std::fixed << std::setprecision(3) << "Raw depth: " << firstDepthRaw << " m";
-              LOG(INFO) << "========================================";
+              VLOG(3) << "=== FIRST DEPTH FOUND IN TIME WINDOW ===";
+              VLOG(3) << std::fixed << std::setprecision(3) << "Time window: [" << lastFrameTime.toSec() << ", " 
+                      << currentFrameTime.toSec() << "] s";
+              VLOG(3) << std::fixed << std::setprecision(3) << "Depth timestamp: " << firstDepthTimestamp.toSec() << " s";
+              VLOG(3) << std::fixed << std::setprecision(3) << "Raw depth: " << firstDepthRaw << " m";
+              VLOG(3) << "========================================";
               break; // Use the first valid depth found
             }
           }
@@ -766,28 +763,26 @@ void ThreadedKFVio::matchingLoop() {
               Eigen::Vector3d p_DinW = R_ItoW * p_DinI + p_IinW;
               Eigen::Vector3d e3(0.0,0.0,1.0); // Unit vector along z-axis
 
-              LOG(INFO) << "Current State ID: " << currentStateId;
-              LOG(INFO) << std::fixed << std::setprecision(3)
-                        << "T_WS Rotation:\n" << R_ItoW;
-              LOG(INFO) << std::fixed << std::setprecision(3)
-                        << "T_WS Translation:\n" << p_IinW.transpose();
-              LOG(INFO) << std::fixed << std::setprecision(3)
+              VLOG(3) << "Current State ID: " << currentStateId;
+              VLOG(3) << std::fixed << std::setprecision(3)
+                      << "T_WS Rotation:\n" << R_ItoW;
+              VLOG(3) << std::fixed << std::setprecision(3)
+                      << "T_WS Translation:\n" << p_IinW.transpose();
+              VLOG(3) << std::fixed << std::setprecision(3)
                         << "Depth sensor position in IMU frame:\n" << p_DinI.transpose();
-              LOG(INFO) << std::fixed << std::setprecision(3) 
+              VLOG(3) << std::fixed << std::setprecision(3) 
                         << "p_DinW : " << p_DinW.transpose();
-              // LOG(INFO) << std::fixed << std::setprecision(3) 
-              //           << "first_global_depth: " <<  << " m";
 
               // Compute depth in global frame (Global Frame Z-UP i.e e3^T * p_DinW is (-)ve ) 
               firstDepth_ = firstDepthRaw +  e3.transpose() * p_DinW;
               isFirstDepthComputed_ = true;
             
-              LOG(INFO) << std::fixed << std::setprecision(3)
+              VLOG(3) << std::fixed << std::setprecision(3)
                         << "=== FIRST DEPTH IN GLOBAL FRAME COMPUTED ===" <<
                         "\nFirst Depth (Global Frame): " << firstDepth_ << " m";
 
               depthData = okvis::DepthMeasurementDeque(); // Empty depth data for this frame
-              LOG(INFO) << "Skipping depth constraint for this frame with first depth";
+              VLOG(3) << "Skipping depth constraint for this frame with first depth";
                         
             } else{
               depthData = okvis::DepthMeasurementDeque(); // Empty depth data for this frame
@@ -808,7 +803,7 @@ void ThreadedKFVio::matchingLoop() {
 
         if (!depthMeasurements_.empty()){
 
-          LOG(INFO) << std::fixed << std::setprecision(3) 
+          VLOG(3) << std::fixed << std::setprecision(3) 
                     << "=======Depth Retrieval START ======"
                     << "\nLastFrameTimestamp: " << lastFrameTime.toSec() << " s"
                     << "\nCurrentFrameTimestamp: " << currentFrameTime.toSec() << " s"
@@ -820,7 +815,7 @@ void ThreadedKFVio::matchingLoop() {
             
             // Case 1 : If measurement is old -> erase
             if (iter->timeStamp <= lastFrameTime){
-              LOG(INFO) << std::fixed << std::setprecision(3)
+              VLOG(3) << std::fixed << std::setprecision(3)
                         << "Erasing old depth @ " << iter->timeStamp.toSec() << " s";
               iter = depthMeasurements_.erase(iter); // erase() returns the next iterator
               continue; // Check next measurement
@@ -828,7 +823,7 @@ void ThreadedKFVio::matchingLoop() {
             
             // Case 2: If measurement is in window -> USE it
             if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime){
-              LOG(INFO) << std::fixed << std::setprecision(3)
+              VLOG(3) << std::fixed << std::setprecision(3)
                         << "Found valid depth @ " << iter->timeStamp.toSec() << " s";
 
               double depthRaw = iter->measurement.depth;
@@ -846,9 +841,9 @@ void ThreadedKFVio::matchingLoop() {
                 Eigen::Vector3d p_DinI = parameters_.depth.T_SD.r(); // Position of Depth sensor in IMU frame
                 Eigen::Vector3d e3(0.0,0.0,1.0); // Unit vector along z-axis
                 
-                LOG(INFO) << std::fixed << std::setprecision(3)
+                VLOG(3) << std::fixed << std::setprecision(3)
                           << " R_ItoW * p_DinI " << (R_ItoW * p_DinI).transpose();
-                LOG(INFO) << std::fixed << std::setprecision(3)
+                VLOG(3) << std::fixed << std::setprecision(3)
                           << "p_IinW : " << p_IinW.transpose();          
                 
                 // Compute depth of IMU in World frame (Global Frame Z-UP i.e e3^T * p_DinW is (-)ve ) 
@@ -860,7 +855,7 @@ void ThreadedKFVio::matchingLoop() {
                 // Add to depthData deque
                 depthData.push_back(transformed_measurement);
                 
-                LOG(INFO) << std::fixed << std::setprecision(3)
+                VLOG(3) << std::fixed << std::setprecision(3)
                           << "Transformed Depth (IMU frame): " << depth_IMU << " m"          
                           << "\n Raw Depth: " << depthRaw << " m"
                           << "\n Depth Timestamp: " << depthTimestamp.toSec() << " s";
@@ -873,7 +868,7 @@ void ThreadedKFVio::matchingLoop() {
             }
             // Case 3 : If measurement is in future -> STOP
             if (iter->timeStamp > currentFrameTime){
-              LOG(INFO) << std::fixed << std::setprecision(3)
+              VLOG(3) << std::fixed << std::setprecision(3)
                         << "Depth measurement @ " << iter->timeStamp.toSec() << " s is in future. Stop searching.";
               break;
             }  

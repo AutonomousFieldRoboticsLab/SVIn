@@ -247,9 +247,9 @@ void Subscriber::relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr rel
 // stereo rig depth topic subscription
 void Subscriber::depthCallback(const depth_node_py::msg::Depth::SharedPtr msg)
 {
-  RCLCPP_INFO(node_->get_logger(), 
-              "Depth: %.3f m, variance: %.6f", 
-              msg->depth, msg->depth_variance);
+  // RCLCPP_INFO(node_->get_logger(), 
+  //             "Depth: %.3f m, variance: %.6f", 
+  //             msg->depth, msg->depth_variance);
   
   vioInterface_->addDepthMeasurement(
       okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),

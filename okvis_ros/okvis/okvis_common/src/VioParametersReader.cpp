@@ -336,6 +336,16 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     std::stringstream ss;
     ss << vioParameters_.depth.T_SD.T();
     LOG(INFO) << "Depth sensor with transformation T_SD=\n" << ss.str();
+    
+    // Read sigma_depth
+    cv::FileNode sigma_depth_node = file["depth_params"]["sigma_depth"];
+    if (!sigma_depth_node.empty()) {
+      vioParameters_.depth.sigma_depth = sigma_depth_node;
+      LOG(INFO) << "Depth sensor sigma_depth: " << vioParameters_.depth.sigma_depth << " m";
+    } else {
+      vioParameters_.depth.sigma_depth = 0.001;  // Default value
+      LOG(WARNING) << "sigma_depth not found in config, using default: 0.1 m";
+    }
   }
   // *****  End Sharmin: Additional config ******//
 

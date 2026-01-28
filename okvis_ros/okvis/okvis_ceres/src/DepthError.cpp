@@ -92,11 +92,11 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
   // Example: first_depth = 5, current_depth = 10, parameters[0][2] = -5, error = -5 - (5-10)
   error = parameters[0][2] - (-1 * depth_ + first_depth_);
 
-  LOG(INFO) << std::fixed << std::setprecision(3)
-            << " DepthError: parameters[0][2]: " << parameters[0][2]
-            << " \n depth_: " << depth_ 
-            << " \n first_depth_: " << first_depth_
-            << " \n error: parameters[0][2] - (-1 * depth_ + first_depth_) = " << error;  
+  // LOG(INFO) << std::fixed << std::setprecision(3)
+  //           << " DepthError: parameters[0][2]: " << parameters[0][2]
+  //           << " \n depth_: " << depth_ 
+  //           << " \n first_depth_: " << first_depth_
+  //           << " \n error: parameters[0][2] - (-1 * depth_ + first_depth_) = " << error;  
 
   // weight:
   double weighted_error = _squareRootInformation * error;

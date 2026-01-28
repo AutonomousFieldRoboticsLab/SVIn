@@ -15,6 +15,10 @@ def launch_setup(context, *args, **kwargs):
 
   print(f"\n[INFO] Full path to okvis_config: {abs_okvis_config_path}\n")
 
+  # Add verbosity in the okvis_node for debugging if needed )
+  # output='screen',
+  # arguments=['--v=3'],  # Add verbosity flag
+
   # OKVIS node
   okvis_node = Node(
     package='okvis_ros',

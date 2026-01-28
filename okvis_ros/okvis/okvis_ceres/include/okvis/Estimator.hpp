@@ -113,6 +113,8 @@ class Estimator : public VioBackendInterface {
   int addImu(const okvis::ImuParameters& imuParameters);
 
   int addSonar(const SonarParameters& sonarParameters);
+  
+  int addDepth(const DepthSensorParameters& depthParameters);
   /**
    * @brief Remove all cameras from the configuration
    */
@@ -615,6 +617,8 @@ class Estimator : public VioBackendInterface {
       imuParametersVec_;  ///< IMU parameters.
 
   okvis::SonarParameters sonarParameters_;  ///< Sonar parameters.
+
+  okvis::DepthSensorParameters depthParameters_;  ///< Depth sensor parameters.
 
   // loss function for reprojection errors
   std::shared_ptr<::ceres::LossFunction> cauchyLossFunctionPtr_;  ///< Cauchy loss.

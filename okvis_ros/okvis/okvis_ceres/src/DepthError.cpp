@@ -107,13 +107,31 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
   // compute Jacobian...
   if (jacobians != NULL) {
     if (jacobians[0] != NULL) {
-      // jacobians[0][0] = 1;
 
       Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor> > J0(jacobians[0]);
       Eigen::Matrix<double, 1, 7, Eigen::RowMajor> J0_minimal;
       J0_minimal.setZero();
-      J0_minimal(0, 2) = 1; // [0 0 1]
 
+      Eigen::Vector3d e3(0.0, 0.0, 1.0);  // Unit vector along z-axis
+      // Position Jacobian ∂e/∂p = e₃ᵀ = [0, 0, 1]
+      J0_minimal.block<1,3>(0,0) = e3.transpose();  // [0, 0, 1, ...]
+
+      // Rotation Jacobian: ∂e/∂θ = e₃ᵀ·R_ItoW·[p_DinI×]
+      Eigen::Vector3d p_DinI = T_SD.r();
+      Eigen::Matrix3d R_ItoW = T_WS.C();
+      
+
+      // Skew-symmetric matrix [p_DinI]×
+      Eigen::Matrix3d p_DinI_skew;
+      p_DinI_skew <<        0,      -p_DinI(2),  p_DinI(1),
+                     p_DinI(2),            0,   -p_DinI(0),
+                    -p_DinI(1),     p_DinI(0),           0;
+
+      // Compute rotation Jacobian
+      Eigen::RowVector3d J_rotation = e3.transpose() * R_ItoW * p_DinI_skew;
+      J0_minimal.block<1,3>(0,3) = J_rotation;  // [..., J_θx, J_θy, J_θz, 0]
+
+      // Apply information weighting
       J0_minimal = (_squareRootInformation * J0_minimal).eval();
 
       // hallucinate Jacobian w.r.t. state

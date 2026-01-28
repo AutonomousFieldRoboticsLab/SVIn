@@ -88,12 +88,15 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
 
   // compute error
   double error = 0.0;
-  // Initial Displacement between depth and world frame
-  double displacement = 0.032;
 
+  // Example: first_depth = 5, current_depth = 10, parameters[0][2] = -5, error = -5 - (5-10)
   error = parameters[0][2] - (-1 * depth_ + first_depth_);
 
-
+  LOG(INFO) << std::fixed << std::setprecision(3)
+            << " DepthError: parameters[0][2]: " << parameters[0][2]
+            << " \n depth_: " << depth_ 
+            << " \n first_depth_: " << first_depth_
+            << " \n error: parameters[0][2] - (-1 * depth_ + first_depth_) = " << error;  
 
   // weight:
   double weighted_error = _squareRootInformation * error;
@@ -109,7 +112,7 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
       Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor> > J0(jacobians[0]);
       Eigen::Matrix<double, 1, 7, Eigen::RowMajor> J0_minimal;
       J0_minimal.setZero();
-      J0_minimal(0, 2) = 1;
+      J0_minimal(0, 2) = 1; // [0 0 1]
 
       J0_minimal = (_squareRootInformation * J0_minimal).eval();
 

@@ -732,6 +732,7 @@ void ThreadedKFVio::matchingLoop() {
           double firstDepthRaw = 0.0;
           okvis::Time firstDepthTimestamp(0.0);
 
+          // Depth measurements are in IMU frame
           for (const auto& depth: depthMeasurements_){
             if (depth.timeStamp > lastFrameTime && depth.timeStamp <= currentFrameTime) {
               firstDepthRaw = depth.measurement.depth;
@@ -777,7 +778,7 @@ void ThreadedKFVio::matchingLoop() {
               // LOG(INFO) << std::fixed << std::setprecision(3) 
               //           << "first_global_depth: " <<  << " m";
 
-              // Compute depth in global frame
+              // Compute depth in global frame (Global Frame Z-UP i.e e3^T * p_DinW is (-)ve ) 
               firstDepth_ = firstDepthRaw +  e3.transpose() * p_DinW;
               isFirstDepthComputed_ = true;
             
@@ -850,6 +851,7 @@ void ThreadedKFVio::matchingLoop() {
                 LOG(INFO) << std::fixed << std::setprecision(3)
                           << "p_IinW : " << p_IinW.transpose();          
                 
+                // Compute depth of IMU in World frame (Global Frame Z-UP i.e e3^T * p_DinW is (-)ve ) 
                 double depth_IMU = depthRaw + e3.dot(R_ItoW * p_DinI);
 
                 okvis::DepthMeasurement transformed_measurement = *iter;

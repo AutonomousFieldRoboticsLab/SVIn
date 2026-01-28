@@ -261,7 +261,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
 
     // Depth sensor uncertainity (from sensor specs)
     // ToDo(CMB): need to tune - (fresh water to salt water depth noise tunning)
-    double sigma_depth = 0.002; // (in m) = 2mm (in fresh water) resolution in the manual
+    double sigma_depth = 0.001; // 0.002 (in m) = 2mm (in fresh water) resolution in the manual
     double information_depth = 1.0 / (sigma_depth * sigma_depth);  
 
     // Depth error and related addResidualBlock

@@ -44,7 +44,7 @@
 #include <okvis/kinematics/Transformation.hpp>
 #include <string>
 #include <vector>
-
+#include <iomanip>
 #include "ceres/ceres.h"
 
 /// \brief okvis Main namespace of this package.

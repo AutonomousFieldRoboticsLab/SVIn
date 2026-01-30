@@ -290,7 +290,7 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     double information_depth = 1.0 / (sigma_depth * sigma_depth);  
 
     // Depth error and related addResidualBlock
-    std::shared_ptr<ceres::DepthError> depthError(new ceres::DepthError(mean_depth, information_depth, firstDepth));
+    std::shared_ptr<ceres::DepthError> depthError(new ceres::DepthError(mean_depth, information_depth, firstDepth, depthParameters_.T_SD));
     mapPtr_->addResidualBlock(depthError, NULL, poseParameterBlock);
     
     VLOG(3) << "Added depth error with sigma=" << sigma_depth 

@@ -118,7 +118,8 @@ histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
 
 # Depth sensor parameters (Bar30 pressure sensor)
 # Transformation from IMU frame (S) to Depth sensor frame (D)
-# For Stereo Rig V2: depth sensor mounted behind rig
+# For Stereo Rig V2: depth sensor mounted behind rig 
+# T_SD: R_StoD | p_SinD
 isDepthUsed: true
 depth_params:
     T_SD:

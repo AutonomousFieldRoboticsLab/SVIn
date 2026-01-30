@@ -79,7 +79,7 @@ class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   /// @param[in] variance The variance of the measurement, i.e. information_ has variance in its diagonal.
   /// @param[in] T_SD Transformation from IMU/body frame to depth sensor frame.
   /// TODO document.
-  DepthError(double depth, const information_t& information, double first_depth);
+  DepthError(double depth, const information_t& information, double first_depth, const okvis::kinematics::Transformation& T_SD);
 
   /// \brief Trivial destructor.
   virtual ~DepthError() {}

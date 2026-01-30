@@ -48,6 +48,7 @@
 #include <okvis/Frontend.hpp>
 #include <okvis/ImuFrameSynchronizer.hpp>
 #include <okvis/DepthFrameSynchronizer.hpp>
+#include <okvis/DvlFrameSynchronizer.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
@@ -165,6 +166,11 @@ class ThreadedKFVio : public VioInterface {
   /// \param depth    Depth measurement in meter
   virtual bool addDepthMeasurement(const okvis::Time& stamp, double depth);
 
+  /// \brief          Add an DVL measurement.
+  /// \param stamp    The measurement timestamp.
+  /// \param vel    Velocity measurement in meter
+  virtual bool addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const bool& velocityValid);
+
   /// @Sharmin
   /// \brief          Add an Sonar measurement.
   /// \param stamp    The measurement timestamp.
@@ -265,6 +271,9 @@ class ThreadedKFVio : public VioInterface {
   /// \brief Loop to process Depth measurements.
   void depthConsumerLoop();
 
+  /// \brief Loop to process DVL measurements.
+  void dvlConsumerLoop();
+
   /// \brief Loop to process position measurements.
   /// \warning Not implemented.
   void positionConsumerLoop();
@@ -296,9 +305,15 @@ class ThreadedKFVio : public VioInterface {
 
   /**
    * @Sharmin
-   * @brief Get the depth measurement in-between/nearest to start and end. Depth sensor has a slowed rate, 1 Hz.
+   * @brief Get the depth measurement. Depth sensor has a slowed rate, 1 Hz.
    */
   okvis::DepthMeasurementDeque getDepthMeasurements(okvis::Time& start, okvis::Time& end);  // NOLINT
+
+
+  /**
+   * @brief Get the DVL measurement. DVL has a slowed rate, 7 Hz.
+   */
+  okvis::DVLMeasurementDeque getDvlMeasurements(okvis::Time& start, okvis::Time& end);  // NOLINT
 
   /**
    * @Sharmin
@@ -365,6 +380,8 @@ class ThreadedKFVio : public VioInterface {
   // SonarFrameSynchronizer sonarFrameSynchronizer_;  ///< The Sonar frame synchronizer. @Sharmin
 
   DepthFrameSynchronizer depthFrameSynchronizer_;  ///< The Depth frame synchronizer. @Sharmin
+  
+  DvlFrameSynchronizer dvlFrameSynchronizer_;  ///< The DVL frame synchronizer. @CMB
 
   ImuFrameSynchronizer imuFrameSynchronizer_;  ///< The IMU frame synchronizer.
   /// \brief The frame synchronizer responsible for merging frames into multiframes
@@ -394,6 +411,10 @@ class ThreadedKFVio : public VioInterface {
   /// Depth measurement input queue.
   okvis::threadsafe::ThreadSafeQueue<okvis::DepthMeasurement> depthMeasurementsReceived_;
 
+  /// @Sharmin
+  /// DVL measurement input queue.
+  okvis::threadsafe::ThreadSafeQueue<okvis::DVLMeasurement> dvlMeasurementsReceived_;
+
   /// @}
   /// @name Measurement operation queues.
   /// @{
@@ -409,6 +430,7 @@ class ThreadedKFVio : public VioInterface {
   /// \warning Lock with sonarMeasurements_mutex_.
   okvis::SonarMeasurementDeque sonarMeasurements_;  /// @Sharmin
   okvis::DepthMeasurementDeque depthMeasurements_;  /// @Sharmin
+  okvis::DVLMeasurementDeque dvlMeasurements_;  /// @CMB
   /// \brief The Position measurements.
   /// \warning Lock with positionMeasurements_mutex_.
   okvis::PositionMeasurementDeque positionMeasurements_;
@@ -425,6 +447,7 @@ class ThreadedKFVio : public VioInterface {
 
   std::mutex sonarMeasurements_mutex_;     ///< Lock when accessing sonarMeasurements_ @Sharmin
   std::mutex depthMeasurements_mutex_;     ///< Lock when accessing depthMeasurements_ @Sharmin
+  std::mutex dvlMeasurements_mutex_;       ///< Lock when accessing dvlMeasurements_ @CMB
   std::mutex imuMeasurements_mutex_;       ///< Lock when accessing imuMeasurements_
   std::mutex positionMeasurements_mutex_;  ///< Lock when accessing imuMeasurements_
   std::mutex frameSynchronizer_mutex_;     ///< Lock when accessing the frameSynchronizer_.
@@ -446,6 +469,7 @@ class ThreadedKFVio : public VioInterface {
   std::thread imuConsumerThread_;                     ///< Thread running imuConsumerLoop().
   std::thread sonarConsumerThread_;                   ///< Thread running sonarConsumerLoop().   @Sharmin
   std::thread depthConsumerThread_;                   ///< Thread running depthConsumerLoop().   @Sharmin
+  std::thread dvlConsumerThread_;                     ///< Thread running dvlConsumerLoop().   @CMB
   std::thread positionConsumerThread_;                ///< Thread running positionConsumerLoop().
   std::thread gpsConsumerThread_;                     ///< Thread running gpsConsumerLoop().
   std::thread magnetometerConsumerThread_;            ///< Thread running magnetometerConsumerLoop().
@@ -487,6 +511,8 @@ class ThreadedKFVio : public VioInterface {
   const size_t maxDepthInputQueueSize_ = 10;
   bool isFirstDepthComputed_ = false;
   double firstDepth_ = 0.0; // Depth of Global frame 
+
+  const size_t maxDVLInputQueueSize_ = 10;
 
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;

@@ -107,6 +107,7 @@ publishing_options:
 #Sharmin
 isSonarUsed: false
 isDepthUsed: false
+isDVLUsed: false
 isRelocalization: false
 isCLAHE: false
 

@@ -7,9 +7,6 @@ endif ()
 
 find_package(OpenCV REQUIRED)
 
-# Include the depth_node_py package directly from source (no install required)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../depth_node_py ${CMAKE_CURRENT_BINARY_DIR}/depth_node_py_build)
-
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -28,6 +25,8 @@ find_package(std_srvs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(pcl_conversions REQUIRED)
+find_package(depth_node_py REQUIRED)
+find_package(waterlinked_a50_ros_driver REQUIRED)
 # Sharmin: for SvinHealth msg
 rosidl_generate_interfaces(${PROJECT_NAME} "msg/SvinHealth.msg" "srv/OdometryTrigger.srv" DEPENDENCIES std_msgs geometry_msgs nav_msgs)
 
@@ -75,6 +74,8 @@ list(APPEND ament_libraries
         visualization_msgs
         image_transport
         pcl_conversions
+        depth_node_py
+        waterlinked_a50_ros_driver
 )
 
 ament_export_dependencies(rosidl_default_runtime)
@@ -89,7 +90,6 @@ add_library(${PROJECT_NAME}_lib STATIC src/Subscriber.cpp
 add_dependencies(${PROJECT_NAME}_lib okvis_multisensor_processing)
 ament_target_dependencies(${PROJECT_NAME}_lib ${ament_libraries})
 rosidl_target_interfaces(${PROJECT_NAME}_lib ${PROJECT_NAME} rosidl_typesupport_cpp)
-rosidl_target_interfaces(${PROJECT_NAME}_lib depth_node_py rosidl_typesupport_cpp)
 
 
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
@@ -138,7 +138,6 @@ add_executable(okvis_node src/okvis_node.cpp)
 ament_target_dependencies(okvis_node ${ament_libraries})
 target_link_libraries(okvis_node ${PROJECT_NAME}_lib)
 rosidl_target_interfaces(okvis_node ${PROJECT_NAME} rosidl_typesupport_cpp)
-rosidl_target_interfaces(okvis_node depth_node_py rosidl_typesupport_cpp)
 install(TARGETS okvis_node DESTINATION lib/${PROJECT_NAME})
 
 # add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)

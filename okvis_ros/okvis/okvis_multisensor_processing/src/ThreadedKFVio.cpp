@@ -148,6 +148,9 @@ void ThreadedKFVio::init() {
   if (parameters_.sensorList.isDepthUsed) {
     estimator_.addDepth(parameters_.depth);
   }
+  if (parameters_.sensorList.isDVLUsed) {
+    estimator_.addDVL(parameters_.dvl);
+  }
   for (size_t i = 0; i < numCameras_; ++i) {
     // parameters_.camera_extrinsics is never set (default 0's)...
     // do they ever change?
@@ -190,6 +193,10 @@ void ThreadedKFVio::startThreads() {
     depthConsumerThread_ = std::thread(&ThreadedKFVio::depthConsumerLoop, this);  // @Sharmin
   }
 
+  if (parameters_.sensorList.isDVLUsed) {
+    dvlConsumerThread_ = std::thread(&ThreadedKFVio::dvlConsumerLoop, this);  // @CMB
+  }
+
   positionConsumerThread_ = std::thread(&ThreadedKFVio::positionConsumerLoop, this);
   gpsConsumerThread_ = std::thread(&ThreadedKFVio::gpsConsumerLoop, this);
   magnetometerConsumerThread_ = std::thread(&ThreadedKFVio::magnetometerConsumerLoop, this);
@@ -217,6 +224,9 @@ ThreadedKFVio::~ThreadedKFVio() {
   if (parameters_.sensorList.isDepthUsed) {
     depthMeasurementsReceived_.Shutdown();  // @Sharmin
   }
+  if (parameters_.sensorList.isDVLUsed) {
+    dvlMeasurementsReceived_.Shutdown();  // @CMB
+  }
 
   optimizationResults_.Shutdown();
   visualizationData_.Shutdown();
@@ -240,6 +250,10 @@ ThreadedKFVio::~ThreadedKFVio() {
     depthConsumerThread_.join();
   }
   // Sharmin
+
+  if (parameters_.sensorList.isDVLUsed) {
+    dvlConsumerThread_.join();
+  }
 
   positionConsumerThread_.join();
   gpsConsumerThread_.join();
@@ -329,6 +343,35 @@ bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) 
   } else {
     depthMeasurementsReceived_.PushNonBlockingDroppingIfFull(depth_measurement, maxDepthInputQueueSize_);
     return depthMeasurementsReceived_.Size() == 1;
+  }
+}
+
+// Add DVL measurement
+bool ThreadedKFVio::addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const bool& velocityValid) {
+
+  // Continue further only if VIO is initialized
+  if (!frontend_.isInitialized()) {
+    VLOG(3) << "VIO frontend is not initialized yet. Dropping DVL measurement.";
+    return false;
+  } 
+  
+  okvis::DVLMeasurement dvl_measurement;
+  dvl_measurement.timeStamp = stamp;
+  dvl_measurement.measurement.velocity = vel;
+  dvl_measurement.measurement.velocity_valid = velocityValid;
+  dvl_measurement.measurement.fom = 0.0;  // Initialize to default
+  dvl_measurement.measurement.altitude = 0.0;  // Initialize to default
+  
+  LOG(INFO) << "DVL measurement received at time: " << stamp.toSec() 
+             << " with vel: " << vel.transpose();
+
+  // blocking mode is disabled when using ros2 bag play 
+  if (blocking_) {
+    dvlMeasurementsReceived_.PushBlockingIfFull(dvl_measurement, 1);
+    return true;
+  } else {
+    dvlMeasurementsReceived_.PushNonBlockingDroppingIfFull(dvl_measurement, maxDVLInputQueueSize_);
+    return dvlMeasurementsReceived_.Size() == 1;
   }
 }
 
@@ -716,7 +759,7 @@ void ThreadedKFVio::matchingLoop() {
       okvis::Time lastFrameTime = lastAddedStateTimestamp_; // Last state timestamp
 
       OKVIS_ASSERT_TRUE_DBG(
-          Exception, lastFrameTime < currentFrameTime, "Depth data end time is smaller than begin time.");
+          Exception, lastFrameTime < currentFrameTime, "Current state time is behind the begin time.");
 
       // ==== Step 1: Compute First Depth Data in Global Frame (One-Time) =====
       if (isFirstDepthComputed_ == false) {
@@ -878,8 +921,68 @@ void ThreadedKFVio::matchingLoop() {
 
       } // else ends - Part 2: Regular Depth data retrieval
     } // ends depth data loop
-
     // End @sharmin
+
+    // DVL data
+    okvis::DVLMeasurementDeque dvlData;
+    if (parameters_.sensorList.isDVLUsed && frontend_.isInitialized()) {
+
+      okvis::Time currentFrameTime = frame->timestamp(); // Current frame timestamp
+      okvis::Time lastFrameTime = lastAddedStateTimestamp_; // Last state timestamp
+
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, lastFrameTime < currentFrameTime, "Current state time is behind the begin time.");
+      
+      std::lock_guard<std::mutex> lock(dvlMeasurements_mutex_);
+
+      if (!dvlMeasurements_.empty()){
+      
+        LOG(INFO) << std::fixed << std::setprecision(3) 
+          << "=======DVL Retrieval START ======"
+          << "\nLastFrameTimestamp: " << lastFrameTime.toSec() << " s"
+          << "\nCurrentFrameTimestamp: " << currentFrameTime.toSec() << " s"
+          << "\nDVL buffer size: " << dvlMeasurements_.size();
+      
+        // Iterate through buffer: erase old, find valid
+        auto iter = dvlMeasurements_.begin();
+        while (iter != dvlMeasurements_.end()){
+          
+          // Case 1 : If measurement is old -> erase
+          if (iter->timeStamp <=lastFrameTime){
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "Erasing old DVL @ " << iter->timeStamp.toSec() << " s";
+            iter = dvlMeasurements_.erase(iter); // erase() returns the next iterator
+            continue; // Check next measurement
+          }
+
+          // Case 2: If measurement is in window -> USE it
+          if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime){
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "Found valid DVL @ " << iter->timeStamp.toSec() << " s";
+
+            okvis::DVLMeasurement dvl_measurement = *iter;
+
+            // Add to dvlData deque
+            dvlData.push_back(dvl_measurement);
+
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "DVL Velocity: " << dvl_measurement.measurement.velocity.transpose() << " m/s"          
+              << "\n DVL Timestamp: " << dvl_measurement.timeStamp.toSec() << " s";
+            
+            break;
+          }
+          // Case 3 : If measurement is in future -> STOP
+          if (iter->timeStamp > currentFrameTime){
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "DVL measurement @ " << iter->timeStamp.toSec() 
+              << " is in future. Stop searching.";
+            break;
+          }
+          ++iter;
+        } // while
+      }
+    }
+    
 
     // make sure that optimization of last frame is over.
     // TODO If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be necessary
@@ -892,7 +995,7 @@ void ThreadedKFVio::matchingLoop() {
       okvis::Time t0Matching = okvis::Time::now();
       bool asKeyframe = false;
       // @Sharmin
-      if (estimator_.addStates(frame, imuData, asKeyframe, sonarData, depthData, firstDepth_)) {
+      if (estimator_.addStates(frame, imuData, asKeyframe, sonarData, depthData, firstDepth_, dvlData)) {
         lastAddedStateTimestamp_ = frame->timestamp();
         addStateTimer.stop();
       } else {
@@ -1013,6 +1116,40 @@ void ThreadedKFVio::depthConsumerLoop() {
     depthFrameSynchronizer_.gotDepthData(data.timeStamp); 
 
     processDepthTimer.stop();
+  }
+}
+
+// @Sharmin
+// Consumer Thread | Loop to process dvl measurements. This infinite loop is runnning in a separate thread.
+void ThreadedKFVio::dvlConsumerLoop() {
+
+  okvis::DVLMeasurement data;
+  TimerSwitchable processDvlTimer("0 processDvlMeasurements", true);
+  for (;;) {
+    // get data and check for termination request
+    if (dvlMeasurementsReceived_.PopBlocking(&data) == false) return;
+    processDvlTimer.start();
+    okvis::Time start;
+    const okvis::Time* end;  // do not need to copy end timestamp
+
+    // Threadsafe access to dvlMeasurements_ deque
+    {
+      std::lock_guard<std::mutex> dvlLock(dvlMeasurements_mutex_);
+      OKVIS_ASSERT_TRUE(Exception,
+                        dvlMeasurements_.empty() || dvlMeasurements_.back().timeStamp < data.timeStamp,
+                        "DVL measurement from the past received");
+      if (dvlMeasurements_.size() > 0)
+        start = dvlMeasurements_.back().timeStamp;
+      else
+        start = okvis::Time(0, 0);
+      end = &data.timeStamp;
+      dvlMeasurements_.push_back(data);
+    }  // unlock dvlMeasurements_mutex_
+
+    // notify other threads that depth data with timeStamp is here.
+    dvlFrameSynchronizer_.gotDvlData(data.timeStamp); 
+
+    processDvlTimer.stop();
   }
 }
 
@@ -1174,6 +1311,41 @@ okvis::DepthMeasurementDeque ThreadedKFVio::getDepthMeasurements(okvis::Time& be
 
   // No Depth measurement found in the requested time window
   return okvis::DepthMeasurementDeque();
+}
+
+// Get the DVL measurement in-between/nearest to start and end. DVL sensor has a slowed rate, 7 Hz.
+okvis::DVLMeasurementDeque ThreadedKFVio::getDvlMeasurements(okvis::Time& beginTime, okvis::Time& endTime) {
+  
+  std::lock_guard<std::mutex> lock(dvlMeasurements_mutex_);  // Thread safe access to dvlMeasurements_ deque
+
+  // Sanity checks:
+  // - End time must be after begin time 
+  // - DVL buffer must not be empty
+  // - Begin time must not be after newest DVL time
+  if (endTime < beginTime || 
+    dvlMeasurements_.empty() || 
+    beginTime > dvlMeasurements_.back().timeStamp) {
+      return okvis::DVLMeasurementDeque();
+  }
+
+  // Find the dvl measurement that falls within (beginTime, endTime]
+  okvis::DVLMeasurementDeque result;
+
+  // Find depth measurements within the requested time window
+  for (auto iter = dvlMeasurements_.begin(); iter != dvlMeasurements_.end(); ++iter) {
+    // Only allow measurements strictly after beginTime and up to and including endTime
+    if (iter->timeStamp > beginTime && iter->timeStamp <= endTime) {
+      result.push_back(*iter);
+      return result; // Return immediately after finding the first valid measurement
+    }
+
+    if (iter->timeStamp > endTime) {
+      break; // No need to continue searching
+    }
+  }
+
+  // No DVL measurement found in the requested time window
+  return okvis::DVLMeasurementDeque();
 }
 
 // @Sharmin

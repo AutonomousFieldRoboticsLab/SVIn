@@ -20,15 +20,15 @@ def launch_setup(context, *args, **kwargs):
     package='okvis_ros',
     executable='okvis_node',
     name='okvis_node',
-    output='screen',
     parameters=[{
       'config_filename': abs_okvis_config_path,
-      'mesh_file': 'firefly.dae',
-      'use_sim_time': True
+      'mesh_file': 'firefly.dae'
     }],
     remappings=[
       ('/camera0', '/cam0/image_raw'),
-      ('/imu', '/gopro/imu'),
+      ('/camera1', '/cam1/image_raw'),
+      ('/imu', '/imu/data'),
+      ('/depth', '/depth/data'),
       ('/dvl', '/dvl/data')
     ]
   )
@@ -39,8 +39,7 @@ def launch_setup(context, *args, **kwargs):
     executable='pose_graph_node',
     name='pose_graph_node',
     parameters=[{
-      'config_file': abs_okvis_config_path,
-      'use_sim_time': True
+      'config_file': abs_okvis_config_path
     }]
   )
 
@@ -49,7 +48,6 @@ def launch_setup(context, *args, **kwargs):
     package='rviz2',
     executable='rviz2',
     name='rviz',
-    parameters=[{'use_sim_time': True}],
     arguments=['-d', os.path.join(
       FindPackageShare('okvis_ros').perform(context),
       'rviz_config/svin.rviz')],
@@ -66,25 +64,26 @@ def generate_launch_description():
     default_value=PathJoinSubstitution([
       FindPackageShare('okvis_ros'),
       'config',
-      'config_gopro13_uw.yaml'
+      'config_aquatank_short.yaml'
     ])
   )
 
-  # Uncompressor node
-  uncompressor_node = Node(
+  # To un-compress and sync the image topics
+  stereo_sync_node = Node(
     package='okvis_ros',
-    executable='uncompress_image',
-    name='uncompressor',
+    executable='stereo_sync',
+    name='stereo_sync',
     output='screen',
     parameters=[{
-      'compressed_img_topic': '/gopro/image_raw/compressed',
-      'ouput_img_topic': '/cam0/image_raw',
-      'use_sim_time': True
+      'config_filename': LaunchConfiguration('okvis_config'),
+      'left_img_topic': '/camera/left/image_dehazed',
+      'right_img_topic': '/camera/right/image_dehazed',
+      'compressed': True
     }]
   )
 
   return LaunchDescription([
     config_arg,
-    uncompressor_node,
+    stereo_sync_node,
     OpaqueFunction(function=launch_setup)
   ])

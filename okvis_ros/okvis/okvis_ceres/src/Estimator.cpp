@@ -40,6 +40,7 @@
 
 #include <glog/logging.h>
 
+#include <iomanip>
 #include <okvis/Estimator.hpp>
 #include <okvis/IdProvider.hpp>
 #include <okvis/MultiFrame.hpp>
@@ -100,6 +101,12 @@ int Estimator::addDepth(const DepthSensorParameters& depthParameters) {
   return 0;
 }
 
+// Add DVL to the configuration.
+int Estimator::addDVL(const DVLSensorParameters& dvlParameters) {
+  dvlParameters_ = dvlParameters;
+  return 0;
+}
+
 // Remove all cameras from the configuration
 void Estimator::clearCameras() { extrinsicsEstimationParametersVec_.clear(); }
 
@@ -112,7 +119,8 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
                           bool asKeyframe,
                           const okvis::SonarMeasurementDeque& sonarMeasurements, /* @Sharmin */
                           const okvis::DepthMeasurementDeque& depthMeasurements,
-                          double firstDepth) {
+                          double firstDepth,
+                          const okvis::DVLMeasurementDeque& dvlMeasurements) {
   // Note Sharmin: this is for imu propagation no matter isScaleRefined_ is true/false.
   // TODO(Sharmin): Start actual optimization when isScaleRefined_ = true.
 
@@ -287,6 +295,16 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     
     VLOG(3) << "Added depth error with sigma=" << sigma_depth 
             << " m, information=" << information_depth;
+  }
+
+  if (dvlMeasurements.size() != 0){
+    LOG(INFO) << "DVL measurement received in estimator.addStates()";
+    LOG(INFO) << "DVL sensor sigma_velocity: " << std::setprecision(6) << std::fixed << dvlParameters_.sigma_velocity << " m/s";
+    LOG(INFO) << "DVL T_SV rotation matrix C():\n" << std::setprecision(6) << std::fixed << dvlParameters_.T_SV.C();
+    LOG(INFO) << "DVL T_SV translation r(): [" << std::setprecision(6) << std::fixed 
+              << dvlParameters_.T_SV.r()(0) << ", "
+              << dvlParameters_.T_SV.r()(1) << ", "
+              << dvlParameters_.T_SV.r()(2) << "] m";
   }
 
   // @Sharmin

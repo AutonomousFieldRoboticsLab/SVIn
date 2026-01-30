@@ -36,6 +36,7 @@
   <depend>visualization_msgs</depend>
   <depend>image_transport</depend>
   <depend>depth_node_py</depend>
+  <depend>waterlinked_a50_ros_driver</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
 

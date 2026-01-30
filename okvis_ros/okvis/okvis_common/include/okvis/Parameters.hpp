@@ -60,6 +60,7 @@ namespace okvis {
 struct SensorList {
   bool isSonarUsed;
   bool isDepthUsed;
+  bool isDVLUsed;
 };
 
 // Sharmin: Read from config file.
@@ -201,6 +202,19 @@ struct DepthSensorParameters {
   okvis::kinematics::Transformation T_SD;  ///< Transformation from IMU frame (IMU frame S) to Depth sensor (Depth frame D).
   double sigma_depth;  ///< Standard deviation of depth measurement [m].
 };
+
+/*!
+ * \brief DVL sensor parameters.
+ *
+ * A simple struct to specify properties of a dvl sensor.
+ *
+ */
+struct DVLSensorParameters {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  okvis::kinematics::Transformation T_SV;  ///< Transformation from IMU frame (IMU frame S) to DVL sensor (DVL frame V).
+  double sigma_velocity;  ///< Standard deviation of velocity measurement [m/s].
+};
+
 
 /*!
  * \brief Position sensor parameters.
@@ -370,6 +384,7 @@ struct VioParameters {
   MiscParams miscParams;                ///< Sharmin: contains misc parameters, e.g. opencv image resize factor
   SonarParameters sonar;                ///< Sharmin: sonar parameters (T_SSo)
   DepthSensorParameters depth;          ///< Depth sensor parameters (T_SD)
+  DVLSensorParameters dvl;              ///< DVL sensor parameters (T_SV)
   ResetPoseParameters resetableParams;  ///< Hunter: Reset pose parameters
 };
 

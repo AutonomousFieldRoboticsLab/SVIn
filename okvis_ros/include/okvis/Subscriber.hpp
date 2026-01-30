@@ -60,6 +60,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <depth_node_py/msg/depth.hpp> // for stereo rig depth
+#include <waterlinked_a50_ros_driver/msg/dvl.hpp> // for DVL data
 // #include <aquacore/StateMsg.h> // Aqua depth
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -128,6 +129,9 @@ class Subscriber {
   void depthCallback(const depth_node_py::msg::Depth::SharedPtr msg);
   // void depthCallback(const aquacore::StateMsg::ConstPtr& msg); // Aqua Depth
 
+  /// @brief The DVL callback. @CMB
+  void dvlCallback(const waterlinked_a50_ros_driver::msg::DVL::SharedPtr msg);
+
   /// @brief The Relocalization callback. @Sharmin
   void relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr points_msg);
 
@@ -144,6 +148,7 @@ class Subscriber {
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subImu_;  ///< The IMU message subscriber.
   // ros::Subscriber subSonarRange_;                                ///< The Sonar Range Subscriber @Sharmin
   rclcpp::Subscription<depth_node_py::msg::Depth>::SharedPtr subDepth_; ///< The Depth Subscriber @CMB
+  rclcpp::Subscription<waterlinked_a50_ros_driver::msg::DVL>::SharedPtr subDVL_; ///< The DVL Subscriber @CMB
   rclcpp::Subscription<sensor_msgs::msg::PointCloud>::SharedPtr
       subReloPoints_;        ///< The Relocalization Points Subscriber from pose_graph @Sharmin
   cv::Ptr<cv::CLAHE> clahe;  /// Sharmin

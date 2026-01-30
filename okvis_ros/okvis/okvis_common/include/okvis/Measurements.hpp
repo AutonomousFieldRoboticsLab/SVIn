@@ -121,6 +121,45 @@ struct DepthReading {
   double depth;  ///< depth measurement (in meter)
 };
 
+/// \brief DVL measurement.
+struct DVLReading {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  Eigen::Vector3d velocity;  ///< velocity measurement in body frame (in m/s)
+  double fom;               ///< figure of merit (quality of the measurement)
+  double altitude;         ///< altitude measurement (in meter)
+  bool velocity_valid; ///< validity of velocity measurement
+
+  // // DVLBeam - velocity measurements from individual beams
+  // double velocityBeam1;  ///< velocity measurement from beam 1 (in m/s)
+  // double velocityBeam2;  ///< velocity measurement from beam 2 (in m/s)
+  // double velocityBeam3;  ///< velocity measurement from beam 3 (in m/s)
+  // double velocityBeam4;  ///< velocity measurement from beam 4 (in m/s)
+
+  // // DVL distance - distance measurements from individual beams
+  // double distanceBeam1;  ///< distance measurement from beam 1 (in meter)
+  // double distanceBeam2;  ///< distance measurement from beam 2 (in meter)
+  // double distanceBeam3;  ///< distance measurement from beam 3 (in meter)
+  // double distanceBeam4;  ///< distance measurement from beam 4 (in meter) 
+
+  // // RSSI - signal strength from individual beams
+  // double rssiBeam1;  ///< signal strength from beam 1
+  // double rssiBeam2;  ///< signal strength from beam 2
+  // double rssiBeam3;  ///< signal strength from beam 3
+  // double rssiBeam4;  ///< signal strength from beam 4
+
+  // // NSD - normalized standard deviation from individual beams
+  // double nsdBeam1;  ///< normalized standard deviation from beam 1
+  // double nsdBeam2;  ///< normalized standard deviation from beam 2
+  // double nsdBeam3;  ///< normalized standard deviation from beam 3
+  // double nsdBeam4;  ///< normalized standard deviation from beam 4
+
+  // // Valid - validity of individual beams
+  // bool validBeam1;  ///< validity of beam 1
+  // bool validBeam2;  ///< validity of beam 2
+  // bool validBeam3;  ///< validity of beam 3
+  // bool validBeam4;  ///< validity of beam 4
+
+};
 struct RelocReading {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   std::vector<Eigen::Vector3d>
@@ -202,6 +241,9 @@ typedef std::deque<DepthMeasurement, Eigen::aligned_allocator<DepthMeasurement> 
 
 typedef Measurement<SonarReading> SonarMeasurement;                                                       /// @Sharmin
 typedef std::deque<SonarMeasurement, Eigen::aligned_allocator<SonarMeasurement> > SonarMeasurementDeque;  /// @Sharmin
+
+typedef Measurement<DVLReading> DVLMeasurement;                                                       /// @CMB
+typedef std::deque<DVLMeasurement, Eigen::aligned_allocator<DVLMeasurement> > DVLMeasurementDeque;  /// @CMB
 
 typedef Measurement<PositionReading> PositionMeasurement;
 typedef std::deque<PositionMeasurement, Eigen::aligned_allocator<PositionMeasurement> > PositionMeasurementDeque;

@@ -41,6 +41,7 @@
 #include <glog/logging.h>
 
 #include <algorithm>
+#include <iomanip>
 #include <memory>
 #include <okvis/VioParametersReader.hpp>
 #include <okvis/cameras/EquidistantDistortion.hpp>
@@ -276,6 +277,9 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   success = parseBoolean(file["isDepthUsed"], vioParameters_.sensorList.isDepthUsed);
   OKVIS_ASSERT_TRUE(Exception, success, "'isDepthUsed' parameter missing in configuration file.");
 
+  success = parseBoolean(file["isDVLUsed"], vioParameters_.sensorList.isDVLUsed);
+  OKVIS_ASSERT_TRUE(Exception, success, "'isDVLUsed' parameter missing in configuration file.");
+
   if (file["histogramMethod"].isString()) {
     std::string histogram_method = static_cast<std::string>(file["histogramMethod"]);
     if (histogram_method == "NONE" || histogram_method == "none") {
@@ -322,7 +326,6 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   }
 
   // depth sensor parameters
-
   if (vioParameters_.sensorList.isDepthUsed) {
     cv::FileNode T_SD_ = file["depth_params"]["T_SD"];
     OKVIS_ASSERT_TRUE(
@@ -348,6 +351,35 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     }
   }
   // *****  End Sharmin: Additional config ******//
+
+  // dvl sensor parameters
+  if (vioParameters_.sensorList.isDVLUsed) {
+
+    cv::FileNode T_SV_ = file["dvl_params"]["T_SV"];
+    OKVIS_ASSERT_TRUE(
+        Exception, T_SV_.isSeq(), "'T_SV' parameter missing in the configuration file or in the wrong format.")
+
+    Eigen::Matrix4d T_SV_e;
+    T_SV_e << T_SV_[0], T_SV_[1], T_SV_[2], T_SV_[3], T_SV_[4], T_SV_[5], T_SV_[6], T_SV_[7], T_SV_[8],
+        T_SV_[9], T_SV_[10], T_SV_[11], T_SV_[12], T_SV_[13], T_SV_[14], T_SV_[15];
+
+    vioParameters_.dvl.T_SV = okvis::kinematics::Transformation(T_SV_e);
+    std::stringstream ss;
+    ss << vioParameters_.dvl.T_SV.T();
+    LOG(INFO) << "DVL sensor with transformation T_SV=\n" << ss.str();
+    
+    // Read sigma_velocity (velocity measurement noise)
+    cv::FileNode sigma_velocity_node = file["dvl_params"]["sigma_velocity"];
+    if (!sigma_velocity_node.empty()) {
+      vioParameters_.dvl.sigma_velocity = sigma_velocity_node;
+      LOG(INFO) << "DVL sensor sigma_velocity: " << std::setprecision(6) << std::fixed 
+                << vioParameters_.dvl.sigma_velocity << " m/s";
+    } else {
+      vioParameters_.dvl.sigma_velocity = 0.005;  // Default value
+      LOG(WARNING) << "DVL sensor sigma_velocity not found in config, using default: 0.005 m/s";
+    }
+
+  }
 
   // Hunter: Resetable pose parameters
   success = parseBoolean(file["isResetable"], vioParameters_.resetableParams.isResetable);

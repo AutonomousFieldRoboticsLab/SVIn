@@ -31,13 +31,13 @@
  *********************************************************************************/
 
 /**
- * @file DepthError.hpp
- * @brief Header file for the DepthError class.
- * @author Sharmin Rahman
+ * @file DVLError.hpp
+ * @brief Header file for the DVLError class.
+ * @author Chinmay Burgul
  */
 
-#ifndef INCLUDE_OKVIS_CERES_DEPTHERROR_HPP_
-#define INCLUDE_OKVIS_CERES_DEPTHERROR_HPP_
+#ifndef INCLUDE_OKVIS_CERES_DVLERROR_HPP_
+#define INCLUDE_OKVIS_CERES_DVLERROR_HPP_
 
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
@@ -52,18 +52,19 @@ namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
 namespace ceres {
 
-/// \brief Absolute error of a depth measurement.
-class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */, 7 /* size of first parameter */>,
+// [DVL] ToDo: number of residuals and size of parameter block (velocity, and ?)
+/// \brief Absolute error of a DVL measurement.
+class DVLError : public ::ceres::SizedCostFunction<3 /* number of residuals */, 7 /* size of first parameter */>,
                    public ErrorInterface {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief The base class type.
-  typedef ::ceres::SizedCostFunction<1, 7> base_t;
+  typedef ::ceres::SizedCostFunction<3, 7> base_t;
 
   /// \brief Number of residuals (3)
-  static const int kNumResiduals = 1;
+  static const int kNumResiduals = 3;
 
   /// \brief The information matrix type (3x3).
   typedef double information_t;
@@ -72,38 +73,31 @@ class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   typedef double covariance_t;
 
   /// \brief Default constructor.
-  DepthError();
+  DVLError();
 
   /// \brief Construct with homogeneous measurement and variance.
   /// @param[in] measurement The measurement.
   /// @param[in] variance The variance of the measurement, i.e. information_ has variance in its diagonal.
-  /// @param[in] T_SD Transformation from IMU/body frame to depth sensor frame.
-  /// TODO document.
-  DepthError(double depth, const information_t& information, double first_depth);
+  DVLError(const Eigen::Vector3d& velocity_m, const information_t& information);
 
   /// \brief Trivial destructor.
-  virtual ~DepthError() {}
+  virtual ~DVLError() {}
 
   // setters
   /// \brief Set the measurement.
   /// @param[in] measurement The measurement.
-  void setMeasurement(double depth, double first_depth) {
-    depth_ = depth;
-    first_depth_ = first_depth;
+  void setMeasurement(Eigen::Vector3d velocity_m) {
+    velocity_m_ = velocity_m;
   }
 
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
   void setInformation(const information_t& information);
 
-  /// \brief Set the transformation from IMU to depth sensor frame.
-  /// @param[in] T_SD The transformation.
-  void setTransformation(const okvis::kinematics::Transformation& T_SD);
-
   // getters
   /// \brief Get the measurement.
   /// \return The measurement vector.
-  double depth() const { return depth_; }
+  Eigen::Vector3d getMeasurement() const { return velocity_m_; }
 
   /// \brief Get the information matrix.
   /// \return The information (weight) matrix.
@@ -151,13 +145,11 @@ class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   }
 
   /// @brief Return parameter block type as string
-  virtual std::string typeInfo() const { return "DepthError"; }
+  virtual std::string typeInfo() const { return "DVLError"; }
 
  protected:
   // the measurement
-  double depth_;  ///< The depth measurement.
-  double first_depth_;
-  okvis::kinematics::Transformation T_SD_;  ///< Transformation from IMU to depth sensor frame.
+  Eigen::Vector3d velocity_m_;  ///< The velocity measurement.
 
   // weighting related
   information_t information_;            ///< The 6x6 information matrix.
@@ -168,4 +160,4 @@ class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */
 }  // namespace ceres
 }  // namespace okvis
 
-#endif /* INCLUDE_OKVIS_CERES_DEPTHERROR_HPP_ */
+#endif /* INCLUDE_OKVIS_CERES_DVLERROR_HPP_ */

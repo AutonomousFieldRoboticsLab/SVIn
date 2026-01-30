@@ -23,6 +23,7 @@ add_library(${PROJECT_NAME}
   src/ImuFrameSynchronizer.cpp
   src/SonarFrameSynchronizer.cpp  # @Sharmin
   src/DepthFrameSynchronizer.cpp  # @Sharmin
+  src/DvlFrameSynchronizer.cpp    # @CMB
   src/RelocFrameSynchronizer.cpp  # @Sharmin
   src/FrameSynchronizer.cpp
   src/VioVisualizer.cpp
@@ -30,6 +31,7 @@ add_library(${PROJECT_NAME}
   include/okvis/ImuFrameSynchronizer.hpp
   include/okvis/SonarFrameSynchronizer.hpp  # @Sharmin
   include/okvis/DepthFrameSynchronizer.hpp  # @Sharmin
+  include/okvis/DvlFrameSynchronizer.hpp    # @CMB
   include/okvis/RelocFrameSynchronizer.hpp  # @Sharmin
   include/okvis/FrameSynchronizer.hpp
   include/okvis/VioVisualizer.hpp

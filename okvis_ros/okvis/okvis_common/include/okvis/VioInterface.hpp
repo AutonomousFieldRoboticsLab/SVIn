@@ -191,6 +191,12 @@ class VioInterface {
   /// \param depth    Depth measurement in meter
   virtual bool addDepthMeasurement(const okvis::Time& stamp, double depth) = 0;
 
+  /// \brief          Add an DVL measurement.
+  /// \param stamp    The measurement timestamp.
+  /// \param vel    Velocity measurement in meter/second
+  /// \param velocityValid  Whether the velocity measurement is valid
+  virtual bool addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const bool& velocityValid) = 0;
+
   /// @Sharmin
   /// \brief          Add an Sonar measurement.
   /// \param stamp    The measurement timestamp.

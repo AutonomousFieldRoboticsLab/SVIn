@@ -87,7 +87,7 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
   //   subSonarRange_ = nh_->subscribe("/imagenex831l/range", 1000, &Subscriber::sonarCallback, this);
   // }
 
-  // Depth callback @CMB
+  // Depth callback
   if (vioParameters_.sensorList.isDepthUsed){
     subDepth_ = node_->create_subscription<depth_node_py::msg::Depth>(
         "depth", rclcpp::SensorDataQoS(), 
@@ -95,14 +95,15 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
         options);
   }
 
-  // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
-  // }
+  // DVL callback (remapped dvl topic to /dvl)
+  if (vioParameters_.sensorList.isDVLUsed){
+    subDVL_ = node_->create_subscription<waterlinked_a50_ros_driver::msg::DVL>(
+        "dvl", rclcpp::SensorDataQoS(), 
+        std::bind(&Subscriber::dvlCallback, this, std::placeholders::_1), 
+        options);
+  }
 
-  // Sharmin
-  // if (vioParameters_.relocParameters.isRelocalization) {
-  //   std::cout << "Subscribing to /pose_graph/match_points topic" << std::endl;
-  //   subReloPoints_ = node->create_subscription<sensor_msgs::msg::PointCloud>(
-  //       "/pose_graph/match_points", 1000, std::bind(&Subscriber::relocCallback, this, std::placeholders::_1));
+  // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
   // }
 
   tfBuffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
@@ -255,6 +256,19 @@ void Subscriber::depthCallback(const depth_node_py::msg::Depth::SharedPtr msg)
       okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
       msg->depth);
 }
+
+// DVL subscriber callback
+void Subscriber::dvlCallback(const waterlinked_a50_ros_driver::msg::DVL::SharedPtr msg)
+{
+  // RCLCPP_INFO(node_->get_logger(), 
+  //             "DVL Velocity: [%.3f, %.3f, %.3f] m/s", 
+  //             msg->velocity.x, msg->velocity.y, msg->velocity.z);
+  
+  vioInterface_->addDVLMeasurement(
+      okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
+      Eigen::Vector3d(msg->velocity.x, msg->velocity.y, msg->velocity.z),
+      msg->velocity_valid);
+} 
 
 // Watchdog tick: freeze when both IMU and camera inactive longer than threshold
 void Subscriber::watchdogTick() {

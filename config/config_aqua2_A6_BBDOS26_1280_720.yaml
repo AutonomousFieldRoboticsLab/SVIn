@@ -1,32 +1,28 @@
 %YAML:1.0
-
-# Config file with flir stereo cameras and new IMU with Magnetometer (3DMGV7-AHRS)
-# Valid from 08/2023 and beyond
 cameras:
     - {T_SC:
-       [ 0.01030504,  0.00326659, -0.99994157, -0.03646241,
-        -0.99973207,  0.02076152, -0.01023506,  0.06283929,
-         0.02072687,  0.99977912,  0.00347966,  0.01680684,
-         0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1100],
-       distortion_coefficients: [0.16359430353148227, 0.6463286221097123, 0.0036352132266568014, -0.001565309077001724],
-       distortion_type: radialtangential,
-       focal_length: [1198.689866179, 1216.394331519], 
-       principal_point: [798.498094044, 565.370958272]} 
-
-    - {T_SC:
-       [ 0.00541017, -0.00128785, -0.99998454, -0.03518469,
-        -0.99980925, -0.01877401, -0.00538505, -0.04759083,
-        -0.01876679,  0.99982292, -0.00138917,  0.01675327,
+       [-0.0009642618676621306, 0.9999687714302776, 0.007843874251458993, 0.050605485921057694,
+        -0.5030071352564118, -0.007264339339296211, 0.8642517291015983, 0.2478597480067051,
+        0.8642817203205153, -0.003112159730104147, 0.502998431788436, -0.3663233237156649,
           0.0, 0.0, 0.0, 1.0],
-       image_dimension: [1600, 1100],
-       distortion_coefficients: [0.1619446605610256, 0.6895456694944884, 0.0007598512503814833, -0.0021117860843568254],
+       image_dimension: [1280, 720],
+       distortion_coefficients: [-0.257822225559583, 0.12868864204607128, -0.00023320793452834238, -0.00018570825119829318],
        distortion_type: radialtangential,
-       focal_length: [1199.850077763, 1217.116118906], 
-       principal_point: [794.856516231, 551.236737914]}
+       focal_length: [975.3634442928654, 973.5932050291025], 
+       principal_point: [618.7855491266869, 381.0446927323722]} 
+    - {T_SC:
+       [-0.007231619221553465, 0.9999704620285179, 0.002603604022694883, -0.037733715816031306,
+        -0.5042035737069777, -0.00589476292685609, 0.8635647098111112, 0.24853116699169445,
+        0.8635545494898089, 0.0049322247017646315, 0.5042313092370847, -0.3659637304431311,
+          0.0, 0.0, 0.0, 1.0],
+       image_dimension: [1280, 720],
+       distortion_coefficients: [-0.25924461070370375, 0.13057363997336308, -4.735393791079903e-05, 0.000603538306088672],
+       distortion_type: radialtangential,
+       focal_length: [970.31110446077, 968.2698473016533], 
+       principal_point: [632.7325799100777, 376.31765626145125]} 
 
 camera_params:
-    camera_rate: 20 # just to manage the expectations of when there should be frames arriving
+    camera_rate: 30 # just to manage the expectations of when there should be frames arriving
     sigma_absolute_translation: 0.0 # The standard deviation of the camera extrinsics translation, e.g. 1.0e-10 for online-calib [m].
     sigma_absolute_orientation: 0.0 # The standard deviation of the camera extrinsics orientation, e.g. 1.0e-3 for online-calib [rad].
     sigma_c_relative_translation: 0.0 # The std. dev. of the cam. extr. transl. change between frames, e.g. 1.0e-6 for adaptive online calib (not less for numerics) [m].
@@ -36,36 +32,36 @@ camera_params:
 imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
-    sigma_g_c: 5.69024e-04 # gyro noise density [rad/s/sqrt(Hz)] 5.69024e-05
-    sigma_a_c: 3.83854e-03  # accelerometer noise density [m/s^2/sqrt(Hz)] 3.83854e-04
-    sigma_bg: 0.03 # gyro bias prior [rad/s]
-    sigma_ba: 0.1 # accelerometer bias prior [m/s^2]
-    sigma_gw_c: 9.41390e-05 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
-    sigma_aw_c: 1.90014e-03 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
+
+    # Gyroscope
+    sigma_g_c: 0.0025411490629492976 # gyro noise density [rad/s/sqrt(Hz)] 
+    
+    sigma_bg: 8.55368076515601e-07 # gyro bias prior [rad/s]
+    
+    # Accelerometer [m/s^2/sqrt(Hz)]
+    sigma_a_c: 0.008330529915907017 # original
+
+    sigma_ba: 2.34304645114941e-05 # accelerometer bias prior [m/s^2]
+    
+    sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
+    sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
     tau: 3600.0 # reversion time constant, currently not in use [s]
     g: 9.81007 # Earth's acceleration due to gravity [m/s^2]
     a0: [ 0.0, 0.0, 0.0 ] # Accelerometer bias [m/s^2]
     imu_rate: 100
     # tranform Body-Sensor (IMU)
     T_BS:
-        [1.0000, 0.0000, 0.0000, 0.0000,
-         0.0000, 1.0000, 0.0000, 0.0000,
-         0.0000, 0.0000, 1.0000, 0.0000,
+        [0.0000, 0.0000, 1.0000, -0.018,
+         1.0000, 0.0000, 0.0000, -0.016,
+         0.0000, 1.0000, 0.0000, 0.0,
          0.0000, 0.0000, 0.0000, 1.0000]
 
-# mag_params:
-#     sigma_m_c: 0.0204555   #0.013637 * 5.0
-#     sigma_mw_c: 5.0142e-03
-#     T_SM: [1.0000, 0.0000, 0.0000, 0.0000,
-#          0.0000, 1.0000, 0.0000, 0.0000,
-#          0.0000, 0.0000, 1.0000, 0.0000,
-#          0.0000, 0.0000, 0.0000, 1.0000]
-#     b0: [2.24643740459736, -0.429177442071548, 6.20682644531343]
-#     A0: [0.959106568610500, 0.00548336648142209, 0.0183519125272094,
-#          0.00548336648142209, 1.02126059248023, 0.0160196098481661,
-#          0.0183519125272094, 0.0160196098481661,1.02156190329362]
-#     rate: 100
-#     yaw_std: 5.0
+sonar_params:
+    T_SSo:
+        [0.0000, 1.0000, 0.0000, 0.015995,
+         -1.0000, 0.0000, 0.0000, 0.125,
+         0.0000, 0.0000, 1.0000, 0.128,
+         0.0000, 0.0000, 0.0000, 1.0000] # Stereo Rig V2
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
@@ -79,9 +75,9 @@ ceres_options:
 
 # detection
 detection_options:
-    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels (20 to 40)
+    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 400  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    maxNoKeypoints: 100  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -117,7 +113,7 @@ isSonarUsed: false
 # Transformation from IMU frame (S) to Depth sensor frame (D)
 # For Stereo Rig V2: depth sensor mounted behind rig 
 # T_SD: R_StoD | p_SinD
-isDepthUsed: true
+isDepthUsed: false
 depth_params:
     T_SD:
         [1.00,  0.000,  0.000,  0.22,
@@ -128,7 +124,7 @@ depth_params:
 
 # DVL sensor parameters
 # Transformation from IMU frame (S) to DVL sensor frame (V)
-isDVLUsed: true
+isDVLUsed: false
 dvl_params:
     T_SV:
         [1.00,  0.000,  0.000,  1.22,
@@ -139,7 +135,7 @@ dvl_params:
 
 isRelocalization: true
 histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
-claheClipLimit: 2.0
+claheClipLimit: 2.0 
 claheTilesGridSize: 4
 resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
@@ -150,8 +146,8 @@ loop_closure_params:
     pnp_ransac_iterations: 100
     keyframe_queue: 10 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
     max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
-    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters) 
-                     
+    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+                      
 health:
     enable: 0
     min_keypoints: 15

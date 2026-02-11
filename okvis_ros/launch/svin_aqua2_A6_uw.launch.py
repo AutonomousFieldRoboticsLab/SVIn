@@ -27,7 +27,7 @@ def launch_setup(context, *args, **kwargs):
     remappings=[
       ('/camera0', '/cam0/image_raw'),
       ('/camera1', '/cam1/image_raw'),
-      ('/imu', '/a6/imu/imu/data')
+      ('/imu', '/a6/imu/filtered_data')
     ]
   )
 
@@ -62,7 +62,7 @@ def generate_launch_description():
     default_value=PathJoinSubstitution([
       FindPackageShare('okvis_ros'),
       'config',
-      'config_aqua2.yaml'
+      'config_aqua2_A6_BBDOS26_1280_720.yaml'
     ])
   )
 

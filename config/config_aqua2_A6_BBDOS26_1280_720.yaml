@@ -1,20 +1,28 @@
 %YAML:1.0
 cameras:
     - {T_SC:
-       [-0.0009642618676621306, 0.9999687714302776, 0.007843874251458993, 0.050605485921057694,
-        -0.5030071352564118, -0.007264339339296211, 0.8642517291015983, 0.2478597480067051,
-        0.8642817203205153, -0.003112159730104147, 0.502998431788436, -0.3663233237156649,
+       [-0.0009642618676621306, -0.5030071352564118,  0.8642817203205153,  0.4413305711451009,
+        0.9999687714302776, -0.007264339339296211, -0.003112159730104147, -0.049943424962304916,
+        0.007843874251458993, 0.8642517291015983, 0.502998431788436, -0.03035010150097306,
           0.0, 0.0, 0.0, 1.0],
+        # [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
+        # 0.99825455, -0.02099889, 0.05519876, -0.04791664,
+        # -0.009273, 0.86732768, 0.49765118, -0.02872042,
+        # 0.0, 0.0, 0.0, 1.0],
        image_dimension: [1280, 720],
        distortion_coefficients: [-0.257822225559583, 0.12868864204607128, -0.00023320793452834238, -0.00018570825119829318],
        distortion_type: radialtangential,
        focal_length: [975.3634442928654, 973.5932050291025], 
        principal_point: [618.7855491266869, 381.0446927323722]} 
     - {T_SC:
-       [-0.007231619221553465, 0.9999704620285179, 0.002603604022694883, -0.037733715816031306,
-        -0.5042035737069777, -0.00589476292685609, 0.8635647098111112, 0.24853116699169445,
-        0.8635545494898089, 0.0049322247017646315, 0.5042313092370847, -0.3659637304431311,
+       [-0.007231619221553465, -0.5042035737069777, 0.8635545494898089, 0.44106707108261006,
+        0.9999704620285179, -0.00589476292685609, 0.0049322247017646315, 0.04100264889920208,
+        0.002603604022694883, 0.8635647098111112, 0.5042313092370847, -0.029994130513282063,
           0.0, 0.0, 0.0, 1.0],
+        # [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
+        # 0.9982831, -0.0545409, 0.02135733, 0.04401349,
+        # 0.037832, 0.87875672, 0.47576818, -0.02956853,
+        # 0.0, 0.0, 0.0, 1.0],
        image_dimension: [1280, 720],
        distortion_coefficients: [-0.25924461070370375, 0.13057363997336308, -4.735393791079903e-05, 0.000603538306088672],
        distortion_type: radialtangential,
@@ -33,15 +41,25 @@ imu_params:
     a_max: 176.0 # acceleration saturation [m/s^2]
     g_max: 7.8 # gyro saturation [rad/s]
 
-    # Gyroscope
-    sigma_g_c: 0.0025411490629492976 # gyro noise density [rad/s/sqrt(Hz)] 
+    # Gyroscope gyro noise density [rad/s/sqrt(Hz)]
+    sigma_g_c: 0.0025411490629492976 # original 
+    # sigma_g_c: 0.01270574531 # 5 times 
+    # sigma_g_c:  0.01778804344 # 7 times 
+    # sigma_g_c: 0.025411490629492976 # 10 times 
     
-    sigma_bg: 8.55368076515601e-07 # gyro bias prior [rad/s]
+    # gyro bias prior [rad/s]
+    sigma_bg: 8.55368076515601e-07 # original
+    # sigma_bg: 0.00000171073 # 2 times
     
     # Accelerometer [m/s^2/sqrt(Hz)]
     sigma_a_c: 0.008330529915907017 # original
+    # sigma_a_c:  0.04165264957 # 5 times 
+    # sigma_a_c: 0.08330529915907017 # 10 times
 
+    # accelerometer bias prior [m/s^2]
     sigma_ba: 2.34304645114941e-05 # accelerometer bias prior [m/s^2]
+    # sigma_ba: 2.34304645114941e-05 # 2 times
+    # sigma_ba: 0.00011715232 # 5 times
     
     sigma_gw_c: 0.0000165 # gyro drift noise density [rad/s^s/sqrt(Hz)] 0.00000165
     sigma_aw_c: 0.0002874 # accelerometer drift noise density [m/s^2/sqrt(Hz)] 0.00002874
@@ -75,12 +93,12 @@ ceres_options:
 
 # detection
 detection_options:
-    threshold: 20.0      # detection threshold. By default the uniformity radius in pixels
+    threshold: 30.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 100  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    maxNoKeypoints: 450  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
-imageDelay: 0.0  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
+imageDelay: -0.0282762  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
 
 # display debug images?
 displayImages: true  # displays debug video and keyframe matches. May be slow.
@@ -137,7 +155,7 @@ isRelocalization: true
 histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE
 claheClipLimit: 2.0 
 claheTilesGridSize: 4
-resizeFactor: 0.5  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
+resizeFactor: 0.6  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
 loop_closure_params:
     enable: 1  
@@ -160,6 +178,6 @@ global_map_params:
     min_landmark_quality: 0.01
 
 output_params:
-  debug: 0
+  debug: 1
   output_dir: ~/ros_ws/src/SVIn/pose_graph
   # does not detect ~, so full path is needed if the path is not detected, /tmp is used a default

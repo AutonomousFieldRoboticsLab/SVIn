@@ -52,8 +52,8 @@ imu_params:
     # sigma_bg: 0.00000171073 # 2 times
     
     # Accelerometer [m/s^2/sqrt(Hz)]
-    sigma_a_c: 0.008330529915907017 # original
-    # sigma_a_c:  0.04165264957 # 5 times 
+    # sigma_a_c: 0.008330529915907017 # original
+    sigma_a_c:  0.04165264957 # 5 times 
     # sigma_a_c: 0.08330529915907017 # 10 times
 
     # accelerometer bias prior [m/s^2]
@@ -131,12 +131,12 @@ isSonarUsed: false
 # Transformation from IMU frame (S) to Depth sensor frame (D)
 # For Stereo Rig V2: depth sensor mounted behind rig 
 # T_SD: R_StoD | p_SinD
-isDepthUsed: false
+isDepthUsed: true
 depth_params:
     T_SD:
-        [1.00,  0.000,  0.000,  0.22,
-          0.000, 1.000, 0.000,  0.035,
-          0.000, 0.000, 1.000,  0.07,
+        [0.999999530256411, -0.0009692698500854004, 1.707265572108268e-06, -0.17686201954485886,
+          0.0009692534251693474, 0.9999687689933204, -0.007843569709095888, -0.0050697631203522045,
+          5.8953233832979395e-06, 0.007843567679402313, 0.9999692387325242, -0.030139100121492957,
           0.000, 0.000, 0.000,  1.000]
     sigma_depth: 0.001 # depth measurement noise standard deviation [m]
 

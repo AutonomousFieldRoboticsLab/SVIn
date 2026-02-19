@@ -89,7 +89,7 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
 
   // Depth callback
   if (vioParameters_.sensorList.isDepthUsed){
-    subDepth_ = node_->create_subscription<depth_node_py::msg::Depth>(
+    subDepth_ = node_->create_subscription<nav_msgs::msg::Odometry>(
         "depth", rclcpp::SensorDataQoS(), 
         std::bind(&Subscriber::depthCallback, this, std::placeholders::_1), 
         options);
@@ -102,9 +102,6 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
         std::bind(&Subscriber::dvlCallback, this, std::placeholders::_1), 
         options);
   }
-
-  // subDepth_ = nh_->subscribe("/aqua/state", 1000, &Subscriber::depthCallback, this); // Aqua depth topic
-  // }
 
   tfBuffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
@@ -233,20 +230,10 @@ void Subscriber::relocCallback(const sensor_msgs::msg::PointCloud::SharedPtr rel
   // vioInterface_->addRelocMeasurement(
   //     okvis::Time(relo_msg->header.stamp.sec, relo_msg->header.stamp.nanosec), matched_ids, pose_W.r(), pose_W.q());
 }
-// @Sharmin
-// /*
-// // Aqua depth topic subscription
-// void Subscriber::depthCallback(const aquacore::StateMsg::ConstPtr& msg)
-// {
-//         vioInterface_->addDepthMeasurement(
-//                                           okvis::Time(msg->header.stamp.sec, msg->header.stamp.nsec),
-//                                           msg->Depth);
-// }
-// */
 
 
 // stereo rig depth topic subscription
-void Subscriber::depthCallback(const depth_node_py::msg::Depth::SharedPtr msg)
+void Subscriber::depthCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
   // RCLCPP_INFO(node_->get_logger(), 
   //             "Depth: %.3f m, variance: %.6f", 
@@ -254,7 +241,7 @@ void Subscriber::depthCallback(const depth_node_py::msg::Depth::SharedPtr msg)
   
   vioInterface_->addDepthMeasurement(
       okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
-      msg->depth);
+      msg->pose.pose.position.z);
 }
 
 // DVL subscriber callback

@@ -126,8 +126,7 @@ class Subscriber {
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
 
   /// @brief The Depth callback. @CMB
-  void depthCallback(const depth_node_py::msg::Depth::SharedPtr msg);
-  // void depthCallback(const aquacore::StateMsg::ConstPtr& msg); // Aqua Depth
+  void depthCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
   /// @brief The DVL callback. @CMB
   void dvlCallback(const waterlinked_a50_ros_driver::msg::DVL::SharedPtr msg);
@@ -147,7 +146,7 @@ class Subscriber {
   unsigned int imgRightCounter;                                    // @Sharmin
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subImu_;  ///< The IMU message subscriber.
   // ros::Subscriber subSonarRange_;                                ///< The Sonar Range Subscriber @Sharmin
-  rclcpp::Subscription<depth_node_py::msg::Depth>::SharedPtr subDepth_; ///< The Depth Subscriber @CMB
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subDepth_; ///< The Depth Subscriber @CMB
   rclcpp::Subscription<waterlinked_a50_ros_driver::msg::DVL>::SharedPtr subDVL_; ///< The DVL Subscriber @CMB
   rclcpp::Subscription<sensor_msgs::msg::PointCloud>::SharedPtr
       subReloPoints_;        ///< The Relocalization Points Subscriber from pose_graph @Sharmin

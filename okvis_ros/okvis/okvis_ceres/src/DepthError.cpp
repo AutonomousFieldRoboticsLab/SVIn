@@ -118,18 +118,17 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
       // Position Jacobian ∂e/∂p = e₃ᵀ = [0, 0, 1]
       J0_minimal.block<1,3>(0,0) = e3.transpose();  // [0, 0, 1, ...]
 
-      // // Rotation Jacobian: ∂e/∂θ = e₃ᵀ·R_ItoW·[p_DinI×]
+      // Rotation Jacobian: ∂e/∂θ = e₃ᵀ·R_ItoW·[p_DinI×]
       // Eigen::Vector3d p_IinD = T_SD_.r();
-      // // Eigen::Vector3d p_DinI = Eigen::Vector3d(-0.019, 0.032, -0.282);
       // Eigen::Vector3d p_DinI = T_SD_.C().transpose() * (-1 * p_IinD);
-      // Eigen::Matrix3d R_ItoW = T_WS.C();
-      // // Skew-symmetric matrix [p_DinI]×
+      // Eigen::Matrix3d R_ItoW = T_WS.C().transpose();
+      // Skew-symmetric matrix [p_DinI]×
       // Eigen::Matrix3d p_DinI_skew;
       // p_DinI_skew <<        0,      -p_DinI(2),  p_DinI(1),
       //                p_DinI(2),            0,   -p_DinI(0),
       //               -p_DinI(1),     p_DinI(0),           0;
 
-      // // Compute rotation Jacobian
+      // Compute rotation Jacobian
       // Eigen::RowVector3d J_rotation = e3.transpose() * R_ItoW * p_DinI_skew;
       // J0_minimal.block<1,3>(0,3) = J_rotation;  // [..., J_θx, J_θy, J_θz, 0]
 

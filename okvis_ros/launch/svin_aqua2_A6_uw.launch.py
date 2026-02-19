@@ -27,7 +27,8 @@ def launch_setup(context, *args, **kwargs):
     remappings=[
       ('/camera0', '/cam0/image_raw'),
       ('/camera1', '/cam1/image_raw'),
-      ('/imu', '/a6/imu/filtered_data')
+      ('/imu', '/a6/imu/filtered_data'),
+      ('/depth', '/a6/depth_stamped')
     ]
   )
 

@@ -103,6 +103,14 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
         options);
   }
 
+  // 3D Sonar Odometry callback  @CMB
+  if (vioParameters_.sensorList.is3DSonarOdomUsed){
+    sub3DSonarOdom_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+        "sonar3dOdom", rclcpp::QoS(10),
+        std::bind(&Subscriber::sonar3dOdomCallback, this, std::placeholders::_1),
+        options);
+  }
+
   tfBuffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   tfListener_ = std::make_shared<tf2_ros::TransformListener>(*tfBuffer_);
   imgTransport_ = 0;
@@ -258,6 +266,37 @@ void Subscriber::dvlCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
       Eigen::Vector3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z),
       Eigen::Vector3d(msg->twist.covariance[0], msg->twist.covariance[7], msg->twist.covariance[14]));  // Assuming covariance is in row-major order
 } 
+
+// 3D Sonar Odometry subscriber callback  @CMB
+void Subscriber::sonar3dOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+  const Eigen::Quaterniond orientation(
+      msg->pose.pose.orientation.w,
+      msg->pose.pose.orientation.x,
+      msg->pose.pose.orientation.y,
+      msg->pose.pose.orientation.z);
+  const Eigen::Vector3d position(
+      msg->pose.pose.position.x,
+      msg->pose.pose.position.y,
+      msg->pose.pose.position.z);
+  Eigen::Matrix<double, 6, 6> covariance;
+  for (int r = 0; r < 6; ++r)
+    for (int c = 0; c < 6; ++c)
+      covariance(r, c) = msg->pose.covariance[r * 6 + c];
+
+  LOG(INFO) << std::setprecision(3) << std::fixed
+           << "Received 3D Sonar Odometry - Position: [" << position.transpose() << "] m, "
+           << "Orientation (quaternion): [" << orientation.coeffs().transpose() << "], "
+           << "Covariance (position [m^2], orientation [rad^2]): ["
+           << covariance.block<3, 3>(0, 0).diagonal().transpose() << ", "
+           << covariance.block<3, 3>(3, 3).diagonal().transpose() << "]";  
+
+  vioInterface_->add3DSonarOdomMeasurement(
+      okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
+      orientation,
+      position,
+      covariance);
+}
 
 // Watchdog tick: freeze when both IMU and camera inactive longer than threshold
 void Subscriber::watchdogTick() {

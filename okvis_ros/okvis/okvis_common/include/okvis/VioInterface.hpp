@@ -197,6 +197,15 @@ class VioInterface {
   /// \param covariance  Covariance of the velocity measurement
   virtual bool addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const Eigen::Vector3d& covariance) = 0;
 
+  /// \brief Add a 3D Sonar odometry measurement.
+  /// \param stamp The measurement timestamp.
+  /// \param T_3dS_odom The 3D Sonar odometry
+  /// \param covariance The covariance of the 3D Sonar odometry measurement
+  virtual bool add3DSonarOdomMeasurement(const okvis::Time& stamp, 
+                                         const Eigen::Quaterniond& orientation,
+                                         const Eigen::Vector3d& position,
+                                         const Eigen::Matrix<double, 6, 6>& covariance) = 0;
+                                         
   /// @Sharmin
   /// \brief          Add an Sonar measurement.
   /// \param stamp    The measurement timestamp.

@@ -151,6 +151,9 @@ void ThreadedKFVio::init() {
   if (parameters_.sensorList.isDVLUsed) {
     estimator_.addDVL(parameters_.dvl);
   }
+  if (parameters_.sensorList.is3DSonarOdomUsed){
+    estimator_.add3DSonarOdom(parameters_.threeDsonarOdom);
+  }
   for (size_t i = 0; i < numCameras_; ++i) {
     // parameters_.camera_extrinsics is never set (default 0's)...
     // do they ever change?
@@ -197,6 +200,10 @@ void ThreadedKFVio::startThreads() {
     dvlConsumerThread_ = std::thread(&ThreadedKFVio::dvlConsumerLoop, this);  // @CMB
   }
 
+  if (parameters_.sensorList.is3DSonarOdomUsed) {
+    threeDsonarOdomConsumerThread_ = std::thread(&ThreadedKFVio::threeDSonarOdomConsumerLoop, this);  // @CMB
+  }
+
   positionConsumerThread_ = std::thread(&ThreadedKFVio::positionConsumerLoop, this);
   gpsConsumerThread_ = std::thread(&ThreadedKFVio::gpsConsumerLoop, this);
   magnetometerConsumerThread_ = std::thread(&ThreadedKFVio::magnetometerConsumerLoop, this);
@@ -228,6 +235,10 @@ ThreadedKFVio::~ThreadedKFVio() {
     dvlMeasurementsReceived_.Shutdown();  // @CMB
   }
 
+  if (parameters_.sensorList.is3DSonarOdomUsed) {
+    threeDsonarMeasurementsReceived_.Shutdown();  // @CMB
+  }
+
   optimizationResults_.Shutdown();
   visualizationData_.Shutdown();
   imuFrameSynchronizer_.shutdown();
@@ -253,6 +264,10 @@ ThreadedKFVio::~ThreadedKFVio() {
 
   if (parameters_.sensorList.isDVLUsed) {
     dvlConsumerThread_.join();
+  }
+
+  if (parameters_.sensorList.is3DSonarOdomUsed) {
+    threeDsonarOdomConsumerThread_.join();
   }
 
   positionConsumerThread_.join();
@@ -379,6 +394,37 @@ bool ThreadedKFVio::addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vec
   } else {
     dvlMeasurementsReceived_.PushNonBlockingDroppingIfFull(dvl_measurement, maxDVLInputQueueSize_);
     return dvlMeasurementsReceived_.Size() == 1;
+  }
+}
+
+bool ThreadedKFVio::add3DSonarOdomMeasurement(const okvis::Time& stamp,
+                                     const Eigen::Quaterniond& orientation,
+                                     const Eigen::Vector3d& position,
+                                     const Eigen::Matrix<double, 6, 6>& covariance){
+
+  if (!frontend_.isInitialized()) {
+    VLOG(3) << "VIO frontend is not initialized yet. Dropping 3D Sonar Odom measurement.";
+    return false;
+  }
+    
+  okvis::ThreeDSonarOdomMeasurement sonar_odom_measurement;
+  sonar_odom_measurement.timeStamp = stamp;
+  sonar_odom_measurement.measurement.position = position;
+  sonar_odom_measurement.measurement.orientation = orientation;
+  sonar_odom_measurement.measurement.covariance = covariance;
+
+  LOG(INFO) << std::fixed << std::setprecision(3) 
+            << "3D Sonar Odom measurement received at time: " << stamp.toSec() 
+            << " with position: " << position.transpose() 
+            << " and orientation (quaternion): [" << orientation.w() << ", " << orientation.x() << ", "
+            << orientation.y() << ", " << orientation.z() << "]";
+
+  if (blocking_) {
+    threeDsonarMeasurementsReceived_.PushBlockingIfFull(sonar_odom_measurement, 1);
+    return true;
+  } else {
+    threeDsonarMeasurementsReceived_.PushNonBlockingDroppingIfFull(sonar_odom_measurement, max3DSonarOdomInputQueueSize_);
+    return threeDsonarMeasurementsReceived_.Size() == 1;
   }
 }
 
@@ -989,6 +1035,67 @@ void ThreadedKFVio::matchingLoop() {
         } // while
       }
     }
+
+    // 3D Sonar data
+    okvis::ThreeDSonarOdomMeasurementDeque threeDSonarData;
+    if (parameters_.sensorList.is3DSonarOdomUsed && frontend_.isInitialized()) {
+    
+      okvis::Time currentFrameTime = frame->timestamp();
+      okvis::Time lastFrameTime    = lastAddedStateTimestamp_;
+
+      OKVIS_ASSERT_TRUE_DBG(
+          Exception, lastFrameTime < currentFrameTime, "Current state time is behind the begin time.");
+
+      std::lock_guard<std::mutex> lock(threeDsonarOdomMeasurements_mutex_);
+
+      if (!threeDsonarMeasurements_.empty()){
+
+        LOG(INFO) << std::fixed << std::setprecision(3)
+          << "======= 3DSonar Retrieval START ======"
+          << "\nLastFrameTimestamp: "    << lastFrameTime.toSec()    << " s"
+          << "\nCurrentFrameTimestamp: " << currentFrameTime.toSec() << " s"
+          << "\n3DSonar buffer size: "   << threeDsonarMeasurements_.size();
+
+        auto iter = threeDsonarMeasurements_.begin();
+        while (iter != threeDsonarMeasurements_.end()){
+          
+          // Case 1 : If measurement is old -> erase
+          if (iter->timeStamp <=lastFrameTime){
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "Erasing old 3DSonar @ " << iter->timeStamp.toSec() << " s";
+            iter = threeDsonarMeasurements_.erase(iter); // erase() returns the next iterator
+            continue; // Check next measurement
+          }
+
+          // Case 2: If measurement is in window -> USE it
+          if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime){
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "Found valid 3DSonar @ " << iter->timeStamp.toSec() << " s";
+
+            okvis::ThreeDSonarOdomMeasurement threeDsonar_odom_measurement = *iter;
+
+            // Add to threeDSonarData deque
+            threeDSonarData.push_back(threeDsonar_odom_measurement);
+
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "3DSonar Position: " << threeDsonar_odom_measurement.measurement.position.transpose() << " m"          
+              << "\n 3DSonar Timestamp: " << threeDsonar_odom_measurement.timeStamp.toSec() << " s";
+            
+            break;
+          }
+          // Case 3 : If measurement is in future -> STOP
+          if (iter->timeStamp > currentFrameTime){
+            LOG(INFO) << std::fixed << std::setprecision(3)
+              << "3DSonar measurement @ " << iter->timeStamp.toSec() 
+              << " is in future. Stop searching.";
+            break;
+          }
+          ++iter;
+        } // while
+      }
+
+
+    }  
     
 
     // make sure that optimization of last frame is over.
@@ -1187,6 +1294,23 @@ void ThreadedKFVio::sonarConsumerLoop() {
     // sonarFrameSynchronizer_.gotSonarData(data.timeStamp);
 
     processSonarTimer.stop();
+  }
+}
+
+// Loop to process 3D Sonar Odometry measurements.  @CMB
+void ThreadedKFVio::threeDSonarOdomConsumerLoop() {
+  okvis::ThreeDSonarOdomMeasurement data;
+  for (;;) {
+    if (threeDsonarMeasurementsReceived_.PopBlocking(&data) == false) return;
+    {
+      std::lock_guard<std::mutex> lock(threeDsonarOdomMeasurements_mutex_);
+      if (!threeDsonarMeasurements_.empty()) {
+        OKVIS_ASSERT_TRUE(Exception,
+                          threeDsonarMeasurements_.back().timeStamp < data.timeStamp,
+                          "3D Sonar Odom measurement from the past received");
+      }
+      threeDsonarMeasurements_.push_back(data);
+    }
   }
 }
 

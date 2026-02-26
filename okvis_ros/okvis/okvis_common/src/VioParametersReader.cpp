@@ -280,6 +280,9 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   success = parseBoolean(file["isDVLUsed"], vioParameters_.sensorList.isDVLUsed);
   OKVIS_ASSERT_TRUE(Exception, success, "'isDVLUsed' parameter missing in configuration file.");
 
+  success = parseBoolean(file["is3DSonarOdomUsed"], vioParameters_.sensorList.is3DSonarOdomUsed);
+  OKVIS_ASSERT_TRUE(Exception, success, "'is3DSonarOdomUsed' parameter missing in configuration file.");
+
   if (file["histogramMethod"].isString()) {
     std::string histogram_method = static_cast<std::string>(file["histogramMethod"]);
     if (histogram_method == "NONE" || histogram_method == "none") {
@@ -387,6 +390,47 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     } else {
       vioParameters_.dvl.sigma_velocity = 0.005;  // Default value
       LOG(WARNING) << "DVL sensor sigma_velocity not found in config, using default: 0.005 m/s";
+    }
+
+  }
+
+  // 3D sonar odometry parameters
+  if (vioParameters_.sensorList.is3DSonarOdomUsed) {
+  
+    cv::FileNode T_SL_ = file["3dS_params"]["T_SL"];
+    OKVIS_ASSERT_TRUE(
+    Exception, T_SL_.isSeq(), "'T_SL' parameter missing in the configuration file or in the wrong format.")
+
+    Eigen::Matrix4d T_SL_e;
+    T_SL_e << T_SL_[0],  T_SL_[1],  T_SL_[2],  T_SL_[3],
+                T_SL_[4],  T_SL_[5],  T_SL_[6],  T_SL_[7],
+                T_SL_[8],  T_SL_[9],  T_SL_[10], T_SL_[11],
+                T_SL_[12], T_SL_[13], T_SL_[14], T_SL_[15];
+
+    vioParameters_.threeDsonarOdom.T_SL = okvis::kinematics::Transformation(T_SL_e);
+    std::stringstream ss;
+    ss << vioParameters_.threeDsonarOdom.T_SL.T();
+    LOG(INFO) << "3D sonar odometry with transformation T_SL=\n" << ss.str();
+
+    // Read sigma_position
+    cv::FileNode sigma_position_node = file["sonar3d_params"]["sigma_position"];
+    if (!sigma_position_node.empty()) {
+      vioParameters_.threeDsonarOdom.sigma_position = static_cast<double>(sigma_position_node);
+      LOG(INFO) << "3D Sonar sigma_position: " << std::setprecision(6) << std::fixed
+                << vioParameters_.threeDsonarOdom.sigma_position << " m";
+    } else {
+      vioParameters_.threeDsonarOdom.sigma_position = 0.01;  // Default value
+      LOG(WARNING) << "3D Sonar sigma_position not found in config, using default: 0.01 m";
+    }
+    // Read sigma_orientation
+    cv::FileNode sigma_orientation_node = file["sonar3d_params"]["sigma_orientation"];
+    if (!sigma_orientation_node.empty()) {
+      vioParameters_.threeDsonarOdom.sigma_orientation = static_cast<double>(sigma_orientation_node);
+      LOG(INFO) << "3D Sonar sigma_orientation: " << std::setprecision(6) << std::fixed
+                << vioParameters_.threeDsonarOdom.sigma_orientation << " rad";
+    } else {
+      vioParameters_.threeDsonarOdom.sigma_orientation = 0.001;  // Default value
+      LOG(WARNING) << "3D Sonar sigma_orientation not found in config, using default: 0.001 rad";
     }
 
   }

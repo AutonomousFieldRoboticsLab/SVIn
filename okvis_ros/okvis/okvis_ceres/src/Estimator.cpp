@@ -108,6 +108,12 @@ int Estimator::addDVL(const DVLSensorParameters& dvlParameters) {
   return 0;
 }
 
+// Add 3D Sonar Odom to the configuration.
+int Estimator::add3DSonarOdom(const ThreeDSonarOdomParameters& threeDsonarOdomParameters) {
+  threeDsonarOdomParameters_ = threeDsonarOdomParameters;
+  return 0;
+}
+
 // Remove all cameras from the configuration
 void Estimator::clearCameras() { extrinsicsEstimationParametersVec_.clear(); }
 

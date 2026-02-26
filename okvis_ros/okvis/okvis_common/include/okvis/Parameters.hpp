@@ -61,6 +61,7 @@ struct SensorList {
   bool isSonarUsed;
   bool isDepthUsed;
   bool isDVLUsed;
+  bool is3DSonarOdomUsed;
 };
 
 // Sharmin: Read from config file.
@@ -216,6 +217,18 @@ struct DVLSensorParameters {
   double sigma_velocity;  ///< Standard deviation of velocity measurement [m/s].
 };
 
+/*!
+ * \brief 3D Sonar Odom sensor parameters.
+ *
+ * A simple struct to specify properties of a 3D sonar odom sensor.
+ *
+ */
+struct ThreeDSonarOdomParameters{
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  okvis::kinematics::Transformation T_SL;  ///< Transformation from IMU frame (IMU frame S) to 3D Sonar (3D Sonar frame 3D).
+  double sigma_position; ///< Standard deviation of position measurement [m].
+  double sigma_orientation; ///< Standard deviation of orientation measurement [rad].
+};
 
 /*!
  * \brief Position sensor parameters.
@@ -386,6 +399,7 @@ struct VioParameters {
   SonarParameters sonar;                ///< Sharmin: sonar parameters (T_SSo)
   DepthSensorParameters depth;          ///< Depth sensor parameters (T_SD)
   DVLSensorParameters dvl;              ///< DVL sensor parameters (T_SV)
+  ThreeDSonarOdomParameters threeDsonarOdom; ///< 3D Sonar Odom parameters (T_SL)
   ResetPoseParameters resetableParams;  ///< Hunter: Reset pose parameters
 };
 

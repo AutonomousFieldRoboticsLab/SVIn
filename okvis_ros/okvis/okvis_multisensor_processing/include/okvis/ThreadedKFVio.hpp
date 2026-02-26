@@ -172,6 +172,16 @@ class ThreadedKFVio : public VioInterface {
   /// \param covariance  Covariance of the velocity measurement
   virtual bool addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const Eigen::Vector3d& covariance);
 
+  /// \brief              Add a 3D Sonar odometry measurement.
+  /// \param stamp        The measurement timestamp.
+  /// \param position     Position measurement in world frame [m]
+  /// \param orientation  Orientation measurement as quaternion (qx, qy, qz, qw)
+  /// \param covariance   6x6 pose covariance [x,y,z,rx,ry,rz] following nav_msgs/Odometry convention
+  virtual bool add3DSonarOdomMeasurement(const okvis::Time& stamp,
+                                     const Eigen::Quaterniond& orientation,
+                                     const Eigen::Vector3d& position,
+                                     const Eigen::Matrix<double, 6, 6>& covariance);
+
   /// @Sharmin
   /// \brief          Add an Sonar measurement.
   /// \param stamp    The measurement timestamp.
@@ -274,6 +284,9 @@ class ThreadedKFVio : public VioInterface {
 
   /// \brief Loop to process DVL measurements.
   void dvlConsumerLoop();
+
+  /// \brief Loop to process 3DSonar Odometry measurements.
+  void threeDSonarOdomConsumerLoop();
 
   /// \brief Loop to process position measurements.
   /// \warning Not implemented.
@@ -412,9 +425,14 @@ class ThreadedKFVio : public VioInterface {
   /// Depth measurement input queue.
   okvis::threadsafe::ThreadSafeQueue<okvis::DepthMeasurement> depthMeasurementsReceived_;
 
-  /// @Sharmin
+  /// @cmb
   /// DVL measurement input queue.
   okvis::threadsafe::ThreadSafeQueue<okvis::DVLMeasurement> dvlMeasurementsReceived_;
+
+  /// @cmb
+  /// 3D Sonar Odometry measurement input queue.
+  okvis::threadsafe::ThreadSafeQueue<okvis::ThreeDSonarOdomMeasurement> threeDsonarMeasurementsReceived_;  ///< @CMB
+
 
   /// @}
   /// @name Measurement operation queues.
@@ -432,6 +450,8 @@ class ThreadedKFVio : public VioInterface {
   okvis::SonarMeasurementDeque sonarMeasurements_;  /// @Sharmin
   okvis::DepthMeasurementDeque depthMeasurements_;  /// @Sharmin
   okvis::DVLMeasurementDeque dvlMeasurements_;  /// @CMB
+  okvis::ThreeDSonarOdomMeasurementDeque threeDsonarMeasurements_;  ///< @CMB
+
   /// \brief The Position measurements.
   /// \warning Lock with positionMeasurements_mutex_.
   okvis::PositionMeasurementDeque positionMeasurements_;
@@ -449,6 +469,7 @@ class ThreadedKFVio : public VioInterface {
   std::mutex sonarMeasurements_mutex_;     ///< Lock when accessing sonarMeasurements_ @Sharmin
   std::mutex depthMeasurements_mutex_;     ///< Lock when accessing depthMeasurements_ @Sharmin
   std::mutex dvlMeasurements_mutex_;       ///< Lock when accessing dvlMeasurements_ @CMB
+  std::mutex threeDsonarOdomMeasurements_mutex_;  ///< Lock when accessing threeDsonarMeasurements_ @CMB
   std::mutex imuMeasurements_mutex_;       ///< Lock when accessing imuMeasurements_
   std::mutex positionMeasurements_mutex_;  ///< Lock when accessing imuMeasurements_
   std::mutex frameSynchronizer_mutex_;     ///< Lock when accessing the frameSynchronizer_.
@@ -471,6 +492,7 @@ class ThreadedKFVio : public VioInterface {
   std::thread sonarConsumerThread_;                   ///< Thread running sonarConsumerLoop().   @Sharmin
   std::thread depthConsumerThread_;                   ///< Thread running depthConsumerLoop().   @Sharmin
   std::thread dvlConsumerThread_;                     ///< Thread running dvlConsumerLoop().   @CMB
+  std::thread threeDsonarOdomConsumerThread_;          ///< Thread running threeDsonarOdomConsumerLoop().   @CMB
   std::thread positionConsumerThread_;                ///< Thread running positionConsumerLoop().
   std::thread gpsConsumerThread_;                     ///< Thread running gpsConsumerLoop().
   std::thread magnetometerConsumerThread_;            ///< Thread running magnetometerConsumerLoop().
@@ -514,6 +536,7 @@ class ThreadedKFVio : public VioInterface {
   double firstDepth_ = 0.0; // Depth of Global frame 
 
   const size_t maxDVLInputQueueSize_ = 10;
+  const size_t max3DSonarOdomInputQueueSize_ = 10;
 
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;

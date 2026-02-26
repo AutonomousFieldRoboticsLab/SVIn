@@ -117,6 +117,9 @@ class Estimator : public VioBackendInterface {
   int addDepth(const DepthSensorParameters& depthParameters);
 
   int addDVL(const DVLSensorParameters& dvlParameters);
+
+  int add3DSonarOdom(const ThreeDSonarOdomParameters& threeDsonarOdomParameters);
+
   /**
    * @brief Remove all cameras from the configuration
    */
@@ -623,6 +626,7 @@ class Estimator : public VioBackendInterface {
 
   okvis::DepthSensorParameters depthParameters_;  ///< Depth sensor parameters.
   okvis::DVLSensorParameters dvlParameters_;  ///< DVL sensor parameters.
+  okvis::ThreeDSonarOdomParameters threeDsonarOdomParameters_;  ///< 3D sonar odometry parameters.
 
   // loss function for reprojection errors
   std::shared_ptr<::ceres::LossFunction> cauchyLossFunctionPtr_;  ///< Cauchy loss.

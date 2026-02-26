@@ -124,7 +124,7 @@ isSonarUsed: false
 # Transformation from IMU frame (S) to Depth sensor frame (D)
 # For Stereo Rig V2: depth sensor mounted behind rig 
 # T_SD: transformation from depth frame to IMU frame S |  [ R_DtoS , p_DinS] | p_S = T_SD * p_D 
-isDepthUsed: true # Correct h_s = 0.975*h_f
+isDepthUsed: false # Correct h_s = 0.975*h_f
 depth_params:
     T_SD: 
         [0.999999530256411, -0.0009692698500854004, 1.707265572108268e-06, -0.17686201954485886,
@@ -136,7 +136,7 @@ depth_params:
 
 # DVL sensor parameters
 # T_SV: transformation from dvl frame to IMU frame S |  [ R_VtoS , p_VinS] | p_S = T_SV * p_V 
-isDVLUsed: true
+isDVLUsed: false
 dvl_params:
     T_SV:
         [0.999999530256411, -0.0009692698500854004, 1.707265572108268e-06, -0.22191183031156242,
@@ -144,6 +144,18 @@ dvl_params:
           5.8953233832979395e-06, 0.007843567679402313, 0.9999692387325242, 0.02026317587588274,
           0.000, 0.000, 0.000,  1.000]
     sigma_velocity: 0.09 # velocity measurement noise standard deviation [m/s]
+
+# 3D Sonar realtive sensor parameters
+# T_SL: transformation from 3D sonar frame to IMU frame S |  [ R_LtoS , p_LinS] | p_S = T_SL * p_L
+is3DSonarOdomUsed: true
+3dS_params:
+    T_SL:
+        [0.9862468258343937, -0.09268757943537663, 0.1368437495465809, 0.41799011160144334,
+         -0.107351779587803, -0.9887690131967909, 0.10397804242269817, -0.03917493072793546,
+          0.12566938655526477, -0.11723843467452487, -0.9851204775064965, 0.21029060140820321,
+          0.000, 0.000, 0.000,  1.000]
+    sigma_position: 0.01 # 3D Sonar relative pose measurement noise standard deviation [m/s]
+    sigma_orientation: 0.001 # 3D Sonar relative orientation measurement noise standard deviation [rad/s]
 
 isRelocalization: true
 histogramMethod: "CLAHE" # NONE, HISTOGRAM, CLAHE

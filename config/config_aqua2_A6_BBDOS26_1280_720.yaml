@@ -1,14 +1,11 @@
 %YAML:1.0
 cameras:
+    # T_SC: transformation from camera frame to IMU frame S |  [ R_CtoS , p_CinS] | p_S = T_SC * p_C 
     - {T_SC:
        [-0.0009642618676621306, -0.5030071352564118,  0.8642817203205153,  0.4413305711451009,
         0.9999687714302776, -0.007264339339296211, -0.003112159730104147, -0.049943424962304916,
         0.007843874251458993, 0.8642517291015983, 0.502998431788436, -0.03035010150097306,
           0.0, 0.0, 0.0, 1.0],
-        # [-0.05832554, -0.49729442, 0.86561908, 0.4404166,
-        # 0.99825455, -0.02099889, 0.05519876, -0.04791664,
-        # -0.009273, 0.86732768, 0.49765118, -0.02872042,
-        # 0.0, 0.0, 0.0, 1.0],
        image_dimension: [1280, 720],
        distortion_coefficients: [-0.257822225559583, 0.12868864204607128, -0.00023320793452834238, -0.00018570825119829318],
        distortion_type: radialtangential,
@@ -19,10 +16,6 @@ cameras:
         0.9999704620285179, -0.00589476292685609, 0.0049322247017646315, 0.04100264889920208,
         0.002603604022694883, 0.8635647098111112, 0.5042313092370847, -0.029994130513282063,
           0.0, 0.0, 0.0, 1.0],
-        # [-0.04471672, -0.47414334, 0.87931138, 0.43962862,
-        # 0.9982831, -0.0545409, 0.02135733, 0.04401349,
-        # 0.037832, 0.87875672, 0.47576818, -0.02956853,
-        # 0.0, 0.0, 0.0, 1.0],
        image_dimension: [1280, 720],
        distortion_coefficients: [-0.25924461070370375, 0.13057363997336308, -4.735393791079903e-05, 0.000603538306088672],
        distortion_type: radialtangential,
@@ -53,8 +46,8 @@ imu_params:
     
     # Accelerometer [m/s^2/sqrt(Hz)]
     # sigma_a_c: 0.008330529915907017 # original
-    sigma_a_c:  0.04165264957 # 5 times 
-    # sigma_a_c: 0.08330529915907017 # 10 times
+    # sigma_a_c:  0.04165264957 # 5 times 
+    sigma_a_c: 0.08330529915907017 # 10 times
 
     # accelerometer bias prior [m/s^2]
     sigma_ba: 2.34304645114941e-05 # accelerometer bias prior [m/s^2]
@@ -83,7 +76,7 @@ sonar_params:
 
 # Estimator parameters
 numKeyframes: 5 # number of keyframes in optimisation window
-numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
+numImuFrames: 4 # number of frames linked by most recent nonlinear IMU error terms
 
 # ceres optimization options
 ceres_options:
@@ -130,24 +123,25 @@ isSonarUsed: false
 # Depth sensor parameters (Bar30 pressure sensor)
 # Transformation from IMU frame (S) to Depth sensor frame (D)
 # For Stereo Rig V2: depth sensor mounted behind rig 
-# T_SD: R_StoD | p_SinD
-isDepthUsed: true
+# T_SD: transformation from depth frame to IMU frame S |  [ R_DtoS , p_DinS] | p_S = T_SD * p_D 
+isDepthUsed: true # Correct h_s = 0.975*h_f
 depth_params:
-    T_SD:
+    T_SD: 
         [0.999999530256411, -0.0009692698500854004, 1.707265572108268e-06, -0.17686201954485886,
-          0.0009692534251693474, 0.9999687689933204, -0.007843569709095888, -0.0050697631203522045,
-          5.8953233832979395e-06, 0.007843567679402313, 0.9999692387325242, -0.030139100121492957,
-          0.000, 0.000, 0.000,  1.000]
+         0.0009692534251693474, 0.9999687689933204, -0.007843569709095888, -0.0050697631203522045,
+         5.8953233832979395e-06, 0.007843567679402313, 0.9999692387325242, -0.030139100121492957,
+        0.0, 0.0, 0.0, 1.0]
     sigma_depth: 0.001 # depth measurement noise standard deviation [m]
+    depth_scaling: 0.975 # scaling factor to convert fresh water depth measurements (h_f) to sal water depth measurements (h_s) 
 
 # DVL sensor parameters
-# Transformation from IMU frame (S) to DVL sensor frame (V)
-isDVLUsed: false
+# T_SV: transformation from dvl frame to IMU frame S |  [ R_VtoS , p_VinS] | p_S = T_SV * p_V 
+isDVLUsed: true
 dvl_params:
     T_SV:
-        [1.00,  0.000,  0.000,  1.22,
-          0.000, 1.000, 0.000,  2.035,
-          0.000, 0.000, 1.000,  3.07,
+        [0.999999530256411, -0.0009692698500854004, 1.707265572108268e-06, -0.22191183031156242,
+          0.0009692534251693474, 0.9999687689933204, -0.007843569709095888, 0.04599269984578925,
+          5.8953233832979395e-06, 0.007843567679402313, 0.9999692387325242, 0.02026317587588274,
           0.000, 0.000, 0.000,  1.000]
     sigma_velocity: 0.09 # velocity measurement noise standard deviation [m/s]
 
@@ -162,9 +156,9 @@ loop_closure_params:
     min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
     pnp_reprojection_threshold: 25.0 #increase for more loop closure, might result in false loop closure (8 to 30)
     pnp_ransac_iterations: 100
-    keyframe_queue: 10 #Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
-    max_yaw_diff: 30.0 #Max yaw difference between keyframe and query frame (degrees)
-    max_position_diff: 6.0 #Max position difference between keyframe and query frame (meters)
+    keyframe_queue: 10 # Use 1 for real-time on robot. Something around 5-10 could be ideal. -1 not to skip keyframes at all.
+    max_yaw_diff: 30.0 # Max yaw difference between keyframe and query frame (degrees)
+    max_position_diff: 6.0 # Max position difference between keyframe and query frame (meters)
                       
 health:
     enable: 0

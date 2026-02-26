@@ -200,7 +200,8 @@ struct SonarParameters {
 struct DepthSensorParameters {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   okvis::kinematics::Transformation T_SD;  ///< Transformation from IMU frame (IMU frame S) to Depth sensor (Depth frame D).
-  double sigma_depth;  ///< Standard deviation of depth measurement [m].
+  double sigma_depth;   ///< Standard deviation of depth measurement [m].
+  double depth_scaling; ///< Scaling factor to convert fresh water depth to salt water depth (h_s = scale * h_f).
 };
 
 /*!

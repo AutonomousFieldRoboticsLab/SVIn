@@ -28,7 +28,8 @@ def launch_setup(context, *args, **kwargs):
       ('/camera0', '/cam0/image_raw'),
       ('/camera1', '/cam1/image_raw'),
       ('/imu', '/a6/imu/filtered_data'),
-      ('/depth', '/a6/depth_stamped')
+      ('/depth', '/a6/depth_stamped'),
+      ('/dvl_vel', '/a6/dvl/velocity')
     ]
   )
 

@@ -169,7 +169,8 @@ class ThreadedKFVio : public VioInterface {
   /// \brief          Add an DVL measurement.
   /// \param stamp    The measurement timestamp.
   /// \param vel    Velocity measurement in meter
-  virtual bool addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const bool& velocityValid);
+  /// \param covariance  Covariance of the velocity measurement
+  virtual bool addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const Eigen::Vector3d& covariance);
 
   /// @Sharmin
   /// \brief          Add an Sonar measurement.

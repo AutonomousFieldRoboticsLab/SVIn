@@ -125,9 +125,11 @@ struct DepthReading {
 struct DVLReading {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Eigen::Vector3d velocity;  ///< velocity measurement in body frame (in m/s)
+  Eigen::Vector3d covariance;  ///< covariance of the velocity measurement (in m/s^2)
   double fom;               ///< figure of merit (quality of the measurement)
   double altitude;         ///< altitude measurement (in meter)
   bool velocity_valid; ///< validity of velocity measurement
+
 
   // // DVLBeam - velocity measurements from individual beams
   // double velocityBeam1;  ///< velocity measurement from beam 1 (in m/s)

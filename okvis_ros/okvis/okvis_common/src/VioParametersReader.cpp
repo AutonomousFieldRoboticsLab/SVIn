@@ -349,6 +349,16 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
       vioParameters_.depth.sigma_depth = 0.001;  // Default value
       LOG(WARNING) << "sigma_depth not found in config, using default: 0.1 m";
     }
+
+    // Read depth_scaling
+    cv::FileNode depth_scaling_node = file["depth_params"]["depth_scaling"];
+    if (!depth_scaling_node.empty()) {
+      vioParameters_.depth.depth_scaling = depth_scaling_node;
+      LOG(INFO) << "Depth sensor depth_scaling: " << vioParameters_.depth.depth_scaling;
+    } else {
+      vioParameters_.depth.depth_scaling = 1.0;  // No scaling by default
+      LOG(WARNING) << "depth_scaling not found in config, using default: 1.0";
+    }
   }
   // *****  End Sharmin: Additional config ******//
 

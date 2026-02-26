@@ -65,7 +65,7 @@ class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   /// \brief Number of residuals (3)
   static const int kNumResiduals = 1;
 
-  /// \brief The information matrix type (3x3).
+  /// \brief The information matrix type (1X1).
   typedef double information_t;
 
   /// \brief The covariance matrix type (same as information).
@@ -157,12 +157,12 @@ class DepthError : public ::ceres::SizedCostFunction<1 /* number of residuals */
   // the measurement
   double depth_;  ///< The depth measurement.
   double first_depth_;
-  okvis::kinematics::Transformation T_SD_;  ///< Transformation from IMU to depth sensor frame.
+  okvis::kinematics::Transformation T_SD_;  ///< Transformation from depth to imu sensor frame.
 
   // weighting related
-  information_t information_;            ///< The 6x6 information matrix.
-  information_t _squareRootInformation;  ///< The 6x6 square root information matrix.
-  covariance_t covariance_;              ///< The 6x6 covariance matrix.
+  information_t information_;            ///< The 1X1 information matrix.
+  information_t _squareRootInformation;  ///< The 1x1 square root information matrix.
+  covariance_t covariance_;              ///< The 1x1 covariance matrix.
 };
 
 }  // namespace ceres

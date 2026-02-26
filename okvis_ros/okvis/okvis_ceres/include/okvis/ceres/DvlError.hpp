@@ -31,8 +31,8 @@
  *********************************************************************************/
 
 /**
- * @file DVLError.hpp
- * @brief Header file for the DVLError class.
+ * @file DvlError.hpp
+ * @brief Header file for the DvlError class.
  * @author Chinmay Burgul
  */
 
@@ -52,36 +52,39 @@ namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
 namespace ceres {
 
-// [DVL] ToDo: number of residuals and size of parameter block (velocity, and ?)
 /// \brief Absolute error of a DVL measurement.
-class DVLError : public ::ceres::SizedCostFunction<3 /* number of residuals */, 7 /* size of first parameter */>,
+class DvlError : public ::ceres::SizedCostFunction<3 /* number of residuals */, 7 /* size of first parameter */, 9 /* size of second parameter */>,
                    public ErrorInterface {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
   /// \brief The base class type.
-  typedef ::ceres::SizedCostFunction<3, 7> base_t;
+  typedef ::ceres::SizedCostFunction<3, 7, 9> base_t;
 
   /// \brief Number of residuals (3)
   static const int kNumResiduals = 3;
 
+  // ToDo: Turn into matrix 
   /// \brief The information matrix type (3x3).
-  typedef double information_t;
+  typedef Eigen::Matrix3d information_t;
 
   /// \brief The covariance matrix type (same as information).
-  typedef double covariance_t;
+  typedef Eigen::Matrix3d covariance_t;
 
   /// \brief Default constructor.
-  DVLError();
+  DvlError();
 
   /// \brief Construct with homogeneous measurement and variance.
-  /// @param[in] measurement The measurement.
-  /// @param[in] variance The variance of the measurement, i.e. information_ has variance in its diagonal.
-  DVLError(const Eigen::Vector3d& velocity_m, const information_t& information);
+  /// @param[in] velocity_m The measurement vector (velocity in the DVL frame).
+  /// @param[in] covariance_diag The diagonal of the covariance matrix (variance of the measurement).
+  /// @param[in] T_SV The transformation from DVL to imu sensor frame.
+  DvlError(const Eigen::Vector3d& velocity_m, 
+           const Eigen::Vector3d& covariance_diag, 
+           const okvis::kinematics::Transformation& T_SV);
 
   /// \brief Trivial destructor.
-  virtual ~DVLError() {}
+  virtual ~DvlError() {}
 
   // setters
   /// \brief Set the measurement.
@@ -92,7 +95,13 @@ class DVLError : public ::ceres::SizedCostFunction<3 /* number of residuals */, 
 
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
-  void setInformation(const information_t& information);
+  void setInformation(const Eigen::Vector3d& covariance_diag);
+
+  /// \brief Set the transformation from IMU to depth sensor frame.
+  /// @param[in] T_SV The transformation.
+  void setTransformation(const okvis::kinematics::Transformation& T_SV) {
+    T_SV_ = T_SV;
+  }
 
   // getters
   /// \brief Get the measurement.
@@ -145,16 +154,17 @@ class DVLError : public ::ceres::SizedCostFunction<3 /* number of residuals */, 
   }
 
   /// @brief Return parameter block type as string
-  virtual std::string typeInfo() const { return "DVLError"; }
+  virtual std::string typeInfo() const { return "DvlError"; }
 
  protected:
   // the measurement
   Eigen::Vector3d velocity_m_;  ///< The velocity measurement.
+  okvis::kinematics::Transformation T_SV_;  ///< Transformation from DVL to imu sensor frame.
 
   // weighting related
-  information_t information_;            ///< The 6x6 information matrix.
-  information_t _squareRootInformation;  ///< The 6x6 square root information matrix.
-  covariance_t covariance_;              ///< The 6x6 covariance matrix.
+  information_t information_;            ///< The 3x3 information matrix.
+  information_t _squareRootInformation;  ///< The 3x3 square root information matrix.
+  covariance_t covariance_;              ///< The 3x3 covariance matrix.
 };
 
 }  // namespace ceres

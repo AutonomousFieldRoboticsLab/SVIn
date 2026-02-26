@@ -347,7 +347,7 @@ bool ThreadedKFVio::addDepthMeasurement(const okvis::Time& stamp, double depth) 
 }
 
 // Add DVL measurement
-bool ThreadedKFVio::addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const bool& velocityValid) {
+bool ThreadedKFVio::addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vector3d& vel, const Eigen::Vector3d& covariance) {
 
   // Continue further only if VIO is initialized
   if (!frontend_.isInitialized()) {
@@ -355,14 +355,21 @@ bool ThreadedKFVio::addDVLMeasurement(const okvis::Time& stamp, const Eigen::Vec
     return false;
   } 
   
+  // ToDo: Make a validity function using covariance of DVL 
+  // if (!velocityValid) {
+  //   LOG(WARNING) << "DVL velocity is invalid. Dropping DVL measurement.";
+  //   return false;
+  // }
+
   okvis::DVLMeasurement dvl_measurement;
+  LOG(INFO) << "DVL velocity is valid.";
   dvl_measurement.timeStamp = stamp;
   dvl_measurement.measurement.velocity = vel;
-  dvl_measurement.measurement.velocity_valid = velocityValid;
+  dvl_measurement.measurement.covariance = covariance;
   dvl_measurement.measurement.fom = 0.0;  // Initialize to default
   dvl_measurement.measurement.altitude = 0.0;  // Initialize to default
-  
-  LOG(INFO) << "DVL measurement received at time: " << stamp.toSec() 
+
+  LOG(INFO) << std::fixed << std::setprecision(3) << "DVL measurement received at time: " << stamp.toSec() 
              << " with vel: " << vel.transpose();
 
   // blocking mode is disabled when using ros2 bag play 
@@ -1119,7 +1126,6 @@ void ThreadedKFVio::depthConsumerLoop() {
   }
 }
 
-// @Sharmin
 // Consumer Thread | Loop to process dvl measurements. This infinite loop is runnning in a separate thread.
 void ThreadedKFVio::dvlConsumerLoop() {
 
@@ -1448,6 +1454,25 @@ void ThreadedKFVio::optimizationLoop() {
           parameters_.optimization.numKeyframes, parameters_.optimization.numImuFrames, result.transferredLandmarks);
       marginalizationTimer.stop();
       afterOptimizationTimer.start();
+
+      // Print all frames in the sliding window 
+      LOG(INFO) << "=== SLIDING WINDOW (" << estimator_.numFrames() << " frames) ===";
+      for (size_t n=0; n < estimator_.numFrames(); ++n){
+
+        uint64_t frameId = estimator_.frameIdByAge(n);
+        okvis::Time frameTime = estimator_.multiFrame(frameId)->timestamp();
+        
+        bool isKeyframe = estimator_.isKeyframe(frameId);
+        okvis::SpeedAndBias sb;
+        LOG(INFO) << "Frame " << n << ": ID=" << frameId << ", Time=" << frameTime.toSec() << " s, Keyframe=" << isKeyframe;
+
+        estimator_.getSpeedAndBias(frameId, 0, sb);
+        LOG(INFO) << std::fixed << std::setprecision(3)
+          << "  [age=" << n << "] t=" << frameTime.toSec()
+          << (isKeyframe ? " [KF]" : " [IMU]")
+          << " vel=[" << sb(0) << ", " << sb(1) << ", " << sb(2) << "] m/s";
+
+      } 
 
       // now actually remove measurements
       deleteImuMeasurements(deleteImuMeasurementsUntil);

@@ -46,6 +46,7 @@
 #include <okvis/MultiFrame.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/DepthError.hpp>
+#include <okvis/ceres/DvlError.hpp>
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
@@ -279,6 +280,10 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
       mean_depth = depthMeasurements.begin()->measurement.depth;
     }
 
+    // Apply depth scaling (fresh water → salt water conversion)
+    mean_depth *= depthParameters_.depth_scaling;
+    LOG(INFO) << "depth_scaling: " << depthParameters_.depth_scaling << ", scaled mean_depth: " << mean_depth << " m";
+
     // Depth sensor uncertainty from config file
     double sigma_depth = depthParameters_.sigma_depth;
     if (std::isnan(sigma_depth)) {
@@ -305,6 +310,17 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
               << dvlParameters_.T_SV.r()(0) << ", "
               << dvlParameters_.T_SV.r()(1) << ", "
               << dvlParameters_.T_SV.r()(2) << "] m";
+    LOG(INFO) << "DVL Corvavriance : " << std::setprecision(6) << std::fixed << dvlMeasurements.begin()->measurement.covariance.transpose() << " (m/s)^2";
+
+    // DVL error and related addResidualBlock
+    std::shared_ptr<ceres::DvlError> dvlError(new ceres::DvlError(dvlMeasurements.begin()->measurement.velocity, 
+                                              dvlMeasurements.begin()->measurement.covariance, 
+                                              dvlParameters_.T_SV));
+
+            
+    uint64_t sbId = states.sensors.at(SensorStates::Imu).at(0).at(ImuSensorStates::SpeedAndBias).id;
+    mapPtr_->addResidualBlock(dvlError, NULL, poseParameterBlock, mapPtr_->parameterBlockPtr(sbId));
+  
   }
 
   // @Sharmin

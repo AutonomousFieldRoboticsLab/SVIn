@@ -97,8 +97,8 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
 
   // DVL callback (remapped dvl topic to /dvl)
   if (vioParameters_.sensorList.isDVLUsed){
-    subDVL_ = node_->create_subscription<waterlinked_a50_ros_driver::msg::DVL>(
-        "dvl", rclcpp::SensorDataQoS(), 
+    subDVL_ = node_->create_subscription<nav_msgs::msg::Odometry>(
+        "dvl_vel", rclcpp::SensorDataQoS(), 
         std::bind(&Subscriber::dvlCallback, this, std::placeholders::_1), 
         options);
   }
@@ -244,8 +244,10 @@ void Subscriber::depthCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
       msg->pose.pose.position.z);
 }
 
+
 // DVL subscriber callback
-void Subscriber::dvlCallback(const waterlinked_a50_ros_driver::msg::DVL::SharedPtr msg)
+// void Subscriber::dvlCallback(const waterlinked_a50_ros_driver::msg::DVL::SharedPtr msg)
+void Subscriber::dvlCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
   // RCLCPP_INFO(node_->get_logger(), 
   //             "DVL Velocity: [%.3f, %.3f, %.3f] m/s", 
@@ -253,8 +255,8 @@ void Subscriber::dvlCallback(const waterlinked_a50_ros_driver::msg::DVL::SharedP
   
   vioInterface_->addDVLMeasurement(
       okvis::Time(msg->header.stamp.sec, msg->header.stamp.nanosec),
-      Eigen::Vector3d(msg->velocity.x, msg->velocity.y, msg->velocity.z),
-      msg->velocity_valid);
+      Eigen::Vector3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z),
+      Eigen::Vector3d(msg->twist.covariance[0], msg->twist.covariance[7], msg->twist.covariance[14]));  // Assuming covariance is in row-major order
 } 
 
 // Watchdog tick: freeze when both IMU and camera inactive longer than threshold

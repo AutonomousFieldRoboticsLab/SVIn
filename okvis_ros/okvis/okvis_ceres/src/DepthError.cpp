@@ -81,12 +81,6 @@ bool DepthError::EvaluateWithMinimalJacobians(double const* const* parameters,
       Eigen::Vector3d(parameters[0][0], parameters[0][1], parameters[0][2]),
       Eigen::Quaterniond(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]));
 
-  // Transforming World frame to Depth frame. So that, in current W-frame is aligned with depth direction(=Gravity
-  // direction).
-  okvis::kinematics::Transformation T_WD = T_WS * T_SD_;
-
-  Eigen::Vector3d T_DW = T_WD.inverse().r();
-
   // compute error
   double error = 0.0;
 

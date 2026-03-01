@@ -41,6 +41,7 @@
 #include <glog/logging.h>
 
 #include <algorithm>
+#include <limits>
 #include <list>
 #include <map>
 #include <memory>
@@ -1057,37 +1058,51 @@ void ThreadedKFVio::matchingLoop() {
           << "\n3DSonar buffer size: "   << threeDsonarMeasurements_.size();
 
         auto iter = threeDsonarMeasurements_.begin();
-        while (iter != threeDsonarMeasurements_.end()){
-          
-          // Case 1 : If measurement is old -> erase
-          if (iter->timeStamp <=lastFrameTime){
-            LOG(INFO) << std::fixed << std::setprecision(3)
-              << "Erasing old 3DSonar @ " << iter->timeStamp.toSec() << " s";
-            iter = threeDsonarMeasurements_.erase(iter); // erase() returns the next iterator
-            continue; // Check next measurement
+        while (iter != threeDsonarMeasurements_.end()) {
+
+          // Case 1: Old measurement — keep for interpolation, don't erase
+          if (iter->timeStamp <= lastFrameTime) {
+            ++iter;
+            continue;
           }
 
-          // Case 2: If measurement is in window -> USE it
-          if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime){
+          // Case 2: If measurement is in window -> build the full sonar stack
+          if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime) {
             LOG(INFO) << std::fixed << std::setprecision(3)
-              << "Found valid 3DSonar @ " << iter->timeStamp.toSec() << " s";
+                      << "Found valid 3DSonar @ " << iter->timeStamp.toSec() << " s";
 
-            okvis::ThreeDSonarOdomMeasurement threeDsonar_odom_measurement = *iter;
-
-            // Add to threeDSonarData deque
-            threeDSonarData.push_back(threeDsonar_odom_measurement);
+            // Push all measurements from begin through iter into the stack
+            for (auto it = threeDsonarMeasurements_.begin(); ; ++it) {
+              threeDSonarData.push_back(*it);
+              if (it == iter) break;
+            }
+            // Also push one beyond iter if available (for bracket interpolation)
+            auto next_iter = std::next(iter);
+            if (next_iter != threeDsonarMeasurements_.end()) {
+              threeDSonarData.push_back(*next_iter);
+            }
 
             LOG(INFO) << std::fixed << std::setprecision(3)
-              << "3DSonar Position: " << threeDsonar_odom_measurement.measurement.position.transpose() << " m"          
-              << "\n 3DSonar Timestamp: " << threeDsonar_odom_measurement.timeStamp.toSec() << " s";
-            
+                      << "3DSonar stack: " << threeDSonarData.size() << " measurements"
+                      << " [" << threeDSonarData.front().timeStamp.toSec()
+                      << "s .. " << threeDSonarData.back().timeStamp.toSec() << "s]";
+
+            // Clean up: erase entries before prev(iter) to prevent unbounded growth
+            if (iter != threeDsonarMeasurements_.begin()) {
+              auto keep_from = std::prev(iter);
+              if (keep_from != threeDsonarMeasurements_.begin()) {
+                threeDsonarMeasurements_.erase(threeDsonarMeasurements_.begin(), keep_from);
+              }
+            }
+
             break;
           }
-          // Case 3 : If measurement is in future -> STOP
-          if (iter->timeStamp > currentFrameTime){
+
+          // Case 3: If measurement is in future -> STOP
+          if (iter->timeStamp > currentFrameTime) {
             LOG(INFO) << std::fixed << std::setprecision(3)
-              << "3DSonar measurement @ " << iter->timeStamp.toSec() 
-              << " is in future. Stop searching.";
+                      << "3DSonar measurement @ " << iter->timeStamp.toSec()
+                      << " is in future. Stop searching.";
             break;
           }
           ++iter;
@@ -1109,7 +1124,7 @@ void ThreadedKFVio::matchingLoop() {
       okvis::Time t0Matching = okvis::Time::now();
       bool asKeyframe = false;
       // @Sharmin
-      if (estimator_.addStates(frame, imuData, asKeyframe, sonarData, depthData, firstDepth_, dvlData)) {
+      if (estimator_.addStates(frame, imuData, asKeyframe, sonarData, depthData, firstDepth_, dvlData, threeDSonarData)) {
         lastAddedStateTimestamp_ = frame->timestamp();
         addStateTimer.stop();
       } else {

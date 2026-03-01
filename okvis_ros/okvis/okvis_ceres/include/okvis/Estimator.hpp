@@ -145,7 +145,9 @@ class Estimator : public VioBackendInterface {
                  const okvis::SonarMeasurementDeque& sonarMeasurements = {},
                  const okvis::DepthMeasurementDeque& depthMeasurements = {},
                  double firstDepth = 0.0, 
-                 const okvis::DVLMeasurementDeque& dvlMeasurements = {});  // NOLINT
+                 const okvis::DVLMeasurementDeque& dvlMeasurements = {},
+                 const okvis::ThreeDSonarOdomMeasurementDeque& threeDsonarOdomMeasurements = {}
+                 );  // NOLINT
 
   /**
    * @brief Prints state information to buffer.

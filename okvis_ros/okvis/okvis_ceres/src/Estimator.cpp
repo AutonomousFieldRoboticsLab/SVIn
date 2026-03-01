@@ -52,6 +52,7 @@
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/RelativePoseError.hpp>
 #include <okvis/ceres/SonarError.hpp>
+#include <okvis/ceres/Sonar3DOdometryError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -127,7 +128,8 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
                           const okvis::SonarMeasurementDeque& sonarMeasurements, /* @Sharmin */
                           const okvis::DepthMeasurementDeque& depthMeasurements,
                           double firstDepth,
-                          const okvis::DVLMeasurementDeque& dvlMeasurements) {
+                          const okvis::DVLMeasurementDeque& dvlMeasurements, 
+                          const okvis::ThreeDSonarOdomMeasurementDeque& threeDsonarOdomMeasurements) {
   // Note Sharmin: this is for imu propagation no matter isScaleRefined_ is true/false.
   // TODO(Sharmin): Start actual optimization when isScaleRefined_ = true.
 
@@ -327,6 +329,221 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
     uint64_t sbId = states.sensors.at(SensorStates::Imu).at(0).at(ImuSensorStates::SpeedAndBias).id;
     mapPtr_->addResidualBlock(dvlError, NULL, poseParameterBlock, mapPtr_->parameterBlockPtr(sbId));
   
+  }
+
+  // @cmb — 3D Sonar Odometry with bracket interpolation
+  if (threeDsonarOdomMeasurements.size() >= 2) {
+
+    LOG(INFO) << "3D Sonar Odometry: stack of " << threeDsonarOdomMeasurements.size() << " measurements";
+    LOG(INFO) << "3D Sonar Odom sensor sigma_position: " << std::setprecision(6) << std::fixed
+              << threeDsonarOdomParameters_.sigma_position << " m";
+    LOG(INFO) << "3D Sonar Odom sensor sigma_orientation: " << std::setprecision(6) << std::fixed
+              << threeDsonarOdomParameters_.sigma_orientation << " rad";
+
+    if (statesMap_.size() > 1) {
+      // Current and previous state timestamps
+      okvis::Time t_current_state = states.timestamp;
+      okvis::Time t_previous_state = lastElementIterator->second.timestamp;
+
+      // Find [1]: first sonar measurement in (t_previous_state, t_current_state]
+      // Find [0]: the measurement just before [1] in the stack
+      int idx_new = -1, idx_old = -1;
+      for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()); ++i) {
+        if (threeDsonarOdomMeasurements[i].timeStamp > t_previous_state
+            && threeDsonarOdomMeasurements[i].timeStamp <= t_current_state) {
+          idx_new = i;
+          idx_old = i - 1;
+          break;
+        }
+      }
+
+      if (idx_old < 0 || idx_new < 0) {
+        LOG(INFO) << "3D Sonar Odom: no valid [0]/[1] pair found in stack";
+      } else {
+        okvis::Time t_old_sonar = threeDsonarOdomMeasurements[idx_old].timeStamp;
+        okvis::Time t_new_sonar = threeDsonarOdomMeasurements[idx_new].timeStamp;
+        double sonar_span = (t_new_sonar - t_old_sonar).toSec();
+
+        // Find closest state to old sonar timestamp
+        uint64_t closestStateId_old = 0;
+        double minTimeDiff_old = std::numeric_limits<double>::max();
+        for (auto it = statesMap_.begin(); it != statesMap_.end(); ++it) {
+          double dt = std::abs((it->second.timestamp - t_old_sonar).toSec());
+          if (dt < minTimeDiff_old) {
+            minTimeDiff_old = dt;
+            closestStateId_old = it->second.id;
+          }
+        }
+
+        // Find closest state to new sonar timestamp
+        uint64_t closestStateId_new = 0;
+        double minTimeDiff_new = std::numeric_limits<double>::max();
+        for (auto it = statesMap_.begin(); it != statesMap_.end(); ++it) {
+          double dt = std::abs((it->second.timestamp - t_new_sonar).toSec());
+          if (dt < minTimeDiff_new) {
+            minTimeDiff_new = dt;
+            closestStateId_new = it->second.id;
+          }
+        }
+
+        if (closestStateId_old != 0 && closestStateId_new != 0
+            && closestStateId_old != closestStateId_new) {
+
+          okvis::Time t_state_old = statesMap_.at(closestStateId_old).timestamp;
+          okvis::Time t_state_new = statesMap_.at(closestStateId_new).timestamp;
+          double state_span = (t_state_new - t_state_old).toSec();
+
+          // --- Bracket interpolation for t_state_old ---
+          const double kInterpThreshold = 0.005;  // 5ms
+          okvis::kinematics::Transformation T_L_old;
+          bool interp_old_ok = false;
+
+          // Check if any sonar measurement is within 5ms — use it directly
+          for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()); ++i) {
+            double dt = std::abs((threeDsonarOdomMeasurements[i].timeStamp - t_state_old).toSec());
+            if (dt <= kInterpThreshold) {
+              T_L_old = okvis::kinematics::Transformation(
+                  threeDsonarOdomMeasurements[i].measurement.position,
+                  threeDsonarOdomMeasurements[i].measurement.orientation);
+              interp_old_ok = true;
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "T_L_old: using sonar[" << i << "]=" << threeDsonarOdomMeasurements[i].timeStamp.toSec()
+                        << "s directly (dt=" << dt << "s <= 5ms threshold)";
+              break;
+            }
+          }
+
+          // Otherwise interpolate
+          if (!interp_old_ok) {
+            for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()) - 1; ++i) {
+              okvis::Time t_a = threeDsonarOdomMeasurements[i].timeStamp;
+              okvis::Time t_b = threeDsonarOdomMeasurements[i + 1].timeStamp;
+              if (t_a <= t_state_old && t_state_old <= t_b) {
+                double dt_ab = (t_b - t_a).toSec();
+                double alpha = (dt_ab > 1e-9) ? (t_state_old - t_a).toSec() / dt_ab : 0.0;
+                alpha = std::max(0.0, std::min(1.0, alpha));
+                Eigen::Vector3d pos = (1.0 - alpha) * threeDsonarOdomMeasurements[i].measurement.position
+                                      + alpha * threeDsonarOdomMeasurements[i + 1].measurement.position;
+                Eigen::Quaterniond ori = threeDsonarOdomMeasurements[i].measurement.orientation
+                                        .slerp(alpha, threeDsonarOdomMeasurements[i + 1].measurement.orientation);
+                T_L_old = okvis::kinematics::Transformation(pos, ori);
+                interp_old_ok = true;
+                LOG(INFO) << std::fixed << std::setprecision(3)
+                          << "Interp T_L_old: t_state=" << t_state_old.toSec()
+                          << "s between sonar[" << i << "]=" << t_a.toSec()
+                          << "s and sonar[" << i + 1 << "]=" << t_b.toSec()
+                          << "s (alpha=" << alpha << ")";
+                break;
+              }
+            }
+          }
+          if (!interp_old_ok) {
+            // Fallback: use nearest sonar measurement
+            double min_dt = std::numeric_limits<double>::max();
+            int best_i = 0;
+            for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()); ++i) {
+              double dt = std::abs((threeDsonarOdomMeasurements[i].timeStamp - t_state_old).toSec());
+              if (dt < min_dt) { min_dt = dt; best_i = i; }
+            }
+            T_L_old = okvis::kinematics::Transformation(
+                threeDsonarOdomMeasurements[best_i].measurement.position,
+                threeDsonarOdomMeasurements[best_i].measurement.orientation);
+            interp_old_ok = true;
+            LOG(INFO) << std::fixed << std::setprecision(3)
+                      << "Interp T_L_old: fallback to nearest sonar[" << best_i
+                      << "] (dt=" << min_dt << "s)";
+          }
+
+          // --- Bracket interpolation for t_state_new ---
+          okvis::kinematics::Transformation T_L_new;
+          bool interp_new_ok = false;
+
+          // Check if any sonar measurement is within 5ms — use it directly
+          for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()); ++i) {
+            double dt = std::abs((threeDsonarOdomMeasurements[i].timeStamp - t_state_new).toSec());
+            if (dt <= kInterpThreshold) {
+              T_L_new = okvis::kinematics::Transformation(
+                  threeDsonarOdomMeasurements[i].measurement.position,
+                  threeDsonarOdomMeasurements[i].measurement.orientation);
+              interp_new_ok = true;
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                        << "T_L_new: using sonar[" << i << "]=" << threeDsonarOdomMeasurements[i].timeStamp.toSec()
+                        << "s directly (dt=" << dt << "s <= 5ms threshold)";
+              break;
+            }
+          }
+
+          // Otherwise interpolate
+          if (!interp_new_ok) {
+            for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()) - 1; ++i) {
+              okvis::Time t_a = threeDsonarOdomMeasurements[i].timeStamp;
+              okvis::Time t_b = threeDsonarOdomMeasurements[i + 1].timeStamp;
+              if (t_a <= t_state_new && t_state_new <= t_b) {
+                double dt_ab = (t_b - t_a).toSec();
+                double alpha = (dt_ab > 1e-9) ? (t_state_new - t_a).toSec() / dt_ab : 0.0;
+                alpha = std::max(0.0, std::min(1.0, alpha));
+                Eigen::Vector3d pos = (1.0 - alpha) * threeDsonarOdomMeasurements[i].measurement.position
+                                      + alpha * threeDsonarOdomMeasurements[i + 1].measurement.position;
+                Eigen::Quaterniond ori = threeDsonarOdomMeasurements[i].measurement.orientation
+                                        .slerp(alpha, threeDsonarOdomMeasurements[i + 1].measurement.orientation);
+                T_L_new = okvis::kinematics::Transformation(pos, ori);
+                interp_new_ok = true;
+                LOG(INFO) << std::fixed << std::setprecision(3)
+                          << "Interp T_L_new: t_state=" << t_state_new.toSec()
+                          << "s between sonar[" << i << "]=" << t_a.toSec()
+                          << "s and sonar[" << i + 1 << "]=" << t_b.toSec()
+                          << "s (alpha=" << alpha << ")";
+                break;
+              }
+            }
+          }
+          if (!interp_new_ok) {
+            double min_dt = std::numeric_limits<double>::max();
+            int best_i = 0;
+            for (int i = 0; i < static_cast<int>(threeDsonarOdomMeasurements.size()); ++i) {
+              double dt = std::abs((threeDsonarOdomMeasurements[i].timeStamp - t_state_new).toSec());
+              if (dt < min_dt) { min_dt = dt; best_i = i; }
+            }
+            T_L_new = okvis::kinematics::Transformation(
+                threeDsonarOdomMeasurements[best_i].measurement.position,
+                threeDsonarOdomMeasurements[best_i].measurement.orientation);
+            interp_new_ok = true;
+            LOG(INFO) << std::fixed << std::setprecision(3)
+                      << "Interp T_L_new: fallback to nearest sonar[" << best_i
+                      << "] (dt=" << min_dt << "s)";
+          }
+
+          if (interp_old_ok && interp_new_ok) {
+            LOG(INFO) << "3D Sonar Odom connecting state " << closestStateId_old
+                      << " (t=" << std::fixed << std::setprecision(3) << t_state_old.toSec() << "s"
+                      << ", dt_old=" << minTimeDiff_old << "s)"
+                      << " to state " << closestStateId_new
+                      << " (t=" << t_state_new.toSec() << "s"
+                      << ", dt_new=" << minTimeDiff_new << "s)"
+                      << " | sonar_span=" << sonar_span
+                      << "s  state_span=" << state_span << "s";
+
+            // Build covariance diagonal [pos_x, pos_y, pos_z, ori_x, ori_y, ori_z]
+            double sp2 = threeDsonarOdomParameters_.sigma_position
+                         * threeDsonarOdomParameters_.sigma_position;
+            double so2 = threeDsonarOdomParameters_.sigma_orientation
+                         * threeDsonarOdomParameters_.sigma_orientation;
+            Eigen::Matrix<double, 6, 1> covariance_diag;
+            covariance_diag << sp2, sp2, sp2, so2, so2, so2;
+
+            std::shared_ptr<ceres::Sonar3DOdometryError> threeDsonarOdomError(
+                new ceres::Sonar3DOdometryError(
+                    T_L_old, T_L_new, covariance_diag, threeDsonarOdomParameters_.T_SL));
+
+            // Add mapPtr->addResidualBlock here
+            mapPtr_->addResidualBlock(
+                threeDsonarOdomError, NULL,
+                mapPtr_->parameterBlockPtr(closestStateId_old),
+                mapPtr_->parameterBlockPtr(closestStateId_new));
+          }
+        }
+      }
+    }
   }
 
   // @Sharmin

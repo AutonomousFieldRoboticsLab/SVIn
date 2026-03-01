@@ -25,6 +25,7 @@ add_library(${PROJECT_NAME}
   src/SonarError.cpp  # @Sharmin
   src/DepthError.cpp  # @Sharmin
   src/DvlError.cpp  # @cmb
+  src/Sonar3DOdometryError.cpp  # @cmb
   src/Estimator.cpp
   src/ManifoldAdditionalInterfaces.cpp
   include/okvis/Estimator.hpp

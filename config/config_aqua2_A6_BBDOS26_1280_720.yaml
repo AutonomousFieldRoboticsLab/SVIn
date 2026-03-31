@@ -88,7 +88,7 @@ ceres_options:
 detection_options:
     threshold: 30.0      # detection threshold. By default the uniformity radius in pixels
     octaves: 1           # number of octaves for detection. 0 means single-scale at highest resolution
-    maxNoKeypoints: 450  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
+    maxNoKeypoints: 350  # restrict to a maximum of this many keypoints per image (strongest ones)   #Sharmin
 
 # delay of images [s]:
 imageDelay: -0.0282762  # in case you are using a custom setup, you will have to calibrate this. 0 for the VISensor.
@@ -143,7 +143,8 @@ dvl_params:
           0.0009692534251693474, 0.9999687689933204, -0.007843569709095888, 0.04599269984578925,
           5.8953233832979395e-06, 0.007843567679402313, 0.9999692387325242, 0.02026317587588274,
           0.000, 0.000, 0.000,  1.000]
-    sigma_velocity: 0.09 # velocity measurement noise standard deviation [m/s]
+    noise_multiplier: 1.1 # Covariance scaling factor (multiplied with topic covariance). Lower = more weight to DVL. [dimensionless]
+    time_threshold: 0.025 # Maximum time difference between frame and DVL measurement [s]. Drop DVL if |t_frame - t_dvl| > threshold.
 
 # 3D Sonar realtive sensor parameters
 # T_SL: transformation from 3D sonar frame to IMU frame S |  [ R_LtoS , p_LinS] | p_S = T_SL * p_L
@@ -164,7 +165,7 @@ claheTilesGridSize: 4
 resizeFactor: 0.6  # by default 1.0. set this value if you want to resize the original image by this factor. You DO NOT need to change camera/projection matrix, those will be updated accordingly. 
 
 loop_closure_params:
-    enable: 1  
+    enable: 0  
     min_correspondences: 20 #decrease for more loop closure, might result in false loop closure (20 to 40)
     pnp_reprojection_threshold: 25.0 #increase for more loop closure, might result in false loop closure (8 to 30)
     pnp_ransac_iterations: 100

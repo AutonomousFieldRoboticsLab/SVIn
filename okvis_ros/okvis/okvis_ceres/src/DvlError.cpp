@@ -52,25 +52,26 @@ DvlError::DvlError(const Eigen::Vector3d& velocity_m, const Eigen::Vector3d& cov
   setTransformation(T_SV);
 
   // --- Verification prints ---
-  LOG(INFO) << "Inside DvlError";
-  LOG(INFO) << "[DvlError] velocity_m (DVL frame): ["
+  LOG(INFO) << "---------- DvlError Constructor ----------";
+  LOG(INFO) << "[DvlError] Velocity measurement (DVL frame): ["
             << std::fixed << std::setprecision(4)
             << velocity_m_(0) << ", " << velocity_m_(1) << ", " << velocity_m_(2) << "] m/s";
-  LOG(INFO) << "[DvlError] covariance diag: ["
+  LOG(INFO) << "[DvlError] Input covariance diag (SCALED): ["
+            << std::setprecision(6) 
             << covariance_.diagonal()(0) << ", "
             << covariance_.diagonal()(1) << ", "
             << covariance_.diagonal()(2) << "] (m/s)^2";
-  LOG(INFO) << "[DvlError] information diag: ["
+  LOG(INFO) << "[DvlError] Information matrix diag (1/cov): ["
+            << std::setprecision(2)
             << information_.diagonal()(0) << ", "
             << information_.diagonal()(1) << ", "
             << information_.diagonal()(2) << "]";
-  LOG(INFO) << "[DvlError] sqrtInfo diag: ["
+  LOG(INFO) << "[DvlError] Square-root info diag: ["
+            << std::setprecision(2)
             << _squareRootInformation.diagonal()(0) << ", "
             << _squareRootInformation.diagonal()(1) << ", "
             << _squareRootInformation.diagonal()(2) << "]";
-  LOG(INFO) << "[DvlError] T_SV translation: ["
-            << T_SV_.r()(0) << ", " << T_SV_.r()(1) << ", " << T_SV_.r()(2) << "] m";
-  LOG(INFO) << "[DvlError] T_SV rotation C():\n" << T_SV_.C();  // --- Verification prints ---
+  LOG(INFO) << "==========================================\n";
 }
 
 void DvlError::setInformation(const Eigen::Vector3d& covariance_diag) {

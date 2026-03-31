@@ -214,7 +214,8 @@ struct DepthSensorParameters {
 struct DVLSensorParameters {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   okvis::kinematics::Transformation T_SV;  ///< Transformation from IMU frame (IMU frame S) to DVL sensor (DVL frame V).
-  double sigma_velocity;  ///< Standard deviation of velocity measurement [m/s].
+  double noise_multiplier;  ///< Covariance scaling factor (multiplied with topic covariance). Lower = more weight to DVL.
+  double time_threshold;  ///< Maximum time difference between frame and DVL measurement [s]. Drop if exceeds threshold.
 };
 
 /*!

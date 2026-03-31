@@ -311,18 +311,31 @@ bool Estimator::addStates(okvis::MultiFramePtr multiFrame,
   }
 
   if (dvlMeasurements.size() != 0){
-    LOG(INFO) << "DVL measurement received in estimator.addStates()";
-    LOG(INFO) << "DVL sensor sigma_velocity: " << std::setprecision(6) << std::fixed << dvlParameters_.sigma_velocity << " m/s";
-    LOG(INFO) << "DVL T_SV rotation matrix C():\n" << std::setprecision(6) << std::fixed << dvlParameters_.T_SV.C();
-    LOG(INFO) << "DVL T_SV translation r(): [" << std::setprecision(6) << std::fixed 
+    LOG(INFO) << "========== DVL Measurement Processing ==========";
+    LOG(INFO) << "[DVL Config] noise_multiplier: " << std::setprecision(6) << std::fixed << dvlParameters_.noise_multiplier;
+    LOG(INFO) << "[DVL Config] time_threshold: " << std::setprecision(6) << std::fixed << dvlParameters_.time_threshold << " s";
+    LOG(INFO) << "[DVL Config] T_SV translation: [" << std::setprecision(6) << std::fixed 
               << dvlParameters_.T_SV.r()(0) << ", "
               << dvlParameters_.T_SV.r()(1) << ", "
               << dvlParameters_.T_SV.r()(2) << "] m";
-    LOG(INFO) << "DVL Corvavriance : " << std::setprecision(6) << std::fixed << dvlMeasurements.begin()->measurement.covariance.transpose() << " (m/s)^2";
+    LOG(INFO) << "[DVL Config] T_SV rotation matrix C():\n" << std::setprecision(6) << std::fixed << dvlParameters_.T_SV.C();
+    
+    // Original covariance from topic
+    Eigen::Vector3d topic_covariance = dvlMeasurements.begin()->measurement.covariance;
+    LOG(INFO) << "[DVL Topic] Original covariance: [" << std::setprecision(6) << std::fixed 
+              << topic_covariance(0) << ", " << topic_covariance(1) << ", " << topic_covariance(2) << "] (m/s)^2";
+    
+    // Scale covariance from topic by noise_multiplier^2
+    double scaling_factor = dvlParameters_.noise_multiplier * dvlParameters_.noise_multiplier;
+    Eigen::Vector3d scaled_covariance = topic_covariance * scaling_factor;
+    LOG(INFO) << "[DVL Scaling] Scaling factor (multiplier^2): " << std::setprecision(6) << std::fixed << scaling_factor;
+    LOG(INFO) << "[DVL Scaling] Scaled covariance: [" << std::setprecision(6) << std::fixed 
+              << scaled_covariance(0) << ", " << scaled_covariance(1) << ", " << scaled_covariance(2) << "] (m/s)^2";
+    LOG(INFO) << "[DVL Scaling] Weight multiplier: " << std::setprecision(2) << std::fixed << (1.0 / scaling_factor) << "x";
 
     // DVL error and related addResidualBlock
     std::shared_ptr<ceres::DvlError> dvlError(new ceres::DvlError(dvlMeasurements.begin()->measurement.velocity, 
-                                              dvlMeasurements.begin()->measurement.covariance, 
+                                              scaled_covariance, 
                                               dvlParameters_.T_SV));
 
             

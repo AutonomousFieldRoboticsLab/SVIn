@@ -381,15 +381,26 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     ss << vioParameters_.dvl.T_SV.T();
     LOG(INFO) << "DVL sensor with transformation T_SV=\n" << ss.str();
     
-    // Read sigma_velocity (velocity measurement noise)
-    cv::FileNode sigma_velocity_node = file["dvl_params"]["sigma_velocity"];
-    if (!sigma_velocity_node.empty()) {
-      vioParameters_.dvl.sigma_velocity = sigma_velocity_node;
-      LOG(INFO) << "DVL sensor sigma_velocity: " << std::setprecision(6) << std::fixed 
-                << vioParameters_.dvl.sigma_velocity << " m/s";
+    // Read noise_multiplier (covariance scaling factor)
+    cv::FileNode noise_multiplier_node = file["dvl_params"]["noise_multiplier"];
+    if (!noise_multiplier_node.empty()) {
+      vioParameters_.dvl.noise_multiplier = noise_multiplier_node;
+      LOG(INFO) << "DVL noise_multiplier: " << std::setprecision(6) << std::fixed 
+                << vioParameters_.dvl.noise_multiplier << " (covariance scale factor)";
     } else {
-      vioParameters_.dvl.sigma_velocity = 0.005;  // Default value
-      LOG(WARNING) << "DVL sensor sigma_velocity not found in config, using default: 0.005 m/s";
+      vioParameters_.dvl.noise_multiplier = 1.0;  // Default: no scaling
+      LOG(WARNING) << "DVL noise_multiplier not found in config, using default: 1.0 (no scaling)";
+    }
+
+    // Read time_threshold (maximum time difference for valid DVL measurement)
+    cv::FileNode time_threshold_node = file["dvl_params"]["time_threshold"];
+    if (!time_threshold_node.empty()) {
+      vioParameters_.dvl.time_threshold = time_threshold_node;
+      LOG(INFO) << "DVL time_threshold: " << std::setprecision(6) << std::fixed 
+                << vioParameters_.dvl.time_threshold << " s";
+    } else {
+      vioParameters_.dvl.time_threshold = 0.05;  // Default: 50ms
+      LOG(WARNING) << "DVL time_threshold not found in config, using default: 0.05 s";
     }
 
   }

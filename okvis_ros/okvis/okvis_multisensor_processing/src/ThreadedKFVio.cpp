@@ -1009,19 +1009,30 @@ void ThreadedKFVio::matchingLoop() {
             continue; // Check next measurement
           }
 
-          // Case 2: If measurement is in window -> USE it
+          // Case 2: If measurement is in window -> CHECK time threshold
           if (iter->timeStamp > lastFrameTime && iter->timeStamp <= currentFrameTime){
-            LOG(INFO) << std::fixed << std::setprecision(3)
-              << "Found valid DVL @ " << iter->timeStamp.toSec() << " s";
+            // Calculate time difference from current frame
+            double time_diff = std::abs((currentFrameTime - iter->timeStamp).toSec());
+            
+            LOG(INFO) << std::fixed << std::setprecision(4)
+              << "Found DVL @ " << iter->timeStamp.toSec() << " s"
+              << " | Time diff from frame: " << time_diff << " s"
+              << " | Threshold: " << parameters_.dvl.time_threshold << " s";
 
-            okvis::DVLMeasurement dvl_measurement = *iter;
+            // Check if within time threshold
+            if (time_diff <= parameters_.dvl.time_threshold) {
+              okvis::DVLMeasurement dvl_measurement = *iter;
 
-            // Add to dvlData deque
-            dvlData.push_back(dvl_measurement);
+              // Add to dvlData deque
+              dvlData.push_back(dvl_measurement);
 
-            LOG(INFO) << std::fixed << std::setprecision(3)
-              << "DVL Velocity: " << dvl_measurement.measurement.velocity.transpose() << " m/s"          
-              << "\n DVL Timestamp: " << dvl_measurement.timeStamp.toSec() << " s";
+              LOG(INFO) << std::fixed << std::setprecision(3)
+                << "✓ DVL ACCEPTED - Velocity: " << dvl_measurement.measurement.velocity.transpose() << " m/s";
+            } else {
+              LOG(WARNING) << std::fixed << std::setprecision(4)
+                << "✗ DVL DROPPED - Time diff (" << time_diff << " s) exceeds threshold (" 
+                << parameters_.dvl.time_threshold << " s)";
+            }
             
             break;
           }
@@ -1595,23 +1606,23 @@ void ThreadedKFVio::optimizationLoop() {
       afterOptimizationTimer.start();
 
       // Print all frames in the sliding window 
-      LOG(INFO) << "=== SLIDING WINDOW (" << estimator_.numFrames() << " frames) ===";
-      for (size_t n=0; n < estimator_.numFrames(); ++n){
+      // LOG(INFO) << "=== SLIDING WINDOW (" << estimator_.numFrames() << " frames) ===";
+      // for (size_t n=0; n < estimator_.numFrames(); ++n){
 
-        uint64_t frameId = estimator_.frameIdByAge(n);
-        okvis::Time frameTime = estimator_.multiFrame(frameId)->timestamp();
+      //   uint64_t frameId = estimator_.frameIdByAge(n);
+      //   okvis::Time frameTime = estimator_.multiFrame(frameId)->timestamp();
         
-        bool isKeyframe = estimator_.isKeyframe(frameId);
-        okvis::SpeedAndBias sb;
-        LOG(INFO) << "Frame " << n << ": ID=" << frameId << ", Time=" << frameTime.toSec() << " s, Keyframe=" << isKeyframe;
+      //   bool isKeyframe = estimator_.isKeyframe(frameId);
+      //   okvis::SpeedAndBias sb;
+      //   LOG(INFO) << "Frame " << n << ": ID=" << frameId << ", Time=" << frameTime.toSec() << " s, Keyframe=" << isKeyframe;
 
-        estimator_.getSpeedAndBias(frameId, 0, sb);
-        LOG(INFO) << std::fixed << std::setprecision(3)
-          << "  [age=" << n << "] t=" << frameTime.toSec()
-          << (isKeyframe ? " [KF]" : " [IMU]")
-          << " vel=[" << sb(0) << ", " << sb(1) << ", " << sb(2) << "] m/s";
+      //   estimator_.getSpeedAndBias(frameId, 0, sb);
+      //   LOG(INFO) << std::fixed << std::setprecision(3)
+      //     << "  [age=" << n << "] t=" << frameTime.toSec()
+      //     << (isKeyframe ? " [KF]" : " [IMU]")
+      //     << " vel=[" << sb(0) << ", " << sb(1) << ", " << sb(2) << "] m/s";
 
-      } 
+      // } 
 
       // now actually remove measurements
       deleteImuMeasurements(deleteImuMeasurementsUntil);

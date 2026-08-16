@@ -31,6 +31,7 @@ You will need the additional package pcl-ros, cv-bridge, image-transport and tf2
 ```bash
 sudo apt install ros-jazzy-pcl-ros ros-jazzy-tf2-sensor-msgs ros-jazzy-compressed-image-transport
 
+source /opt/ros/jazzy/setup.bash
 ```
 
 **Brisk**
@@ -46,6 +47,11 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
 sudo make install
+```
+### Install Ceres ###
+
+```
+sudo apt-get install libceres-dev
 ```
 
 ### Build SVIN ###

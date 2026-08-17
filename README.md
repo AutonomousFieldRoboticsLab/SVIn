@@ -63,7 +63,7 @@ rosbags-convert --src <ros1 bag> --dst <ros2_bag_folder>
 
 ## Running with GoPro Dataset ## 
 
-Run the launch file for Cave:
+Run the launch file for GoPro 9:
 
 ```bash
 source install/setup.bash

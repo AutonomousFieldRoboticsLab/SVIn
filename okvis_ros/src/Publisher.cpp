@@ -111,9 +111,14 @@ Publisher::Publisher(std::shared_ptr<rclcpp::Node> node) : node_(node), pubTf_(n
 }
 
 void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
-                                          const cv::Mat& imageL,
+                                          const std::vector<cv::Mat>& images,
                                           const okvis::kinematics::Transformation& T_WCa,
                                           std::vector<std::list<std::vector<double>>>& keyframePoints) {
+  if (images.empty()) {
+    LOG(WARNING) << "Cannot publish a keyframe without camera images.";
+    return;
+  }
+
   const okvis::kinematics::Transformation& T_Wc_W = parameters_.publishing.T_Wc_W;
   const okvis::kinematics::Transformation& T_WcCa = T_Wc_W * T_WCa;
 
@@ -121,8 +126,27 @@ void Publisher::publishKeyframeAsCallback(const okvis::Time& t,
   std_msgs::msg::Header img_header;
   img_header.stamp = rclcpp::Time(t.sec, t.nsec);
   img_header.frame_id = "okvis_keyframe";
-  sensor_msgs::msg::Image::ConstSharedPtr msg = cv_bridge::CvImage(img_header, "mono8", imageL).toImageMsg();
-  pubKeyframeImageL_->publish(*msg);
+  const cv::Mat& imageL = images.front();
+  if (!imageL.empty()) {
+    sensor_msgs::msg::Image::ConstSharedPtr msg = cv_bridge::CvImage(img_header, "mono8", imageL).toImageMsg();
+    pubKeyframeImageL_->publish(*msg);
+  }
+
+  if (pubKeyframeImages_.size() != images.size()) {
+    pubKeyframeImages_.clear();
+    pubKeyframeImages_.reserve(images.size());
+    for (size_t cameraIndex = 0; cameraIndex < images.size(); ++cameraIndex) {
+      std::stringstream topic;
+      topic << "keyframe_image_" << cameraIndex;
+      pubKeyframeImages_.push_back(node_->create_publisher<sensor_msgs::msg::Image>(topic.str(), 10));
+    }
+  }
+  for (size_t cameraIndex = 0; cameraIndex < images.size(); ++cameraIndex) {
+    if (images[cameraIndex].empty()) continue;
+    sensor_msgs::msg::Image::ConstSharedPtr msg =
+        cv_bridge::CvImage(img_header, "mono8", images[cameraIndex]).toImageMsg();
+    pubKeyframeImages_[cameraIndex]->publish(*msg);
+  }
 
   // publish keyframe odometry
   nav_msgs::msg::Odometry odometry;

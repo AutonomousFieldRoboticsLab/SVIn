@@ -83,7 +83,7 @@ namespace okvis {
 
 uint64_t frameCnt = 0;  // Sharmin
 
-static const int max_camera_input_queue_size = 10;
+static const int max_camera_input_queue_size = 15;
 static const okvis::Duration temporal_imu_data_overlap(
     0.02);  // overlap of imu data before and after two consecutive frames [seconds]
 
@@ -281,11 +281,17 @@ bool ThreadedKFVio::addImage(const okvis::Time& stamp,
   }
 
   if (blocking_) {
-    cameraMeasurementsReceived_[cameraIndex]->PushBlockingIfFull(frame, 1);
-    return true;
+    return cameraMeasurementsReceived_[cameraIndex]->PushBlockingIfFull(frame, 1);
   } else {
-    cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(frame, max_camera_input_queue_size);
-    return cameraMeasurementsReceived_[cameraIndex]->Size() == 1;
+    const bool droppedOldest =
+        cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(frame, max_camera_input_queue_size);
+    if (droppedOldest) {
+      DLOG(WARNING) << "Oldest camera " << cameraIndex
+                    << " input dropped because its queue reached "
+                    << max_camera_input_queue_size << " frames.";
+      return false;
+    }
+    return true;
   }
 }
 

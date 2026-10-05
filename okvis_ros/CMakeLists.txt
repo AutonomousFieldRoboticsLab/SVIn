@@ -77,9 +77,11 @@ ament_export_dependencies(rosidl_default_runtime)
 
 
 add_library(${PROJECT_NAME}_lib STATIC src/Subscriber.cpp
+        src/SynchronizedCompressedImageSubscriber.cpp
         src/Publisher.cpp
         src/RosParametersReader.cpp
         include/okvis/Subscriber.hpp
+        include/okvis/SynchronizedCompressedImageSubscriber.hpp
         include/okvis/Publisher.hpp
         include/okvis/RosParametersReader.hpp)
 add_dependencies(${PROJECT_NAME}_lib okvis_multisensor_processing)
@@ -163,5 +165,18 @@ install(
         DESTINATION share/${PROJECT_NAME}
 )
 install(DIRECTORY ../rviz_config/ DESTINATION share/${PROJECT_NAME}/rviz_config/)
+
+if(BUILD_TESTING)
+    find_package(ament_cmake_gtest REQUIRED)
+    ament_add_gtest(synchronized_compressed_image_subscriber_test
+            test/SynchronizedCompressedImageSubscriberTest.cpp)
+    target_link_libraries(synchronized_compressed_image_subscriber_test
+            ${PROJECT_NAME}_lib
+            ${OpenCV_LIBRARIES})
+    ament_target_dependencies(synchronized_compressed_image_subscriber_test
+            cv_bridge
+            rclcpp
+            sensor_msgs)
+endif()
 
 ament_package()

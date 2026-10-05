@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch.substitutions import ThisLaunchFileDir
@@ -22,11 +23,16 @@ def launch_setup(context, *args, **kwargs):
     name='okvis_node',
     parameters=[{
       'config_filename': abs_okvis_config_path,
-      'mesh_file': 'firefly.dae'
+      'mesh_file': 'firefly.dae',
+      'synchronized_compressed_images': True,
+      'synchronized_compressed_camera_topics': [
+        '/a6/camera/left/image_raw/compressed',
+        '/a6/camera/right/image_raw/compressed'
+      ],
+      'synchronized_compressed_queue_size': 100,
+      'synchronized_compressed_log_counters': True
     }],
     remappings=[
-      ('/camera0', '/cam0/image_raw'),
-      ('/camera1', '/cam1/image_raw'),
       ('/imu', '/a6/imu/imu/data')
     ]
   )
@@ -38,6 +44,22 @@ def launch_setup(context, *args, **kwargs):
     name='pose_graph_node',
     parameters=[{
       'config_file': abs_okvis_config_path
+    }],
+    condition=IfCondition(LaunchConfiguration('use_pose_graph'))
+  )
+
+  # The pose graph's global mapper subscribes to /cam0/image_raw for landmark
+  # colourization. OKVIS continues to decode the synchronized compressed
+  # streams internally, so this extra raw stream is only needed by pose graph.
+  left_uncompressor_node = Node(
+    package='okvis_ros',
+    executable='uncompress_image',
+    name='left_uncompressor',
+    condition=IfCondition(LaunchConfiguration('use_pose_graph')),
+    output='screen',
+    parameters=[{
+      'compressed_img_topic': '/a6/camera/left/image_raw/compressed',
+      'ouput_img_topic': '/cam0/image_raw'
     }]
   )
 
@@ -49,10 +71,11 @@ def launch_setup(context, *args, **kwargs):
     arguments=['-d', os.path.join(
       FindPackageShare('okvis_ros').perform(context),
       'rviz_config/svin.rviz')],
-    output='screen'
+    output='screen',
+    condition=IfCondition(LaunchConfiguration('use_rviz'))
   )
 
-  return [okvis_node, pose_graph_node, rviz_node]
+  return [okvis_node, pose_graph_node, left_uncompressor_node, rviz_node]
 
 
 def generate_launch_description():
@@ -62,26 +85,23 @@ def generate_launch_description():
     default_value=PathJoinSubstitution([
       FindPackageShare('okvis_ros'),
       'config',
-      'config_aqua2.yaml'
+      'config_aqua2_A6_BBDOS26_1280_720.yaml',
     ])
   )
 
-  # To un-compress and sync the image topics
-  stereo_sync_node = Node(
-    package='okvis_ros',
-    executable='stereo_sync',
-    name='stereo_sync',
-    output='screen',
-    parameters=[{
-      'config_filename': LaunchConfiguration('okvis_config'),
-      'left_img_topic': '/a6/camera/left/image_raw',
-      'right_img_topic': '/a6/camera/right/image_raw',
-      'compressed': True
-    }]
+  use_pose_graph_arg = DeclareLaunchArgument(
+    'use_pose_graph',
+    default_value='true'
+  )
+
+  use_rviz_arg = DeclareLaunchArgument(
+    'use_rviz',
+    default_value='true'
   )
 
   return LaunchDescription([
     config_arg,
-    stereo_sync_node,
+    use_pose_graph_arg,
+    use_rviz_arg,
     OpaqueFunction(function=launch_setup)
   ])

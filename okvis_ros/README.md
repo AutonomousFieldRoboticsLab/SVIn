@@ -100,6 +100,32 @@ landmark display.
 If you want to run the live application connecting to a sensor, use the okvis_node 
 application (modify the launch file launch/okvis_node.launch).
 
+### Exact-time synchronized camera input
+
+For a synchronized multicamera rig publishing compressed images, `okvis_node`
+can admit every image for a timestamp together. This prevents independent
+camera delivery paths from allowing a newer image from one camera to overtake
+matching images from the other cameras. The option is independent of both the
+number of configured cameras and their projection models.
+
+Enable the path with these ROS parameters:
+
+    synchronized_compressed_images: true
+    synchronized_compressed_camera_topics:
+      - camera0/compressed
+      - camera1/compressed
+      - camera2/compressed
+    synchronized_compressed_queue_size: 100
+    synchronized_compressed_log_counters: false
+
+All source messages must have exactly equal header timestamps. Every image in a
+complete tuple is decoded before any is passed to the estimator, then the
+cameras are admitted consecutively in index order. The topic list must contain
+one entry per configured camera. If the list is empty, topics default to
+`camera0/compressed`, `camera1/compressed`, and so on. If exact synchronization
+is not appropriate, leave `synchronized_compressed_images` false to retain the
+existing independent raw-image subscriptions.
+
 ### Outputs and frames
 
 In terms of coordinate frames and notation, 

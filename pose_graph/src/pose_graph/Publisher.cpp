@@ -201,7 +201,7 @@ void Publisher::saveTrajectory(const std::string& filename) const {
   for (geometry_msgs::msg::PoseStamped keyframe_pose : loop_closure_traj_.poses) {
     geometry_msgs::msg::Quaternion quat = keyframe_pose.pose.orientation;
     geometry_msgs::msg::Point pos = keyframe_pose.pose.position;
-    loop_path_file << keyframe_pose.header.stamp.sec << "." << keyframe_pose.header.stamp.nanosec << " " << pos.x << " "
+    loop_path_file << keyframe_pose.header.stamp.sec << "." << std::setfill('0') << std::setw(9) << keyframe_pose.header.stamp.nanosec << std::setfill(' ') << " " << pos.x << " "
                    << pos.y << " " << pos.z << " " << quat.x << " " << quat.y << " " << quat.z << " " << quat.w
                    << std::endl;
   }

@@ -46,6 +46,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <vector>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -149,6 +150,24 @@ class VioInterface {
                         const cv::Mat& image,
                         const std::vector<cv::KeyPoint>* keypoints = 0,
                         bool* asKeyframe = 0) = 0;
+
+  /**
+   * \brief Add one complete synchronized multicamera frame atomically.
+   * \param stamp  Shared image timestamp.
+   * \param images One image per configured camera, in camera-index order.
+   * \return True if the complete rig frame was accepted without input loss.
+   *
+   * The default implementation preserves compatibility by forwarding images
+   * individually. Implementations with asynchronous per-camera workers should
+   * override this method to preserve the tuple as one multiframe.
+   */
+  virtual bool addImages(const okvis::Time& stamp, const std::vector<cv::Mat>& images) {
+    bool accepted = true;
+    for (size_t cameraIndex = 0; cameraIndex < images.size(); ++cameraIndex) {
+      accepted = addImage(stamp, cameraIndex, images[cameraIndex]) && accepted;
+    }
+    return accepted;
+  }
 
   /**
    * \brief             Add an abstracted image observation.

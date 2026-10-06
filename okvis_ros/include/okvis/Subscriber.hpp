@@ -116,6 +116,13 @@ class Subscriber {
 
   /// @brief The image callback.
   bool imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex);
+
+  /// @brief Admit one exact-time multicamera tuple atomically.
+  bool synchronizedImagesCallback(
+      const std::vector<sensor_msgs::msg::Image::ConstSharedPtr>& messages);
+
+  /// @brief Apply configured resize and photometric preprocessing.
+  cv::Mat preprocessImage(const sensor_msgs::msg::Image::ConstSharedPtr& msg) const;
   
   /// @brief The depth image callback.
   /// @warning Not implemented.

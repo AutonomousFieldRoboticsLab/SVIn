@@ -27,20 +27,20 @@ SynchronizedCompressedImageSubscriber::SynchronizedCompressedImageSubscriber(
     const std::shared_ptr<rclcpp::Node>& node,
     const std::vector<std::string>& cameraTopics,
     std::size_t queueSize,
-    ImageCallback imageCallback,
+    TupleCallback tupleCallback,
     bool logCounters)
     : node_(node),
       queueSize_(std::max<std::size_t>(queueSize, 1)),
-      imageCallback_(std::move(imageCallback)),
+      tupleCallback_(std::move(tupleCallback)),
       logCounters_(logCounters),
       cameraQueues_(cameraTopics.size()) {
   if (cameraTopics.empty()) {
     throw std::invalid_argument(
         "Synchronized camera input requires at least one camera topic");
   }
-  if (!imageCallback_) {
+  if (!tupleCallback_) {
     throw std::invalid_argument(
-        "Synchronized camera input requires an image callback");
+        "Synchronized camera input requires a tuple callback");
   }
 
   counters_.receivedPerCamera.assign(cameraTopics.size(), 0);
@@ -126,7 +126,7 @@ void SynchronizedCompressedImageSubscriber::imageReceived(
 
 void SynchronizedCompressedImageSubscriber::processTuple(
     const std::vector<CompressedImage::ConstSharedPtr>& messages) {
-  std::vector<Image::SharedPtr> images;
+  ImageTuple images;
   images.reserve(messages.size());
   try {
     for (const auto& message : messages) {
@@ -150,16 +150,7 @@ void SynchronizedCompressedImageSubscriber::processTuple(
   }
 
   ++counters_.decodeSuccessTuples;
-  bool tupleAddedWithoutInputLoss = true;
-  for (std::size_t cameraIndex = 0; cameraIndex < images.size();
-       ++cameraIndex) {
-    // Do not short-circuit: every image in a decoded tuple must be presented
-    // consecutively even if an earlier camera reports input loss.
-    const bool imageAddedWithoutInputLoss = imageCallback_(
-        images[cameraIndex], static_cast<unsigned int>(cameraIndex));
-    tupleAddedWithoutInputLoss =
-        imageAddedWithoutInputLoss && tupleAddedWithoutInputLoss;
-  }
+  const bool tupleAddedWithoutInputLoss = tupleCallback_(images);
   if (tupleAddedWithoutInputLoss) {
     ++counters_.inputLossFreeTuples;
   } else {

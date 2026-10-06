@@ -48,14 +48,17 @@ TEST(SynchronizedCompressedImageSubscriber,
   std::mutex mutex;
   std::condition_variable callbackCondition;
   std::vector<std::pair<unsigned int, builtin_interfaces::msg::Time>> callbacks;
+  std::size_t callbackInvocations = 0;
   okvis::SynchronizedCompressedImageSubscriber subscriber(
       node, topics, 2,
-      [&](const sensor_msgs::msg::Image::ConstSharedPtr& image,
-          unsigned int cameraIndex) {
+      [&](const okvis::SynchronizedCompressedImageSubscriber::ImageTuple& images) {
         std::lock_guard<std::mutex> lock(mutex);
-        callbacks.emplace_back(cameraIndex, image->header.stamp);
+        ++callbackInvocations;
+        for (std::size_t cameraIndex = 0; cameraIndex < images.size(); ++cameraIndex) {
+          callbacks.emplace_back(cameraIndex, images[cameraIndex]->header.stamp);
+        }
         callbackCondition.notify_all();
-        return !(image->header.stamp.sec == 50 && cameraIndex == 2u);
+        return images.front()->header.stamp.sec != 50;
       });
 
   std::vector<rclcpp::Publisher<sensor_msgs::msg::CompressedImage>::SharedPtr>
@@ -96,6 +99,7 @@ TEST(SynchronizedCompressedImageSubscriber,
         lock, 2s, [&callbacks]() { return callbacks.size() == 3; });
     EXPECT_TRUE(receivedTuple);
     if (receivedTuple) {
+      EXPECT_EQ(callbackInvocations, 1u);
       for (std::size_t cameraIndex = 0; cameraIndex < 3; ++cameraIndex) {
         EXPECT_EQ(callbacks[cameraIndex].first, cameraIndex);
         EXPECT_EQ(callbacks[cameraIndex].second.sec, 10);

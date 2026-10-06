@@ -45,6 +45,7 @@
 #include <memory>
 #include <okvis/FrameSynchronizer.hpp>
 #include <okvis/IdProvider.hpp>
+#include <sstream>
 #include <utility>
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -61,6 +62,7 @@ FrameSynchronizer::FrameSynchronizer(okvis::VioParameters& parameters)
     init(parameters);
   }
   frameBuffer_.resize(max_frame_sync_buffer_size, std::pair<std::shared_ptr<okvis::MultiFrame>, size_t>(nullptr, 0));
+  detectionCompletedByCamera_.resize(max_frame_sync_buffer_size, std::vector<bool>(numCameras_, false));
   bufferPosition_ = 0;
 }
 
@@ -98,19 +100,46 @@ std::shared_ptr<okvis::MultiFrame> FrameSynchronizer::addNewFrame(std::shared_pt
     multiFrame->setImage(frame->sensorId, frame->measurement.image);
     bufferPosition_ = (bufferPosition_ + 1) % max_frame_sync_buffer_size;
     if (frameBuffer_[bufferPosition_].first != nullptr && frameBuffer_[bufferPosition_].second != numCameras_) {
-      LOG(ERROR) << "Dropping frame with id " << frameBuffer_[bufferPosition_].first->id();
+      std::ostringstream attachedCameras;
+      std::ostringstream completedCameras;
+      attachedCameras << '[';
+      completedCameras << '[';
+      for (size_t cameraIndex = 0; cameraIndex < numCameras_; ++cameraIndex) {
+        if (cameraIndex != 0) {
+          attachedCameras << ',';
+          completedCameras << ',';
+        }
+        attachedCameras << (!frameBuffer_[bufferPosition_].first->image(cameraIndex).empty() ? 1 : 0);
+        completedCameras << (detectionCompletedByCamera_[bufferPosition_][cameraIndex] ? 1 : 0);
+      }
+      attachedCameras << ']';
+      completedCameras << ']';
+      LOG(ERROR) << "[FRAME_SYNC_DROP] id=" << frameBuffer_[bufferPosition_].first->id()
+                 << " timestamp=" << frameBuffer_[bufferPosition_].first->timestamp()
+                 << " replacement_timestamp=" << frame_stamp
+                 << " timestamp_span_sec="
+                 << (frame_stamp - frameBuffer_[bufferPosition_].first->timestamp()).toSec()
+                 << " attached_cameras=" << attachedCameras.str()
+                 << " detection_completed_cameras=" << completedCameras.str()
+                 << " completion_count=" << frameBuffer_[bufferPosition_].second << '/' << numCameras_;
     }
     frameBuffer_[bufferPosition_].first = multiFrame;
     frameBuffer_[bufferPosition_].second = 0;
+    detectionCompletedByCamera_[bufferPosition_].assign(numCameras_, false);
   }
   return multiFrame;
 }
 
 // Inform the synchronizer that a frame in the multiframe has completed keypoint detection and description.
-bool FrameSynchronizer::detectionEndedForMultiFrame(uint64_t multiFrameId) {
+bool FrameSynchronizer::detectionEndedForMultiFrame(uint64_t multiFrameId, size_t cameraIndex) {
+  OKVIS_ASSERT_TRUE_DBG(Exception, cameraIndex < numCameras_, "Camera index is out of range");
   int position;
   bool found = findFrameById(multiFrameId, position);
   if (found) {
+    OKVIS_ASSERT_TRUE_DBG(Exception,
+                          !detectionCompletedByCamera_[position][cameraIndex],
+                          "Detection completion reported twice for the same camera and multiframe");
+    detectionCompletedByCamera_[position][cameraIndex] = true;
     ++frameBuffer_[position].second;
     OKVIS_ASSERT_TRUE_DBG(Exception,
                           frameBuffer_[position].second <= numCameras_,

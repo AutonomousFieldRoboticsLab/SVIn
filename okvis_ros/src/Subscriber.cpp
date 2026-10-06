@@ -114,9 +114,8 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
         std::make_unique<SynchronizedCompressedImageSubscriber>(
             node_, cameraTopics,
             static_cast<std::size_t>(queueSize),
-            [this](const sensor_msgs::msg::Image::ConstSharedPtr& message,
-                   unsigned int cameraIndex) {
-              return imageCallback(message, cameraIndex);
+            [this](const std::vector<sensor_msgs::msg::Image::ConstSharedPtr>& messages) {
+              return synchronizedImagesCallback(messages);
             },
             logCounters);
   } else {
@@ -193,34 +192,7 @@ bool Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg
   if (frozen_) {
     return false;  // frozen: ignore images
   }
-  const cv::Mat raw = readRosImage(msg);
-
-  // resizing factor( e.g., with a factor = 0.8, an image will convert from 800x600 to 640x480)
-  cv::Mat raw_resized;
-  if (vioParameters_.miscParams.resizeFactor != 1.0) {
-    cv::resize(
-        raw, raw_resized, cv::Size(), vioParameters_.miscParams.resizeFactor, vioParameters_.miscParams.resizeFactor);
-  } else {
-    raw_resized = raw.clone();
-  }
-
-  cv::Mat filtered;
-  if (vioParameters_.optimization.useMedianFilter) {
-    cv::medianBlur(raw_resized, filtered, 3);
-  } else {
-    filtered = raw_resized.clone();
-  }
-
-  // Added by Sharmin for CLAHE
-  cv::Mat histogram_equalized_image;
-  if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::CLAHE) {
-    clahe->apply(filtered, histogram_equalized_image);
-  } else if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::HISTOGRAM) {
-    cv::equalizeHist(filtered, histogram_equalized_image);
-  } else {
-    histogram_equalized_image = filtered;
-  }
-  // End Added by Sharmin
+  const cv::Mat histogram_equalized_image = preprocessImage(msg);
 
   // adapt timestamp
   okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nanosec);
@@ -238,6 +210,67 @@ bool Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg
                  << ": current image rejected as stale or oldest queued image evicted.";
   }
   return addedWithoutInputLoss;
+}
+
+bool Subscriber::synchronizedImagesCallback(
+    const std::vector<sensor_msgs::msg::Image::ConstSharedPtr>& messages) {
+  if (frozen_) return false;
+  OKVIS_ASSERT_TRUE(Exception,
+                    messages.size() == vioParameters_.nCameraSystem.numCameras(),
+                    "Synchronized image tuple must contain one image per configured camera");
+  OKVIS_ASSERT_TRUE(Exception, !messages.empty(), "Synchronized image tuple must not be empty");
+
+  const auto& referenceStamp = messages.front()->header.stamp;
+  std::vector<cv::Mat> images;
+  images.reserve(messages.size());
+  for (const auto& message : messages) {
+    OKVIS_ASSERT_TRUE(Exception,
+                      message->header.stamp.sec == referenceStamp.sec &&
+                          message->header.stamp.nanosec == referenceStamp.nanosec,
+                      "Synchronized image tuple contains unequal timestamps");
+    images.push_back(preprocessImage(message));
+  }
+
+  okvis::Time t(referenceStamp.sec, referenceStamp.nanosec);
+  t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
+  last_image_tp_ = std::chrono::steady_clock::now();
+  seen_first_image_ = true;
+
+  const bool addedWithoutInputLoss = vioInterface_->addImages(t, images);
+  // if (!addedWithoutInputLoss) {
+  //   LOG(WARNING) << "VIO synchronized rig-frame admission reported input loss while admitting t="
+  //                << t << ": the current tuple was stale or at least one older complete tuple "
+  //                        "was cancelled because a camera processing queue was full.";
+  // }
+  return addedWithoutInputLoss;
+}
+
+cv::Mat Subscriber::preprocessImage(const sensor_msgs::msg::Image::ConstSharedPtr& msg) const {
+  const cv::Mat raw = readRosImage(msg);
+  cv::Mat raw_resized;
+  if (vioParameters_.miscParams.resizeFactor != 1.0) {
+    cv::resize(
+        raw, raw_resized, cv::Size(), vioParameters_.miscParams.resizeFactor, vioParameters_.miscParams.resizeFactor);
+  } else {
+    raw_resized = raw.clone();
+  }
+
+  cv::Mat filtered;
+  if (vioParameters_.optimization.useMedianFilter) {
+    cv::medianBlur(raw_resized, filtered, 3);
+  } else {
+    filtered = raw_resized.clone();
+  }
+
+  cv::Mat histogramEqualizedImage;
+  if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::CLAHE) {
+    clahe->apply(filtered, histogramEqualizedImage);
+  } else if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::HISTOGRAM) {
+    cv::equalizeHist(filtered, histogramEqualizedImage);
+  } else {
+    histogramEqualizedImage = filtered;
+  }
+  return histogramEqualizedImage;
 }
 
 void Subscriber::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg) {

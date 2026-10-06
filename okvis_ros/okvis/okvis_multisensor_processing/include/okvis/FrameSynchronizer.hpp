@@ -90,10 +90,11 @@ class FrameSynchronizer {
    * descriptors. Therefore only call it when you are sure a frame has been processed for which you have not called this
    *          function before.
    * @param multiFrameId ID of the multiframe that contains the frame with the newly detected keypoints.
+   * @param cameraIndex Camera whose detection and description completed.
    * @return True if the multiframe was found in the synchronizer. If it returns false this means that the multiframe
    *         probably is too old and already fell out of the internal buffer.
    */
-  bool detectionEndedForMultiFrame(uint64_t multiFrameId);
+  bool detectionEndedForMultiFrame(uint64_t multiFrameId, size_t cameraIndex);
 
   /**
    * @brief This will return true if the internal counter on how many times detectionEndedForMultiFrame()
@@ -136,6 +137,8 @@ class FrameSynchronizer {
   double timeTol_;
   /// Circular buffer containing a multiframe pointer and a counter for how many times detection has completed.
   std::vector<std::pair<std::shared_ptr<okvis::MultiFrame>, size_t> > frameBuffer_;
+  /// Per-camera detection completion state for each circular-buffer slot.
+  std::vector<std::vector<bool> > detectionCompletedByCamera_;
   /// Position of the newest multiframe in the buffer.
   int bufferPosition_;
 

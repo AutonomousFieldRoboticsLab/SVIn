@@ -56,6 +56,7 @@
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
 #include <okvis/timing/Timer.hpp>
 #include <thread>
+#include <vector>
 
 #ifdef USE_MOCK
 #include <../test/MockVioBackendInterface.hpp>
@@ -67,6 +68,20 @@
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
+
+struct SynchronizedFrameProcessingState {
+  explicit SynchronizedFrameProcessingState(std::shared_ptr<okvis::MultiFrame> frame)
+      : multiFrame(std::move(frame)) {}
+
+  std::shared_ptr<okvis::MultiFrame> multiFrame;
+  std::atomic<size_t> completedCameras{0};
+  std::atomic_bool cancelled{false};
+};
+
+struct CameraProcessingTask {
+  std::shared_ptr<okvis::CameraMeasurement> measurement;
+  std::shared_ptr<SynchronizedFrameProcessingState> synchronizedState;
+};
 
 /**
  *  \brief
@@ -130,6 +145,10 @@ class ThreadedKFVio : public VioInterface {
                         const cv::Mat& image,
                         const std::vector<cv::KeyPoint>* keypoints = 0,
                         bool* asKeyframe = 0);
+
+  /// Add a complete synchronized rig frame without re-associating timestamps
+  /// in independently progressing per-camera consumer threads.
+  bool addImages(const okvis::Time& stamp, const std::vector<cv::Mat>& images) override;
 
   /**
    * \brief             Add an abstracted image observation.
@@ -377,7 +396,7 @@ class ThreadedKFVio : public VioInterface {
   /// @{
 
   /// Camera measurement input queues. For each camera in the configuration one.
-  std::vector<std::shared_ptr<okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement>>>>
+  std::vector<std::shared_ptr<okvis::threadsafe::ThreadSafeQueue<okvis::CameraProcessingTask>>>
       cameraMeasurementsReceived_;
   /// IMU measurement input queue.
   okvis::threadsafe::ThreadSafeQueue<okvis::ImuMeasurement> imuMeasurementsReceived_;

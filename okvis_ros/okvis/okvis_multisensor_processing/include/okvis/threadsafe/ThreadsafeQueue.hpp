@@ -168,9 +168,23 @@ class ThreadSafeQueue {
   /// \param[in] max_queue_size Maximum queue size.
   /// \return True if oldest was dropped because queue was full.
   bool PushNonBlockingDroppingIfFull(const QueueType& value, size_t max_queue_size) {
+    return PushNonBlockingDroppingIfFull(value, max_queue_size, nullptr);
+  }
+
+  /// \brief Push to the queue. If full, return and drop the oldest entry.
+  /// \param[in] value New entry in queue.
+  /// \param[in] max_queue_size Maximum queue size.
+  /// \param[out] dropped_value Oldest entry when an eviction occurs. May be null.
+  /// \return True if oldest was dropped because queue was full.
+  bool PushNonBlockingDroppingIfFull(const QueueType& value,
+                                     size_t max_queue_size,
+                                     QueueType* dropped_value) {
     pthread_mutex_lock(&mutex_);
     bool result = false;
     if (queue_.size() >= max_queue_size) {
+      if (dropped_value != nullptr) {
+        *dropped_value = queue_.front();
+      }
       queue_.pop();
       result = true;
     }

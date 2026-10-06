@@ -27,15 +27,15 @@ namespace okvis {
 
 /// Exact-time compressed-image ingress for a synchronized multicamera rig.
 ///
-/// A complete timestamp tuple is decoded before any image is passed to the
-/// estimator callback. Images are then admitted consecutively in camera-index
-/// order. The implementation is independent of camera count and camera model.
+/// A complete timestamp tuple is decoded before it is passed atomically to the
+/// estimator callback. The implementation is independent of camera count and
+/// camera model.
 class SynchronizedCompressedImageSubscriber {
  public:
   using CompressedImage = sensor_msgs::msg::CompressedImage;
   using Image = sensor_msgs::msg::Image;
-  using ImageCallback =
-      std::function<bool(const Image::ConstSharedPtr&, unsigned int)>;
+  using ImageTuple = std::vector<Image::ConstSharedPtr>;
+  using TupleCallback = std::function<bool(const ImageTuple&)>;
 
   struct Counters {
     std::vector<uint64_t> receivedPerCamera;
@@ -51,7 +51,7 @@ class SynchronizedCompressedImageSubscriber {
       const std::shared_ptr<rclcpp::Node>& node,
       const std::vector<std::string>& cameraTopics,
       std::size_t queueSize,
-      ImageCallback imageCallback,
+      TupleCallback tupleCallback,
       bool logCounters = false);
 
   ~SynchronizedCompressedImageSubscriber();
@@ -83,14 +83,14 @@ class SynchronizedCompressedImageSubscriber {
 
   std::shared_ptr<rclcpp::Node> node_;
   std::size_t queueSize_;
-  ImageCallback imageCallback_;
+  TupleCallback tupleCallback_;
   bool logCounters_ = false;
   std::vector<rclcpp::Subscription<CompressedImage>::SharedPtr> subscriptions_;
   rclcpp::TimerBase::SharedPtr diagnosticsTimer_;
 
   // This mutex intentionally covers tuple decoding and estimator input as
   // well as queue access. It prevents two complete tuples from interleaving
-  // their per-camera callbacks under a multithreaded executor.
+  // under a multithreaded executor.
   mutable std::mutex mutex_;
   std::vector<CameraQueue> cameraQueues_;
   Counters counters_;

@@ -751,9 +751,15 @@ void MarginalizationError::updateErrorComputation() {
   Eigen::MatrixXd J_pinv_T = (S_pinv_sqrt_.asDiagonal()) * saes.eigenvectors().transpose() * p_inv.asDiagonal();
   e0_ = (-J_pinv_T * b0_);
 
-  // reconstruct. TODO: check if this really improves quality --- doesn't seem so...
-  // H_ = J_.transpose() * J_;
-  // b0_ = -J_.transpose() * e0_;
+  // Carry forward exactly the same PSD-projected prior that is exposed to
+  // Ceres.  Negative and numerically-null modes were removed above when J_
+  // and e0_ were formed.  Keeping the pre-projection H_ and b0_ here makes the
+  // next Schur update start from a different prior than the one just optimized;
+  // repeated marginalization can then amplify an indefinite mode and discard
+  // nearly all of the RHS.  Reconstructing both terms preserves the normal-
+  // equation convention J^T J * dx = b with J^T e0 = -b.
+  H_ = J_.transpose() * J_;
+  b0_ = -J_.transpose() * e0_;
   errorComputationValid_ = true;
 }
 

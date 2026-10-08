@@ -96,10 +96,10 @@ TEST_F(FrameSynchronizerTest, ConstructDestruct) {}
 TEST_F(FrameSynchronizerTest, CorrectOrder) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
-    frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+    frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
-    frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+    frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
     EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
 
     EXPECT_EQ(i, multiFrame->image(0).data[0]);
@@ -112,13 +112,13 @@ TEST_F(FrameSynchronizerTest, CorrectOrder) {
 TEST_F(FrameSynchronizerTest, OneMissing) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
-    frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+    frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     if (i == 3) {
       EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     } else {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
-      frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+      frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
       EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
 
       EXPECT_EQ(i, multiFrame->image(0).data[0]);
@@ -132,13 +132,13 @@ TEST_F(FrameSynchronizerTest, OneMissing) {
 TEST_F(FrameSynchronizerTest, TwoMissing) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
-    frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+    frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     if (i == 3 || i == 5) {
       EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     } else {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
-      frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+      frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
       EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
 
       EXPECT_EQ(i, multiFrame->image(0).data[0]);
@@ -152,20 +152,20 @@ TEST_F(FrameSynchronizerTest, TwoMissing) {
 TEST_F(FrameSynchronizerTest, OneDouble) {
   for (size_t i = 0; i < num_test_frames; ++i) {
     okvis::MultiFramePtr multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(0));
-    frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+    frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
     EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     if (i == 3) {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
-      frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+      frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
-      frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+      frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
       // expecting false as something unexpected happened
       // (3 frames with the same timestamp detected in a 2 camera setup)
       // and frame synchronizer wants you to drop the multiframe
       EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     } else {
       multiFrame = frame_syncer.addNewFrame(test_frames.at(i).at(1));
-      frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+      frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
       EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
     }
 
@@ -179,32 +179,32 @@ TEST_F(FrameSynchronizerTest, OneDouble) {
 TEST_F(FrameSynchronizerTest, OneOutOfOrder) {
   okvis::MultiFramePtr multiFrame;
   multiFrame = frame_syncer.addNewFrame(test_frames.at(0).at(0));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
   multiFrame = frame_syncer.addNewFrame(test_frames.at(0).at(1));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
   EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
 
   multiFrame = frame_syncer.addNewFrame(test_frames.at(1).at(0));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
   multiFrame = frame_syncer.addNewFrame(test_frames.at(1).at(1));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
   EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
 
   multiFrame = frame_syncer.addNewFrame(test_frames.at(2).at(0));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 0);
   multiFrame = frame_syncer.addNewFrame(test_frames.at(2).at(1));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame->id(), 1);
   EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame->id()));
 
   okvis::MultiFramePtr multiFrame3 = frame_syncer.addNewFrame(test_frames.at(3).at(0));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame3->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame3->id(), 0);
   okvis::MultiFramePtr multiFrame4 = frame_syncer.addNewFrame(test_frames.at(4).at(1));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame4->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame4->id(), 1);
   EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame3->id()));
   EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame4->id()));
 
   multiFrame4 = frame_syncer.addNewFrame(test_frames.at(4).at(0));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame4->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame4->id(), 0);
   EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame3->id()));
   EXPECT_TRUE(frame_syncer.detectionCompletedForAllCameras(multiFrame4->id()));
   EXPECT_EQ(4, multiFrame4->image(0).data[0]);
@@ -213,7 +213,7 @@ TEST_F(FrameSynchronizerTest, OneOutOfOrder) {
   EXPECT_EQ(1, multiFrame4->image(1).data[1]);
 
   multiFrame3 = frame_syncer.addNewFrame(test_frames.at(3).at(1));
-  frame_syncer.detectionEndedForMultiFrame(multiFrame3->id());
+  frame_syncer.detectionEndedForMultiFrame(multiFrame3->id(), 1);
   // This will result in an assertion failing as the order is wrong.
   //  EXPECT_FALSE(frame_syncer.detectionCompletedForAllCameras(multiFrame3->id()));
 

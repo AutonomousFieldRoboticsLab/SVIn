@@ -82,6 +82,8 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
+class SynchronizedCompressedImageSubscriber;
+
 /**
  * @brief This class handles all the buffering of incoming data.
  */
@@ -113,7 +115,14 @@ class Subscriber {
   /// @{
 
   /// @brief The image callback.
-  void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex);
+  bool imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex);
+
+  /// @brief Admit one exact-time multicamera tuple atomically.
+  bool synchronizedImagesCallback(
+      const std::vector<sensor_msgs::msg::Image::ConstSharedPtr>& messages);
+
+  /// @brief Apply configured resize and photometric preprocessing.
+  cv::Mat preprocessImage(const sensor_msgs::msg::Image::ConstSharedPtr& msg) const;
   
   /// @brief The depth image callback.
   /// @warning Not implemented.
@@ -139,6 +148,8 @@ class Subscriber {
   std::shared_ptr<rclcpp::Node> node_;                             ///< The node handle.
   std::unique_ptr<image_transport::ImageTransport> imgTransport_;  ///< The image transporter.
   std::vector<image_transport::Subscriber> imageSubscribers_;      ///< The image message subscriber.
+  std::unique_ptr<SynchronizedCompressedImageSubscriber>
+      synchronizedCompressedImageSubscriber_;  ///< Optional exact-time multicamera input.
   unsigned int imgLeftCounter;                                     // @Sharmin
   unsigned int imgRightCounter;                                    // @Sharmin
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subImu_;  ///< The IMU message subscriber.

@@ -42,6 +42,7 @@
 
 #include <functional>
 #include <memory>
+#include <okvis/SynchronizedCompressedImageSubscriber.hpp>
 #include <okvis/Subscriber.hpp>
 #include <vector>
 
@@ -61,19 +62,71 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
 
   imageSubscribers_.resize(vioParameters_.nCameraSystem.numCameras());
 
-  imgTransport_ = std::make_unique<image_transport::ImageTransport>(node);
-
   // setup callback groups
   auto svin2_callback_group = node->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
   auto options = rclcpp::SubscriptionOptions();
   options.callback_group = svin2_callback_group;
 
-  // Set up Camera callbacks
-  for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
-    imageSubscribers_[i] =
-        imgTransport_->subscribe("camera" + std::to_string(i),
-                                 30 * vioParameters_.nCameraSystem.numCameras(),
-                                 std::bind(&Subscriber::imageCallback, this, std::placeholders::_1, i));
+  if (!node_->has_parameter("synchronized_compressed_images")) {
+    node_->declare_parameter<bool>("synchronized_compressed_images", false);
+  }
+  const bool synchronizedCompressedImages =
+      node_->get_parameter("synchronized_compressed_images").as_bool();
+  if (synchronizedCompressedImages) {
+    const std::size_t numberOfCameras =
+        vioParameters_.nCameraSystem.numCameras();
+    if (!node_->has_parameter("synchronized_compressed_camera_topics")) {
+      node_->declare_parameter<std::vector<std::string>>(
+          "synchronized_compressed_camera_topics",
+          std::vector<std::string>{});
+    }
+    if (!node_->has_parameter("synchronized_compressed_queue_size")) {
+      node_->declare_parameter<int>("synchronized_compressed_queue_size", 100);
+    }
+    if (!node_->has_parameter("synchronized_compressed_log_counters")) {
+      node_->declare_parameter<bool>("synchronized_compressed_log_counters",
+                                     false);
+    }
+
+    auto cameraTopics = node_
+                            ->get_parameter(
+                                "synchronized_compressed_camera_topics")
+                            .as_string_array();
+    if (cameraTopics.empty()) {
+      cameraTopics.reserve(numberOfCameras);
+      for (std::size_t cameraIndex = 0; cameraIndex < numberOfCameras;
+           ++cameraIndex) {
+        cameraTopics.push_back("camera" + std::to_string(cameraIndex) +
+                               "/compressed");
+      }
+    }
+    OKVIS_ASSERT_TRUE(
+        Exception, cameraTopics.size() == numberOfCameras,
+        "synchronized_compressed_camera_topics must contain one topic per configured camera");
+    const int64_t queueSize =
+        node_->get_parameter("synchronized_compressed_queue_size").as_int();
+    const bool logCounters =
+        node_->get_parameter("synchronized_compressed_log_counters").as_bool();
+    OKVIS_ASSERT_TRUE(Exception, queueSize > 0,
+                      "synchronized_compressed_queue_size must be positive");
+
+    synchronizedCompressedImageSubscriber_ =
+        std::make_unique<SynchronizedCompressedImageSubscriber>(
+            node_, cameraTopics,
+            static_cast<std::size_t>(queueSize),
+            [this](const std::vector<sensor_msgs::msg::Image::ConstSharedPtr>& messages) {
+              return synchronizedImagesCallback(messages);
+            },
+            logCounters);
+  } else {
+    imgTransport_ = std::make_unique<image_transport::ImageTransport>(node);
+    // Preserve the existing independent raw-image subscriptions by default.
+    for (size_t i = 0; i < vioParameters_.nCameraSystem.numCameras(); ++i) {
+      imageSubscribers_[i] =
+          imgTransport_->subscribe("camera" + std::to_string(i),
+                                   30 * vioParameters_.nCameraSystem.numCameras(),
+                                   std::bind(&Subscriber::imageCallback, this, std::placeholders::_1, i));
+    }
   }
 
   // Set up IMU callback
@@ -135,13 +188,65 @@ Subscriber::Subscriber(std::shared_ptr<rclcpp::Node> node,
 // Hunter
 void Subscriber::setT_Wc_W(okvis::kinematics::Transformation T_Wc_W) { vioParameters_.publishing.T_Wc_W = T_Wc_W; }
 
-void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex) {
+bool Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg, unsigned int cameraIndex) {
   if (frozen_) {
-    return;  // frozen: ignore images
+    return false;  // frozen: ignore images
   }
-  const cv::Mat raw = readRosImage(msg);
+  const cv::Mat histogram_equalized_image = preprocessImage(msg);
 
-  // resizing factor( e.g., with a factor = 0.8, an image will convert from 800x600 to 640x480)
+  // adapt timestamp
+  okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nanosec);
+  t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
+
+  // Update last image time for watchdog (steady clock)
+  last_image_tp_ = std::chrono::steady_clock::now();
+  seen_first_image_ = true;
+
+  const bool addedWithoutInputLoss = vioInterface_->addImage(t, cameraIndex, histogram_equalized_image);
+  if (!addedWithoutInputLoss) {
+    // addImage(false) means actual input loss: this image was rejected as
+    // stale, or the oldest image in this camera's full queue was evicted.
+    LOG(WARNING) << "VIO camera input loss at t=" << t << " camera=" << cameraIndex
+                 << ": current image rejected as stale or oldest queued image evicted.";
+  }
+  return addedWithoutInputLoss;
+}
+
+bool Subscriber::synchronizedImagesCallback(
+    const std::vector<sensor_msgs::msg::Image::ConstSharedPtr>& messages) {
+  if (frozen_) return false;
+  OKVIS_ASSERT_TRUE(Exception,
+                    messages.size() == vioParameters_.nCameraSystem.numCameras(),
+                    "Synchronized image tuple must contain one image per configured camera");
+  OKVIS_ASSERT_TRUE(Exception, !messages.empty(), "Synchronized image tuple must not be empty");
+
+  const auto& referenceStamp = messages.front()->header.stamp;
+  std::vector<cv::Mat> images;
+  images.reserve(messages.size());
+  for (const auto& message : messages) {
+    OKVIS_ASSERT_TRUE(Exception,
+                      message->header.stamp.sec == referenceStamp.sec &&
+                          message->header.stamp.nanosec == referenceStamp.nanosec,
+                      "Synchronized image tuple contains unequal timestamps");
+    images.push_back(preprocessImage(message));
+  }
+
+  okvis::Time t(referenceStamp.sec, referenceStamp.nanosec);
+  t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
+  last_image_tp_ = std::chrono::steady_clock::now();
+  seen_first_image_ = true;
+
+  const bool addedWithoutInputLoss = vioInterface_->addImages(t, images);
+  // if (!addedWithoutInputLoss) {
+  //   LOG(WARNING) << "VIO synchronized rig-frame admission reported input loss while admitting t="
+  //                << t << ": the current tuple was stale or at least one older complete tuple "
+  //                        "was cancelled because a camera processing queue was full.";
+  // }
+  return addedWithoutInputLoss;
+}
+
+cv::Mat Subscriber::preprocessImage(const sensor_msgs::msg::Image::ConstSharedPtr& msg) const {
+  const cv::Mat raw = readRosImage(msg);
   cv::Mat raw_resized;
   if (vioParameters_.miscParams.resizeFactor != 1.0) {
     cv::resize(
@@ -157,28 +262,15 @@ void Subscriber::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg
     filtered = raw_resized.clone();
   }
 
-  // Added by Sharmin for CLAHE
-  cv::Mat histogram_equalized_image;
+  cv::Mat histogramEqualizedImage;
   if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::CLAHE) {
-    clahe->apply(filtered, histogram_equalized_image);
+    clahe->apply(filtered, histogramEqualizedImage);
   } else if (vioParameters_.histogramParams.histogramMethod == HistogramMethod::HISTOGRAM) {
-    cv::equalizeHist(filtered, histogram_equalized_image);
+    cv::equalizeHist(filtered, histogramEqualizedImage);
   } else {
-    histogram_equalized_image = filtered;
+    histogramEqualizedImage = filtered;
   }
-  // End Added by Sharmin
-
-  // adapt timestamp
-  okvis::Time t(msg->header.stamp.sec, msg->header.stamp.nanosec);
-  t -= okvis::Duration(vioParameters_.sensors_information.imageDelay);
-
-  // Update last image time for watchdog (steady clock)
-  last_image_tp_ = std::chrono::steady_clock::now();
-  seen_first_image_ = true;
-
-  if (!vioInterface_->addImage(t, cameraIndex, histogram_equalized_image)) {
-    LOG(WARNING) << "Frame delayed at time " << t;
-  }
+  return histogramEqualizedImage;
 }
 
 void Subscriber::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -292,11 +384,13 @@ const cv::Mat Subscriber::readRosImage(const sensor_msgs::msg::Image::ConstShare
   try {
     // TODO(Toni): here we should consider using toCvShare...
     cv_ptr = cv_bridge::toCvCopy(img_msg);
-    RCLCPP_INFO(node_->get_logger(), "Received image - encoding: %s, width: %d, height: %d, size: %zu",
-                img_msg->encoding.c_str(),
-                img_msg->width,
-                img_msg->height,
-                img_msg->data.size());
+    // Per-image logging is intentionally disabled because it substantially
+    // reduces throughput for multi-camera streams.
+    // RCLCPP_INFO(node_->get_logger(), "Received image - encoding: %s, width: %d, height: %d, size: %zu",
+    //             img_msg->encoding.c_str(),
+    //             img_msg->width,
+    //             img_msg->height,
+    //             img_msg->data.size());
   } catch (cv_bridge::Exception& exception) {
     RCLCPP_FATAL(node_->get_logger(), "cv_bridge exception: %s", exception.what());
     rclcpp::shutdown();

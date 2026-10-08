@@ -83,7 +83,7 @@ namespace okvis {
 
 uint64_t frameCnt = 0;  // Sharmin
 
-static const int max_camera_input_queue_size = 10;
+static const int max_camera_input_queue_size = 15;
 static const okvis::Duration temporal_imu_data_overlap(
     0.02);  // overlap of imu data before and after two consecutive frames [seconds]
 
@@ -147,8 +147,8 @@ void ThreadedKFVio::init() {
     // do they ever change?
     estimator_.addCamera(parameters_.camera_extrinsics);
     cameraMeasurementsReceived_.emplace_back(
-        std::shared_ptr<threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement>>>(
-            new threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement>>()));
+        std::shared_ptr<threadsafe::ThreadSafeQueue<okvis::CameraProcessingTask>>(
+            new threadsafe::ThreadSafeQueue<okvis::CameraProcessingTask>()));
   }
 
   // set up windows so things don't crash on Mac OS
@@ -280,13 +280,70 @@ bool ThreadedKFVio::addImage(const okvis::Time& stamp,
     frame->measurement.deliversKeypoints = false;
   }
 
+  CameraProcessingTask task;
+  task.measurement = frame;
+
   if (blocking_) {
-    cameraMeasurementsReceived_[cameraIndex]->PushBlockingIfFull(frame, 1);
-    return true;
+    return cameraMeasurementsReceived_[cameraIndex]->PushBlockingIfFull(task, 1);
   } else {
-    cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(frame, max_camera_input_queue_size);
-    return cameraMeasurementsReceived_[cameraIndex]->Size() == 1;
+    const bool droppedOldest =
+        cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(task, max_camera_input_queue_size);
+    if (droppedOldest) {
+      DLOG(WARNING) << "Oldest camera " << cameraIndex
+                    << " input dropped because its queue reached "
+                    << max_camera_input_queue_size << " frames.";
+      return false;
+    }
+    return true;
   }
+}
+
+bool ThreadedKFVio::addImages(const okvis::Time& stamp, const std::vector<cv::Mat>& images) {
+  OKVIS_ASSERT_TRUE(Exception, images.size() == numCameras_,
+                    "addImages requires one image per configured camera");
+  if (lastAddedImageTimestamp_ > stamp &&
+      fabs((lastAddedImageTimestamp_ - stamp).toSec()) > parameters_.sensors_information.frameTimestampTolerance) {
+    LOG(ERROR) << "Received synchronized rig frame from the past. Dropping it.";
+    return false;
+  }
+  lastAddedImageTimestamp_ = stamp;
+
+  auto multiFrame = std::make_shared<okvis::MultiFrame>(
+      parameters_.nCameraSystem, stamp, okvis::IdProvider::instance().newId());
+  auto synchronizedState = std::make_shared<SynchronizedFrameProcessingState>(multiFrame);
+  std::vector<CameraProcessingTask> tasks(numCameras_);
+
+  for (size_t cameraIndex = 0; cameraIndex < numCameras_; ++cameraIndex) {
+    multiFrame->setImage(cameraIndex, images[cameraIndex]);
+    auto measurement = std::make_shared<okvis::CameraMeasurement>();
+    measurement->measurement.image = images[cameraIndex];
+    measurement->measurement.deliversKeypoints = false;
+    measurement->timeStamp = stamp;
+    measurement->sensorId = cameraIndex;
+    tasks[cameraIndex].measurement = std::move(measurement);
+    tasks[cameraIndex].synchronizedState = synchronizedState;
+  }
+
+  bool inputLoss = false;
+  // Keep the input callback non-blocking under load. If any per-camera queue
+  // evicts an old task, cancel that task's complete rig frame so a partial
+  // multiframe can never reach the estimator.
+  for (size_t cameraIndex = 0; cameraIndex < numCameras_; ++cameraIndex) {
+    CameraProcessingTask droppedTask;
+    if (cameraMeasurementsReceived_[cameraIndex]->PushNonBlockingDroppingIfFull(
+            tasks[cameraIndex], max_camera_input_queue_size, &droppedTask)) {
+      inputLoss = true;
+      if (droppedTask.synchronizedState &&
+          !droppedTask.synchronizedState->cancelled.exchange(true, std::memory_order_acq_rel)) {
+        DLOG(WARNING) << "Synchronized rig frame "
+                      << droppedTask.synchronizedState->multiFrame->id()
+                      << " at " << droppedTask.synchronizedState->multiFrame->timestamp()
+                      << " cancelled because camera " << cameraIndex
+                      << " input queue reached " << max_camera_input_queue_size;
+      }
+    }
+  }
+  return !inputLoss;
 }
 
 // Add an abstracted image observation.
@@ -419,6 +476,7 @@ void ThreadedKFVio::setBlocking(bool blocking) {
 
 // Loop to process frames from camera with index cameraIndex
 void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
+  CameraProcessingTask task;
   std::shared_ptr<okvis::CameraMeasurement> frame;
   std::shared_ptr<okvis::MultiFrame> multiFrame;
   TimerSwitchable beforeDetectTimer("1.1 frameLoopBeforeDetect" + std::to_string(cameraIndex), true);
@@ -436,11 +494,14 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
 
   for (;;) {
     // get data and check for termination request
-    if (cameraMeasurementsReceived_[cameraIndex]->PopBlocking(&frame) == false) {
+    if (cameraMeasurementsReceived_[cameraIndex]->PopBlocking(&task) == false) {
       return;
     }
+    frame = task.measurement;
     beforeDetectTimer.start();
-    {  // lock the frame synchronizer
+    if (task.synchronizedState) {
+      multiFrame = task.synchronizedState->multiFrame;
+    } else {  // lock the frame synchronizer for legacy independent image input
       waitForFrameSynchronizerMutexTimer.start();
       std::lock_guard<std::mutex> lock(frameSynchronizer_mutex_);
       waitForFrameSynchronizerMutexTimer.stop();
@@ -567,12 +628,16 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     // if imu_data is empty, either end_time > begin_time or
     // no measurements in timeframe, should not happen, as we waited for measurements
     if (imuData.size() == 0) {
+      LOG(WARNING) << "[FRAME_PIPELINE_SKIP] reason=empty_imu camera=" << cameraIndex
+                   << " id=" << multiFrame->id() << " timestamp=" << multiFrame->timestamp();
       beforeDetectTimer.stop();
       continue;
     }
 
     if (imuData.front().timeStamp > frame->timeStamp) {
-      LOG(WARNING) << "Frame is newer than oldest IMU measurement. Dropping it.";
+      LOG(WARNING) << "[FRAME_PIPELINE_SKIP] reason=imu_starts_after_frame camera=" << cameraIndex
+                   << " id=" << multiFrame->id() << " timestamp=" << multiFrame->timestamp()
+                   << " oldest_imu_timestamp=" << imuData.front().timeStamp;
       beforeDetectTimer.stop();
       continue;
     }
@@ -590,6 +655,8 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
       }
       OKVIS_ASSERT_TRUE_DBG(Exception, success, "pose could not be initialized from imu measurements.");
       if (!success) {
+        LOG(WARNING) << "[FRAME_PIPELINE_SKIP] reason=imu_pose_initialization_failed camera=" << cameraIndex
+                     << " id=" << multiFrame->id() << " timestamp=" << multiFrame->timestamp();
         beforeDetectTimer.stop();
         continue;
       }
@@ -608,17 +675,29 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     afterDetectTimer.start();
 
     bool push = false;
-    {  // we now tell frame synchronizer that detectAndDescribe is done for MF with our timestamp
+    if (task.synchronizedState) {
+      const size_t completedCameras =
+          task.synchronizedState->completedCameras.fetch_add(1, std::memory_order_acq_rel) + 1;
+      OKVIS_ASSERT_TRUE_DBG(Exception, completedCameras <= numCameras_,
+                            "Synchronized multiframe completion count exceeds camera count");
+      push = completedCameras == numCameras_ &&
+             !task.synchronizedState->cancelled.load(std::memory_order_acquire);
+    } else {  // report completion for legacy independent image input
       waitForFrameSynchronizerMutexTimer2.start();
       std::lock_guard<std::mutex> lock(frameSynchronizer_mutex_);
       waitForFrameSynchronizerMutexTimer2.stop();
-      frameSynchronizer_.detectionEndedForMultiFrame(multiFrame->id());
+      const bool completionRecorded =
+          frameSynchronizer_.detectionEndedForMultiFrame(multiFrame->id(), cameraIndex);
+      if (!completionRecorded) {
+        LOG(WARNING) << "[FRAME_SYNC_LATE_COMPLETION] camera=" << cameraIndex
+                     << " id=" << multiFrame->id() << " timestamp=" << multiFrame->timestamp();
+      }
 
       if (frameSynchronizer_.detectionCompletedForAllCameras(multiFrame->id())) {
         // LOG(INFO) << "detection completed for multiframe with id "<< multi_frame->id();
         push = true;
       }
-    }  // unlocking frame synchronizer
+    }
     afterDetectTimer.stop();
     if (push) {
       // use queue size 1 to propagate a congestion to the _cameraMeasurementsReceived queue

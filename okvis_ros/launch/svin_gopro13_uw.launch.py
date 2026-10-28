@@ -75,6 +75,10 @@ def launch_setup(context, *args, **kwargs):
       'enable_recording': LaunchConfiguration('rerun_enable_recording'),
       'rrd_path': LaunchConfiguration('rerun_rrd_path'),
       'viewer_url': LaunchConfiguration('rerun_viewer_url'),
+      'raw_compressed_image_topics': [
+        LaunchConfiguration('raw_compressed_image_topic').perform(context)
+      ],
+      'keyframe_image_count': 1,
       'okvis_config': abs_okvis_config_path
     }],
     output='screen'
@@ -139,9 +143,9 @@ def generate_launch_description():
     default_value=PathJoinSubstitution([
       FindPackageShare('svin_rerun_bridge'),
       'config',
-      'svin_rerun_bridge_pinhole_mono.yaml'
+      'svin_rerun_bridge_pinhole.yaml'
     ]),
-    description='Mono pinhole Rerun visualization/topic configuration'
+    description='Reusable pinhole Rerun visualization configuration'
   )
   rerun_enable_live_arg = DeclareLaunchArgument('rerun_enable_live', default_value='true')
   rerun_start_viewer_arg = DeclareLaunchArgument('rerun_start_viewer', default_value='true')
@@ -159,6 +163,10 @@ def generate_launch_description():
   rerun_rrd_path_arg = DeclareLaunchArgument('rerun_rrd_path', default_value='')
   rerun_viewer_url_arg = DeclareLaunchArgument(
     'rerun_viewer_url', default_value='rerun+http://127.0.0.1:9876/proxy')
+  raw_compressed_image_topic_arg = DeclareLaunchArgument(
+    'raw_compressed_image_topic',
+    default_value='/gopro/image_raw/compressed',
+    description='Compressed image topic used by the mono Rerun camera and uncompressor')
 
   # Uncompressor node
   uncompressor_node = Node(
@@ -167,7 +175,8 @@ def generate_launch_description():
     name='uncompressor',
     output='screen',
     parameters=[{
-      'compressed_img_topic': '/gopro/image_raw/compressed',
+      'compressed_img_topic': LaunchConfiguration(
+        'raw_compressed_image_topic'),
       'ouput_img_topic': '/cam0/image_raw'
     }]
   )
@@ -188,6 +197,7 @@ def generate_launch_description():
     rerun_enable_recording_arg,
     rerun_rrd_path_arg,
     rerun_viewer_url_arg,
+    raw_compressed_image_topic_arg,
     uncompressor_node,
     OpaqueFunction(function=launch_setup)
   ])

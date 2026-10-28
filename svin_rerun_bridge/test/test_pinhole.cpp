@@ -31,5 +31,20 @@ TEST(Pinhole, RejectsDoubleSphereCalibration)
   EXPECT_NE(error.find("double_sphere"), std::string::npos);
 }
 
+TEST(Pinhole, LoadsStereoWorkspaceCalibration)
+{
+  std::string error;
+  const auto cameras = load_pinhole_cameras(
+    "/home/ws/src/SVIn2/config/config_aqua2_A6_BBDOS26_1280_720.yaml", &error);
+  ASSERT_TRUE(cameras.has_value()) << error;
+  ASSERT_EQ(cameras->size(), 2U);
+  EXPECT_EQ((*cameras)[0].width, 1280);
+  EXPECT_EQ((*cameras)[0].height, 720);
+  EXPECT_NEAR((*cameras)[0].fx, 975.3634442928654, 1.0e-12);
+  EXPECT_NEAR((*cameras)[1].fx, 970.31110446077, 1.0e-12);
+  EXPECT_EQ((*cameras)[0].distortion_type, "radialtangential");
+  EXPECT_EQ((*cameras)[1].distortion_coefficients.size(), 4U);
+}
+
 }  // namespace
 }  // namespace svin_rerun_bridge

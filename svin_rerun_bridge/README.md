@@ -36,10 +36,12 @@ connecting to a Rerun viewer or server that was started separately.
 
 RViz and Rerun can be enabled at the same time while comparing the views.
 
-### Mono pinhole camera
+### Pinhole cameras
 
 The GoPro launch uses the separate
-`config/svin_rerun_bridge_pinhole_mono.yaml` profile:
+`config/svin_rerun_bridge_pinhole.yaml` profile is shared by mono and
+multi-camera pinhole launches. Each launch overrides the ordered raw image
+topic list and `keyframe_image_count` for its calibrated rig:
 
 ```bash
 ros2 launch okvis_ros svin_gopro13_uw.launch.py \

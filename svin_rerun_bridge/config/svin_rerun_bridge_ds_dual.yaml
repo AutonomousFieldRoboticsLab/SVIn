@@ -10,7 +10,7 @@ svin_rerun_bridge:
     # meshes are logged below world/cameras/camN and keyframe images update
     # their albedo textures in place.
     okvis_config: ""
-    enable_double_sphere_mesh: false
+    enable_double_sphere_mesh: true
     # Moving root for world/rig and calibrated camera child transforms:
     # pose_graph (default), odometry, or keyframe.
     mesh_pose_source: pose_graph
@@ -50,4 +50,5 @@ svin_rerun_bridge:
     # arrive asynchronously. The oldest bundle is dropped when this is full.
     keyframe_sync_pending_capacity: 32
 
+    enable_visualization_markers: true
     visualization_topic: /visualization

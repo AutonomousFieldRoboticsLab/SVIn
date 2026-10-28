@@ -3,6 +3,7 @@
 #include "svin_rerun_bridge/compressed_image_bundle.hpp"
 #include "svin_rerun_bridge/conversions.hpp"
 #include "svin_rerun_bridge/double_sphere.hpp"
+#include "svin_rerun_bridge/pinhole.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <rerun.hpp>
@@ -50,6 +51,7 @@ private:
   void on_markers(const visualization_msgs::msg::MarkerArray::ConstSharedPtr & message);
 
   void log_static_double_sphere_scene();
+  void log_static_pinhole_scene();
   void log_mesh_texture(std::size_t camera_index, RgbImage texture);
   void log_world_rig_pose(const geometry_msgs::msg::Pose & pose);
   void log_world_camera_poses(const geometry_msgs::msg::Pose & pose);
@@ -69,10 +71,13 @@ private:
   int double_sphere_grid_{31};
   float point_radius_ui_points_{2.0F};
   bool enable_double_sphere_mesh_{true};
+  bool enable_pinhole_camera_{false};
   bool enable_mesh_texture_updates_{true};
   std::size_t mesh_texture_stride_{10U};
   bool logging_enabled_{false};
   std::string mesh_pose_source_{"pose_graph"};
+  float pinhole_image_plane_distance_{0.35F};
+  float pinhole_line_width_ui_points_{1.5F};
 
   std::string okvis_config_;
   std::string points_matched_topic_;
@@ -106,6 +111,7 @@ private:
   std::size_t raw_texture_bundle_count_{0U};
   std::optional<builtin_interfaces::msg::Time> latest_trusted_sensor_stamp_;
   std::vector<DoubleSphereCamera> double_sphere_cameras_;
+  std::vector<PinholeCamera> pinhole_cameras_;
 };
 
 }  // namespace svin_rerun_bridge

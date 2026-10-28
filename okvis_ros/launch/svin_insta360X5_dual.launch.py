@@ -178,7 +178,7 @@ def generate_launch_description():
     default_value=PathJoinSubstitution([
       FindPackageShare('svin_rerun_bridge'),
       'config',
-      'svin_rerun_bridge.yaml'
+      'svin_rerun_bridge_ds_dual.yaml'
     ]),
     description='Rerun bridge visualization, topic, and synchronization config'
   )

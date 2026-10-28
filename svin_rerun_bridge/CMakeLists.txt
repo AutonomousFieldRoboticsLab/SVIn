@@ -33,6 +33,7 @@ add_library(${PROJECT_NAME}_conversions STATIC
   src/conversions.cpp
   src/compressed_image_bundle.cpp
   src/double_sphere.cpp
+  src/pinhole.cpp
 )
 target_include_directories(${PROJECT_NAME}_conversions
   PUBLIC
@@ -120,6 +121,12 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_double_sphere ${PROJECT_NAME}_conversions)
   ament_target_dependencies(test_double_sphere sensor_msgs)
+
+  ament_add_gtest(test_pinhole
+    test/test_pinhole.cpp
+  )
+  target_link_libraries(test_pinhole ${PROJECT_NAME}_conversions)
+  ament_target_dependencies(test_pinhole sensor_msgs)
 
   ament_add_gtest(test_compressed_image_bundle
     test/test_compressed_image_bundle.cpp

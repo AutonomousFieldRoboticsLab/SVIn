@@ -36,6 +36,35 @@ connecting to a Rerun viewer or server that was started separately.
 
 RViz and Rerun can be enabled at the same time while comparing the views.
 
+### Mono pinhole camera
+
+The GoPro launch uses the separate
+`config/svin_rerun_bridge_pinhole_mono.yaml` profile:
+
+```bash
+ros2 launch okvis_ros svin_gopro13_uw.launch.py \
+  use_rviz:=false use_rerun:=true
+
+ros2 bag play \
+  /home/data/Insta360/X5/test/pro_case_uw/mexico26_02/2026_02_28_OtochHa/bag/gopro13 \
+  --rate 0.5
+```
+
+With `enable_pinhole_camera: true`, the bridge reads each pinhole camera's
+`T_SC`, image dimensions, focal lengths, and principal point from the active
+OKVIS configuration. It logs a semantic Rerun `Pinhole` at
+`world/cameras/camN/image`; the original compressed image is logged on that
+same entity, so Rerun automatically shows it in 2D and projects it onto the
+moving frustum's image plane in 3D. No custom mesh or texture decoding is used.
+The mono profile also sets `enable_visualization_markers: false`, preventing
+the pose graph's manually drawn `/visualization` frustum from appearing on top
+of the semantic pinhole frustum.
+
+Rerun's semantic pinhole projection represents the intrinsic K matrix but does
+not model OKVIS radial-tangential distortion. The current GoPro profile
+therefore displays the original distorted JPEG on a geometrically pinhole
+image plane; it does not silently rectify or alter the recorded payload.
+
 ## Live visualization and RRD recording
 
 The recording directory must already exist.

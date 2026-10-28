@@ -229,11 +229,14 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   declare_parameter<int>("keyframe_subscription_depth", 32);
   declare_parameter<std::string>("okvis_config", "");
   declare_parameter<bool>("enable_double_sphere_mesh", true);
+  declare_parameter<bool>("enable_pinhole_camera", false);
   declare_parameter<std::string>("mesh_pose_source", "pose_graph");
   declare_parameter<bool>("enable_mesh_texture_updates", true);
   declare_parameter<int>("mesh_texture_stride", 10);
   declare_parameter<double>("double_sphere_depth", 0.35);
   declare_parameter<int>("double_sphere_grid", 31);
+  declare_parameter<double>("pinhole_image_plane_distance", 0.35);
+  declare_parameter<double>("pinhole_line_width_ui_points", 1.5);
   declare_parameter<int>("texture_max_width", 256);
   declare_parameter<double>("point_radius_ui_points", 1.5);
   declare_parameter<std::vector<std::string>>(
@@ -251,6 +254,7 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   declare_parameter<int>("keyframe_image_count", 2);
   declare_parameter<std::string>("keyframe_image_topic_pattern", kDefaultKeyframeTopicPattern);
   declare_parameter<int>("keyframe_sync_pending_capacity", 32);
+  declare_parameter<bool>("enable_visualization_markers", true);
   declare_parameter<std::string>("visualization_topic", "/visualization");
 
   const auto application_id = get_parameter("application_id").as_string();
@@ -265,6 +269,7 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     std::max<std::int64_t>(configured_keyframe_subscription_depth, 1));
   okvis_config_ = get_parameter("okvis_config").as_string();
   enable_double_sphere_mesh_ = get_parameter("enable_double_sphere_mesh").as_bool();
+  enable_pinhole_camera_ = get_parameter("enable_pinhole_camera").as_bool();
   const auto configured_mesh_pose_source = get_parameter("mesh_pose_source").as_string();
   mesh_pose_source_ = normalize_mesh_pose_source(configured_mesh_pose_source);
   if (mesh_pose_source_ != configured_mesh_pose_source) {
@@ -286,6 +291,24 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   }
   const auto configured_grid = get_parameter("double_sphere_grid").as_int();
   double_sphere_grid_ = std::max<std::int64_t>(configured_grid, 2);
+  const auto configured_pinhole_distance =
+    get_parameter("pinhole_image_plane_distance").as_double();
+  if (std::isfinite(configured_pinhole_distance) && configured_pinhole_distance > 0.0) {
+    pinhole_image_plane_distance_ = static_cast<float>(configured_pinhole_distance);
+  } else {
+    RCLCPP_WARN(
+      get_logger(), "pinhole_image_plane_distance must be finite and positive; using %.3f",
+      pinhole_image_plane_distance_);
+  }
+  const auto configured_pinhole_line_width =
+    get_parameter("pinhole_line_width_ui_points").as_double();
+  if (std::isfinite(configured_pinhole_line_width) && configured_pinhole_line_width > 0.0) {
+    pinhole_line_width_ui_points_ = static_cast<float>(configured_pinhole_line_width);
+  } else {
+    RCLCPP_WARN(
+      get_logger(), "pinhole_line_width_ui_points must be finite and positive; using %.1f",
+      pinhole_line_width_ui_points_);
+  }
   texture_max_width_ = std::max<std::int64_t>(get_parameter("texture_max_width").as_int(), 1);
   const auto configured_point_radius = get_parameter("point_radius_ui_points").as_double();
   if (std::isfinite(configured_point_radius) && configured_point_radius > 0.0) {
@@ -306,6 +329,8 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   odometry_topic_ = get_parameter("odometry_topic").as_string();
   keyframe_pose_topic_ = get_parameter("keyframe_pose_topic").as_string();
   const bool keyframe_pose_required = get_parameter("keyframe_pose_required").as_bool();
+  const bool enable_visualization_markers =
+    get_parameter("enable_visualization_markers").as_bool();
   visualization_topic_ = get_parameter("visualization_topic").as_string();
   raw_compressed_image_topics_ =
     get_parameter("raw_compressed_image_topics").as_string_array();
@@ -407,6 +432,31 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     }
   }
 
+  if (logging_enabled_ && enable_pinhole_camera_) {
+    if (okvis_config_.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        "enable_pinhole_camera is true but okvis_config is empty; semantic cameras are disabled");
+    } else {
+      std::string error;
+      const auto cameras = load_pinhole_cameras(okvis_config_, &error);
+      if (!cameras.has_value()) {
+        RCLCPP_ERROR(
+          get_logger(), "Cannot load pinhole cameras from %s: %s",
+          okvis_config_.c_str(), error.c_str());
+      } else {
+        pinhole_cameras_ = *cameras;
+        if (pinhole_cameras_.size() != keyframe_image_topics_.size()) {
+          RCLCPP_WARN(
+            get_logger(),
+            "Calibration contains %zu pinhole cameras but %zu keyframe image topics are configured",
+            pinhole_cameras_.size(), keyframe_image_topics_.size());
+        }
+        log_static_pinhole_scene();
+      }
+    }
+  }
+
   points_matched_subscription_ = create_subscription<sensor_msgs::msg::PointCloud2>(
     points_matched_topic_, rclcpp::SensorDataQoS(),
     [this](const sensor_msgs::msg::PointCloud2::ConstSharedPtr message) {
@@ -422,12 +472,12 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   okvis_path_subscription_ = create_subscription<nav_msgs::msg::Path>(
     okvis_path_topic_, state_qos,
     [this](const nav_msgs::msg::Path::ConstSharedPtr message) {
-      on_path(message, "world/paths/okvis", Rgba8{249U, 240U, 107U, 255U}, 0.02F);
+      on_path(message, "world/paths/okvis", Rgba8{240U, 130U, 25U, 255U}, 0.015F);
     });
   loop_closure_path_subscription_ = create_subscription<nav_msgs::msg::Path>(
     loop_closure_path_topic_, state_qos,
     [this](const nav_msgs::msg::Path::ConstSharedPtr message) {
-      on_path(message, "world/paths/loop_closure", Rgba8{25U, 255U, 0U, 255U}, 0.02F);
+      on_path(message, "world/paths/loop_closure", Rgba8{25U, 255U, 0U, 255U}, 0.015F);
     });
   if (odometry_topic_.empty()) {
     if (mesh_pose_source_ == "odometry") {
@@ -459,11 +509,13 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
         on_pose(message, keyframe_pose_topic_);
       });
   }
-  visualization_subscription_ = create_subscription<visualization_msgs::msg::MarkerArray>(
-    visualization_topic_, state_qos,
-    [this](const visualization_msgs::msg::MarkerArray::ConstSharedPtr message) {
-      on_markers(message);
-    });
+  if (enable_visualization_markers) {
+    visualization_subscription_ = create_subscription<visualization_msgs::msg::MarkerArray>(
+      visualization_topic_, state_qos,
+      [this](const visualization_msgs::msg::MarkerArray::ConstSharedPtr message) {
+        on_markers(message);
+      });
+  }
 
   keyframe_image_subscriptions_.reserve(keyframe_image_topics_.size());
   for (std::size_t camera_index = 0U; camera_index < keyframe_image_topics_.size();
@@ -498,13 +550,16 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     "Rerun bridge ready (live=%s, file=%s, JPEG quality=%d, keyframe cameras=%zu, "
     "pose=%s, pending capacity=%zu, raw cameras=%zu, raw pending capacity=%zu, "
     "keyframe QoS=reliable/%zu, mesh pose source=%s, odometry=%s, "
-    "mesh=%s, texture updates=%s/stride=%zu)",
+    "double-sphere mesh=%s, pinhole=%s, visualization markers=%s, "
+    "texture updates=%s/stride=%zu)",
     enable_live ? "enabled" : "disabled", use_file_sink ? rrd_path.c_str() : "disabled",
     jpeg_quality_, keyframe_image_topics_.size(), keyframe_pose_required ? "required" : "optional",
     keyframe_pending_capacity, raw_compressed_image_topics_.size(), raw_sync_pending_capacity_,
     keyframe_subscription_depth_,
     mesh_pose_source_.c_str(), odometry_topic_.empty() ? "disabled" : odometry_topic_.c_str(),
     double_sphere_cameras_.empty() ? "disabled" : "enabled",
+    pinhole_cameras_.empty() ? "disabled" : "enabled",
+    enable_visualization_markers ? "enabled" : "disabled",
     enable_mesh_texture_updates_ ? "enabled" : "disabled", mesh_texture_stride_);
 }
 
@@ -564,6 +619,49 @@ void SvinRerunBridge::log_static_double_sphere_scene()
     "world convention=RIGHT_HAND_Z_UP, root=%s)",
     double_sphere_cameras_.size(), double_sphere_depth_, double_sphere_grid_,
     mesh_pose_source_.c_str());
+}
+
+void SvinRerunBridge::log_static_pinhole_scene()
+{
+  if (!should_log() || pinhole_cameras_.empty()) {
+    return;
+  }
+
+  recording_->log_static("world", rerun::ViewCoordinates::RIGHT_HAND_Z_UP);
+  for (std::size_t camera_index = 0U; camera_index < pinhole_cameras_.size(); ++camera_index) {
+    const auto & camera = pinhole_cameras_[camera_index];
+    // Rerun matrices are column-major. This is the calibrated K matrix:
+    // [fx 0 cx; 0 fy cy; 0 0 1]. The default RDF convention matches a ROS
+    // optical frame (+X right, +Y down, +Z forward).
+    const auto projection = rerun::components::PinholeProjection(std::array<float, 9>{
+      static_cast<float>(camera.fx), 0.0F, 0.0F,
+      0.0F, static_cast<float>(camera.fy), 0.0F,
+      static_cast<float>(camera.cx), static_cast<float>(camera.cy), 1.0F});
+    const auto image_entity_path =
+      "world/cameras/cam" + std::to_string(camera_index) + "/image";
+    recording_->log_static(
+      image_entity_path,
+      rerun::Pinhole(projection)
+        .with_resolution(camera.width, camera.height)
+        .with_camera_xyz(rerun::components::ViewCoordinates::RDF)
+        .with_image_plane_distance(pinhole_image_plane_distance_)
+        .with_color(rerun::Color(80U, 200U, 255U))
+        .with_line_width(rerun::Radius::ui_points(pinhole_line_width_ui_points_)));
+
+    const bool has_nonzero_distortion = std::any_of(
+      camera.distortion_coefficients.begin(), camera.distortion_coefficients.end(),
+      [](double coefficient) {return std::abs(coefficient) > 1.0e-12;});
+    if (has_nonzero_distortion) {
+      RCLCPP_WARN(
+        get_logger(),
+        "Pinhole camera %zu uses %s distortion; Rerun's semantic Pinhole projects K only "
+        "and displays the compressed image without rectification",
+        camera_index, camera.distortion_type.c_str());
+    }
+  }
+  RCLCPP_INFO(
+    get_logger(), "Logged %zu semantic pinhole camera(s) (image plane distance=%.3f m)",
+    pinhole_cameras_.size(), pinhole_image_plane_distance_);
 }
 
 void SvinRerunBridge::on_point_cloud(
@@ -740,18 +838,21 @@ void SvinRerunBridge::log_world_rig_pose(const geometry_msgs::msg::Pose & pose)
 
 void SvinRerunBridge::log_world_camera_poses(const geometry_msgs::msg::Pose & pose)
 {
-  if (double_sphere_cameras_.empty()) {
+  if (double_sphere_cameras_.empty() && pinhole_cameras_.empty()) {
     return;
   }
 
   const auto world_from_rig = pose_to_matrix(pose);
   const bool root_is_odometry = mesh_pose_source_ == "odometry";
-  const auto inverse_camera0 = root_is_odometry ? Matrix4{} :
-    inverse_rigid(double_sphere_cameras_.front().T_SC);
-  for (std::size_t camera_index = 0U; camera_index < double_sphere_cameras_.size();
-    ++camera_index)
-  {
-    const auto & camera = double_sphere_cameras_[camera_index];
+  const auto log_camera_transforms = [this, &world_from_rig, root_is_odometry](
+      const auto & cameras) {
+    if (cameras.empty()) {
+      return;
+    }
+    const auto inverse_camera0 = root_is_odometry ? Matrix4{} :
+      inverse_rigid(cameras.front().T_SC);
+    for (std::size_t camera_index = 0U; camera_index < cameras.size(); ++camera_index) {
+      const auto & camera = cameras[camera_index];
     // Pose-graph/keyframe roots are C0:
     //   T_WCi = T_WC0 * inv(T_SC0) * T_SCi.
     // Odometry roots are the sensor/body frame (T_BS=I for this dataset):
@@ -762,7 +863,10 @@ void SvinRerunBridge::log_world_camera_poses(const geometry_msgs::msg::Pose & po
     recording_->log(
       "world/cameras/cam" + std::to_string(camera_index),
       transform_from_matrix(world_from_camera));
-  }
+    }
+  };
+  log_camera_transforms(double_sphere_cameras_);
+  log_camera_transforms(pinhole_cameras_);
 }
 
 void SvinRerunBridge::remember_trusted_sensor_stamp(
@@ -905,8 +1009,11 @@ void SvinRerunBridge::on_raw_image_bundle(const CompressedImageBundle & bundle)
       continue;
     }
     std::vector<std::uint8_t> bytes(image->data.begin(), image->data.end());
+    const auto image_entity_path = camera_index < pinhole_cameras_.size() ?
+      "world/cameras/cam" + std::to_string(camera_index) + "/image" :
+      "raw_images/cam" + std::to_string(camera_index);
     recording_->log(
-      "raw_images/cam" + std::to_string(camera_index),
+      image_entity_path,
       rerun::EncodedImage::from_bytes(
         rerun::Collection<std::uint8_t>::take_ownership(std::move(bytes)),
         media_type_for_format(image->format)));

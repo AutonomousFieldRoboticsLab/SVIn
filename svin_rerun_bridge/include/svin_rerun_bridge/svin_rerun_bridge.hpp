@@ -71,10 +71,10 @@ private:
   int double_sphere_grid_{31};
   float point_radius_ui_points_{2.0F};
   bool enable_double_sphere_mesh_{true};
-  bool enable_pinhole_camera_{false};
   bool enable_mesh_texture_updates_{true};
   std::size_t mesh_texture_stride_{10U};
   bool logging_enabled_{false};
+  std::string camera_model_{"pinhole"};
   std::string mesh_pose_source_{"pose_graph"};
   float pinhole_image_plane_distance_{0.35F};
   float pinhole_line_width_ui_points_{1.5F};

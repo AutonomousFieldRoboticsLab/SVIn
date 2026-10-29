@@ -9,11 +9,12 @@ svin_rerun_bridge:
 
     # The launch file overrides this with the active OKVIS calibration.
     okvis_config: ""
-    enable_pinhole_camera: true
-    enable_double_sphere_mesh: false
-    mesh_pose_source: pose_graph
-    pinhole_image_plane_distance: 0.35
-    pinhole_line_width_ui_points: 1.5
+    camera_model: pinhole
+    camera_rendering:
+      pose_source: pose_graph
+      pinhole:
+        image_plane_distance: 0.35
+        line_width_ui_points: 1.5
 
     # The original JPEG payload is passed directly to Rerun without decoding
     # or recompression and is logged on the semantic Pinhole image entity.

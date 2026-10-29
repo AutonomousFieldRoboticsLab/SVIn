@@ -1,0 +1,41 @@
+svin_rerun_bridge:
+  ros__parameters:
+    application_id: svin_rerun_double_sphere
+    enable_live: true
+    enable_recording: false
+    rrd_path: ""
+    viewer_url: rerun+http://127.0.0.1:9876/proxy
+    jpeg_quality: 75
+
+    # Sensor launch files supply the active calibration, ordered raw image
+    # topics, and keyframe camera count for mono or multi-camera rigs.
+    okvis_config: ""
+    camera_model: double_sphere
+    camera_rendering:
+      pose_source: pose_graph
+      double_sphere:
+        # Mono DS launches override this to false because one lens cannot
+        # provide a complete spherical texture.
+        enable_mesh: true
+        enable_texture_updates: true
+        texture_stride: 10
+        depth: 0.35
+        grid: 31
+        texture_max_width: 128
+
+    point_radius_ui_points: 1.5
+    raw_sync_pending_capacity: 32
+
+    points_matched_topic: /okvis_points_matched
+    global_map_topic: /global_map
+    okvis_path_topic: /okvis_path
+    loop_closure_path_topic: /loop_closure_path
+    odometry_topic: /okvis_odometry
+    keyframe_pose_topic: /keyframe_pose
+    keyframe_pose_required: true
+    keyframe_subscription_depth: 32
+    keyframe_image_topic_pattern: /keyframe_image_{index}
+    keyframe_sync_pending_capacity: 32
+
+    enable_visualization_markers: true
+    visualization_topic: /visualization

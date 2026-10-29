@@ -35,6 +35,17 @@ rerun::Color to_color(const Rgba8 & color)
 
 constexpr char kDefaultKeyframeTopicPattern[] = "/keyframe_image_{index}";
 
+std::string normalize_camera_model(std::string camera_model)
+{
+  std::transform(
+    camera_model.begin(), camera_model.end(), camera_model.begin(),
+    [](unsigned char character) {return static_cast<char>(std::tolower(character));});
+  if (camera_model == "ds") {
+    return "double_sphere";
+  }
+  return camera_model;
+}
+
 std::string default_keyframe_topic(std::size_t index)
 {
   return std::string("/keyframe_image_") + std::to_string(index);
@@ -228,16 +239,16 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   declare_parameter<int>("jpeg_quality", 75);
   declare_parameter<int>("keyframe_subscription_depth", 32);
   declare_parameter<std::string>("okvis_config", "");
-  declare_parameter<bool>("enable_double_sphere_mesh", true);
-  declare_parameter<bool>("enable_pinhole_camera", false);
-  declare_parameter<std::string>("mesh_pose_source", "pose_graph");
-  declare_parameter<bool>("enable_mesh_texture_updates", true);
-  declare_parameter<int>("mesh_texture_stride", 10);
-  declare_parameter<double>("double_sphere_depth", 0.35);
-  declare_parameter<int>("double_sphere_grid", 31);
-  declare_parameter<double>("pinhole_image_plane_distance", 0.35);
-  declare_parameter<double>("pinhole_line_width_ui_points", 1.5);
-  declare_parameter<int>("texture_max_width", 256);
+  declare_parameter<std::string>("camera_model", "pinhole");
+  declare_parameter<std::string>("camera_rendering.pose_source", "pose_graph");
+  declare_parameter<bool>("camera_rendering.double_sphere.enable_mesh", true);
+  declare_parameter<bool>("camera_rendering.double_sphere.enable_texture_updates", true);
+  declare_parameter<int>("camera_rendering.double_sphere.texture_stride", 10);
+  declare_parameter<double>("camera_rendering.double_sphere.depth", 0.35);
+  declare_parameter<int>("camera_rendering.double_sphere.grid", 31);
+  declare_parameter<int>("camera_rendering.double_sphere.texture_max_width", 128);
+  declare_parameter<double>("camera_rendering.pinhole.image_plane_distance", 0.35);
+  declare_parameter<double>("camera_rendering.pinhole.line_width_ui_points", 1.5);
   declare_parameter<double>("point_radius_ui_points", 1.5);
   declare_parameter<std::vector<std::string>>(
     "raw_compressed_image_topics", std::vector<std::string>{});
@@ -268,48 +279,63 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   keyframe_subscription_depth_ = static_cast<std::size_t>(
     std::max<std::int64_t>(configured_keyframe_subscription_depth, 1));
   okvis_config_ = get_parameter("okvis_config").as_string();
-  enable_double_sphere_mesh_ = get_parameter("enable_double_sphere_mesh").as_bool();
-  enable_pinhole_camera_ = get_parameter("enable_pinhole_camera").as_bool();
-  const auto configured_mesh_pose_source = get_parameter("mesh_pose_source").as_string();
+  camera_model_ = normalize_camera_model(get_parameter("camera_model").as_string());
+  if (camera_model_ != "double_sphere" && camera_model_ != "pinhole") {
+    RCLCPP_WARN(
+      get_logger(), "Unsupported camera_model '%s'; using 'pinhole'",
+      camera_model_.c_str());
+    camera_model_ = "pinhole";
+  }
+  enable_double_sphere_mesh_ =
+    get_parameter("camera_rendering.double_sphere.enable_mesh").as_bool();
+  const auto configured_mesh_pose_source =
+    get_parameter("camera_rendering.pose_source").as_string();
   mesh_pose_source_ = normalize_mesh_pose_source(configured_mesh_pose_source);
   if (mesh_pose_source_ != configured_mesh_pose_source) {
     RCLCPP_WARN(
-      get_logger(), "Unsupported mesh_pose_source '%s'; using '%s'",
+      get_logger(), "Unsupported camera_rendering.pose_source '%s'; using '%s'",
       configured_mesh_pose_source.c_str(), mesh_pose_source_.c_str());
   }
-  enable_mesh_texture_updates_ = get_parameter("enable_mesh_texture_updates").as_bool();
-  const auto configured_texture_stride = get_parameter("mesh_texture_stride").as_int();
+  enable_mesh_texture_updates_ =
+    get_parameter("camera_rendering.double_sphere.enable_texture_updates").as_bool();
+  const auto configured_texture_stride =
+    get_parameter("camera_rendering.double_sphere.texture_stride").as_int();
   mesh_texture_stride_ = static_cast<std::size_t>(
     std::max<std::int64_t>(configured_texture_stride, 1));
-  const auto configured_depth = get_parameter("double_sphere_depth").as_double();
+  const auto configured_depth =
+    get_parameter("camera_rendering.double_sphere.depth").as_double();
   if (std::isfinite(configured_depth) && configured_depth > 0.0) {
     double_sphere_depth_ = static_cast<float>(configured_depth);
   } else {
     RCLCPP_WARN(
-      get_logger(), "double_sphere_depth must be finite and positive; using %.3f",
+      get_logger(), "camera_rendering.double_sphere.depth must be finite and positive; using %.3f",
       double_sphere_depth_);
   }
-  const auto configured_grid = get_parameter("double_sphere_grid").as_int();
+  const auto configured_grid =
+    get_parameter("camera_rendering.double_sphere.grid").as_int();
   double_sphere_grid_ = std::max<std::int64_t>(configured_grid, 2);
   const auto configured_pinhole_distance =
-    get_parameter("pinhole_image_plane_distance").as_double();
+    get_parameter("camera_rendering.pinhole.image_plane_distance").as_double();
   if (std::isfinite(configured_pinhole_distance) && configured_pinhole_distance > 0.0) {
     pinhole_image_plane_distance_ = static_cast<float>(configured_pinhole_distance);
   } else {
     RCLCPP_WARN(
-      get_logger(), "pinhole_image_plane_distance must be finite and positive; using %.3f",
+      get_logger(),
+      "camera_rendering.pinhole.image_plane_distance must be finite and positive; using %.3f",
       pinhole_image_plane_distance_);
   }
   const auto configured_pinhole_line_width =
-    get_parameter("pinhole_line_width_ui_points").as_double();
+    get_parameter("camera_rendering.pinhole.line_width_ui_points").as_double();
   if (std::isfinite(configured_pinhole_line_width) && configured_pinhole_line_width > 0.0) {
     pinhole_line_width_ui_points_ = static_cast<float>(configured_pinhole_line_width);
   } else {
     RCLCPP_WARN(
-      get_logger(), "pinhole_line_width_ui_points must be finite and positive; using %.1f",
+      get_logger(),
+      "camera_rendering.pinhole.line_width_ui_points must be finite and positive; using %.1f",
       pinhole_line_width_ui_points_);
   }
-  texture_max_width_ = std::max<std::int64_t>(get_parameter("texture_max_width").as_int(), 1);
+  texture_max_width_ = std::max<std::int64_t>(
+    get_parameter("camera_rendering.double_sphere.texture_max_width").as_int(), 1);
   const auto configured_point_radius = get_parameter("point_radius_ui_points").as_double();
   if (std::isfinite(configured_point_radius) && configured_point_radius > 0.0) {
     point_radius_ui_points_ = static_cast<float>(configured_point_radius);
@@ -407,11 +433,11 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
       "Both Rerun sinks are disabled; the bridge will subscribe but will not buffer data");
   }
 
-  if (logging_enabled_ && enable_double_sphere_mesh_) {
+  if (logging_enabled_ && camera_model_ == "double_sphere" && enable_double_sphere_mesh_) {
     if (okvis_config_.empty()) {
       RCLCPP_WARN(
         get_logger(),
-        "enable_double_sphere_mesh is true but okvis_config is empty; static camera meshes are disabled");
+        "Double-sphere mesh rendering is enabled but okvis_config is empty; camera meshes are disabled");
     } else {
       std::string error;
       const auto cameras = load_double_sphere_cameras(okvis_config_, &error);
@@ -432,11 +458,11 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     }
   }
 
-  if (logging_enabled_ && enable_pinhole_camera_) {
+  if (logging_enabled_ && camera_model_ == "pinhole") {
     if (okvis_config_.empty()) {
       RCLCPP_WARN(
         get_logger(),
-        "enable_pinhole_camera is true but okvis_config is empty; semantic cameras are disabled");
+        "camera_model is pinhole but okvis_config is empty; semantic cameras are disabled");
     } else {
       std::string error;
       const auto cameras = load_pinhole_cameras(okvis_config_, &error);
@@ -483,7 +509,8 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     if (mesh_pose_source_ == "odometry") {
       RCLCPP_WARN(
         get_logger(),
-        "mesh_pose_source is odometry but odometry_topic is empty; world/rig will not move");
+        "camera_rendering.pose_source is odometry but odometry_topic is empty; "
+        "world/rig will not move");
     }
   } else {
     odometry_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
@@ -550,13 +577,14 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     "Rerun bridge ready (live=%s, file=%s, JPEG quality=%d, keyframe cameras=%zu, "
     "pose=%s, pending capacity=%zu, raw cameras=%zu, raw pending capacity=%zu, "
     "keyframe QoS=reliable/%zu, mesh pose source=%s, odometry=%s, "
-    "double-sphere mesh=%s, pinhole=%s, visualization markers=%s, "
+    "camera model=%s, double-sphere mesh=%s, pinhole=%s, visualization markers=%s, "
     "texture updates=%s/stride=%zu)",
     enable_live ? "enabled" : "disabled", use_file_sink ? rrd_path.c_str() : "disabled",
     jpeg_quality_, keyframe_image_topics_.size(), keyframe_pose_required ? "required" : "optional",
     keyframe_pending_capacity, raw_compressed_image_topics_.size(), raw_sync_pending_capacity_,
     keyframe_subscription_depth_,
     mesh_pose_source_.c_str(), odometry_topic_.empty() ? "disabled" : odometry_topic_.c_str(),
+    camera_model_.c_str(),
     double_sphere_cameras_.empty() ? "disabled" : "enabled",
     pinhole_cameras_.empty() ? "disabled" : "enabled",
     enable_visualization_markers ? "enabled" : "disabled",
@@ -1011,7 +1039,7 @@ void SvinRerunBridge::on_raw_image_bundle(const CompressedImageBundle & bundle)
     std::vector<std::uint8_t> bytes(image->data.begin(), image->data.end());
     const auto image_entity_path = camera_index < pinhole_cameras_.size() ?
       "world/cameras/cam" + std::to_string(camera_index) + "/image" :
-      "raw_images/cam" + std::to_string(camera_index);
+      "images/raw/cam" + std::to_string(camera_index);
     recording_->log(
       image_entity_path,
       rerun::EncodedImage::from_bytes(

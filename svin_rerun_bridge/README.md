@@ -52,13 +52,13 @@ ros2 bag play \
   --rate 0.5
 ```
 
-With `enable_pinhole_camera: true`, the bridge reads each pinhole camera's
+With `camera_model: pinhole`, the bridge reads each pinhole camera's
 `T_SC`, image dimensions, focal lengths, and principal point from the active
 OKVIS configuration. It logs a semantic Rerun `Pinhole` at
 `world/cameras/camN/image`; the original compressed image is logged on that
 same entity, so Rerun automatically shows it in 2D and projects it onto the
 moving frustum's image plane in 3D. No custom mesh or texture decoding is used.
-The mono profile also sets `enable_visualization_markers: false`, preventing
+The pinhole profile also sets `enable_visualization_markers: false`, preventing
 the pose graph's manually drawn `/visualization` frustum from appearing on top
 of the semantic pinhole frustum.
 
@@ -66,6 +66,26 @@ Rerun's semantic pinhole projection represents the intrinsic K matrix but does
 not model OKVIS radial-tangential distortion. The current GoPro profile
 therefore displays the original distorted JPEG on a geometrically pinhole
 image plane; it does not silently rectify or alter the recorded payload.
+
+Camera-model selection and model-specific rendering controls use this schema
+(`DS` is accepted as a case-insensitive alias for `double_sphere`):
+
+```yaml
+camera_model: double_sphere  # or pinhole
+camera_rendering:
+  pose_source: pose_graph
+  double_sphere:
+    enable_mesh: true
+    depth: 0.35
+    grid: 31
+    texture_max_width: 128
+  pinhole:
+    image_plane_distance: 0.35
+    line_width_ui_points: 1.5
+```
+
+ROS 2 exposes the nested YAML leaves to the C++ node as dotted parameter names,
+for example `camera_rendering.double_sphere.enable_mesh`.
 
 ## Live visualization and RRD recording
 
@@ -106,7 +126,8 @@ drops the oldest incomplete timestamp bundle with a warning. Set
 publish `/keyframe_pose`; if a pose is present it is still included in the
 bundle.
 
-The moving rig transform is selected explicitly with `mesh_pose_source`:
+The moving rig transform is selected explicitly with
+`camera_rendering.pose_source`:
 
 - `pose_graph` (default) updates `world/rig` from the last pose of each
   `/loop_closure_path` message. This is the same `T_WC0` source used by
@@ -126,34 +147,47 @@ body-to-sensor calibration would require an additional transform.
 
 ## Double-sphere camera meshes and raw payloads
 
-Set `okvis_config` to an OKVIS calibration containing a `cameras` sequence of
-`double_sphere` cameras. With `enable_double_sphere_mesh: true` (the default),
-the bridge logs one static, top-left-UV `Mesh3D` per camera at
-`world/cameras/camN`, using `double_sphere_depth` metres and a
-`double_sphere_grid` × `double_sphere_grid` sampling grid. The static scene
+The reusable `config/svin_rerun_bridge_double_sphere.yaml` profile supports
+mono and multi-camera rigs. Each sensor launch supplies the ordered
+`raw_compressed_image_topics` list and `keyframe_image_count`; the order must
+match the active OKVIS `cameras` sequence.
+
+Set `camera_model: double_sphere` and `okvis_config` to a calibration containing
+only `double_sphere` cameras. With
+`camera_rendering.double_sphere.enable_mesh: true` (the default), the bridge
+logs one static, top-left-UV `Mesh3D` per camera at `world/cameras/camN`, using
+`camera_rendering.double_sphere.depth` metres and a
+`camera_rendering.double_sphere.grid` × `grid` sampling grid. The static scene
 declares Rerun's right-handed, Z-up world convention. Each matching mono/RGB
 image can be converted to tightly packed RGB U8, optionally downsampled to
-`texture_max_width`, and sent as a `Mesh3D::update_fields()` albedo update.
+`camera_rendering.double_sphere.texture_max_width`, and sent as a
+`Mesh3D::update_fields()` albedo update.
 Whenever the selected pose source updates, the bridge logs a complete temporal
 world-from-camera `Transform3D` on the same `world/cameras/camN` entity. The
 geometry remains static in the camera optical frame, while the direct camera
 transform moves it in world space without relying on a static child transform
 under `world/rig`.
-Texture decoding is enabled by `enable_mesh_texture_updates` (default true)
+Texture decoding is enabled by
+`camera_rendering.double_sphere.enable_texture_updates` (default true)
 and is performed on the first complete bundle and every
-`mesh_texture_stride`-th bundle thereafter (default 6). The JPEG copy remains
+`camera_rendering.double_sphere.texture_stride`-th bundle thereafter (default
+10). The JPEG copy remains
 available at `images/keyframe_N` on every complete bundle regardless of the
 mesh texture stride.
 
-`enable_double_sphere_mesh` is the master switch: setting it false disables
-static geometry and all texture decoding/updates, while keyframe JPEG and raw
-compressed payload logging remain available.
+`camera_rendering.double_sphere.enable_mesh` is the master switch: setting it
+false disables static geometry and all texture decoding/updates, while
+keyframe JPEG and raw compressed payload logging remain available. The front
+and rear mono DS launches override it to false because a single fisheye image
+does not form a complete spherical texture; the dual DS launch enables it.
 
 Raw camera transport can be enabled independently with an explicit
 `raw_compressed_image_topics` list. Messages are assembled by exact header
 timestamp and all cameras in a complete bundle share one `processing_step`.
 Their original compressed byte payloads are logged unchanged at
-`raw_images/camN` as `EncodedImage`; the decoded color image updates the
+`images/raw/camN` as `EncodedImage`. Keeping raw and keyframe images below the
+common `images` root gives Rerun one clearly named 2D image view instead of an
+ambiguous auto-generated `/` spatial view. The decoded color image updates the
 matching camera mesh texture only when the texture stride selects that bundle.
 `raw_sync_pending_capacity` bounds incomplete timestamps. Raw bytes are never
 modified or re-encoded. Raw `EncodedImage` logging remains on every complete

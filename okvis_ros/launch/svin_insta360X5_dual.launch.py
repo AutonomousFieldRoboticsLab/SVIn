@@ -38,8 +38,10 @@ def launch_setup(context, *args, **kwargs):
       'config_filename': abs_okvis_config_path,
       'mesh_file': 'firefly.dae',
       'paired_compressed_images': True,
-      'paired_compressed_camera0_topic': '/insta360/front/image_raw/compressed',
-      'paired_compressed_camera1_topic': '/insta360/rear/image_raw/compressed',
+      'paired_compressed_camera0_topic': LaunchConfiguration(
+        'front_raw_compressed_image_topic'),
+      'paired_compressed_camera1_topic': LaunchConfiguration(
+        'rear_raw_compressed_image_topic'),
       'paired_compressed_queue_size': 100,
       'paired_compressed_log_counters': LaunchConfiguration('paired_compressed_log_counters')
     }],
@@ -92,7 +94,13 @@ def launch_setup(context, *args, **kwargs):
       'enable_recording': LaunchConfiguration('rerun_enable_recording'),
       'rrd_path': LaunchConfiguration('rerun_rrd_path'),
       'viewer_url': LaunchConfiguration('rerun_viewer_url'),
-      'okvis_config': abs_okvis_config_path
+      'okvis_config': abs_okvis_config_path,
+      'raw_compressed_image_topics': [
+        LaunchConfiguration('front_raw_compressed_image_topic').perform(context),
+        LaunchConfiguration('rear_raw_compressed_image_topic').perform(context)
+      ],
+      'keyframe_image_count': 2,
+      'camera_rendering.double_sphere.enable_mesh': True
     }],
     output='screen'
   )
@@ -178,7 +186,7 @@ def generate_launch_description():
     default_value=PathJoinSubstitution([
       FindPackageShare('svin_rerun_bridge'),
       'config',
-      'svin_rerun_bridge_ds_dual.yaml'
+      'svin_rerun_bridge_double_sphere.yaml'
     ]),
     description='Rerun bridge visualization, topic, and synchronization config'
   )
@@ -241,6 +249,18 @@ def generate_launch_description():
     default_value='rerun+http://127.0.0.1:9876/proxy'
   )
 
+  front_raw_compressed_image_topic_arg = DeclareLaunchArgument(
+    'front_raw_compressed_image_topic',
+    default_value='/insta360/front/image_raw/compressed',
+    description='Camera 0 compressed image topic for Rerun and the uncompressor'
+  )
+
+  rear_raw_compressed_image_topic_arg = DeclareLaunchArgument(
+    'rear_raw_compressed_image_topic',
+    default_value='/insta360/rear/image_raw/compressed',
+    description='Camera 1 compressed image topic for Rerun and the uncompressor'
+  )
+
   paired_compressed_log_counters_arg = DeclareLaunchArgument(
     'paired_compressed_log_counters',
     default_value='false'
@@ -266,7 +286,7 @@ def generate_launch_description():
     condition=IfCondition(LaunchConfiguration('use_pose_graph')),
     output='screen',
     parameters=[{
-      'compressed_img_topic': '/insta360/front/image_raw/compressed',
+      'compressed_img_topic': LaunchConfiguration('front_raw_compressed_image_topic'),
       'ouput_img_topic': '/cam0/image_raw'
     }]
   )
@@ -278,7 +298,7 @@ def generate_launch_description():
     condition=IfCondition(LaunchConfiguration('use_pose_graph')),
     output='screen',
     parameters=[{
-      'compressed_img_topic': '/insta360/rear/image_raw/compressed',
+      'compressed_img_topic': LaunchConfiguration('rear_raw_compressed_image_topic'),
       'ouput_img_topic': '/cam1/image_raw'
     }]
   )
@@ -299,6 +319,8 @@ def generate_launch_description():
     rerun_enable_recording_arg,
     rerun_rrd_path_arg,
     rerun_viewer_url_arg,
+    front_raw_compressed_image_topic_arg,
+    rear_raw_compressed_image_topic_arg,
     paired_compressed_log_counters_arg,
     multicamera_loop_closure_diagnostics_arg,
     pose_graph_output_directory_arg,

@@ -47,11 +47,13 @@
 #include <okvis/kinematics/Transformation.hpp>
 
 // cameras and distortions
+#include <algorithm>
 #include <memory>
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
+#include <string>
 #include <vector>
 
 /// \brief okvis Main namespace of this package.
@@ -206,21 +208,68 @@ cv::Mat VioVisualizer::drawKeypoints(VisualizationData::Ptr& data, size_t camera
   return outimg;
 }
 
+void VioVisualizer::createDebugWindow() {
+  cv::namedWindow(debugWindowName(), cv::WINDOW_NORMAL | cv::WINDOW_KEEPRATIO);
+  cv::resizeWindow(debugWindowName(), 1000, 600);
+}
+
+cv::Mat VioVisualizer::composeOverview(const std::vector<cv::Mat>& images) {
+  int imageWidth = 0;
+  int imageHeight = 0;
+  for (const auto& image : images) {
+    imageWidth = std::max(imageWidth, image.cols);
+    imageHeight = std::max(imageHeight, image.rows);
+  }
+  if (imageWidth == 0 || imageHeight == 0) return cv::Mat();
+
+  const int cameras = static_cast<int>(images.size());
+  const int columns = std::min(3, cameras);
+  const int rows = (cameras + columns - 1) / columns;
+  const int gap = 2;
+  const double scale = std::min({1.0,
+      double(1200 - gap * (columns - 1)) / (columns * imageWidth),
+      double(720 - gap * (rows - 1)) / (rows * imageHeight)});
+  const int tileWidth = std::max(1, int(imageWidth * scale));
+  const int tileHeight = std::max(1, int(imageHeight * scale));
+  cv::Mat canvas(rows * tileHeight + gap * (rows - 1),
+                 columns * tileWidth + gap * (columns - 1), CV_8UC3, cv::Scalar::all(0));
+  for (int camera = 0; camera < cameras; ++camera) {
+    const int left = (camera % columns) * (tileWidth + gap);
+    const int top = (camera / columns) * (tileHeight + gap);
+    const auto& image = images[camera];
+    if (!image.empty()) {
+      const double fit = std::min(double(tileWidth) / image.cols, double(tileHeight) / image.rows);
+      cv::Mat resized;
+      cv::resize(image, resized, cv::Size(std::max(1, int(image.cols * fit)),
+                                        std::max(1, int(image.rows * fit))),
+                 0, 0, fit < 1.0 ? cv::INTER_AREA : cv::INTER_LINEAR);
+      if (resized.channels() == 1) cv::cvtColor(resized, resized, cv::COLOR_GRAY2BGR);
+      resized.copyTo(canvas(cv::Rect(left + (tileWidth - resized.cols) / 2,
+                                     top + (tileHeight - resized.rows) / 2,
+                                     resized.cols, resized.rows)));
+    }
+    const std::string label = "Camera " + std::to_string(camera);
+    cv::putText(canvas, label, cv::Point(left + 7, top + 19), cv::FONT_HERSHEY_SIMPLEX,
+                0.5, cv::Scalar::all(0), 3, cv::LINE_AA);
+    cv::putText(canvas, label, cv::Point(left + 7, top + 19), cv::FONT_HERSHEY_SIMPLEX,
+                0.5, cv::Scalar::all(255), 1, cv::LINE_AA);
+  }
+  return canvas;
+}
+
 void VioVisualizer::showDebugImages(VisualizationData::Ptr& data) {
   std::vector<cv::Mat> out_images(parameters_.nCameraSystem.numCameras());
   for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
     out_images[i] = drawMatches(data, i);
   }
 
-  // draw
-  for (size_t im = 0; im < parameters_.nCameraSystem.numCameras(); im++) {
-    std::stringstream windowname;
-    windowname << "OKVIS camera " << im;
-    if (!out_images[im].empty()) {
-      cv::imshow(windowname.str(), out_images[im]);  // Prevent crashes from display
-    }
-    cv::waitKey(1);
+  if (!debugWindowCreated_) {
+    createDebugWindow();
+    debugWindowCreated_ = true;
   }
+  const cv::Mat overview = composeOverview(out_images);
+  if (!overview.empty()) cv::imshow(debugWindowName(), overview);
+  cv::waitKey(1);
 }
 
 } /* namespace okvis */

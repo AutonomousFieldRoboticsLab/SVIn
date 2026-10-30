@@ -153,11 +153,7 @@ void ThreadedKFVio::init() {
 
   // set up windows so things don't crash on Mac OS
   if (parameters_.visualization.displayImages) {
-    for (size_t im = 0; im < parameters_.nCameraSystem.numCameras(); im++) {
-      std::stringstream windowname;
-      windowname << "OKVIS camera " << im;
-      cv::namedWindow(windowname.str());
-    }
+    VioVisualizer::createDebugWindow();
   }
 
   startThreads();
@@ -1007,6 +1003,9 @@ void ThreadedKFVio::visualizationLoop() {
     for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
       out_images[i] = visualizer_.drawMatches(new_data, i);
     }
+    if (parameters_.visualization.displayImages) {
+      out_images.push_back(VioVisualizer::composeOverview(out_images));
+    }
     displayImages_.PushNonBlockingDroppingIfFull(out_images, 1);
   }
 }
@@ -1022,13 +1021,10 @@ void ThreadedKFVio::display() {
       debugImgCallback_(lastOptimizedStateTimestamp_, im, out_images[im]);
     }
 
-    if (parameters_.visualization.displayImages) {
-      std::stringstream windowname;
-      windowname << "OKVIS camera " << im;
-      if (!out_images[im].empty()) {
-        cv::imshow(windowname.str(), out_images[im]);  // Prevent crashes from display
-      }
-    }
+  }
+  if (parameters_.visualization.displayImages && out_images.size() > numCameras_ &&
+      !out_images.back().empty()) {
+    cv::imshow(VioVisualizer::debugWindowName(), out_images.back());
   }
   cv::waitKey(1);
 }

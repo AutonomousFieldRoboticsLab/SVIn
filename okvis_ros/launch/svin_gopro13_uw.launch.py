@@ -165,7 +165,8 @@ def generate_launch_description():
     'rerun_enable_recording', default_value='false')
   rerun_rrd_path_arg = DeclareLaunchArgument('rerun_rrd_path', default_value='')
   rerun_viewer_url_arg = DeclareLaunchArgument(
-    'rerun_viewer_url', default_value='rerun+http://127.0.0.1:9876/proxy')
+    'rerun_viewer_url', default_value=[
+      'rerun+http://127.0.0.1:', LaunchConfiguration('rerun_viewer_port'), '/proxy'])
   raw_compressed_image_topic_arg = DeclareLaunchArgument(
     'raw_compressed_image_topic',
     default_value='/gopro/image_raw/compressed',

@@ -66,9 +66,12 @@ std::optional<std::vector<PinholeCamera>> load_pinhole_cameras(
   result.reserve(cameras.size());
   std::size_t index = 0U;
   for (const auto & node : cameras) {
+    const cv::FileNode projection_node = node["projection_type"];
     std::string projection_type;
-    node["projection_type"] >> projection_type;
-    if (projection_type != "pinhole") {
+    if (!projection_node.empty()) {
+      projection_node >> projection_type;
+    }
+    if (!projection_type.empty() && projection_type != "pinhole") {
       std::ostringstream stream;
       stream << "camera " << index << " uses unsupported projection_type '"
              << projection_type << "'";

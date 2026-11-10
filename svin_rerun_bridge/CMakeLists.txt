@@ -118,6 +118,9 @@ if(BUILD_TESTING)
   ament_add_gtest(test_pinhole
     test/test_pinhole.cpp
   )
+  target_compile_definitions(test_pinhole PRIVATE
+    SVIN_RERUN_TEST_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../config"
+  )
   target_link_libraries(test_pinhole ${PROJECT_NAME}_conversions)
   ament_target_dependencies(test_pinhole sensor_msgs)
 

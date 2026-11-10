@@ -7,11 +7,13 @@
 namespace svin_rerun_bridge {
 namespace {
 
+const std::string config_dir = SVIN_RERUN_TEST_CONFIG_DIR;
+
 TEST(Pinhole, LoadsWorkspaceCalibration)
 {
   std::string error;
   const auto cameras = load_pinhole_cameras(
-    "/home/ws/src/SVIn2/config/config_gopro13_uw.yaml", &error);
+    config_dir + "/config_gopro13_uw.yaml", &error);
   ASSERT_TRUE(cameras.has_value()) << error;
   ASSERT_EQ(cameras->size(), 1U);
   EXPECT_EQ((*cameras)[0].width, 960);
@@ -26,7 +28,7 @@ TEST(Pinhole, LoadsStereoWorkspaceCalibration)
 {
   std::string error;
   const auto cameras = load_pinhole_cameras(
-    "/home/ws/src/SVIn2/config/config_aqua2_A6_BBDOS26_1280_720.yaml", &error);
+    config_dir + "/config_aqua2_A6_BBDOS26_1280_720.yaml", &error);
   ASSERT_TRUE(cameras.has_value()) << error;
   ASSERT_EQ(cameras->size(), 2U);
   EXPECT_EQ((*cameras)[0].width, 1280);

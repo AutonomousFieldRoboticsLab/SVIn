@@ -16,7 +16,10 @@ def workspace_rerun_executable(context):
     os.path.dirname(package_prefix)
     if os.path.basename(package_prefix) == 'okvis_ros'
     else package_prefix)
-  return os.path.join(os.path.dirname(install_prefix), '.venv', 'bin', 'rerun')
+  rerun_executable = os.path.join(os.path.dirname(install_prefix), '.venv', 'bin', 'rerun')
+  if os.path.isfile(rerun_executable) and os.access(rerun_executable, os.X_OK):
+    return rerun_executable
+  return 'rerun'
 
 
 def launch_setup(context, *args, **kwargs):

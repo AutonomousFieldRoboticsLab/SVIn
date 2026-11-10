@@ -135,9 +135,9 @@ Only the selected source writes `world/rig`; the other pose callbacks remain
 subscribed but cannot overwrite it. For `pose_graph` and `keyframe`, the rig
 root is camera 0 (`C0`) and each camera uses
 `T_WCi = T_WC0 * inv(T_SC0) * T_SCi`. For `odometry`, the root is the OKVIS
-sensor/body frame and each camera uses `T_WCi = T_WR * T_SCi`. The current
-dataset has `T_BS = I`, so the odometry expression is valid; a non-identity
-body-to-sensor calibration would require an additional transform.
+tracked frame from `publishing_options.trackedBodyFrame`: body-frame odometry
+uses `T_WCi = T_WB * T_BS * T_SCi`, while sensor-frame odometry uses
+`T_WCi = T_WS * T_SCi`.
 
 ## Raw compressed camera payloads
 

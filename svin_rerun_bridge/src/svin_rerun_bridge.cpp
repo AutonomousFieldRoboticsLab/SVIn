@@ -384,13 +384,15 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
         "camera_model is pinhole but okvis_config is empty; semantic cameras are disabled");
     } else {
       std::string error;
-      const auto cameras = load_pinhole_cameras(okvis_config_, &error);
-      if (!cameras.has_value()) {
+      const auto calibration = load_pinhole_calibration(okvis_config_, &error);
+      if (!calibration.has_value()) {
         RCLCPP_ERROR(
           get_logger(), "Cannot load pinhole cameras from %s: %s",
           okvis_config_.c_str(), error.c_str());
       } else {
-        pinhole_cameras_ = *cameras;
+        pinhole_cameras_ = calibration->cameras;
+        body_to_sensor_ = calibration->T_BS;
+        tracked_body_frame_ = calibration->tracked_body_frame;
         if (pinhole_cameras_.size() != keyframe_image_topics_.size()) {
           RCLCPP_WARN(
             get_logger(),
@@ -757,10 +759,18 @@ void SvinRerunBridge::log_world_camera_poses(const geometry_msgs::msg::Pose & po
     const auto & camera = pinhole_cameras_[camera_index];
     // Pose-graph/keyframe roots are C0:
     //   T_WCi = T_WC0 * inv(T_SC0) * T_SCi.
-    // Odometry roots are the sensor/body frame (T_BS=I for this dataset):
-    //   T_WCi = T_WR * T_SCi.
-    const auto camera_from_rig = root_is_odometry ? camera.T_SC :
-      multiply_rigid(inverse_camera0, camera.T_SC);
+    // Odometry roots use the configured tracked frame:
+    //   T_WCi = T_WB * T_BS * T_SCi for body-frame odometry,
+    //   T_WCi = T_WS * T_SCi for sensor-frame odometry.
+    Matrix4 camera_from_rig;
+    if (root_is_odometry) {
+      camera_from_rig = camera.T_SC;
+      if (tracked_body_frame_ == TrackedBodyFrame::body) {
+        camera_from_rig = multiply_rigid(body_to_sensor_, camera_from_rig);
+      }
+    } else {
+      camera_from_rig = multiply_rigid(inverse_camera0, camera.T_SC);
+    }
     const auto world_from_camera = multiply_rigid(world_from_rig, camera_from_rig);
     recording_->log(
       "world/cameras/cam" + std::to_string(camera_index),

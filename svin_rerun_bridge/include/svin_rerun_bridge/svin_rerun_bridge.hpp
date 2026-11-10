@@ -100,6 +100,12 @@ private:
   std::size_t raw_sync_pending_capacity_{32U};
   std::optional<builtin_interfaces::msg::Time> latest_trusted_sensor_stamp_;
   std::vector<PinholeCamera> pinhole_cameras_;
+  std::array<double, 16> body_to_sensor_{
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0};
+  TrackedBodyFrame tracked_body_frame_{TrackedBodyFrame::body};
 };
 
 }  // namespace svin_rerun_bridge

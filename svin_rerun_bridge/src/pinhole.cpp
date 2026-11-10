@@ -48,7 +48,7 @@ bool read_vector(const cv::FileNode & node, std::vector<double> * values)
 
 }  // namespace
 
-std::optional<std::vector<PinholeCamera>> load_pinhole_cameras(
+std::optional<PinholeCalibration> load_pinhole_calibration(
   const std::string & config_path, std::string * error)
 {
   cv::FileStorage storage(config_path, cv::FileStorage::READ);
@@ -62,8 +62,27 @@ std::optional<std::vector<PinholeCamera>> load_pinhole_cameras(
     return std::nullopt;
   }
 
-  std::vector<PinholeCamera> result;
-  result.reserve(cameras.size());
+  PinholeCalibration result;
+  const cv::FileNode body_to_sensor = storage["imu_params"]["T_BS"];
+  if (!body_to_sensor.empty() && !read_array(body_to_sensor, &result.T_BS)) {
+    set_error(error, "configuration has malformed imu_params.T_BS");
+    return std::nullopt;
+  }
+  std::string tracked_body_frame = "B";
+  const cv::FileNode tracked_frame = storage["publishing_options"]["trackedBodyFrame"];
+  if (!tracked_frame.empty()) {
+    tracked_frame >> tracked_body_frame;
+  }
+  if (tracked_body_frame == "B") {
+    result.tracked_body_frame = TrackedBodyFrame::body;
+  } else if (tracked_body_frame == "S") {
+    result.tracked_body_frame = TrackedBodyFrame::sensor;
+  } else {
+    set_error(error, "configuration has unsupported publishing_options.trackedBodyFrame");
+    return std::nullopt;
+  }
+
+  result.cameras.reserve(cameras.size());
   std::size_t index = 0U;
   for (const auto & node : cameras) {
     const cv::FileNode projection_node = node["projection_type"];
@@ -107,10 +126,20 @@ std::optional<std::vector<PinholeCamera>> load_pinhole_cameras(
       set_error(error, "camera " + std::to_string(index) + " has invalid dimensions/intrinsics");
       return std::nullopt;
     }
-    result.push_back(std::move(camera));
+    result.cameras.push_back(std::move(camera));
     ++index;
   }
   return result;
+}
+
+std::optional<std::vector<PinholeCamera>> load_pinhole_cameras(
+  const std::string & config_path, std::string * error)
+{
+  auto calibration = load_pinhole_calibration(config_path, error);
+  if (!calibration.has_value()) {
+    return std::nullopt;
+  }
+  return std::move(calibration->cameras);
 }
 
 }  // namespace svin_rerun_bridge

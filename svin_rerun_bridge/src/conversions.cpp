@@ -5,7 +5,6 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -359,20 +358,12 @@ int clamp_jpeg_quality(int quality) noexcept
   return std::clamp(quality, 1, 100);
 }
 
-std::string normalize_mesh_pose_source(const std::string & source)
+std::string normalize_camera_pose_source(const std::string & source)
 {
   if (source == "odometry" || source == "keyframe" || source == "pose_graph") {
     return source;
   }
   return "pose_graph";
-}
-
-bool mesh_texture_update_due(std::size_t bundle_count, std::size_t stride) noexcept
-{
-  if (bundle_count == 0U) {
-    return false;
-  }
-  return bundle_count == 1U || stride <= 1U || bundle_count % stride == 0U;
 }
 
 std::optional<PointCloudSnapshot> point_cloud_snapshot(
@@ -588,89 +579,6 @@ std::optional<JpegImage> encode_jpeg(
     return result;
   } catch (const std::exception & exception) {
     set_error(error, std::string("image conversion failed: ") + exception.what());
-    return std::nullopt;
-  }
-}
-
-std::optional<RgbImage> rgb8_from_bgr(
-  const cv::Mat & source,
-  int max_width,
-  std::string * error)
-{
-  if (source.empty()) {
-    set_error(error, "decoded image is empty");
-    return std::nullopt;
-  }
-  if (source.type() != CV_8UC3) {
-    set_error(error, "decoded image is not 8-bit BGR");
-    return std::nullopt;
-  }
-
-  cv::Mat bgr = source;
-  cv::Mat resized;
-  if (max_width > 0 && bgr.cols > max_width) {
-    const double scale = static_cast<double>(max_width) / static_cast<double>(bgr.cols);
-    const int target_height = std::max(
-      1, static_cast<int>(std::lround(static_cast<double>(bgr.rows) * scale)));
-    cv::resize(bgr, resized, cv::Size(max_width, target_height), 0.0, 0.0, cv::INTER_AREA);
-    bgr = resized;
-  }
-
-  cv::Mat rgb;
-  cv::cvtColor(bgr, rgb, cv::COLOR_BGR2RGB);
-  if (!rgb.isContinuous()) {
-    rgb = rgb.clone();
-  }
-  RgbImage result;
-  result.width = static_cast<std::uint32_t>(rgb.cols);
-  result.height = static_cast<std::uint32_t>(rgb.rows);
-  const auto byte_count = rgb.total() * rgb.elemSize();
-  result.bytes.assign(rgb.ptr<std::uint8_t>(), rgb.ptr<std::uint8_t>() + byte_count);
-  return result;
-}
-
-std::optional<RgbImage> to_rgb8(
-  const sensor_msgs::msg::Image & message,
-  int max_width,
-  std::string * error)
-{
-  if (message.width == 0U || message.height == 0U) {
-    set_error(error, "image has zero width or height");
-    return std::nullopt;
-  }
-
-  try {
-    const auto cv_image = cv_bridge::toCvCopy(message, sensor_msgs::image_encodings::BGR8);
-    if (cv_image == nullptr || cv_image->image.empty()) {
-      set_error(error, "cv_bridge returned an empty image");
-      return std::nullopt;
-    }
-    return rgb8_from_bgr(cv_image->image, max_width, error);
-  } catch (const std::exception & exception) {
-    set_error(error, std::string("image conversion failed: ") + exception.what());
-    return std::nullopt;
-  }
-}
-
-std::optional<RgbImage> decode_compressed_rgb8(
-  const sensor_msgs::msg::CompressedImage & message,
-  int max_width,
-  std::string * error)
-{
-  if (message.data.empty()) {
-    set_error(error, "compressed image payload is empty");
-    return std::nullopt;
-  }
-
-  try {
-    const auto cv_image = cv_bridge::toCvCopy(message, sensor_msgs::image_encodings::BGR8);
-    if (cv_image == nullptr || cv_image->image.empty()) {
-      set_error(error, "cv_bridge returned an empty decoded image");
-      return std::nullopt;
-    }
-    return rgb8_from_bgr(cv_image->image, max_width, error);
-  } catch (const std::exception & exception) {
-    set_error(error, std::string("compressed image decoding failed: ") + exception.what());
     return std::nullopt;
   }
 }

@@ -22,15 +22,6 @@ TEST(Pinhole, LoadsWorkspaceCalibration)
   EXPECT_EQ((*cameras)[0].distortion_coefficients.size(), 4U);
 }
 
-TEST(Pinhole, RejectsDoubleSphereCalibration)
-{
-  std::string error;
-  const auto cameras = load_pinhole_cameras(
-    "/home/ws/src/SVIn2/config/config_insta360X5_dual_ds_air_stav.yaml", &error);
-  EXPECT_FALSE(cameras.has_value());
-  EXPECT_NE(error.find("double_sphere"), std::string::npos);
-}
-
 TEST(Pinhole, LoadsStereoWorkspaceCalibration)
 {
   std::string error;

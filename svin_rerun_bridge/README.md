@@ -18,10 +18,10 @@ source install/setup.bash
 
 ## Live visualization
 
-Enable the bridge in the dual-camera launch:
+Enable the bridge in a pinhole-camera launch:
 
 ```bash
-ros2 launch okvis_ros svin_insta360X5_dual.launch.py \
+ros2 launch okvis_ros svin_gopro13_uw.launch.py \
   use_rviz:=false use_rerun:=true
 ```
 
@@ -38,8 +38,8 @@ RViz and Rerun can be enabled at the same time while comparing the views.
 
 ### Pinhole cameras
 
-The GoPro launch uses the separate
-`config/svin_rerun_bridge_pinhole.yaml` profile is shared by mono and
+The GoPro and Aqua2 launches use the
+`config/svin_rerun_bridge_pinhole.yaml` profile, which is shared by mono and
 multi-camera pinhole launches. Each launch overrides the ordered raw image
 topic list and `keyframe_image_count` for its calibrated rig:
 
@@ -48,7 +48,7 @@ ros2 launch okvis_ros svin_gopro13_uw.launch.py \
   use_rviz:=false use_rerun:=true
 
 ros2 bag play \
-  /home/data/Insta360/X5/test/pro_case_uw/mexico26_02/2026_02_28_OtochHa/bag/gopro13 \
+  /path/to/gopro13_bag \
   --rate 0.5
 ```
 
@@ -67,32 +67,26 @@ not model OKVIS radial-tangential distortion. The current GoPro profile
 therefore displays the original distorted JPEG on a geometrically pinhole
 image plane; it does not silently rectify or alter the recorded payload.
 
-Camera-model selection and model-specific rendering controls use this schema
-(`DS` is accepted as a case-insensitive alias for `double_sphere`):
+The pinhole camera and rendering controls use this schema:
 
 ```yaml
-camera_model: double_sphere  # or pinhole
+camera_model: pinhole
 camera_rendering:
   pose_source: pose_graph
-  double_sphere:
-    enable_mesh: true
-    depth: 0.35
-    grid: 31
-    texture_max_width: 128
   pinhole:
     image_plane_distance: 0.35
     line_width_ui_points: 1.5
 ```
 
 ROS 2 exposes the nested YAML leaves to the C++ node as dotted parameter names,
-for example `camera_rendering.double_sphere.enable_mesh`.
+for example `camera_rendering.pinhole.image_plane_distance`.
 
 ## Live visualization and RRD recording
 
 The recording directory must already exist.
 
 ```bash
-ros2 launch okvis_ros svin_insta360X5_dual.launch.py \
+ros2 launch okvis_ros svin_gopro13_uw.launch.py \
   use_rviz:=false use_rerun:=true \
   rerun_enable_recording:=true \
   rerun_rrd_path:=/absolute/path/to/svin_run.rrd
@@ -145,58 +139,18 @@ sensor/body frame and each camera uses `T_WCi = T_WR * T_SCi`. The current
 dataset has `T_BS = I`, so the odometry expression is valid; a non-identity
 body-to-sensor calibration would require an additional transform.
 
-## Double-sphere camera meshes and raw payloads
+## Raw compressed camera payloads
 
-The reusable `config/svin_rerun_bridge_double_sphere.yaml` profile supports
-mono and multi-camera rigs. Each sensor launch supplies the ordered
-`raw_compressed_image_topics` list and `keyframe_image_count`; the order must
-match the active OKVIS `cameras` sequence.
-
-Set `camera_model: double_sphere` and `okvis_config` to a calibration containing
-only `double_sphere` cameras. With
-`camera_rendering.double_sphere.enable_mesh: true` (the default), the bridge
-logs one static, top-left-UV `Mesh3D` per camera at `world/cameras/camN`, using
-`camera_rendering.double_sphere.depth` metres and a
-`camera_rendering.double_sphere.grid` × `grid` sampling grid. The static scene
-declares Rerun's right-handed, Z-up world convention. Each matching mono/RGB
-image can be converted to tightly packed RGB U8, optionally downsampled to
-`camera_rendering.double_sphere.texture_max_width`, and sent as a
-`Mesh3D::update_fields()` albedo update.
-Whenever the selected pose source updates, the bridge logs a complete temporal
-world-from-camera `Transform3D` on the same `world/cameras/camN` entity. The
-geometry remains static in the camera optical frame, while the direct camera
-transform moves it in world space without relying on a static child transform
-under `world/rig`.
-Texture decoding is enabled by
-`camera_rendering.double_sphere.enable_texture_updates` (default true)
-and is performed on the first complete bundle and every
-`camera_rendering.double_sphere.texture_stride`-th bundle thereafter (default
-10). The JPEG copy remains
-available at `images/keyframe_N` on every complete bundle regardless of the
-mesh texture stride.
-
-`camera_rendering.double_sphere.enable_mesh` is the master switch: setting it
-false disables static geometry and all texture decoding/updates, while
-keyframe JPEG and raw compressed payload logging remain available. The front
-and rear mono DS launches override it to false because a single fisheye image
-does not form a complete spherical texture; the dual DS launch enables it.
-
-Raw camera transport can be enabled independently with an explicit
+Raw camera transport is enabled with an explicit
 `raw_compressed_image_topics` list. Messages are assembled by exact header
 timestamp and all cameras in a complete bundle share one `processing_step`.
-Their original compressed byte payloads are logged unchanged at
-`images/raw/camN` as `EncodedImage`. Keeping raw and keyframe images below the
-common `images` root gives Rerun one clearly named 2D image view instead of an
-ambiguous auto-generated `/` spatial view. The decoded color image updates the
-matching camera mesh texture only when the texture stride selects that bundle.
+Their original compressed byte payloads are logged unchanged as `EncodedImage`
+on each matching semantic pinhole image entity. If a raw topic has no matching
+calibrated camera, it is logged at `images/raw/camN` instead.
 `raw_sync_pending_capacity` bounds incomplete timestamps. Raw bytes are never
-modified or re-encoded. Raw `EncodedImage` logging remains on every complete
-raw bundle even when mesh geometry or texture updates are disabled. When raw
-topics are configured, they are authoritative for mesh textures and mono
-keyframes do not overwrite them; without raw topics, keyframe images provide
-the texture fallback.
+decoded, modified, or re-encoded.
 
-Point clouds use `point_radius_ui_points` UI points (default `3.0`) for visible
+Point clouds use `point_radius_ui_points` UI points (default `1.5`) for visible
 landmarks while preserving per-point colors. During bag replay, complete raw
 image/keyframe bundles, paths, and selected odometry poses establish the
 trusted sensor clock. PointCloud2 snapshots use the newest trusted timestamp
@@ -218,8 +172,8 @@ received visualization updates.
 
 The bridge records matched landmarks and the colored global map below
 `world/points`, the OKVIS and loop-closure paths below `world/paths` with
-distinct RViz-like colors, synchronized keyframe images/poses, optional camera
-meshes and raw compressed payloads, and camera-frustum markers below
+distinct RViz-like colors, synchronized keyframe images/poses, optional raw
+compressed camera payloads, and camera-frustum markers below
 `world/visualization`.
 TF is not bridged yet. Existing pose-graph topics also do not publish the
 corrected path and global map atomically at loop closure; a pose-graph revision

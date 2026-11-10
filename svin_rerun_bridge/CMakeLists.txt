@@ -17,7 +17,7 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgcodecs imgproc)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
 
 # Keep this URL pinned to the official SDK bundle for the API used by this
 # package. Do not replace it with the moving "latest" URL.
@@ -32,7 +32,6 @@ FetchContent_MakeAvailable(rerun_sdk)
 add_library(${PROJECT_NAME}_conversions STATIC
   src/conversions.cpp
   src/compressed_image_bundle.cpp
-  src/double_sphere.cpp
   src/pinhole.cpp
 )
 target_include_directories(${PROJECT_NAME}_conversions
@@ -115,12 +114,6 @@ if(BUILD_TESTING)
     visualization_msgs
     cv_bridge
   )
-
-  ament_add_gtest(test_double_sphere
-    test/test_double_sphere.cpp
-  )
-  target_link_libraries(test_double_sphere ${PROJECT_NAME}_conversions)
-  ament_target_dependencies(test_double_sphere sensor_msgs)
 
   ament_add_gtest(test_pinhole
     test/test_pinhole.cpp

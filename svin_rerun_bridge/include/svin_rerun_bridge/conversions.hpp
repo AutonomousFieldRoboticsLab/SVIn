@@ -63,13 +63,6 @@ struct JpegImage {
   std::uint32_t height{0};
 };
 
-/// An uncompressed RGB image suitable for a Rerun Mesh3D albedo texture.
-struct RgbImage {
-  std::vector<std::uint8_t> bytes;
-  std::uint32_t width{0};
-  std::uint32_t height{0};
-};
-
 /// A complete set of keyframe images for one ROS header timestamp.
 ///
 /// The image vector is ordered by camera index, not by callback arrival order.
@@ -161,13 +154,7 @@ private:
 /// Normalize the supported moving-rig pose source name. Unknown values use
 /// pose_graph, which is the source shared with the pose-graph frusta by
 /// default.
-[[nodiscard]] std::string normalize_mesh_pose_source(const std::string & source);
-
-/// Return whether a complete bundle should update a mesh texture. Bundle
-/// counts are one-based: the first bundle and every Nth bundle thereafter are
-/// selected. A stride of zero or one selects every bundle.
-[[nodiscard]] bool mesh_texture_update_due(
-  std::size_t bundle_count, std::size_t stride) noexcept;
+[[nodiscard]] std::string normalize_camera_pose_source(const std::string & source);
 
 /// Decode the common PointCloud2 XYZ/RGB layouts used by SVIn.
 ///
@@ -192,22 +179,6 @@ private:
 [[nodiscard]] std::optional<JpegImage> encode_jpeg(
   const sensor_msgs::msg::Image & message,
   int quality,
-  std::string * error = nullptr);
-
-/// Convert a ROS Image to tightly packed RGB U8 pixels, optionally limiting
-/// the output width while preserving aspect ratio. This is intentionally
-/// separate from encode_jpeg because Mesh3D textures require raw RGB bytes.
-[[nodiscard]] std::optional<RgbImage> to_rgb8(
-  const sensor_msgs::msg::Image & message,
-  int max_width = 0,
-  std::string * error = nullptr);
-
-/// Decode a CompressedImage to tightly packed RGB U8 pixels, optionally
-/// limiting output width while preserving aspect ratio. The encoded payload is
-/// never modified; callers can log it independently as an EncodedImage.
-[[nodiscard]] std::optional<RgbImage> decode_compressed_rgb8(
-  const sensor_msgs::msg::CompressedImage & message,
-  int max_width = 0,
   std::string * error = nullptr);
 
 /// Build a stable entity path for one visualization marker.

@@ -40,9 +40,6 @@ std::string normalize_camera_model(std::string camera_model)
   std::transform(
     camera_model.begin(), camera_model.end(), camera_model.begin(),
     [](unsigned char character) {return static_cast<char>(std::tolower(character));});
-  if (camera_model == "ds") {
-    return "double_sphere";
-  }
   return camera_model;
 }
 
@@ -185,31 +182,6 @@ Matrix4 inverse_rigid(const Matrix4 & transform)
   return result;
 }
 
-rerun::Mesh3D mesh_archetype(const DoubleSphereMesh & mesh)
-{
-  std::vector<rerun::Position3D> positions;
-  positions.reserve(mesh.vertices.size());
-  for (const auto & vertex : mesh.vertices) {
-    positions.emplace_back(vertex[0], vertex[1], vertex[2]);
-  }
-  std::vector<rerun::TriangleIndices> triangles;
-  triangles.reserve(mesh.triangles.size());
-  for (const auto & triangle : mesh.triangles) {
-    triangles.emplace_back(triangle[0], triangle[1], triangle[2]);
-  }
-  std::vector<rerun::components::Texcoord2D> texcoords;
-  texcoords.reserve(mesh.texcoords.size());
-  for (const auto & texcoord : mesh.texcoords) {
-    texcoords.emplace_back(texcoord[0], texcoord[1]);
-  }
-  return rerun::Mesh3D(
-    rerun::Collection<rerun::Position3D>::take_ownership(std::move(positions)))
-    .with_triangle_indices(
-      rerun::Collection<rerun::TriangleIndices>::take_ownership(std::move(triangles)))
-    .with_vertex_texcoords(
-      rerun::Collection<rerun::components::Texcoord2D>::take_ownership(std::move(texcoords)));
-}
-
 std::optional<rerun::MediaType> media_type_for_format(const std::string & format)
 {
   std::string lower;
@@ -241,12 +213,6 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
   declare_parameter<std::string>("okvis_config", "");
   declare_parameter<std::string>("camera_model", "pinhole");
   declare_parameter<std::string>("camera_rendering.pose_source", "pose_graph");
-  declare_parameter<bool>("camera_rendering.double_sphere.enable_mesh", true);
-  declare_parameter<bool>("camera_rendering.double_sphere.enable_texture_updates", true);
-  declare_parameter<int>("camera_rendering.double_sphere.texture_stride", 10);
-  declare_parameter<double>("camera_rendering.double_sphere.depth", 0.35);
-  declare_parameter<int>("camera_rendering.double_sphere.grid", 31);
-  declare_parameter<int>("camera_rendering.double_sphere.texture_max_width", 128);
   declare_parameter<double>("camera_rendering.pinhole.image_plane_distance", 0.35);
   declare_parameter<double>("camera_rendering.pinhole.line_width_ui_points", 1.5);
   declare_parameter<double>("point_radius_ui_points", 1.5);
@@ -280,40 +246,20 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     std::max<std::int64_t>(configured_keyframe_subscription_depth, 1));
   okvis_config_ = get_parameter("okvis_config").as_string();
   camera_model_ = normalize_camera_model(get_parameter("camera_model").as_string());
-  if (camera_model_ != "double_sphere" && camera_model_ != "pinhole") {
+  if (camera_model_ != "pinhole") {
     RCLCPP_WARN(
-      get_logger(), "Unsupported camera_model '%s'; using 'pinhole'",
+      get_logger(), "Unsupported camera_model '%s'; only 'pinhole' is supported",
       camera_model_.c_str());
     camera_model_ = "pinhole";
   }
-  enable_double_sphere_mesh_ =
-    get_parameter("camera_rendering.double_sphere.enable_mesh").as_bool();
-  const auto configured_mesh_pose_source =
+  const auto configured_camera_pose_source =
     get_parameter("camera_rendering.pose_source").as_string();
-  mesh_pose_source_ = normalize_mesh_pose_source(configured_mesh_pose_source);
-  if (mesh_pose_source_ != configured_mesh_pose_source) {
+  camera_pose_source_ = normalize_camera_pose_source(configured_camera_pose_source);
+  if (camera_pose_source_ != configured_camera_pose_source) {
     RCLCPP_WARN(
       get_logger(), "Unsupported camera_rendering.pose_source '%s'; using '%s'",
-      configured_mesh_pose_source.c_str(), mesh_pose_source_.c_str());
+      configured_camera_pose_source.c_str(), camera_pose_source_.c_str());
   }
-  enable_mesh_texture_updates_ =
-    get_parameter("camera_rendering.double_sphere.enable_texture_updates").as_bool();
-  const auto configured_texture_stride =
-    get_parameter("camera_rendering.double_sphere.texture_stride").as_int();
-  mesh_texture_stride_ = static_cast<std::size_t>(
-    std::max<std::int64_t>(configured_texture_stride, 1));
-  const auto configured_depth =
-    get_parameter("camera_rendering.double_sphere.depth").as_double();
-  if (std::isfinite(configured_depth) && configured_depth > 0.0) {
-    double_sphere_depth_ = static_cast<float>(configured_depth);
-  } else {
-    RCLCPP_WARN(
-      get_logger(), "camera_rendering.double_sphere.depth must be finite and positive; using %.3f",
-      double_sphere_depth_);
-  }
-  const auto configured_grid =
-    get_parameter("camera_rendering.double_sphere.grid").as_int();
-  double_sphere_grid_ = std::max<std::int64_t>(configured_grid, 2);
   const auto configured_pinhole_distance =
     get_parameter("camera_rendering.pinhole.image_plane_distance").as_double();
   if (std::isfinite(configured_pinhole_distance) && configured_pinhole_distance > 0.0) {
@@ -334,8 +280,6 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
       "camera_rendering.pinhole.line_width_ui_points must be finite and positive; using %.1f",
       pinhole_line_width_ui_points_);
   }
-  texture_max_width_ = std::max<std::int64_t>(
-    get_parameter("camera_rendering.double_sphere.texture_max_width").as_int(), 1);
   const auto configured_point_radius = get_parameter("point_radius_ui_points").as_double();
   if (std::isfinite(configured_point_radius) && configured_point_radius > 0.0) {
     point_radius_ui_points_ = static_cast<float>(configured_point_radius);
@@ -433,31 +377,6 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
       "Both Rerun sinks are disabled; the bridge will subscribe but will not buffer data");
   }
 
-  if (logging_enabled_ && camera_model_ == "double_sphere" && enable_double_sphere_mesh_) {
-    if (okvis_config_.empty()) {
-      RCLCPP_WARN(
-        get_logger(),
-        "Double-sphere mesh rendering is enabled but okvis_config is empty; camera meshes are disabled");
-    } else {
-      std::string error;
-      const auto cameras = load_double_sphere_cameras(okvis_config_, &error);
-      if (!cameras.has_value()) {
-        RCLCPP_ERROR(
-          get_logger(), "Cannot load double-sphere camera meshes from %s: %s",
-          okvis_config_.c_str(), error.c_str());
-      } else {
-        double_sphere_cameras_ = *cameras;
-        if (double_sphere_cameras_.size() != keyframe_image_topics_.size()) {
-          RCLCPP_WARN(
-            get_logger(),
-            "Calibration contains %zu cameras but %zu keyframe image topics are configured",
-            double_sphere_cameras_.size(), keyframe_image_topics_.size());
-        }
-        log_static_double_sphere_scene();
-      }
-    }
-  }
-
   if (logging_enabled_ && camera_model_ == "pinhole") {
     if (okvis_config_.empty()) {
       RCLCPP_WARN(
@@ -506,7 +425,7 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
       on_path(message, "world/paths/loop_closure", Rgba8{25U, 255U, 0U, 255U}, 0.015F);
     });
   if (odometry_topic_.empty()) {
-    if (mesh_pose_source_ == "odometry") {
+    if (camera_pose_source_ == "odometry") {
       RCLCPP_WARN(
         get_logger(),
         "camera_rendering.pose_source is odometry but odometry_topic is empty; "
@@ -576,19 +495,16 @@ SvinRerunBridge::SvinRerunBridge(const rclcpp::NodeOptions & options)
     get_logger(),
     "Rerun bridge ready (live=%s, file=%s, JPEG quality=%d, keyframe cameras=%zu, "
     "pose=%s, pending capacity=%zu, raw cameras=%zu, raw pending capacity=%zu, "
-    "keyframe QoS=reliable/%zu, mesh pose source=%s, odometry=%s, "
-    "camera model=%s, double-sphere mesh=%s, pinhole=%s, visualization markers=%s, "
-    "texture updates=%s/stride=%zu)",
+    "keyframe QoS=reliable/%zu, camera pose source=%s, odometry=%s, "
+    "camera model=%s, pinhole=%s, visualization markers=%s)",
     enable_live ? "enabled" : "disabled", use_file_sink ? rrd_path.c_str() : "disabled",
     jpeg_quality_, keyframe_image_topics_.size(), keyframe_pose_required ? "required" : "optional",
     keyframe_pending_capacity, raw_compressed_image_topics_.size(), raw_sync_pending_capacity_,
     keyframe_subscription_depth_,
-    mesh_pose_source_.c_str(), odometry_topic_.empty() ? "disabled" : odometry_topic_.c_str(),
+    camera_pose_source_.c_str(), odometry_topic_.empty() ? "disabled" : odometry_topic_.c_str(),
     camera_model_.c_str(),
-    double_sphere_cameras_.empty() ? "disabled" : "enabled",
     pinhole_cameras_.empty() ? "disabled" : "enabled",
-    enable_visualization_markers ? "enabled" : "disabled",
-    enable_mesh_texture_updates_ ? "enabled" : "disabled", mesh_texture_stride_);
+    enable_visualization_markers ? "enabled" : "disabled");
 }
 
 SvinRerunBridge::~SvinRerunBridge()
@@ -610,43 +526,6 @@ void SvinRerunBridge::begin_update(const builtin_interfaces::msg::Time & sensor_
 void SvinRerunBridge::clear_entity(const std::string & entity_path, bool recursive)
 {
   recording_->log(entity_path, recursive ? rerun::Clear::RECURSIVE : rerun::Clear::FLAT);
-}
-
-void SvinRerunBridge::log_static_double_sphere_scene()
-{
-  if (!should_log() || double_sphere_cameras_.empty()) {
-    return;
-  }
-
-  // The bridge declares a single world convention for all entities. Camera
-  // vertices remain in each camera's optical frame. Their moving world pose
-  // is logged separately, so no static transform can shadow it.
-  recording_->log_static("world", rerun::ViewCoordinates::RIGHT_HAND_Z_UP);
-
-  for (std::size_t camera_index = 0U; camera_index < double_sphere_cameras_.size();
-    ++camera_index)
-  {
-    const auto & camera = double_sphere_cameras_[camera_index];
-    const auto entity_path = "world/cameras/cam" + std::to_string(camera_index);
-
-    const auto mesh = make_double_sphere_mesh(
-      camera, double_sphere_depth_, double_sphere_grid_);
-    if (mesh.vertices.empty() || mesh.triangles.empty() ||
-      mesh.vertices.size() != mesh.texcoords.size())
-    {
-      RCLCPP_WARN(
-        get_logger(), "Skipping empty or malformed double-sphere mesh for camera %zu",
-        camera_index);
-      continue;
-    }
-    recording_->log_static(entity_path, mesh_archetype(mesh));
-  }
-  RCLCPP_INFO(
-    get_logger(),
-    "Logged static double-sphere scene for %zu cameras (depth=%.3f m, grid=%d, "
-    "world convention=RIGHT_HAND_Z_UP, root=%s)",
-    double_sphere_cameras_.size(), double_sphere_depth_, double_sphere_grid_,
-    mesh_pose_source_.c_str());
 }
 
 void SvinRerunBridge::log_static_pinhole_scene()
@@ -749,7 +628,7 @@ void SvinRerunBridge::on_path(
   const auto snapshot = path_snapshot(*message);
 
   clear_entity(entity_path);
-  if (mesh_pose_source_ == "pose_graph" && entity_path == "world/paths/loop_closure" &&
+  if (camera_pose_source_ == "pose_graph" && entity_path == "world/paths/loop_closure" &&
     !message->poses.empty())
   {
     // CameraPoseVisualization uses the last loop-closure pose as the current
@@ -837,7 +716,7 @@ void SvinRerunBridge::on_odometry(
   const nav_msgs::msg::Odometry::ConstSharedPtr & message,
   const std::string & topic)
 {
-  if (!should_log() || message == nullptr || mesh_pose_source_ != "odometry") {
+  if (!should_log() || message == nullptr || camera_pose_source_ != "odometry") {
     return;
   }
 
@@ -866,21 +745,16 @@ void SvinRerunBridge::log_world_rig_pose(const geometry_msgs::msg::Pose & pose)
 
 void SvinRerunBridge::log_world_camera_poses(const geometry_msgs::msg::Pose & pose)
 {
-  if (double_sphere_cameras_.empty() && pinhole_cameras_.empty()) {
+  if (pinhole_cameras_.empty()) {
     return;
   }
 
   const auto world_from_rig = pose_to_matrix(pose);
-  const bool root_is_odometry = mesh_pose_source_ == "odometry";
-  const auto log_camera_transforms = [this, &world_from_rig, root_is_odometry](
-      const auto & cameras) {
-    if (cameras.empty()) {
-      return;
-    }
-    const auto inverse_camera0 = root_is_odometry ? Matrix4{} :
-      inverse_rigid(cameras.front().T_SC);
-    for (std::size_t camera_index = 0U; camera_index < cameras.size(); ++camera_index) {
-      const auto & camera = cameras[camera_index];
+  const bool root_is_odometry = camera_pose_source_ == "odometry";
+  const auto inverse_camera0 = root_is_odometry ? Matrix4{} :
+    inverse_rigid(pinhole_cameras_.front().T_SC);
+  for (std::size_t camera_index = 0U; camera_index < pinhole_cameras_.size(); ++camera_index) {
+    const auto & camera = pinhole_cameras_[camera_index];
     // Pose-graph/keyframe roots are C0:
     //   T_WCi = T_WC0 * inv(T_SC0) * T_SCi.
     // Odometry roots are the sensor/body frame (T_BS=I for this dataset):
@@ -891,10 +765,7 @@ void SvinRerunBridge::log_world_camera_poses(const geometry_msgs::msg::Pose & po
     recording_->log(
       "world/cameras/cam" + std::to_string(camera_index),
       transform_from_matrix(world_from_camera));
-    }
-  };
-  log_camera_transforms(double_sphere_cameras_);
-  log_camera_transforms(pinhole_cameras_);
+  }
 }
 
 void SvinRerunBridge::remember_trusted_sensor_stamp(
@@ -915,17 +786,8 @@ void SvinRerunBridge::on_image_bundle(const KeyframeImageBundle & bundle)
   remember_trusted_sensor_stamp(bundle.stamp);
   begin_update(bundle.stamp);
 
-  if (mesh_pose_source_ == "keyframe" && bundle.pose != nullptr) {
+  if (camera_pose_source_ == "keyframe" && bundle.pose != nullptr) {
     log_world_rig_pose(bundle.pose->pose.pose);
-  }
-
-  const bool raw_images_configured = !raw_compressed_image_topics_.empty();
-  bool update_mesh_textures = false;
-  if (!raw_images_configured && enable_double_sphere_mesh_ &&
-    enable_mesh_texture_updates_ && !double_sphere_cameras_.empty())
-  {
-    update_mesh_textures = mesh_texture_update_due(
-      ++keyframe_texture_bundle_count_, mesh_texture_stride_);
   }
 
   for (std::size_t camera_index = 0U; camera_index < bundle.images.size(); ++camera_index) {
@@ -949,41 +811,7 @@ void SvinRerunBridge::on_image_bundle(const KeyframeImageBundle & bundle)
         get_logger(), "Skipping JPEG image on %s: %s", image_entity_path.c_str(), error.c_str());
     }
 
-    // Keep the static Mesh3D geometry/UV/triangles and replace only its
-    // albedo texture fields. Mesh3D::update_fields is essential here: logging
-    // a fresh mesh would make every keyframe resend the static geometry.
-    if (!update_mesh_textures || camera_index >= double_sphere_cameras_.size()) {
-      continue;
-    }
-    error.clear();
-    auto texture = to_rgb8(*image_message, texture_max_width_, &error);
-    if (!texture.has_value()) {
-      RCLCPP_WARN(
-        get_logger(), "Skipping mesh texture for camera %zu: %s", camera_index, error.c_str());
-      continue;
-    }
-    log_mesh_texture(camera_index, std::move(*texture));
   }
-}
-
-void SvinRerunBridge::log_mesh_texture(std::size_t camera_index, RgbImage texture)
-{
-  if (camera_index >= double_sphere_cameras_.size() || texture.width == 0U ||
-    texture.height == 0U)
-  {
-    return;
-  }
-  auto texture_buffer = rerun::components::ImageBuffer(
-    rerun::Collection<std::uint8_t>::take_ownership(std::move(texture.bytes)));
-  const auto texture_format = rerun::components::ImageFormat(
-    rerun::WidthHeight{texture.width, texture.height},
-    rerun::ColorModel::RGB, rerun::ChannelDatatype::U8);
-  const auto mesh_entity_path = "world/cameras/cam" + std::to_string(camera_index);
-  recording_->log(
-    mesh_entity_path,
-    rerun::Mesh3D::update_fields()
-      .with_albedo_texture_buffer(texture_buffer)
-      .with_albedo_texture_format(texture_format));
 }
 
 void SvinRerunBridge::on_raw_image(
@@ -1028,9 +856,6 @@ void SvinRerunBridge::on_raw_image_bundle(const CompressedImageBundle & bundle)
   std::lock_guard<std::mutex> lock(recording_mutex_);
   remember_trusted_sensor_stamp(bundle.stamp);
   begin_update(bundle.stamp);
-  const bool update_mesh_textures = enable_double_sphere_mesh_ &&
-    enable_mesh_texture_updates_ && !double_sphere_cameras_.empty() &&
-    mesh_texture_update_due(++raw_texture_bundle_count_, mesh_texture_stride_);
   for (std::size_t camera_index = 0U; camera_index < bundle.images.size(); ++camera_index) {
     const auto & image = bundle.images[camera_index];
     if (image == nullptr) {
@@ -1045,19 +870,6 @@ void SvinRerunBridge::on_raw_image_bundle(const CompressedImageBundle & bundle)
       rerun::EncodedImage::from_bytes(
         rerun::Collection<std::uint8_t>::take_ownership(std::move(bytes)),
         media_type_for_format(image->format)));
-
-    if (!update_mesh_textures || camera_index >= double_sphere_cameras_.size()) {
-      continue;
-    }
-    std::string error;
-    const auto texture = decode_compressed_rgb8(*image, texture_max_width_, &error);
-    if (!texture.has_value()) {
-      RCLCPP_WARN(
-        get_logger(), "Skipping raw mesh texture for camera %zu: %s",
-        camera_index, error.c_str());
-      continue;
-    }
-    log_mesh_texture(camera_index, std::move(*texture));
   }
 }
 

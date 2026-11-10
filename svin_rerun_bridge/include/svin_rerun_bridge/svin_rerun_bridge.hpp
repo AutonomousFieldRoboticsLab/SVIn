@@ -2,7 +2,6 @@
 
 #include "svin_rerun_bridge/compressed_image_bundle.hpp"
 #include "svin_rerun_bridge/conversions.hpp"
-#include "svin_rerun_bridge/double_sphere.hpp"
 #include "svin_rerun_bridge/pinhole.hpp"
 
 #include <rclcpp/rclcpp.hpp>
@@ -50,9 +49,7 @@ private:
   void on_raw_image_bundle(const CompressedImageBundle & bundle);
   void on_markers(const visualization_msgs::msg::MarkerArray::ConstSharedPtr & message);
 
-  void log_static_double_sphere_scene();
   void log_static_pinhole_scene();
-  void log_mesh_texture(std::size_t camera_index, RgbImage texture);
   void log_world_rig_pose(const geometry_msgs::msg::Pose & pose);
   void log_world_camera_poses(const geometry_msgs::msg::Pose & pose);
   void remember_trusted_sensor_stamp(const builtin_interfaces::msg::Time & stamp);
@@ -66,16 +63,10 @@ private:
   std::int64_t processing_step_{0};
   int jpeg_quality_{85};
   std::size_t keyframe_subscription_depth_{32U};
-  int texture_max_width_{256};
-  float double_sphere_depth_{0.35F};
-  int double_sphere_grid_{31};
   float point_radius_ui_points_{2.0F};
-  bool enable_double_sphere_mesh_{true};
-  bool enable_mesh_texture_updates_{true};
-  std::size_t mesh_texture_stride_{10U};
   bool logging_enabled_{false};
   std::string camera_model_{"pinhole"};
-  std::string mesh_pose_source_{"pose_graph"};
+  std::string camera_pose_source_{"pose_graph"};
   float pinhole_image_plane_distance_{0.35F};
   float pinhole_line_width_ui_points_{1.5F};
 
@@ -107,10 +98,7 @@ private:
   std::unique_ptr<CompressedImageBundleAssembler> raw_image_assembler_;
   std::mutex raw_image_mutex_;
   std::size_t raw_sync_pending_capacity_{32U};
-  std::size_t keyframe_texture_bundle_count_{0U};
-  std::size_t raw_texture_bundle_count_{0U};
   std::optional<builtin_interfaces::msg::Time> latest_trusted_sensor_stamp_;
-  std::vector<DoubleSphereCamera> double_sphere_cameras_;
   std::vector<PinholeCamera> pinhole_cameras_;
 };
 

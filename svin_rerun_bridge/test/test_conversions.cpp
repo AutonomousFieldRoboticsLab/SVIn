@@ -214,58 +214,6 @@ TEST(Conversions, MonoImageIsEncodedAsJpeg)
   EXPECT_EQ(svin_rerun_bridge::clamp_jpeg_quality(101), 100);
 }
 
-TEST(Conversions, RgbTextureIsPackedAndWidthLimited)
-{
-  sensor_msgs::msg::Image message;
-  message.width = 4;
-  message.height = 2;
-  message.encoding = sensor_msgs::image_encodings::MONO8;
-  message.step = 4;
-  message.data = {0U, 64U, 128U, 255U, 16U, 80U, 144U, 240U};
-
-  std::string error;
-  const auto result = svin_rerun_bridge::to_rgb8(message, 2, &error);
-  ASSERT_TRUE(result.has_value()) << error;
-  EXPECT_EQ(result->width, 2U);
-  EXPECT_EQ(result->height, 1U);
-  ASSERT_EQ(result->bytes.size(), 6U);
-  EXPECT_EQ(result->bytes[0], result->bytes[1]);
-  EXPECT_EQ(result->bytes[1], result->bytes[2]);
-  EXPECT_EQ(result->bytes[3], result->bytes[4]);
-  EXPECT_EQ(result->bytes[4], result->bytes[5]);
-}
-
-TEST(Conversions, CompressedColorDecodesToRgbAndCanBeDownsampled)
-{
-  cv::Mat bgr(1, 2, CV_8UC3);
-  bgr.at<cv::Vec3b>(0, 0) = cv::Vec3b(1U, 2U, 3U);
-  bgr.at<cv::Vec3b>(0, 1) = cv::Vec3b(4U, 5U, 6U);
-  std::vector<std::uint8_t> encoded;
-  ASSERT_TRUE(cv::imencode(".png", bgr, encoded));
-
-  sensor_msgs::msg::CompressedImage message;
-  message.format = "png";
-  message.data = encoded;
-  std::string error;
-  const auto result = svin_rerun_bridge::decode_compressed_rgb8(message, 0, &error);
-  ASSERT_TRUE(result.has_value()) << error;
-  EXPECT_EQ(result->width, 2U);
-  EXPECT_EQ(result->height, 1U);
-  ASSERT_EQ(result->bytes.size(), 6U);
-  EXPECT_EQ(result->bytes[0], 3U);
-  EXPECT_EQ(result->bytes[1], 2U);
-  EXPECT_EQ(result->bytes[2], 1U);
-  EXPECT_EQ(result->bytes[3], 6U);
-  EXPECT_EQ(result->bytes[4], 5U);
-  EXPECT_EQ(result->bytes[5], 4U);
-
-  const auto resized = svin_rerun_bridge::decode_compressed_rgb8(message, 1, &error);
-  ASSERT_TRUE(resized.has_value()) << error;
-  EXPECT_EQ(resized->width, 1U);
-  EXPECT_EQ(resized->height, 1U);
-  EXPECT_EQ(resized->bytes.size(), 3U);
-}
-
 TEST(Conversions, StampUsesNanoseconds)
 {
   builtin_interfaces::msg::Time stamp;
@@ -375,21 +323,10 @@ TEST(Conversions, KeyframeTopicsSupportExplicitListAndPatterns)
   EXPECT_EQ(percent_topics, (std::vector<std::string>{"/camera_0", "/camera_1"}));
 }
 
-TEST(Conversions, MeshPoseSourceDefaultsSafely)
+TEST(Conversions, CameraPoseSourceDefaultsSafely)
 {
-  EXPECT_EQ(svin_rerun_bridge::normalize_mesh_pose_source("pose_graph"), "pose_graph");
-  EXPECT_EQ(svin_rerun_bridge::normalize_mesh_pose_source("odometry"), "odometry");
-  EXPECT_EQ(svin_rerun_bridge::normalize_mesh_pose_source("keyframe"), "keyframe");
-  EXPECT_EQ(svin_rerun_bridge::normalize_mesh_pose_source("unsupported"), "pose_graph");
-}
-
-TEST(Conversions, MeshTextureStrideSelectsFirstAndEveryNthBundle)
-{
-  EXPECT_FALSE(svin_rerun_bridge::mesh_texture_update_due(0U, 6U));
-  EXPECT_TRUE(svin_rerun_bridge::mesh_texture_update_due(1U, 6U));
-  EXPECT_FALSE(svin_rerun_bridge::mesh_texture_update_due(2U, 6U));
-  EXPECT_FALSE(svin_rerun_bridge::mesh_texture_update_due(5U, 6U));
-  EXPECT_TRUE(svin_rerun_bridge::mesh_texture_update_due(6U, 6U));
-  EXPECT_TRUE(svin_rerun_bridge::mesh_texture_update_due(1U, 0U));
-  EXPECT_TRUE(svin_rerun_bridge::mesh_texture_update_due(2U, 0U));
+  EXPECT_EQ(svin_rerun_bridge::normalize_camera_pose_source("pose_graph"), "pose_graph");
+  EXPECT_EQ(svin_rerun_bridge::normalize_camera_pose_source("odometry"), "odometry");
+  EXPECT_EQ(svin_rerun_bridge::normalize_camera_pose_source("keyframe"), "keyframe");
+  EXPECT_EQ(svin_rerun_bridge::normalize_camera_pose_source("unsupported"), "pose_graph");
 }

@@ -37,8 +37,8 @@ def launch_setup(context, *args, **kwargs):
       'mesh_file': 'firefly.dae',
       'synchronized_compressed_images': True,
       'synchronized_compressed_camera_topics': [
-        '/a6/camera/left/image_raw/compressed',
-        '/a6/camera/right/image_raw/compressed'
+        LaunchConfiguration('left_compressed_image_topic'),
+        LaunchConfiguration('right_compressed_image_topic')
       ],
       'synchronized_compressed_queue_size': 100,
       'synchronized_compressed_log_counters': False,
@@ -69,7 +69,7 @@ def launch_setup(context, *args, **kwargs):
     condition=IfCondition(LaunchConfiguration('use_pose_graph')),
     output='screen',
     parameters=[{
-      'compressed_img_topic': '/a6/camera/left/image_raw/compressed',
+      'compressed_img_topic': LaunchConfiguration('left_compressed_image_topic'),
       'ouput_img_topic': '/cam0/image_raw'
     }]
   )

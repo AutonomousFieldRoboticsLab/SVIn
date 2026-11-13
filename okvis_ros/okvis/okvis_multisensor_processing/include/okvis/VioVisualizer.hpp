@@ -44,6 +44,7 @@
 #define INCLUDE_OKVIS_VIOVISUALIZER_HPP_
 
 #include <memory>
+#include <vector>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
@@ -96,6 +97,10 @@ class VioVisualizer {
    */
   cv::Mat drawMatches(VisualizationData::Ptr& data, size_t image_number);  // NOLINT
 
+  static const char* debugWindowName() { return "OKVIS cameras"; }
+  static void createDebugWindow();
+  static cv::Mat composeOverview(const std::vector<cv::Mat>& images);
+
  private:
   /**
    * @brief Circles all keypoints in the current frame and returns the result.
@@ -107,6 +112,7 @@ class VioVisualizer {
 
   /// Parameters and settings.
   okvis::VioParameters parameters_;
+  bool debugWindowCreated_ = false;
 };
 
 } /* namespace okvis */

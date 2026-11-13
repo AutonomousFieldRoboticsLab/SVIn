@@ -227,7 +227,7 @@ class Publisher {
   // Added by Sharmin
   // void publishSteroPointCloudAsCallback(const okvis::Time & t, const std::vector<Eigen::Vector3d> & stereoMatched);
   void publishKeyframeAsCallback(const okvis::Time& t,
-                                 const cv::Mat& imageL,
+                                 const std::vector<cv::Mat>& images,
                                  const okvis::kinematics::Transformation& T_WCa,
                                  std::vector<std::list<std::vector<double> > >& keyframePoints);  // NOLINT
   void publishRelocRelativePoseAsCallback(const okvis::Time& t,
@@ -322,6 +322,8 @@ class Publisher {
   // image_transport::ImageTransport imageTransportKeyframeImageL_; ///< Sharmin: The image transporter for keyframe
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr
       pubKeyframeImageL_;  ///< Sharmin: The publisher for Keyframe image left.
+  std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr>
+      pubKeyframeImages_;  ///< Per-camera keyframe image publishers for multicamera visualization.
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
       pubKeyframePose_;  ///< Sharmin: The publisher for Keyframe pose.
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr

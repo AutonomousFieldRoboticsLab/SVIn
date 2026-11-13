@@ -35,6 +35,8 @@
   <depend>nav_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>image_transport</depend>
+  <depend>message_filters</depend>
+  <exec_depend>svin_rerun_bridge</exec_depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
 

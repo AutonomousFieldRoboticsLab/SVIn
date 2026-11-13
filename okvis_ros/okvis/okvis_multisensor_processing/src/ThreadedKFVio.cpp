@@ -1231,8 +1231,11 @@ void ThreadedKFVio::optimizationLoop() {
             PointMap lmMap;  // get a copy of landmarksMap_
             estimator_.getLandmarks(lmMap);
 
-            const size_t CamIndexA = 0;                                 // for left camera
-            cv::Mat image_l = frame_pairs->frames_[CamIndexA].image();  // image to publish
+            const size_t CamIndexA = 0;  // primary camera used by the pose-graph keyframe data
+            std::vector<cv::Mat> keyframeImages(frame_pairs->numFrames());
+            for (size_t cameraIndex = 0; cameraIndex < frame_pairs->numFrames(); ++cameraIndex) {
+              keyframeImages[cameraIndex] = frame_pairs->frames_[cameraIndex].image();
+            }
 
             std::vector<std::list<std::vector<double>>> kf_points;
             int num_keypoint = 0;
@@ -1314,7 +1317,7 @@ void ThreadedKFVio::optimizationLoop() {
 
             okvis::kinematics::Transformation T_WCa =
                 lastOptimized_T_WS_ * (*parameters_.nCameraSystem.T_SC(CamIndexA));
-            keyframeCallback_(lastOptimizedStateTimestamp_, image_l, T_WCa, kf_points);
+            keyframeCallback_(lastOptimizedStateTimestamp_, keyframeImages, T_WCa, kf_points);
 
             std::cout << "Keyframe Index: " << kf_index_ << std::endl;
             kf_index_++;

@@ -1,0 +1,43 @@
+svin_rerun_bridge:
+  ros__parameters:
+    application_id: svin_rerun_pinhole
+    enable_live: true
+    enable_recording: false
+    rrd_path: ""
+    viewer_url: rerun+http://127.0.0.1:9876/proxy
+    jpeg_quality: 75
+
+    # The launch file overrides this with the active OKVIS calibration.
+    okvis_config: ""
+    camera_model: pinhole
+    camera_rendering:
+      pose_source: pose_graph
+      pinhole:
+        image_plane_distance: 0.35
+        line_width_ui_points: 1.5
+
+    # The original JPEG payload is passed directly to Rerun without decoding
+    # or recompression and is logged on the semantic Pinhole image entity.
+    # Sensor launch files provide raw_compressed_image_topics with one topic
+    # per calibrated camera, in the same order as the OKVIS cameras sequence.
+    raw_sync_pending_capacity: 32
+
+    point_radius_ui_points: 1.5
+    points_matched_topic: /okvis_points_matched
+    global_map_topic: /global_map
+    okvis_path_topic: /okvis_path
+    loop_closure_path_topic: /loop_closure_path
+    odometry_topic: /okvis_odometry
+
+    keyframe_pose_topic: /keyframe_pose
+    keyframe_pose_required: true
+    keyframe_subscription_depth: 32
+    # Sensor launch files provide keyframe_image_count for the calibrated rig.
+    keyframe_image_topic_pattern: /keyframe_image_{index}
+    keyframe_sync_pending_capacity: 32
+
+    # The pose graph publishes a manually drawn camera frustum here. Disable
+    # it for pinhole cameras because Rerun's semantic Pinhole already supplies
+    # the calibrated, image-projected frustum.
+    enable_visualization_markers: false
+    visualization_topic: /visualization

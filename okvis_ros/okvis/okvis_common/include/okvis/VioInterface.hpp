@@ -86,7 +86,7 @@ class VioInterface {
       LandmarksCallback;
 
   typedef std::function<void(const okvis::Time&,
-                             const cv::Mat&,
+                             const std::vector<cv::Mat>&,
                              const okvis::kinematics::Transformation&,
                              std::vector<std::list<std::vector<double>>>&)>
       KeyframeCallback;
